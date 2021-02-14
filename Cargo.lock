@@ -515,6 +515,7 @@ version = "0.1.0"
 dependencies = [
  "baseplug",
  "hexotk",
+ "ringbuf",
  "serde",
  "serde_json",
 ]
@@ -1045,6 +1046,12 @@ checksum = "287f3c3f8236abb92d8b7e36797f19159df4b58f0a658cc3fb6dd3004b1f3bd3"
 dependencies = [
  "bytemuck",
 ]
+
+[[package]]
+name = "ringbuf"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "930c1d8c4c3341099e662d45a884aa8047ab659bfb579747a48598bb86aae062"
 
 [[package]]
 name = "rusttype"

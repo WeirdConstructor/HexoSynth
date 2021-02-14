@@ -1,6 +1,8 @@
 #![allow(incomplete_features)]
 #![feature(generic_associated_types)]
 
+mod nodes;
+
 use serde::{Serialize, Deserialize};
 
 use baseplug::{
@@ -72,10 +74,61 @@ impl Default for HexoSynthModel {
     }
 }
 
+/*
+
+Requirements:
+
+- Pre-allocated Nodes in the audio backend
+  (mono voice for now)
+- mod_a1 to mod_b6 are automateable from the Host
+  => Sync from VST interface into backend, with smoothing
+     is done by baseplug
+- UI parameters for the Nodes in the audio backend
+  have their fixed adresses.
+  - Automated values are sent over a ring buffer to the backend
+    => the backend then initializes or searches a ramp with
+       that parameter id and initializes it. for the next 64 frames.
+- State of Nodes in the backend is not reset until a specific reset
+  button is pressed.
+
+What I would love to have:
+
+- No fixed amount of pre-allocated nodes
+  PROBLEM 1 => This means, we can't bind UI parameters fixed anymore.
+  PROBLEM 2 => State of Nodes that are in use between the Graph updates
+               needs to persist.
+  - Solution 1:
+    - Make a globally synchronized list of nodes
+        - Frontend: List of Node types in use.
+            - Index in the List is the Node-ID
+            - UI Parameters are stored in the Frontend-List
+            - Updates for Parameters are sent automatically to the
+              backend.
+        - Backend:
+            - Received parameters updates are converted into ramps.
+    - Invariants:
+        - Always send UI parameters updates AND connections
+          AFTER updating the Node list in the backend.
+          => Can only do this using a ring buffer with a command queue
+            COMMANDS:
+                - Create Node with <type> at <idx>
+                  with default values <params> from <boxed node>
+                - Update Parameter <p> Node <idx> to <v> in next iteration.
+                - Remove Node <idx>
+                  (This creates an empty dummy node)
+                - Update Eval Program <boxed prog>
+          => Requires a ring buffer for feedback:
+            EVENTS:
+                - Removed Node <boxed node>
+                - Old Program <boxed prog>
+                - Feedback Trigger <node-idx> <feedback-id>
+
+*/
+
 struct HexoSynth;
 
 impl Plugin for HexoSynth {
-    const NAME:    &'static str = "Hexagonal Modular Synthesizer";
+    const NAME:    &'static str = "HexoSynth Modular";
     const PRODUCT: &'static str = "Hexagonal Modular Synthesizer";
     const VENDOR:  &'static str = "Weird Constructor";
 
@@ -91,7 +144,7 @@ impl Plugin for HexoSynth {
 
     #[inline]
     fn process(&mut self, model: &HexoSynthModelProcess, ctx: &mut ProcessContext<Self>) {
-        let input = &ctx.inputs[0].buffers;
+        let input  = &ctx.inputs[0].buffers;
         let output = &mut ctx.outputs[0].buffers;
 
         for i in 0..ctx.nframes {
