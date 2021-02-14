@@ -125,7 +125,12 @@ What I would love to have:
 
 */
 
-struct HexoSynth;
+use nodes::*;
+
+struct HexoSynth {
+    node_conf:  NodeConfigurator,
+    node_exec:  NodeExecutor,
+}
 
 impl Plugin for HexoSynth {
     const NAME:    &'static str = "HexoSynth Modular";
@@ -139,13 +144,19 @@ impl Plugin for HexoSynth {
 
     #[inline]
     fn new(_sample_rate: f32, _model: &HexoSynthModel) -> Self {
-        Self
+        let (node_conf, node_exec) = nodes::new_node_engine();
+        Self {
+            node_conf,
+            node_exec,
+        }
     }
 
     #[inline]
     fn process(&mut self, model: &HexoSynthModelProcess, ctx: &mut ProcessContext<Self>) {
         let input  = &ctx.inputs[0].buffers;
         let output = &mut ctx.outputs[0].buffers;
+
+        self.node_exec.process_graph_updates();
 
         for i in 0..ctx.nframes {
             output[0][i] = input[0][i] * model.mod_a1[i];
