@@ -1,3 +1,5 @@
+use crate::nodes::NodeAudioContext;
+
 /// A simple amplifier
 #[derive(Debug, Clone)]
 pub struct Sin {
@@ -28,7 +30,7 @@ impl Sin {
         self.input[idx] = v;
     }
 
-    pub fn process(&mut self) {
+    pub fn process<T: NodeAudioContext>(&mut self, ctx: &mut T) {
         let freq = self.input[0] * super::MIDI_MAX_FREQ;
 
         self.output[0] = (self.phase * 2.0 * std::f32::consts::PI).sin();

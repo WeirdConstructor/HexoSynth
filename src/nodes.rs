@@ -40,6 +40,7 @@ impl DropThread {
 
                 while let Some(_node) = graph_drop_con.pop() {
                     // drop it ...
+                    println!("Dropped some shit...");
                 }
 
                 std::thread::sleep(std::time::Duration::from_millis(250));
@@ -221,6 +222,11 @@ pub struct NodeExecutor {
     sample_rate: f32,
 }
 
+pub trait NodeAudioContext {
+    fn output(&mut self, channel: usize, v: f32);
+    fn input(&mut self, channel: usize) -> f32;
+}
+
 impl NodeExecutor {
     pub fn process_graph_updates(&mut self) {
         while let Some(upd) = self.graph_update_con.pop() {
@@ -242,9 +248,9 @@ impl NodeExecutor {
         //       passed parameters.
     }
 
-    pub fn process(&mut self) {
+    pub fn process<T: NodeAudioContext>(&mut self, ctx: &mut T) {
         for n in self.nodes.iter_mut() {
-            n.process();
+            n.process(ctx);
         }
     }
 }

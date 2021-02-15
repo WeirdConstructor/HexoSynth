@@ -1,3 +1,5 @@
+use crate::nodes::NodeAudioContext;
+
 /// A simple amplifier
 #[derive(Debug, Clone)]
 pub struct Amp {
@@ -25,7 +27,7 @@ impl Amp {
         self.input[idx] = v;
     }
 
-    pub fn process(&mut self) {
+    pub fn process<T: NodeAudioContext>(&mut self, ctx: &mut T) {
         self.output[0] = self.input[0] * self.input[1];
     }
 }

@@ -1,6 +1,8 @@
 mod amp;
 mod sin;
 
+use crate::nodes::NodeAudioContext;
+
 use amp::Amp;
 use sin::Sin;
 
@@ -51,11 +53,11 @@ impl Node {
         }
     }
 
-    pub fn process(&mut self) {
+    pub fn process<T: NodeAudioContext>(&mut self, ctx: &mut T) {
         match self {
             Node::Nop          => {},
-            Node::Amp { node } => node.process(),
-            Node::Sin { node } => node.process(),
+            Node::Amp { node } => node.process(ctx),
+            Node::Sin { node } => node.process(ctx),
         }
     }
 }

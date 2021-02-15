@@ -133,6 +133,22 @@ struct HexoSynth {
     node_exec:  NodeExecutor,
 }
 
+struct Context<'a, 'b, 'c, 'd> {
+    frame_idx:  usize,
+    output: &'a mut [&'b mut [f32]],
+    input:  &'c [&'d [f32]],
+}
+
+impl<'a, 'b, 'c, 'd> nodes::NodeAudioContext for Context<'a, 'b, 'c, 'd> {
+    fn output(&mut self, channel: usize, v: f32) {
+        self.output[self.frame_idx][channel] = v;
+    }
+
+    fn input(&mut self, channel: usize) -> f32 {
+        self.input[self.frame_idx][channel]
+    }
+}
+
 impl Plugin for HexoSynth {
     const NAME:    &'static str = "HexoSynth Modular";
     const PRODUCT: &'static str = "Hexagonal Modular Synthesizer";
@@ -179,10 +195,14 @@ impl Plugin for HexoSynth {
         self.node_exec.process_graph_updates();
 
         for i in 0..ctx.nframes {
-            self.node_exec.process();
+            self.node_exec.process(&mut Context {
+                frame_idx: i,
+                output,
+                input,
+            });
 
-            output[0][i] = input[0][i] * model.mod_a1[i];
-            output[1][i] = input[1][i] * model.mod_a1[i];
+//            output[0][i] = input[0][i] * model.mod_a1[i];
+//            output[1][i] = input[1][i] * model.mod_a1[i];
         }
     }
 }
