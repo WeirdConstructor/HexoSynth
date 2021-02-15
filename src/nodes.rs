@@ -9,7 +9,7 @@ use crate::dsp::{node_factory, NodeInfo, Node};
 /// the NodeExecutor thread.
 pub enum GraphMessage {
     NewNode { index: u8, node: Node },
-    NewProg { prog: Vec<NodeOp>, prog_len: usize },
+    NewProg { prog: Vec<NodeOp> },
 }
 
 /// Messages for small updates between the NodeExecutor thread
@@ -109,8 +109,7 @@ impl NodeConfigurator {
             prog[i] = no;
         }
 
-        self.graph_update_prod.push(
-            GraphMessage::NewProg { prog, prog_len: input_prog.len() });
+        self.graph_update_prod.push(GraphMessage::NewProg { prog });
     }
 }
 
@@ -148,7 +147,6 @@ pub fn new_node_engine(sample_rate: f32) -> (NodeConfigurator, NodeExecutor) {
         sample_rate,
         nodes,
         prog:              nodeops,
-        prog_len:          0,
         graph_update_con:  rb_graph_con,
         quick_update_con:  rb_quick_con,
         graph_drop_prod:   rb_drop_prod,
@@ -218,9 +216,7 @@ pub struct NodeExecutor {
     /// Contains the to be executed nodes and output operations.
     /// Is copied from the input ringbuffer when a corresponding
     /// message arrives.
-    prog:  Vec<NodeOp>,
-    /// The number of actually written node operations in `prog`.
-    prog_len: usize,
+    prog: Vec<NodeOp>,
 
     /// For receiving Node and NodeProg updates
     graph_update_con:  Consumer<GraphMessage>,
@@ -244,6 +240,7 @@ impl NodeExecutor {
     #[inline]
     pub fn process_graph_updates(&mut self) {
         while let Some(upd) = self.graph_update_con.pop() {
+            println!("UPDATE GRAPH");
             match upd {
                 GraphMessage::NewNode { index, node } => {
                     let prev_node =
@@ -252,13 +249,12 @@ impl NodeExecutor {
                             node);
                     self.graph_drop_prod.push(DropMsg::Node { node: prev_node });
                 },
-                GraphMessage::NewProg { prog, prog_len } => {
+                GraphMessage::NewProg { prog } => {
                     let prev_prog =
                         std::mem::replace(
                             &mut self.prog,
                             prog);
                     self.graph_drop_prod.push(DropMsg::Prog { prog: prev_prog });
-                    self.prog_len = prog_len;
                 },
             }
         }
