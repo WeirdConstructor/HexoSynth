@@ -141,11 +141,11 @@ struct Context<'a, 'b, 'c, 'd> {
 
 impl<'a, 'b, 'c, 'd> nodes::NodeAudioContext for Context<'a, 'b, 'c, 'd> {
     fn output(&mut self, channel: usize, v: f32) {
-        self.output[self.frame_idx][channel] = v;
+        self.output[channel][self.frame_idx] = v;
     }
 
     fn input(&mut self, channel: usize) -> f32 {
-        self.input[self.frame_idx][channel]
+        self.input[channel][self.frame_idx]
     }
 }
 
@@ -165,6 +165,7 @@ impl Plugin for HexoSynth {
 
         let amp_id = node_conf.create_node("amp").unwrap();
         let sin_id = node_conf.create_node("sin").unwrap();
+        let out_id = node_conf.create_node("out").unwrap();
 
         node_conf.upload_prog(vec![
             NodeOp { idx: amp_id, calc: true, out: [
@@ -173,7 +174,12 @@ impl Plugin for HexoSynth {
                 OutOp::Nop
             ] },
             NodeOp { idx: sin_id, calc: true, out: [
-                OutOp::Transfer { out_port_idx: 0, node_idx: 0, dst_param_idx: 0 },
+                OutOp::Transfer { out_port_idx: 0, node_idx: out_id, dst_param_idx: 0 },
+                OutOp::Nop,
+                OutOp::Nop
+            ] },
+            NodeOp { idx: out_id, calc: true, out: [
+                OutOp::Nop,
                 OutOp::Nop,
                 OutOp::Nop
             ] },
@@ -195,14 +201,15 @@ impl Plugin for HexoSynth {
         self.node_exec.process_graph_updates();
 
         for i in 0..ctx.nframes {
+            output[0][i] = 0.0;
+            output[1][i] = 0.0;
+
             self.node_exec.process(&mut Context {
                 frame_idx: i,
                 output,
                 input,
             });
 
-//            output[0][i] = input[0][i] * model.mod_a1[i];
-//            output[1][i] = input[1][i] * model.mod_a1[i];
         }
     }
 }

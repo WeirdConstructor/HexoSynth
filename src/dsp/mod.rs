@@ -1,10 +1,12 @@
 mod amp;
 mod sin;
+mod out;
 
 use crate::nodes::NodeAudioContext;
 
 use amp::Amp;
 use sin::Sin;
+use out::Out;
 
 pub const MIDI_MAX_FREQ : f32 = 13289.75;
 
@@ -14,6 +16,7 @@ macro_rules! node_list {
             "nop" => Nop,
             "amp" => Amp,
             "sin" => Sin,
+            "out" => Out,
         }
     }
 }
