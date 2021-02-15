@@ -1,16 +1,8 @@
 const MAX_ALLOCATED_NODES : usize = 256;
 const MAX_NODE_PROG_OPS   : usize = 256;
 
-/// Holds information about the node type that was allocated.
-/// Also holds the current parameter values for the UI of the corresponding
-/// Node. See also `NodeConfigurator` which holds the information for all
-/// the nodes.
-#[derive(Debug, Clone, Copy)]
-enum NodeInfo {
-    Nop,
-}
-
 use ringbuf::{RingBuffer, Producer, Consumer};
+use crate::dsp::{node_factory, NodeInfo, Node};
 
 /// Big messages for updating the NodeExecutor thread.
 /// Usually used for shoveling NodeProg and Nodes to and from
@@ -85,11 +77,33 @@ pub struct NodeConfigurator {
     feedback_con:       Consumer<QuickMessage>,
     /// Handles deallocation
     drop_thread:        DropThread,
+    sample_rate:        f32,
+}
+
+impl NodeConfigurator {
+    pub fn create_node(&mut self, name: &str) -> Option<usize> {
+        if let Some((node, info)) = node_factory(name, self.sample_rate) {
+            let mut index = 0;
+            for i in 0..self.nodes.len() {
+                if let NodeInfo::Nop = self.nodes[i] {
+                    index = i;
+                    break;
+                }
+            }
+
+            self.nodes[index] = info;
+            self.graph_update_prod.push(
+                GraphMessage::NewNode { index: index as u8, node });
+            Some(index)
+        } else {
+            None
+        }
+    }
 }
 
 /// Creates a NodeConfigurator and a NodeExecutor which are interconnected
 /// by ring buffers.
-pub fn new_node_engine() -> (NodeConfigurator, NodeExecutor) {
+pub fn new_node_engine(sample_rate: f32) -> (NodeConfigurator, NodeExecutor) {
     let rb_graph     = RingBuffer::new(MAX_ALLOCATED_NODES * 2);
     let rb_quick     = RingBuffer::new(MAX_ALLOCATED_NODES * 8);
     let rb_drop      = RingBuffer::new(MAX_ALLOCATED_NODES * 2);
@@ -108,12 +122,14 @@ pub fn new_node_engine() -> (NodeConfigurator, NodeExecutor) {
         quick_update_prod: rb_quick_prod,
         feedback_con:      rb_fb_con,
         drop_thread,
+        sample_rate,
     };
 
     let mut nodes = Vec::new();
     nodes.resize_with(MAX_ALLOCATED_NODES, || Node::Nop);
 
     let ne = NodeExecutor {
+        sample_rate,
         nodes,
         prog:              [NodeOp::empty(); MAX_NODE_PROG_OPS],
         graph_update_con:  rb_graph_con,
@@ -191,6 +207,9 @@ pub struct NodeExecutor {
     graph_drop_prod:   Producer<Node>,
     /// For receiving feedback from the backend thread.
     feedback_prod:     Producer<QuickMessage>,
+
+    /// The sample rate
+    sample_rate: f32,
 }
 
 impl NodeExecutor {
@@ -213,12 +232,10 @@ impl NodeExecutor {
         // TODO: Handle quick_update_con to start ramps for the
         //       passed parameters.
     }
-}
 
-/// Holds the complete node program.
-#[derive(Debug, Clone)]
-pub enum Node {
-    /// An empty node that does nothing. It's a placeholder
-    /// for non allocated nodes.
-    Nop,
+    pub fn process(&mut self) {
+        for n in self.nodes.iter_mut() {
+            n.process();
+        }
+    }
 }

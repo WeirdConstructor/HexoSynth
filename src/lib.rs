@@ -2,6 +2,7 @@
 #![feature(generic_associated_types)]
 
 mod nodes;
+mod dsp;
 
 use serde::{Serialize, Deserialize};
 
@@ -143,8 +144,12 @@ impl Plugin for HexoSynth {
     type Model = HexoSynthModel;
 
     #[inline]
-    fn new(_sample_rate: f32, _model: &HexoSynthModel) -> Self {
-        let (node_conf, node_exec) = nodes::new_node_engine();
+    fn new(sample_rate: f32, _model: &HexoSynthModel) -> Self {
+        let (mut node_conf, node_exec) = nodes::new_node_engine(sample_rate);
+
+        node_conf.create_node("amp");
+        node_conf.create_node("sin");
+
         Self {
             node_conf,
             node_exec,
@@ -152,13 +157,17 @@ impl Plugin for HexoSynth {
     }
 
     #[inline]
-    fn process(&mut self, model: &HexoSynthModelProcess, ctx: &mut ProcessContext<Self>) {
+    fn process(&mut self, model: &HexoSynthModelProcess,
+               ctx: &mut ProcessContext<Self>) {
+
         let input  = &ctx.inputs[0].buffers;
         let output = &mut ctx.outputs[0].buffers;
 
         self.node_exec.process_graph_updates();
 
         for i in 0..ctx.nframes {
+            self.node_exec.process();
+
             output[0][i] = input[0][i] * model.mod_a1[i];
             output[1][i] = input[1][i] * model.mod_a1[i];
         }
