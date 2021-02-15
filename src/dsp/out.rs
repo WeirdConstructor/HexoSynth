@@ -19,14 +19,17 @@ impl Out {
         }
     }
 
+    #[inline]
     pub fn get(&self, _idx: u8) -> f32 {
         0.0
     }
 
+    #[inline]
     pub fn set(&mut self, idx: u8, v: f32) {
         self.input[idx as usize] = v;
     }
 
+    #[inline]
     pub fn process<T: NodeAudioContext>(&mut self, ctx: &mut T) {
         ctx.output(0, self.input[0]);
         ctx.output(1, self.input[1]);

@@ -9,7 +9,7 @@ use crate::dsp::{node_factory, NodeInfo, Node};
 /// the NodeExecutor thread.
 pub enum GraphMessage {
     NewNode { index: u8, node: Node },
-    NewProg { prog: [NodeOp; MAX_NODE_PROG_OPS], prog_len: usize },
+    NewProg { prog: Vec<NodeOp>, prog_len: usize },
 }
 
 /// Messages for small updates between the NodeExecutor thread
@@ -27,7 +27,7 @@ struct DropThread {
 }
 
 impl DropThread {
-    fn new(mut graph_drop_con: Consumer<Node>) -> Self {
+    fn new(mut graph_drop_con: Consumer<DropMsg>) -> Self {
         let terminate =
             std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
         let th_terminate = terminate.clone();
@@ -102,10 +102,13 @@ impl NodeConfigurator {
     }
 
     pub fn upload_prog(&mut self, mut input_prog: Vec<NodeOp>) {
-        let mut prog = [NodeOp::empty(); MAX_NODE_PROG_OPS];
+        let mut prog = Vec::new();
+        prog.resize_with(MAX_NODE_PROG_OPS, || NodeOp::empty());
+
         for (i, no) in input_prog.drain(0..).enumerate() {
             prog[i] = no;
         }
+
         self.graph_update_prod.push(
             GraphMessage::NewProg { prog, prog_len: input_prog.len() });
     }
@@ -138,10 +141,13 @@ pub fn new_node_engine(sample_rate: f32) -> (NodeConfigurator, NodeExecutor) {
     let mut nodes = Vec::new();
     nodes.resize_with(MAX_ALLOCATED_NODES, || Node::Nop);
 
+    let mut nodeops = Vec::new();
+    nodeops.resize_with(MAX_NODE_PROG_OPS, || NodeOp::empty());
+
     let ne = NodeExecutor {
         sample_rate,
         nodes,
-        prog:              [NodeOp::empty(); MAX_NODE_PROG_OPS],
+        prog:              nodeops,
         prog_len:          0,
         graph_update_con:  rb_graph_con,
         quick_update_con:  rb_quick_con,
@@ -152,23 +158,20 @@ pub fn new_node_engine(sample_rate: f32) -> (NodeConfigurator, NodeExecutor) {
     (nc, ne)
 }
 
-/// Operators for transmitting the output of a node
+/// Operator for transmitting the output of a node
 /// to the input of another node.
 #[derive(Debug, Clone, Copy)]
-pub enum OutOp {
-    Nop,
-    Transfer {
-        out_port_idx:  u8,
-        node_idx:      u8,
-        dst_param_idx: u8
-    },
+pub struct OutOp {
+    pub out_port_idx:  u8,
+    pub node_idx:      u8,
+    pub dst_param_idx: u8
 }
 
 /// Step in a `NodeProg` that stores the to be
 /// executed node and output operations.
 /// If `calc` is false, the node is not executed and only
 /// the output operations are executed.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct NodeOp {
     /// Stores the index of the node
     pub idx:  u8,
@@ -176,7 +179,7 @@ pub struct NodeOp {
     /// the output operations are executed.
     pub calc: bool,
     /// Holds the output operations.
-    pub out:  [OutOp; 3],
+    pub out:  Vec<OutOp>,
 }
 
 impl NodeOp {
@@ -184,9 +187,15 @@ impl NodeOp {
         Self {
             idx:    0,
             calc:   false,
-            out:    [OutOp::Nop; 3],
+            out:    vec![],
         }
     }
+}
+
+#[derive(Debug)]
+enum DropMsg {
+    Node { node: Node },
+    Prog { prog: Vec<NodeOp> },
 }
 
 /// Holds the complete allocation of nodes and
@@ -209,7 +218,7 @@ pub struct NodeExecutor {
     /// Contains the to be executed nodes and output operations.
     /// Is copied from the input ringbuffer when a corresponding
     /// message arrives.
-    prog:  [NodeOp; MAX_NODE_PROG_OPS],
+    prog:  Vec<NodeOp>,
     /// The number of actually written node operations in `prog`.
     prog_len: usize,
 
@@ -218,7 +227,7 @@ pub struct NodeExecutor {
     /// For quick updates like UI paramter changes.
     quick_update_con:  Consumer<QuickMessage>,
     /// For receiving deleted/overwritten nodes from the backend thread.
-    graph_drop_prod:   Producer<Node>,
+    graph_drop_prod:   Producer<DropMsg>,
     /// For receiving feedback from the backend thread.
     feedback_prod:     Producer<QuickMessage>,
 
@@ -232,6 +241,7 @@ pub trait NodeAudioContext {
 }
 
 impl NodeExecutor {
+    #[inline]
     pub fn process_graph_updates(&mut self) {
         while let Some(upd) = self.graph_update_con.pop() {
             match upd {
@@ -240,10 +250,14 @@ impl NodeExecutor {
                         std::mem::replace(
                             &mut self.nodes[index as usize],
                             node);
-                    self.graph_drop_prod.push(prev_node);
+                    self.graph_drop_prod.push(DropMsg::Node { node: prev_node });
                 },
                 GraphMessage::NewProg { prog, prog_len } => {
-                    self.prog     = prog;
+                    let prev_prog =
+                        std::mem::replace(
+                            &mut self.prog,
+                            prog);
+                    self.graph_drop_prod.push(DropMsg::Prog { prog: prev_prog });
                     self.prog_len = prog_len;
                 },
             }
@@ -253,24 +267,19 @@ impl NodeExecutor {
         //       passed parameters.
     }
 
+    #[inline]
     pub fn process<T: NodeAudioContext>(&mut self, ctx: &mut T) {
-        for i in 0..self.prog_len {
-            let op = &self.prog[i];
+        for op in self.prog.iter() {
+//        for i in 0..self.prog_len {
+//            let op = &self.prog[i];
 
             if op.calc {
                 self.nodes[op.idx as usize].process(ctx);
             }
 
             for out in op.out.iter() {
-                match out {
-                    OutOp::Transfer { out_port_idx, node_idx,
-                                      dst_param_idx, } => {
-
-                        let v = self.nodes[op.idx as usize].get(*out_port_idx);
-                        self.nodes[*node_idx as usize].set(*dst_param_idx, v);
-                    }
-                    OutOp::Nop => { break; },
-                }
+                let v = self.nodes[op.idx as usize].get(out.out_port_idx);
+                self.nodes[out.node_idx as usize].set(out.dst_param_idx, v);
             }
         }
     }

@@ -23,19 +23,22 @@ impl Sin {
         }
     }
 
+    #[inline]
     pub fn get(&self, _idx: u8) -> f32 {
         self.output[0]
     }
 
+    #[inline]
     pub fn set(&mut self, _idx: u8, v: f32) {
         self.input[0] = v;
     }
 
+    #[inline]
     pub fn process<T: NodeAudioContext>(&mut self, ctx: &mut T) {
         let freq = self.input[0] * super::MIDI_MAX_FREQ;
-        let freq = 4034.0;
+        let freq = 440.0;
 
-        self.output[0] = (self.phase * 2.0 * std::f32::consts::PI).sin();
+        self.output[0] = 0.2 * (self.phase * 2.0 * std::f32::consts::PI).sin();
 
         self.phase += freq / self.srate;
         self.phase = self.phase.fract();

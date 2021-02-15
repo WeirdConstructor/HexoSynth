@@ -168,21 +168,13 @@ impl Plugin for HexoSynth {
         let out_id = node_conf.create_node("out").unwrap();
 
         node_conf.upload_prog(vec![
-            NodeOp { idx: amp_id, calc: true, out: [
-                OutOp::Transfer { out_port_idx: 0, node_idx: sin_id, dst_param_idx: 0 },
-                OutOp::Nop,
-                OutOp::Nop
+            NodeOp { idx: amp_id, calc: true, out: vec![
+                OutOp { out_port_idx: 0, node_idx: sin_id, dst_param_idx: 0 },
             ] },
-            NodeOp { idx: sin_id, calc: true, out: [
-                OutOp::Transfer { out_port_idx: 0, node_idx: out_id, dst_param_idx: 0 },
-                OutOp::Nop,
-                OutOp::Nop
+            NodeOp { idx: sin_id, calc: true, out: vec![
+                OutOp { out_port_idx: 0, node_idx: out_id, dst_param_idx: 0 },
             ] },
-            NodeOp { idx: out_id, calc: true, out: [
-                OutOp::Nop,
-                OutOp::Nop,
-                OutOp::Nop
-            ] },
+            NodeOp { idx: out_id, calc: true, out: vec![ ] },
         ]);
 
         Self {
@@ -200,16 +192,18 @@ impl Plugin for HexoSynth {
 
         self.node_exec.process_graph_updates();
 
+        let mut context = Context {
+            frame_idx: 0,
+            output,
+            input,
+        };
+
         for i in 0..ctx.nframes {
-            output[0][i] = 0.0;
-            output[1][i] = 0.0;
+            context.frame_idx    = i;
+            context.output[0][i] = 0.0;
+            context.output[1][i] = 0.0;
 
-            self.node_exec.process(&mut Context {
-                frame_idx: i,
-                output,
-                input,
-            });
-
+            self.node_exec.process(&mut context);
         }
     }
 }
