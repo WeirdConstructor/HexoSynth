@@ -1,5 +1,5 @@
 const MAX_ALLOCATED_NODES : usize = 256;
-const MAX_NODE_PROG_OPS   : usize = 256;
+const MAX_NODE_PROG_OPS   : usize = 256 * 3;
 
 use ringbuf::{RingBuffer, Producer, Consumer};
 use crate::dsp::{node_factory, NodeInfo, Node};
