@@ -69,7 +69,20 @@ pub fn node_factory(name: &str, sample_rate: f32) -> Option<(Node, NodeInfo)> {
 }
 
 impl Node {
-    pub fn set(&mut self, idx: usize, v: f32) {
+    pub fn get(&self, idx: u8) -> f32 {
+        macro_rules! make_node_set {
+            ($s1: expr => $v1: ident, $($str: expr => $variant: ident,)+) => {
+                match self {
+                    Node::$v1 => 0.0,
+                    $(Node::$variant { node } => node.get(idx),)+
+                }
+            }
+        }
+
+        node_list!{make_node_set}
+    }
+
+    pub fn set(&mut self, idx: u8, v: f32) {
         macro_rules! make_node_set {
             ($s1: expr => $v1: ident, $($str: expr => $variant: ident,)+) => {
                 match self {

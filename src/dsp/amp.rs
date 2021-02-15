@@ -23,8 +23,12 @@ impl Amp {
         }
     }
 
-    pub fn set(&mut self, idx: usize, v: f32) {
-        self.input[idx] = v;
+    pub fn get(&self, _idx: u8) -> f32 {
+        self.output[0]
+    }
+
+    pub fn set(&mut self, idx: u8, v: f32) {
+        self.input[idx as usize] = v;
     }
 
     pub fn process<T: NodeAudioContext>(&mut self, ctx: &mut T) {

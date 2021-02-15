@@ -9,7 +9,7 @@ use crate::dsp::{node_factory, NodeInfo, Node};
 /// the NodeExecutor thread.
 pub enum GraphMessage {
     NewNode { index: u8, node: Node },
-    NewProg { prog: [NodeOp; MAX_NODE_PROG_OPS] },
+    NewProg { prog: [NodeOp; MAX_NODE_PROG_OPS], prog_len: usize },
 }
 
 /// Messages for small updates between the NodeExecutor thread
@@ -106,7 +106,8 @@ impl NodeConfigurator {
         for (i, no) in input_prog.drain(0..).enumerate() {
             prog[i] = no;
         }
-        self.graph_update_prod.push(GraphMessage::NewProg { prog });
+        self.graph_update_prod.push(
+            GraphMessage::NewProg { prog, prog_len: input_prog.len() });
     }
 }
 
@@ -141,6 +142,7 @@ pub fn new_node_engine(sample_rate: f32) -> (NodeConfigurator, NodeExecutor) {
         sample_rate,
         nodes,
         prog:              [NodeOp::empty(); MAX_NODE_PROG_OPS],
+        prog_len:          0,
         graph_update_con:  rb_graph_con,
         quick_update_con:  rb_quick_con,
         graph_drop_prod:   rb_drop_prod,
@@ -208,6 +210,8 @@ pub struct NodeExecutor {
     /// Is copied from the input ringbuffer when a corresponding
     /// message arrives.
     prog:  [NodeOp; MAX_NODE_PROG_OPS],
+    /// The number of actually written node operations in `prog`.
+    prog_len: usize,
 
     /// For receiving Node and NodeProg updates
     graph_update_con:  Consumer<GraphMessage>,
@@ -238,8 +242,9 @@ impl NodeExecutor {
                             node);
                     self.graph_drop_prod.push(prev_node);
                 },
-                GraphMessage::NewProg { prog } => {
-                    self.prog = prog;
+                GraphMessage::NewProg { prog, prog_len } => {
+                    self.prog     = prog;
+                    self.prog_len = prog_len;
                 },
             }
         }
@@ -249,8 +254,24 @@ impl NodeExecutor {
     }
 
     pub fn process<T: NodeAudioContext>(&mut self, ctx: &mut T) {
-        for n in self.nodes.iter_mut() {
-            n.process(ctx);
+        for i in 0..self.prog_len {
+            let op = &self.prog[i];
+
+            if op.calc {
+                self.nodes[op.idx as usize].process(ctx);
+            }
+
+            for out in op.out.iter() {
+                match out {
+                    OutOp::Transfer { out_port_idx, node_idx,
+                                      dst_param_idx, } => {
+
+                        let v = self.nodes[op.idx as usize].get(*out_port_idx);
+                        self.nodes[*node_idx as usize].set(*dst_param_idx, v);
+                    }
+                    OutOp::Nop => { break; },
+                }
+            }
         }
     }
 }
