@@ -81,7 +81,7 @@ pub struct NodeConfigurator {
 }
 
 impl NodeConfigurator {
-    pub fn create_node(&mut self, name: &str) -> Option<usize> {
+    pub fn create_node(&mut self, name: &str) -> Option<u8> {
         if let Some((node, info)) = node_factory(name, self.sample_rate) {
             let mut index = 0;
             for i in 0..self.nodes.len() {
@@ -94,10 +94,18 @@ impl NodeConfigurator {
             self.nodes[index] = info;
             self.graph_update_prod.push(
                 GraphMessage::NewNode { index: index as u8, node });
-            Some(index)
+            Some(index as u8)
         } else {
             None
         }
+    }
+
+    pub fn upload_prog(&mut self, mut input_prog: Vec<NodeOp>) {
+        let mut prog = [NodeOp::empty(); MAX_NODE_PROG_OPS];
+        for (i, no) in input_prog.drain(0..).enumerate() {
+            prog[i] = no;
+        }
+        self.graph_update_prod.push(GraphMessage::NewProg { prog });
     }
 }
 
@@ -148,6 +156,7 @@ pub enum OutOp {
     Nop,
     Transfer {
         out_port_idx:  u8,
+        node_idx:      u8,
         dst_param_idx: u8
     },
 }
@@ -159,12 +168,12 @@ pub enum OutOp {
 #[derive(Debug, Clone, Copy)]
 pub struct NodeOp {
     /// Stores the index of the node
-    idx:  u8,
+    pub idx:  u8,
     /// If true, the node needs to be executed. Otherwise only
     /// the output operations are executed.
-    calc: bool,
+    pub calc: bool,
     /// Holds the output operations.
-    out:  [OutOp; 3],
+    pub out:  [OutOp; 3],
 }
 
 impl NodeOp {

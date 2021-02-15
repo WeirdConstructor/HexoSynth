@@ -147,8 +147,21 @@ impl Plugin for HexoSynth {
     fn new(sample_rate: f32, _model: &HexoSynthModel) -> Self {
         let (mut node_conf, node_exec) = nodes::new_node_engine(sample_rate);
 
-        node_conf.create_node("amp");
-        node_conf.create_node("sin");
+        let amp_id = node_conf.create_node("amp").unwrap();
+        let sin_id = node_conf.create_node("sin").unwrap();
+
+        node_conf.upload_prog(vec![
+            NodeOp { idx: amp_id, calc: true, out: [
+                OutOp::Transfer { out_port_idx: 0, node_idx: sin_id, dst_param_idx: 0 },
+                OutOp::Nop,
+                OutOp::Nop
+            ] },
+            NodeOp { idx: sin_id, calc: true, out: [
+                OutOp::Transfer { out_port_idx: 0, node_idx: 0, dst_param_idx: 0 },
+                OutOp::Nop,
+                OutOp::Nop
+            ] },
+        ]);
 
         Self {
             node_conf,
