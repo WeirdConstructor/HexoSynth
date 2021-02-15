@@ -1,17 +1,14 @@
 use crate::nodes::NodeAudioContext;
 
-/// A simple amplifier
+/// A sine oscillator
 #[derive(Debug, Clone)]
 pub struct Sin {
     /// - 0: frequency
     input:  [f32; 1],
-
     /// - 0: signal
     output: [f32; 1],
-
     /// Sample rate
     srate: f32,
-
     /// Oscillator phase
     phase: f32,
 }
