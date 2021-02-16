@@ -281,40 +281,10 @@ impl NodeExecutor {
 //            let op = &self.prog[i];
 
             if op.calc {
-                // TODO: implement a dynamic dispatch set_inputs() here
-                //       it receives the prog.out vector and a precomputed
-                //       list of index-pairs: (from_out_idx, my_input_index)
-                //       Transmit this directly to process(), which then
-                //       copies the values to the internal inputs.
+                // TODO: try replacing the enum-dispatch by a dynamic dispatch
+                //       => store nodes as Box<> in the nodes array.
                 self.nodes[op.idx as usize].process(ctx, &op.inputs, &op.out_idxlen, &mut self.prog.out);
             }
-
-            // TODO: Make the frontend compute the program in a way
-            //       that the inputs are all collected into
-            //       a vector that is then transmitted as OutOp => rename
-            //       to "ReadOp".
-            //
-            // TODO: Try to move the outputs out of the nodes
-            //       into a global vector that is preallocated
-            //       with the program.
-            //       The program allocates enough outputs of each
-            //       executed node.
-            //       Node tree and node programm need to be updated
-            //       together.
-            //       => the process() function gets a mutable output
-            //       slice it should write to.
-            //       **XXX: This should remove the get() dynamic dispatch!**
-            //
-            // TODO: Reduce the individual set()s to one big set, that receives
-            //       the output vector and a slice of index pairs to
-            //       copy the inputs from the outputs.
-            //       => This reduces the dynamic lookups to one per node.
-
-//            for out in op.out.iter() {
-//                let v = 0.0;
-//                let v = outslice[out.out_port_idx as usize];
-//                self.nodes[out.node_idx as usize].set(out.dst_param_idx, v);
-//            }
         }
     }
 }
