@@ -270,6 +270,7 @@ impl NodeExecutor {
 
     #[inline]
     pub fn process<T: NodeAudioContext>(&mut self, ctx: &mut T) {
+        // TODO: Test if loop unrolling helps?
         for op in self.prog.prog.iter() {
 //        for i in 0..self.prog_len {
 //            let op = &self.prog[i];
