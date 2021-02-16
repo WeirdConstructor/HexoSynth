@@ -97,6 +97,20 @@ pub struct NodeConfigurator {
 }
 
 impl NodeConfigurator {
+    pub fn drop_node(&mut self, idx: usize) {
+        match self.nodes[idx] {
+            NodeInfo::Nop => { return; },
+            _ => {},
+        }
+
+        self.nodes[idx] = NodeInfo::Nop;
+        self.graph_update_prod.push(
+            GraphMessage::NewNode {
+                index: idx as u8,
+                node: Node::Nop,
+            });
+    }
+
     pub fn create_node(&mut self, name: &str) -> Option<u8> {
         if let Some((node, info)) = node_factory(name, self.sample_rate) {
             let mut index = 0;
@@ -270,10 +284,10 @@ impl NodeExecutor {
 
     #[inline]
     pub fn process<T: NodeAudioContext>(&mut self, ctx: &mut T) {
+        let nodes = &mut self.nodes;
         for op in self.prog.prog.iter() {
-            // TODO: try replacing the enum-dispatch by a dynamic dispatch
-            //       => store nodes as Box<> in the nodes array.
-            self.nodes[op.idx as usize].process(ctx, &op.inputs, &op.out_idxlen, &mut self.prog.out);
+            nodes[op.idx as usize]
+            .process(ctx, &op.inputs, &op.out_idxlen, &mut self.prog.out);
         }
     }
 }
