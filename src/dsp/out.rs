@@ -12,6 +12,8 @@ pub struct Out {
 }
 
 impl Out {
+    pub fn outputs() -> usize { 0 }
+
     pub fn new(srate: f32) -> Self {
         Self {
             srate,
@@ -30,7 +32,7 @@ impl Out {
     }
 
     #[inline]
-    pub fn process<T: NodeAudioContext>(&mut self, ctx: &mut T) {
+    pub fn process<T: NodeAudioContext>(&mut self, ctx: &mut T, out: &mut [f32]) {
         ctx.output(0, self.input[0]);
         ctx.output(1, self.input[1]);
     }

@@ -7,25 +7,18 @@ pub struct Amp {
     /// - 1: amplitude
     input:  [f32; 2],
 
-    /// - 0: signal
-    output: [f32; 1],
-
     /// Sample rate
     srate: f32,
 }
 
 impl Amp {
+    pub fn outputs() -> usize { 1 }
+
     pub fn new(srate: f32) -> Self {
         Self {
             srate,
             input:  [0.0; 2],
-            output: [0.0; 1],
         }
-    }
-
-    #[inline]
-    pub fn get(&self, _idx: u8) -> f32 {
-        self.output[0]
     }
 
     #[inline]
@@ -34,7 +27,7 @@ impl Amp {
     }
 
     #[inline]
-    pub fn process<T: NodeAudioContext>(&mut self, ctx: &mut T) {
-        self.output[0] = self.input[0] * self.input[1];
+    pub fn process<T: NodeAudioContext>(&mut self, ctx: &mut T, out: &mut [f32]) {
+        out[0] = self.input[0] * self.input[1];
     }
 }

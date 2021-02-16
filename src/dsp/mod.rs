@@ -22,14 +22,32 @@ macro_rules! node_list {
 }
 
 macro_rules! make_node_info_enum {
-    ($($str: expr => $variant: ident,)+) => {
+    ($s1: expr => $v1: ident, $($str: expr => $variant: ident,)+) => {
         /// Holds information about the node type that was allocated.
         /// Also holds the current parameter values for the UI of the corresponding
         /// Node. See also `NodeConfigurator` which holds the information for all
         /// the nodes.
         #[derive(Debug, Clone, Copy)]
         pub enum NodeInfo {
+            $v1,
             $($variant),+
+        }
+
+        impl NodeInfo {
+            pub fn from(s: &str) -> Self {
+                match s {
+                    $s1    => NodeInfo::$v1,
+                    $($str => NodeInfo::$variant),+,
+                    _      => NodeInfo::Nop,
+                }
+            }
+
+            pub fn outputs(&self) -> usize {
+                match self {
+                    NodeInfo::$v1 => 0,
+                    $(NodeInfo::$variant => $variant::outputs()),+
+                }
+            }
         }
     }
 }
@@ -70,20 +88,6 @@ pub fn node_factory(name: &str, sample_rate: f32) -> Option<(Node, NodeInfo)> {
 
 impl Node {
     #[inline]
-    pub fn get(&self, idx: u8) -> f32 {
-        macro_rules! make_node_set {
-            ($s1: expr => $v1: ident, $($str: expr => $variant: ident,)+) => {
-                match self {
-                    Node::$v1 => 0.0,
-                    $(Node::$variant { node } => node.get(idx),)+
-                }
-            }
-        }
-
-        node_list!{make_node_set}
-    }
-
-    #[inline]
     pub fn set(&mut self, idx: u8, v: f32) {
         macro_rules! make_node_set {
             ($s1: expr => $v1: ident, $($str: expr => $variant: ident,)+) => {
@@ -98,12 +102,12 @@ impl Node {
     }
 
     #[inline]
-    pub fn process<T: NodeAudioContext>(&mut self, ctx: &mut T) {
+    pub fn process<T: NodeAudioContext>(&mut self, ctx: &mut T, out: &mut [f32]) {
         macro_rules! make_node_process {
             ($s1: expr => $v1: ident, $($str: expr => $variant: ident,)+) => {
                 match self {
                     Node::$v1 => {},
-                    $(Node::$variant { node } => node.process(ctx),)+
+                    $(Node::$variant { node } => node.process(ctx, out),)+
                 }
             }
         }

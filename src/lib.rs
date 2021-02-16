@@ -135,8 +135,8 @@ struct HexoSynth {
 
 struct Context<'a, 'b, 'c, 'd> {
     frame_idx:  usize,
-    output: &'a mut [&'b mut [f32]],
-    input:  &'c [&'d [f32]],
+    output:     &'a mut [&'b mut [f32]],
+    input:      &'c [&'d [f32]],
 }
 
 impl<'a, 'b, 'c, 'd> nodes::NodeAudioContext for Context<'a, 'b, 'c, 'd> {
@@ -167,15 +167,58 @@ impl Plugin for HexoSynth {
         let sin_id = node_conf.create_node("sin").unwrap();
         let out_id = node_conf.create_node("out").unwrap();
 
-        node_conf.upload_prog(vec![
-            NodeOp { idx: amp_id, calc: true, out: vec![
+        let mut outlen = 0;
+        let mut amp_outidxlen = (outlen as u8, 0 as u8);
+        outlen += dsp::NodeInfo::from("amp").outputs();
+        amp_outidxlen.1 = outlen as u8;
+
+        let mut sin_outidxlen = (outlen as u8, 0 as u8);
+        outlen += dsp::NodeInfo::from("sin").outputs();
+        sin_outidxlen.1 = outlen as u8;
+
+        let mut out_outidxlen = (outlen as u8, 0 as u8);
+        outlen += dsp::NodeInfo::from("out").outputs();
+        out_outidxlen.1 = outlen as u8;
+
+        let mut outvec = Vec::new();
+        outvec.resize(outlen, 0.0);
+
+        println!("OUTVEC: amp={},{} sin={},{} out={},{} {:?}",
+            amp_outidxlen.0,
+            amp_outidxlen.1,
+            sin_outidxlen.0,
+            sin_outidxlen.1,
+            out_outidxlen.0,
+            out_outidxlen.1,
+            outvec);
+
+        let mut prog_vec = Vec::new();
+        for i in 0..50 {
+            prog_vec.push(NodeOp { idx: amp_id, out_idxlen: amp_outidxlen, calc: true, out: vec![
+                // TODO FIXME: The compiler needs to keep track which output
+                //             to actually forward!
                 OutOp { out_port_idx: 0, node_idx: sin_id, dst_param_idx: 0 },
-            ] },
-            NodeOp { idx: sin_id, calc: true, out: vec![
-                OutOp { out_port_idx: 0, node_idx: out_id, dst_param_idx: 0 },
-            ] },
-            NodeOp { idx: out_id, calc: true, out: vec![ ] },
-        ]);
+                OutOp { out_port_idx: 0, node_idx: sin_id, dst_param_idx: 0 },
+                OutOp { out_port_idx: 0, node_idx: sin_id, dst_param_idx: 0 },
+                OutOp { out_port_idx: 0, node_idx: sin_id, dst_param_idx: 0 },
+                OutOp { out_port_idx: 0, node_idx: sin_id, dst_param_idx: 0 },
+                OutOp { out_port_idx: 0, node_idx: sin_id, dst_param_idx: 0 },
+                OutOp { out_port_idx: 0, node_idx: sin_id, dst_param_idx: 0 },
+                OutOp { out_port_idx: 0, node_idx: sin_id, dst_param_idx: 0 },
+                OutOp { out_port_idx: 0, node_idx: sin_id, dst_param_idx: 0 },
+                OutOp { out_port_idx: 0, node_idx: sin_id, dst_param_idx: 0 },
+            ] });
+        }
+
+        prog_vec.push(NodeOp { idx: sin_id, out_idxlen: sin_outidxlen, calc: true, out: vec![
+            OutOp { out_port_idx: 0, node_idx: out_id, dst_param_idx: 0 },
+        ] });
+        prog_vec.push(NodeOp { idx: out_id, out_idxlen: out_outidxlen, calc: true, out: vec![ ] });
+
+        node_conf.upload_prog(nodes::NodeProg {
+            out: outvec,
+            prog: prog_vec,
+        });
 
         Self {
             node_conf,

@@ -4,12 +4,27 @@ const MAX_NODE_PROG_OPS   : usize = 256 * 3;
 use ringbuf::{RingBuffer, Producer, Consumer};
 use crate::dsp::{node_factory, NodeInfo, Node};
 
+#[derive(Debug, Clone)]
+pub struct NodeProg {
+    pub out: Vec<f32>,
+    pub prog: Vec<NodeOp>,
+}
+
+impl NodeProg {
+    pub fn empty() -> Self {
+        Self {
+            out: vec![],
+            prog: vec![],
+        }
+    }
+}
+
 /// Big messages for updating the NodeExecutor thread.
 /// Usually used for shoveling NodeProg and Nodes to and from
 /// the NodeExecutor thread.
 pub enum GraphMessage {
     NewNode { index: u8, node: Node },
-    NewProg { prog: Vec<NodeOp> },
+    NewProg { prog: NodeProg },
 }
 
 /// Messages for small updates between the NodeExecutor thread
@@ -101,14 +116,7 @@ impl NodeConfigurator {
         }
     }
 
-    pub fn upload_prog(&mut self, mut input_prog: Vec<NodeOp>) {
-        let mut prog = Vec::new();
-        prog.resize_with(MAX_NODE_PROG_OPS, || NodeOp::empty());
-
-        for (i, no) in input_prog.drain(0..).enumerate() {
-            prog[i] = no;
-        }
-
+    pub fn upload_prog(&mut self, prog: NodeProg) {
         self.graph_update_prod.push(GraphMessage::NewProg { prog });
     }
 }
@@ -140,13 +148,10 @@ pub fn new_node_engine(sample_rate: f32) -> (NodeConfigurator, NodeExecutor) {
     let mut nodes = Vec::new();
     nodes.resize_with(MAX_ALLOCATED_NODES, || Node::Nop);
 
-    let mut nodeops = Vec::new();
-    nodeops.resize_with(MAX_NODE_PROG_OPS, || NodeOp::empty());
-
     let ne = NodeExecutor {
         sample_rate,
         nodes,
-        prog:              nodeops,
+        prog:              NodeProg::empty(),
         graph_update_con:  rb_graph_con,
         quick_update_con:  rb_quick_con,
         graph_drop_prod:   rb_drop_prod,
@@ -173,6 +178,8 @@ pub struct OutOp {
 pub struct NodeOp {
     /// Stores the index of the node
     pub idx:  u8,
+    /// Output index and length of the node:
+    pub out_idxlen: (u8, u8),
     /// If true, the node needs to be executed. Otherwise only
     /// the output operations are executed.
     pub calc: bool,
@@ -183,9 +190,10 @@ pub struct NodeOp {
 impl NodeOp {
     fn empty() -> Self {
         Self {
-            idx:    0,
-            calc:   false,
-            out:    vec![],
+            idx:        0,
+            calc:       false,
+            out_idxlen: (0, 0),
+            out:        vec![],
         }
     }
 }
@@ -193,7 +201,7 @@ impl NodeOp {
 #[derive(Debug)]
 enum DropMsg {
     Node { node: Node },
-    Prog { prog: Vec<NodeOp> },
+    Prog { prog: NodeProg },
 }
 
 /// Holds the complete allocation of nodes and
@@ -216,7 +224,7 @@ pub struct NodeExecutor {
     /// Contains the to be executed nodes and output operations.
     /// Is copied from the input ringbuffer when a corresponding
     /// message arrives.
-    prog: Vec<NodeOp>,
+    prog: NodeProg,
 
     /// For receiving Node and NodeProg updates
     graph_update_con:  Consumer<GraphMessage>,
@@ -265,16 +273,43 @@ impl NodeExecutor {
 
     #[inline]
     pub fn process<T: NodeAudioContext>(&mut self, ctx: &mut T) {
-        for op in self.prog.iter() {
+        for op in self.prog.prog.iter() {
 //        for i in 0..self.prog_len {
 //            let op = &self.prog[i];
 
+            let outslice =
+                &mut self.prog.out[
+                    op.out_idxlen.0 as usize
+                    ..
+                    op.out_idxlen.1 as usize];
             if op.calc {
-                self.nodes[op.idx as usize].process(ctx);
+                self.nodes[op.idx as usize].process(ctx, outslice);
             }
 
+            // TODO: Make the frontend compute the program in a way
+            //       that the inputs are all collected into
+            //       a vector that is then transmitted as OutOp => rename
+            //       to "ReadOp".
+            //
+            // TODO: Try to move the outputs out of the nodes
+            //       into a global vector that is preallocated
+            //       with the program.
+            //       The program allocates enough outputs of each
+            //       executed node.
+            //       Node tree and node programm need to be updated
+            //       together.
+            //       => the process() function gets a mutable output
+            //       slice it should write to.
+            //       **XXX: This should remove the get() dynamic dispatch!**
+            //
+            // TODO: Reduce the individual set()s to one big set, that receives
+            //       the output vector and a slice of index pairs to
+            //       copy the inputs from the outputs.
+            //       => This reduces the dynamic lookups to one per node.
+
             for out in op.out.iter() {
-                let v = self.nodes[op.idx as usize].get(out.out_port_idx);
+                let v = 0.0;
+                let v = outslice[out.out_port_idx as usize];
                 self.nodes[out.node_idx as usize].set(out.dst_param_idx, v);
             }
         }

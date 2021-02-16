@@ -5,8 +5,6 @@ use crate::nodes::NodeAudioContext;
 pub struct Sin {
     /// - 0: frequency
     input:  [f32; 1],
-    /// - 0: signal
-    output: [f32; 1],
     /// Sample rate
     srate: f32,
     /// Oscillator phase
@@ -14,18 +12,14 @@ pub struct Sin {
 }
 
 impl Sin {
+    pub fn outputs() -> usize { 1 }
+
     pub fn new(srate: f32) -> Self {
         Self {
             srate,
             input:  [0.0; 1],
-            output: [0.0; 1],
             phase: 0.0,
         }
-    }
-
-    #[inline]
-    pub fn get(&self, _idx: u8) -> f32 {
-        self.output[0]
     }
 
     #[inline]
@@ -34,11 +28,11 @@ impl Sin {
     }
 
     #[inline]
-    pub fn process<T: NodeAudioContext>(&mut self, ctx: &mut T) {
+    pub fn process<T: NodeAudioContext>(&mut self, ctx: &mut T, out: &mut [f32]) {
         let freq = self.input[0] * super::MIDI_MAX_FREQ;
         let freq = 440.0;
 
-        self.output[0] = 0.2 * (self.phase * 2.0 * std::f32::consts::PI).sin();
+        out[0] = 0.2 * (self.phase * 2.0 * std::f32::consts::PI).sin();
 
         self.phase += freq / self.srate;
         self.phase = self.phase.fract();
