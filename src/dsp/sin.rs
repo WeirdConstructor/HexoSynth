@@ -17,7 +17,7 @@ impl Sin {
     pub fn new(srate: f32) -> Self {
         Self {
             srate,
-            input:  [0.0; 1],
+            input: [1.0; 1],
             phase: 0.0,
         }
     }

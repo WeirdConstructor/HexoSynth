@@ -14,15 +14,20 @@ macro_rules! node_list {
     ($inmacro: ident) => {
         $inmacro!{
             "nop" => Nop,
-            "amp" => Amp,
-            "sin" => Sin,
-            "out" => Out,
+            "amp" => Amp (gain 0.0,2.0)             [sig],
+            "sin" => Sin (freq 0.0,MIDI_MAX_FREQ)   [sig],
+            "out" => Out (in1 0.0,1.0) (in2 0.0,1.0),
         }
     }
 }
 
 macro_rules! make_node_info_enum {
-    ($s1: expr => $v1: ident, $($str: expr => $variant: ident,)+) => {
+    ($s1: expr => $v1: ident,
+        $($str: expr => $variant: ident
+            $(($para: ident $min: expr, $max: expr))*
+            $([$out: ident])*
+            ,)+
+    ) => {
         /// Holds information about the node type that was allocated.
         /// Also holds the current parameter values for the UI of the corresponding
         /// Node. See also `NodeConfigurator` which holds the information for all
@@ -53,7 +58,12 @@ macro_rules! make_node_info_enum {
 }
 
 macro_rules! make_node_enum {
-    ($s1: expr => $v1: ident, $($str: expr => $variant: ident,)+) => {
+    ($s1: expr => $v1: ident,
+        $($str: expr => $variant: ident
+            $(($para: ident $min: expr, $max: expr))*
+            $([$out: ident])*
+            ,)+
+    ) => {
         /// Holds the complete node program.
         #[derive(Debug, Clone)]
         pub enum Node {
@@ -72,7 +82,12 @@ pub fn node_factory(name: &str, sample_rate: f32) -> Option<(Node, NodeInfo)> {
     println!("Factory: {}", name);
 
     macro_rules! make_node_factory_match {
-        ($s1: expr => $v1: ident, $($str: expr => $variant: ident,)+) => {
+        ($s1: expr => $v1: ident,
+            $($str: expr => $variant: ident
+                $(($para: ident $min: expr, $max: expr))*
+                $([$out: ident])*
+                ,)+
+        ) => {
             match name {
                 $($str => Some((
                     Node::$variant { node: $variant::new(sample_rate) },
@@ -90,7 +105,12 @@ impl Node {
     #[inline]
     pub fn process<T: NodeAudioContext>(&mut self, ctx: &mut T, inputs: &[(usize, usize)], outinfo: &(usize, usize), out: &mut [f32]) {
         macro_rules! make_node_process {
-            ($s1: expr => $v1: ident, $($str: expr => $variant: ident,)+) => {
+            ($s1: expr => $v1: ident,
+                $($str: expr => $variant: ident
+                    $(($para: ident $min: expr, $max: expr))*
+                    $([$out: ident])*
+                    ,)+
+            ) => {
                 match self {
                     Node::$v1 => {},
                     $(Node::$variant { node } => node.process(ctx, inputs, outinfo, out),)+
