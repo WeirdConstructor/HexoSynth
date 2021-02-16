@@ -194,7 +194,7 @@ impl Plugin for HexoSynth {
 
         let mut prog_vec = Vec::new();
         for i in 0..100 {
-            prog_vec.push(NodeOp { idx: amp_id, inputs: vec![], out_idxlen: amp_outidxlen, calc: true, out: vec![
+            prog_vec.push(NodeOp { idx: amp_id, inputs: vec![], out_idxlen: amp_outidxlen, out: vec![
                 // TODO FIXME: The compiler needs to keep track which output
                 //             to actually forward!
                 // TODO FIXME: The compiler also needs to keep track which inputs
@@ -202,7 +202,7 @@ impl Plugin for HexoSynth {
             ] });
         }
 
-        prog_vec.push(NodeOp { idx: sin_id, out_idxlen: sin_outidxlen, calc: true, out: vec![
+        prog_vec.push(NodeOp { idx: sin_id, out_idxlen: sin_outidxlen, out: vec![
             OutOp { out_port_idx: 0, node_idx: out_id, dst_param_idx: 0 },
         ], inputs: vec![
             (amp_outidxlen.0, 0),
@@ -237,7 +237,7 @@ impl Plugin for HexoSynth {
             (amp_outidxlen.0, 0),
             (amp_outidxlen.0, 0),
         ]});
-        prog_vec.push(NodeOp { idx: out_id, out_idxlen: out_outidxlen, calc: true, out: vec![ ],
+        prog_vec.push(NodeOp { idx: out_id, out_idxlen: out_outidxlen, out: vec![ ],
             inputs: vec![
                 (sin_outidxlen.0, 0),
                 (sin_outidxlen.0, 0),

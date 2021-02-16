@@ -172,8 +172,6 @@ pub struct OutOp {
 
 /// Step in a `NodeProg` that stores the to be
 /// executed node and output operations.
-/// If `calc` is false, the node is not executed and only
-/// the output operations are executed.
 #[derive(Debug, Clone)]
 pub struct NodeOp {
     /// Stores the index of the node
@@ -182,9 +180,6 @@ pub struct NodeOp {
     pub out_idxlen: (usize, usize),
     /// Input indices, (<out vec index>, <own node input index>)
     pub inputs: Vec<(usize, usize)>,
-    /// If true, the node needs to be executed. Otherwise only
-    /// the output operations are executed.
-    pub calc: bool,
     /// Holds the output operations.
     pub out:  Vec<OutOp>,
 }
@@ -193,7 +188,6 @@ impl NodeOp {
     fn empty() -> Self {
         Self {
             idx:        0,
-            calc:       false,
             out_idxlen: (0, 0),
             inputs:     vec![],
             out:        vec![],
@@ -280,11 +274,9 @@ impl NodeExecutor {
 //        for i in 0..self.prog_len {
 //            let op = &self.prog[i];
 
-            if op.calc {
-                // TODO: try replacing the enum-dispatch by a dynamic dispatch
-                //       => store nodes as Box<> in the nodes array.
-                self.nodes[op.idx as usize].process(ctx, &op.inputs, &op.out_idxlen, &mut self.prog.out);
-            }
+            // TODO: try replacing the enum-dispatch by a dynamic dispatch
+            //       => store nodes as Box<> in the nodes array.
+            self.nodes[op.idx as usize].process(ctx, &op.inputs, &op.out_idxlen, &mut self.prog.out);
         }
     }
 }
