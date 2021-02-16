@@ -32,7 +32,9 @@ impl Out {
     }
 
     #[inline]
-    pub fn process<T: NodeAudioContext>(&mut self, ctx: &mut T, out: &mut [f32]) {
+    pub fn process<T: NodeAudioContext>(&mut self, ctx: &mut T, inputs: &[(usize, usize)], outinfo: &(usize, usize), out: &mut [f32]) {
+        for io in inputs.iter() { self.input[io.1] = out[io.0]; }
+
         ctx.output(0, self.input[0]);
         ctx.output(1, self.input[1]);
     }

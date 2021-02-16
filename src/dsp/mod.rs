@@ -102,12 +102,12 @@ impl Node {
     }
 
     #[inline]
-    pub fn process<T: NodeAudioContext>(&mut self, ctx: &mut T, out: &mut [f32]) {
+    pub fn process<T: NodeAudioContext>(&mut self, ctx: &mut T, inputs: &[(usize, usize)], outinfo: &(usize, usize), out: &mut [f32]) {
         macro_rules! make_node_process {
             ($s1: expr => $v1: ident, $($str: expr => $variant: ident,)+) => {
                 match self {
                     Node::$v1 => {},
-                    $(Node::$variant { node } => node.process(ctx, out),)+
+                    $(Node::$variant { node } => node.process(ctx, inputs, outinfo, out),)+
                 }
             }
         }

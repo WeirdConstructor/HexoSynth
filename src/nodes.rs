@@ -179,7 +179,9 @@ pub struct NodeOp {
     /// Stores the index of the node
     pub idx:  u8,
     /// Output index and length of the node:
-    pub out_idxlen: (u8, u8),
+    pub out_idxlen: (usize, usize),
+    /// Input indices, (<out vec index>, <own node input index>)
+    pub inputs: Vec<(usize, usize)>,
     /// If true, the node needs to be executed. Otherwise only
     /// the output operations are executed.
     pub calc: bool,
@@ -193,6 +195,7 @@ impl NodeOp {
             idx:        0,
             calc:       false,
             out_idxlen: (0, 0),
+            inputs:     vec![],
             out:        vec![],
         }
     }
@@ -277,13 +280,13 @@ impl NodeExecutor {
 //        for i in 0..self.prog_len {
 //            let op = &self.prog[i];
 
-            let outslice =
-                &mut self.prog.out[
-                    op.out_idxlen.0 as usize
-                    ..
-                    op.out_idxlen.1 as usize];
             if op.calc {
-                self.nodes[op.idx as usize].process(ctx, outslice);
+                // TODO: implement a dynamic dispatch set_inputs() here
+                //       it receives the prog.out vector and a precomputed
+                //       list of index-pairs: (from_out_idx, my_input_index)
+                //       Transmit this directly to process(), which then
+                //       copies the values to the internal inputs.
+                self.nodes[op.idx as usize].process(ctx, &op.inputs, &op.out_idxlen, &mut self.prog.out);
             }
 
             // TODO: Make the frontend compute the program in a way
@@ -307,11 +310,11 @@ impl NodeExecutor {
             //       copy the inputs from the outputs.
             //       => This reduces the dynamic lookups to one per node.
 
-            for out in op.out.iter() {
-                let v = 0.0;
-                let v = outslice[out.out_port_idx as usize];
-                self.nodes[out.node_idx as usize].set(out.dst_param_idx, v);
-            }
+//            for out in op.out.iter() {
+//                let v = 0.0;
+//                let v = outslice[out.out_port_idx as usize];
+//                self.nodes[out.node_idx as usize].set(out.dst_param_idx, v);
+//            }
         }
     }
 }
