@@ -24,10 +24,12 @@ impl Sin {
 
     #[inline]
     pub fn process<T: NodeAudioContext>(&mut self, ctx: &mut T, inputs: &[(usize, usize)], outinfo: &(usize, usize), out: &mut [f32]) {
+        use crate::dsp::denorm;
+
         for io in inputs.iter() { self.input[io.1] = out[io.0]; }
         let out = &mut out[outinfo.0..outinfo.1];
 
-        let freq = self.input[0] * super::MIDI_MAX_FREQ;
+        let freq = denorm::Sin::freq(self.input[0]);
         let freq = 440.0;
 
         out[0] = 0.2 * (self.phase * 2.0 * std::f32::consts::PI).sin();

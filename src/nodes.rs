@@ -84,7 +84,7 @@ impl Drop for DropThread {
 /// as facade for the executed node graph in the backend.
 pub struct NodeConfigurator {
     /// Holds all the nodes, their parameters and type.
-    nodes:  [NodeInfo; MAX_ALLOCATED_NODES],
+    nodes:              Vec<NodeInfo>,
     /// For updating the NodeExecutor with graph updates.
     graph_update_prod:  Producer<GraphMessage>,
     /// For quick updates like UI paramter changes.
@@ -98,6 +98,10 @@ pub struct NodeConfigurator {
 
 impl NodeConfigurator {
     pub fn drop_node(&mut self, idx: usize) {
+        if idx >= self.nodes.len() {
+            return;
+        }
+
         match self.nodes[idx] {
             NodeInfo::Nop => { return; },
             _ => {},
@@ -113,18 +117,27 @@ impl NodeConfigurator {
 
     pub fn create_node(&mut self, name: &str) -> Option<u8> {
         if let Some((node, info)) = node_factory(name, self.sample_rate) {
-            let mut index = 0;
+            let mut index : Option<usize> = None;
             for i in 0..self.nodes.len() {
                 if let NodeInfo::Nop = self.nodes[i] {
-                    index = i;
+                    index = Some(i);
                     break;
                 }
             }
 
-            self.nodes[index] = info;
-            self.graph_update_prod.push(
-                GraphMessage::NewNode { index: index as u8, node });
-            Some(index as u8)
+            if let Some(index) = index {
+                self.nodes[index] = info;
+                self.graph_update_prod.push(
+                    GraphMessage::NewNode { index: index as u8, node });
+                Some(index as u8)
+            } else {
+                let index = self.nodes.len();
+                self.nodes.resize_with((self.nodes.len() + 1) * 2, || NodeInfo::Nop);
+                self.nodes[index] = info;
+                self.graph_update_prod.push(
+                    GraphMessage::NewNode { index: index as u8, node });
+                Some(index as u8)
+            }
         } else {
             None
         }
@@ -150,8 +163,11 @@ pub fn new_node_engine(sample_rate: f32) -> (NodeConfigurator, NodeExecutor) {
 
     let drop_thread = DropThread::new(rb_drop_con);
 
+    let mut nodes = Vec::new();
+    nodes.resize_with(MAX_ALLOCATED_NODES, || NodeInfo::Nop);
+
     let nc = NodeConfigurator {
-        nodes:             [NodeInfo::Nop; MAX_ALLOCATED_NODES],
+        nodes,
         graph_update_prod: rb_graph_prod,
         quick_update_prod: rb_quick_prod,
         feedback_con:      rb_fb_con,
