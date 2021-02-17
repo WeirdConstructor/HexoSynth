@@ -4,6 +4,7 @@ Design of the highlevel Matrix API:
 
 - NodeInfo (belongs to nothing, is the root of knowledge)
   - name
+  - GUI type (Default, ModFunction, LFO+MF, 3xLFO+MF, ADSR+MF, ...)
   - output ports: number and name
   - input ports: number and name
     - input parameter range
