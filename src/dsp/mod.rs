@@ -44,6 +44,33 @@ macro_rules! make_node_info_enum {
             $($variant(crate::dsp::ni::$variant)),+
         }
 
+        pub struct NodeInfoHolder {
+            $s1: NodeInfo,
+            $($str: NodeInfo),+
+        }
+
+        impl NodeInfoHolder {
+            pub fn new() -> Self {
+                Self {
+                    $s1: NodeInfo::$v1,
+                    $($str: NodeInfo::$variant(crate::dsp::ni::$variant::new())),+
+                }
+            }
+
+            pub fn from_node_id(&self, nid: NodeId) -> &NodeInfo {
+                match nid {
+                    NodeId::$v1           => &self.$s1,
+                    $(NodeId::$variant(_) => &self.$str),+
+                }
+            }
+        }
+
+        #[derive(Debug, Clone, Copy)]
+        pub enum NodeId {
+            $v1,
+            $($variant(u8)),+
+        }
+
         pub mod denorm {
             $(pub mod $variant {
                 $(#[inline] pub fn $para(x: f32) -> f32 {

@@ -3,6 +3,7 @@
 
 mod nodes;
 mod dsp;
+mod matrix;
 
 use serde::{Serialize, Deserialize};
 
