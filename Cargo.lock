@@ -46,7 +46,6 @@ checksum = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
 [[package]]
 name = "baseplug"
 version = "0.1.0"
-source = "git+https://github.com/wrl/baseplug.git#0c9a54f72a8d8b9a4cabe93d8b0736dfdaa29f72"
 dependencies = [
  "baseplug-derive",
  "num-traits",
@@ -59,7 +58,6 @@ dependencies = [
 [[package]]
 name = "baseplug-derive"
 version = "0.1.0"
-source = "git+https://github.com/wrl/baseplug.git#0c9a54f72a8d8b9a4cabe93d8b0736dfdaa29f72"
 dependencies = [
  "proc-macro2 1.0.24",
  "quote 1.0.9",

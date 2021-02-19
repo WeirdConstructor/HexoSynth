@@ -275,4 +275,5 @@ impl Plugin for HexoSynth {
     }
 }
 
+#[cfg(not(test))]
 baseplug::vst2!(HexoSynth, b"HxsY");

@@ -1,4 +1,4 @@
-use crate::nodes::{NodeOp, NodeConfigurator};
+use crate::nodes::{NodeOp, NodeConfigurator, NodeProg};
 use crate::dsp::{NodeId, NodeInfoHolder, NodeInfo};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -33,6 +33,20 @@ impl Cell {
             in2: None,
             in3: None,
         }
+    }
+
+    pub fn input(mut self, i1: Option<u8>, i2: Option<u8>, i3: Option<u8>) -> Self {
+        self.in1 = i1;
+        self.in2 = i2;
+        self.in3 = i3;
+        self
+    }
+
+    pub fn out(mut self, o1: Option<u8>, o2: Option<u8>, o3: Option<u8>) -> Self {
+        self.out1 = o1;
+        self.out2 = o2;
+        self.out3 = o3;
+        self
     }
 }
 
@@ -121,28 +135,39 @@ impl Matrix {
                 // - add the assoc output index to the output-index
                 //   of the node instance
 
+                let instances = self.instances.borrow();
                 match dir {
                     5 => {
                         if let Some(cell_out_i) = cell.out3 {
-                            let ni = self.instances.borrow().get(&cell.node_id).unwrap();
-                            Some(ni.out_start + cell_out_i)
+                            let ni = instances.get(&cell.node_id).unwrap();
+                            Some(ni.out_start + cell_out_i as usize)
+                        } else {
+                            None
                         }
                     },
                     4 => {
                         if let Some(cell_out_i) = cell.out2 {
-                            let ni = self.instances.borrow().get(&cell.node_id).unwrap();
-                            Some(ni.out_start + cell_out_i)
+                            let ni = instances.get(&cell.node_id).unwrap();
+                            Some(ni.out_start + cell_out_i as usize)
+                        } else {
+                            None
                         }
                     },
                     3 => {
                         if let Some(cell_out_i) = cell.out1 {
-                            let ni = self.instances.borrow().get(&cell.node_id).unwrap();
-                            Some(ni.out_start + cell_out_i)
+                            let ni = instances.get(&cell.node_id).unwrap();
+                            Some(ni.out_start + cell_out_i as usize)
+                        } else {
+                            None
                         }
                     },
                     _ => { None }
                 }
+            } else {
+                None
             }
+        } else {
+            None
         }
     }
 
@@ -184,11 +209,12 @@ impl Matrix {
     pub fn sync(&mut self) {
         self.instances.borrow_mut().clear();
 
-        // Build instance map, to find new nodes in the matrix.
-        self.config.for_each(|node_info, _i| {
-            let mut id = node_info.to_id(0);
+        println!("FOO");
 
+        // Build instance map, to find new nodes in the matrix.
+        self.config.for_each(|node_info, mut id, _i| {
             while let Some(_) = self.instances.borrow().get(&id) {
+                println!("OOO {:?}", id);
                 id = id.set_instance(id.instance() + 1);
             }
 
@@ -212,21 +238,23 @@ impl Matrix {
         // and this time calculate the output offsets.
         self.instances.borrow_mut().clear();
         let mut out_len = 0;
-        self.config.for_each(|node_info, i| {
+        self.config.for_each(|node_info, mut id, i| {
             // - calculate size of output vector.
             let out_idx = out_len;
             out_len += node_info.outputs();
-
-            let mut id = node_info.to_id(0);
 
             while let Some(_) = self.instances.borrow().get(&id) {
                 id = id.set_instance(id.instance() + 1);
             }
 
+            println!("INSERT: {:?}", id);
+
             // - save offset and length of each node's
             //   allocation in the output vector.
             self.instances.borrow_mut().insert(id,
-                NodeInstance::new(id).index(i).set_output(out_idx, out_len));
+                NodeInstance::new(id)
+                .set_index(i)
+                .set_output(out_idx, out_len));
         });
 
         let mut prog = NodeProg::new(out_len);
@@ -241,6 +269,12 @@ impl Matrix {
 
                 let mut cell = &mut self.matrix[x * self.h + y];
 
+                if cell.node_id == NodeId::Nop {
+                    continue;
+                }
+
+                println!("O {:?}", cell.node_id);
+
                 let op =
                     self.instances.borrow().get(&cell.node_id).unwrap().to_op();
 
@@ -249,6 +283,7 @@ impl Matrix {
             }
         }
 
+        println!("FBAROO");
         // - after each node has been created, use the node ordering
         //   in NodeConfigurator to create an output vector.
         //      - When a new output vector is received in the backend,
@@ -330,3 +365,26 @@ I still need to decide how to refer to node instances:
 
 
 */
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn check_matrix1() {
+        let (mut node_conf, mut node_exec) = crate::nodes::new_node_engine(44100.0);
+        let mut matrix = Matrix::new(node_conf, 3, 3);
+
+        matrix.place(0, 0, Cell::empty(NodeId::Sin(0)).out(None, Some(0), None));
+        matrix.place(1, 0, Cell::empty(NodeId::Sin(0)).input(None, Some(0), None).out(None, None, Some(0)));
+        matrix.place(1, 1, Cell::empty(NodeId::Sin(0)).input(Some(0), None, None));
+
+        matrix.sync();
+
+        node_exec.process_graph_updates();
+
+        println!("PROG: {:?}", node_exec.get_prog());
+
+        assert!(false);
+    }
+}

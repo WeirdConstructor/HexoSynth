@@ -2,7 +2,7 @@ const MAX_ALLOCATED_NODES : usize = 256;
 const MAX_NODE_PROG_OPS   : usize = 256 * 3;
 
 use ringbuf::{RingBuffer, Producer, Consumer};
-use crate::dsp::{node_factory, NodeInfo, Node};
+use crate::dsp::{node_factory, NodeInfo, Node, NodeId};
 
 #[derive(Debug, Clone)]
 pub struct NodeProg {
@@ -124,10 +124,15 @@ impl NodeConfigurator {
             });
     }
 
-    pub fn for_each<F: FnMut(&NodeInfo, usize)>(&self, mut f: F) {
+    pub fn for_each<F: FnMut(&NodeInfo, NodeId, usize)>(&self, mut f: F) {
         let mut i = 0;
         for n in self.nodes.iter() {
-            f(n, i);
+            let nid = n.to_id(0);
+            if NodeId::Nop == nid {
+                break;
+            }
+
+            f(n, nid, i);
             i += 1;
         }
     }
@@ -314,6 +319,12 @@ impl NodeExecutor {
         // TODO: Handle quick_update_con to start ramps for the
         //       passed parameters.
     }
+
+    #[inline]
+    pub fn get_nodes(&self) -> &Vec<Node> { &self.nodes }
+
+    #[inline]
+    pub fn get_prog(&self) -> &NodeProg { &self.prog }
 
     #[inline]
     pub fn process<T: NodeAudioContext>(&mut self, ctx: &mut T) {
