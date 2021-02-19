@@ -17,6 +17,15 @@ impl NodeProg {
             prog: vec![],
         }
     }
+
+    pub fn new(out_len: usize) -> Self {
+        let mut out = vec![];
+        out.resize(out_len, 0.0);
+        Self {
+            out,
+            prog: vec![],
+        }
+    }
 }
 
 /// Big messages for updating the NodeExecutor thread.
@@ -115,9 +124,11 @@ impl NodeConfigurator {
             });
     }
 
-    pub fn for_each<F: FnMut(&NodeInfo)>(&self, mut f: F) {
+    pub fn for_each<F: FnMut(&NodeInfo, usize)>(&self, mut f: F) {
+        let mut i = 0;
         for n in self.nodes.iter() {
-            f(n);
+            f(n, i);
+            i += 1;
         }
     }
 

@@ -6,11 +6,17 @@ pub struct Cell {
     node_id:  NodeId,
     x:        u8,
     y:        u8,
+    /// Top-Right output
     out1:     Option<u8>,
+    /// Bottom-Right output
     out2:     Option<u8>,
+    /// Bottom output
     out3:     Option<u8>,
+    /// Top input
     in1:      Option<u8>,
+    /// Top-Left input
     in2:      Option<u8>,
+    /// Bottom-Left input
     in3:      Option<u8>,
 }
 
@@ -32,6 +38,7 @@ impl Cell {
 
 struct NodeInstance {
     id:         NodeId,
+    prog_idx:   usize,
     out_start:  usize,
     out_end:    usize,
 }
@@ -40,18 +47,24 @@ impl NodeInstance {
     pub fn new(id: NodeId) -> Self {
         Self {
             id,
+            prog_idx:     0,
             out_start: 0,
             out_end:   0,
         }
     }
 
-    pub fn to_op(&self, prog_idx: usize) -> NodeOp {
+    pub fn to_op(&self) -> NodeOp {
         NodeOp {
-            idx:        prog_idx as u8,
+            idx:        self.prog_idx as u8,
             out_idxlen: (0, 0),
             inputs:     vec![],
             out:        vec![],
         }
+    }
+
+    pub fn set_index(mut self, idx: usize) -> Self {
+        self.prog_idx = idx;
+        self
     }
 
     pub fn set_output(mut self, s: usize, e: usize) -> Self {
@@ -95,6 +108,71 @@ impl Matrix {
         self.matrix[x * self.h + y] = cell;
     }
 
+    pub fn get_adjacent_out_vec_index(&self, x: usize, y: usize, dir: u8) -> Option<usize> {
+        if dir > 5 || dir < 3 {
+            return None;
+        }
+
+        if let Some(cell) = self.get_adjacent(x, y, dir) {
+            if cell.node_id != NodeId::Nop {
+                // check output 3
+                // - get the associated output index
+                // - get the NodeInstance of this cell
+                // - add the assoc output index to the output-index
+                //   of the node instance
+
+                match dir {
+                    5 => {
+                        if let Some(cell_out_i) = cell.out3 {
+                            let ni = self.instances.borrow().get(&cell.node_id).unwrap();
+                            Some(ni.out_start + cell_out_i)
+                        }
+                    },
+                    4 => {
+                        if let Some(cell_out_i) = cell.out2 {
+                            let ni = self.instances.borrow().get(&cell.node_id).unwrap();
+                            Some(ni.out_start + cell_out_i)
+                        }
+                    },
+                    3 => {
+                        if let Some(cell_out_i) = cell.out1 {
+                            let ni = self.instances.borrow().get(&cell.node_id).unwrap();
+                            Some(ni.out_start + cell_out_i)
+                        }
+                    },
+                    _ => { None }
+                }
+            }
+        }
+    }
+
+    pub fn get_adjacent(&self, x: usize, y: usize, dir: u8) -> Option<&Cell> {
+        let offs : (i32, i32) =
+            match dir {
+                // out 1 - TR
+                0 => (0, 1),
+                // out 2 - BR
+                1 => (1, 1),
+                // out 3 - B
+                2 => (0, 1),
+                // in 3 - BL
+                3 => (-1, 1),
+                // in 2 - TL
+                4 => (-1, 0),
+                // in 1 - T
+                5 => (0, -1),
+                _ => (0, 0),
+            };
+        let x = x as i32 + offs.0;
+        let y = y as i32 + offs.1;
+
+        if x < 0 || y < 0 || (x as usize) >= self.w || (y as usize) >= self.h {
+            return None;
+        }
+
+        Some(&self.matrix[(x as usize) * self.h + (y as usize)])
+    }
+
     pub fn get(&self, x: usize, y: usize) -> Option<&Cell> {
         if x >= self.w || y >= self.h {
             return None;
@@ -107,7 +185,7 @@ impl Matrix {
         self.instances.borrow_mut().clear();
 
         // Build instance map, to find new nodes in the matrix.
-        self.config.for_each(|node_info| {
+        self.config.for_each(|node_info, _i| {
             let mut id = node_info.to_id(0);
 
             while let Some(_) = self.instances.borrow().get(&id) {
@@ -134,7 +212,7 @@ impl Matrix {
         // and this time calculate the output offsets.
         self.instances.borrow_mut().clear();
         let mut out_len = 0;
-        self.config.for_each(|node_info| {
+        self.config.for_each(|node_info, i| {
             // - calculate size of output vector.
             let out_idx = out_len;
             out_len += node_info.outputs();
@@ -148,19 +226,23 @@ impl Matrix {
             // - save offset and length of each node's
             //   allocation in the output vector.
             self.instances.borrow_mut().insert(id,
-                NodeInstance::new(id).set_output(out_idx, out_len));
+                NodeInstance::new(id).index(i).set_output(out_idx, out_len));
         });
+
+        let mut prog = NodeProg::new(out_len);
 
         for x in 0..self.w {
             for y in 0..self.h {
+                // Get the indices to the output vector for the
+                // corresponding input ports.
+                let in_1_out_idx = self.get_adjacent_out_vec_index(x, y, 5);
+                let in_2_out_idx = self.get_adjacent_out_vec_index(x, y, 4);
+                let in_3_out_idx = self.get_adjacent_out_vec_index(x, y, 3);
+
                 let mut cell = &mut self.matrix[x * self.h + y];
 
-                // TODO: Find index by building the prog! And linear search for
-                //       this node_id!
-                let index = 0;
-
                 let op =
-                    self.instances.borrow().get(&cell.node_id).unwrap().to_op(index);
+                    self.instances.borrow().get(&cell.node_id).unwrap().to_op();
 
                 // Check if NodeOp in prog exists, and append to the
                 // input-copy-list.
