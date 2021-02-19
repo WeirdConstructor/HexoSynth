@@ -115,6 +115,12 @@ impl NodeConfigurator {
             });
     }
 
+    pub fn for_each<F: FnMut(&NodeInfo)>(&self, mut f: F) {
+        for n in self.nodes.iter() {
+            f(n);
+        }
+    }
+
     pub fn create_node(&mut self, name: &str) -> Option<u8> {
         if let Some((node, info)) = node_factory(name, self.sample_rate) {
             let mut index : Option<usize> = None;

@@ -1,25 +1,25 @@
-use crate::nodes::NodeConfigurator;
+use crate::nodes::{NodeOp, NodeConfigurator};
 use crate::dsp::{NodeId, NodeInfoHolder, NodeInfo};
 
-pub struct Matrix {
-    info_holder: NodeInfoHolder,
-    config:      NodeConfigurator,
-}
-
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Cell {
-    node_id: NodeId,
-    out1: Option<u8>,
-    out2: Option<u8>,
-    out3: Option<u8>,
-    in1:  Option<u8>,
-    in2:  Option<u8>,
-    in3:  Option<u8>,
+    node_id:  NodeId,
+    x:        u8,
+    y:        u8,
+    out1:     Option<u8>,
+    out2:     Option<u8>,
+    out3:     Option<u8>,
+    in1:      Option<u8>,
+    in2:      Option<u8>,
+    in3:      Option<u8>,
 }
 
 impl Cell {
     pub fn empty(node_id: NodeId) -> Self {
         Self {
             node_id,
+            x: 0,
+            y: 0,
             out1: None,
             out2: None,
             out3: None,
@@ -30,19 +30,156 @@ impl Cell {
     }
 }
 
-impl Matrix {
-    pub fn new(config: NodeConfigurator) -> Self {
+struct NodeInstance {
+    id:         NodeId,
+    out_start:  usize,
+    out_end:    usize,
+}
+
+impl NodeInstance {
+    pub fn new(id: NodeId) -> Self {
         Self {
-            info_holder: NodeInfoHolder::new(),
-            config,
+            id,
+            out_start: 0,
+            out_end:   0,
         }
     }
 
-    pub fn place(&mut self, x: usize, y: usize, cell: Cell) {
+    pub fn to_op(&self, prog_idx: usize) -> NodeOp {
+        NodeOp {
+            idx:        prog_idx as u8,
+            out_idxlen: (0, 0),
+            inputs:     vec![],
+            out:        vec![],
+        }
+    }
+
+    pub fn set_output(mut self, s: usize, e: usize) -> Self {
+        self.out_start = s;
+        self.out_end   = e;
+        self
+    }
+}
+
+use std::rc::Rc;
+use std::cell::RefCell;
+
+pub struct Matrix {
+    info_holder: NodeInfoHolder,
+    config:      NodeConfigurator,
+    matrix:      Vec<Cell>,
+    w:           usize,
+    h:           usize,
+
+    instances:   Rc<RefCell<std::collections::HashMap<NodeId, NodeInstance>>>,
+}
+
+impl Matrix {
+    pub fn new(config: NodeConfigurator, w: usize, h: usize) -> Self {
+        let mut matrix : Vec<Cell> = Vec::new();
+        matrix.resize(w * h, Cell::empty(NodeId::Nop));
+
+        Self {
+            info_holder: NodeInfoHolder::new(),
+            instances:   Rc::new(RefCell::new(std::collections::HashMap::new())),
+            config,
+            w,
+            h,
+            matrix,
+        }
+    }
+
+    pub fn place(&mut self, x: usize, y: usize, mut cell: Cell) {
+        cell.x = x as u8;
+        cell.y = y as u8;
+        self.matrix[x * self.h + y] = cell;
+    }
+
+    pub fn get(&self, x: usize, y: usize) -> Option<&Cell> {
+        if x >= self.w || y >= self.h {
+            return None;
+        }
+
+        Some(&self.matrix[x * self.h + y])
     }
 
     pub fn sync(&mut self) {
-        // For all cells without an NodeInstance, let NodeConfigurator create one
+        self.instances.borrow_mut().clear();
+
+        // Build instance map, to find new nodes in the matrix.
+        self.config.for_each(|node_info| {
+            let mut id = node_info.to_id(0);
+
+            while let Some(_) = self.instances.borrow().get(&id) {
+                id = id.set_instance(id.instance() + 1);
+            }
+
+            self.instances.borrow_mut().insert(id, NodeInstance::new(id));
+        });
+
+        for x in 0..self.w {
+            for y in 0..self.h {
+                let mut cell = &mut self.matrix[x * self.h + y];
+
+                // - check if each NodeId has a corresponding entry in NodeConfigurator
+                //   - if not, NodeConfigurator creates a new one on the fly
+                if self.instances.borrow().get(&cell.node_id).is_none() {
+                    // TODO: Expects &str still! Need to expect a NodeId!
+                    // self.config.create_node(cell.node_id);
+                }
+            }
+        }
+
+        // Rebuild the instances, because they might changed
+        // and this time calculate the output offsets.
+        self.instances.borrow_mut().clear();
+        let mut out_len = 0;
+        self.config.for_each(|node_info| {
+            // - calculate size of output vector.
+            let out_idx = out_len;
+            out_len += node_info.outputs();
+
+            let mut id = node_info.to_id(0);
+
+            while let Some(_) = self.instances.borrow().get(&id) {
+                id = id.set_instance(id.instance() + 1);
+            }
+
+            // - save offset and length of each node's
+            //   allocation in the output vector.
+            self.instances.borrow_mut().insert(id,
+                NodeInstance::new(id).set_output(out_idx, out_len));
+        });
+
+        for x in 0..self.w {
+            for y in 0..self.h {
+                let mut cell = &mut self.matrix[x * self.h + y];
+
+                // TODO: Find index by building the prog! And linear search for
+                //       this node_id!
+                let index = 0;
+
+                let op =
+                    self.instances.borrow().get(&cell.node_id).unwrap().to_op(index);
+
+                // Check if NodeOp in prog exists, and append to the
+                // input-copy-list.
+            }
+        }
+
+        // - after each node has been created, use the node ordering
+        //   in NodeConfigurator to create an output vector.
+        //      - When a new output vector is received in the backend,
+        //        the backend needs to copy over the previous data.
+        //        XXX: This works, because we don't delete nodes.
+        //             If we do garbage collection, we can risk a short click
+        //             Maybe ramp up the volume after a GC!
+        //      - Store all nodes and their output vector offset and length
+        //        in a list for reference.
+        // - iterate through the matrix, column by column:
+        //      - create program vector
+        //          - If NodeId is not found, create a new NodeOp at the end
+        //          - Append all inputs of the current Cell to the NodeOp
     }
 }
 

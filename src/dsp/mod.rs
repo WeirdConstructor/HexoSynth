@@ -65,10 +65,26 @@ macro_rules! make_node_info_enum {
             }
         }
 
-        #[derive(Debug, Clone, Copy)]
+        #[derive(Debug, Clone, Copy, PartialOrd, PartialEq, Eq, Ord, Hash)]
         pub enum NodeId {
             $v1,
             $($variant(u8)),+
+        }
+
+        impl NodeId {
+            pub fn set_instance(&self, instance: usize) -> NodeId {
+                match self {
+                    NodeId::$v1           => NodeId::$v1,
+                    $(NodeId::$variant(_) => NodeId::$variant(instance as u8)),+
+                }
+            }
+
+            pub fn instance(&self) -> usize {
+                match self {
+                    NodeId::$v1           => 0,
+                    $(NodeId::$variant(i) => *i as usize),+
+                }
+            }
         }
 
         pub mod denorm {
@@ -130,6 +146,13 @@ macro_rules! make_node_info_enum {
                     stringify!($s1)    => NodeInfo::$v1,
                     $(stringify!($str) => NodeInfo::$variant(crate::dsp::ni::$variant::new())),+,
                     _                  => NodeInfo::Nop,
+                }
+            }
+
+            pub fn to_id(&self, instance: usize) -> NodeId {
+                match self {
+                    NodeInfo::$v1           => NodeId::$v1,
+                    $(NodeInfo::$variant(_) => NodeId::$variant(instance as u8)),+
                 }
             }
 
