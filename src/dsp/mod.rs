@@ -79,6 +79,14 @@ macro_rules! make_node_info_enum {
                 }
             }
 
+            pub fn from_str(name: &str) -> Self {
+                match name {
+                    stringify!($s1)    => NodeId::$v1,
+                    $(stringify!($str) => NodeId::$variant(0)),+,
+                    _                  => NodeId::Nop,
+                }
+            }
+
             pub fn instance(&self) -> usize {
                 match self {
                     NodeId::$v1           => 0,
@@ -181,14 +189,23 @@ macro_rules! make_node_enum {
             $v1,
             $($variant { node: $variant },)+
         }
+
+        impl Node {
+            pub fn to_id(&self, index: usize) -> NodeId {
+                match self {
+                    Node::$v1               => NodeId::$v1,
+                    $(Node::$variant { .. } => NodeId::$variant(index as u8)),+
+                }
+            }
+        }
     }
 }
 
 node_list!{make_node_info_enum}
 node_list!{make_node_enum}
 
-pub fn node_factory(name: &str, sample_rate: f32) -> Option<(Node, NodeInfo)> {
-    println!("Factory: {}", name);
+pub fn node_factory(node_id: NodeId, sample_rate: f32) -> Option<(Node, NodeInfo)> {
+    println!("Factory: {:?}", node_id);
 
     macro_rules! make_node_factory_match {
         ($s1: expr => $v1: ident,
@@ -197,8 +214,8 @@ pub fn node_factory(name: &str, sample_rate: f32) -> Option<(Node, NodeInfo)> {
                 $([$out_idx: literal $out: ident])*
             ,)+
         ) => {
-            match name {
-                $(stringify!($str) => Some((
+            match node_id {
+                $(NodeId::$variant(_) => Some((
                     Node::$variant { node: $variant::new(sample_rate) },
                     NodeInfo::$variant(crate::dsp::ni::$variant::new()),
                 )),)+

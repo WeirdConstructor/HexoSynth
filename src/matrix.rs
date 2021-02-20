@@ -72,7 +72,6 @@ impl NodeInstance {
             idx:        self.prog_idx as u8,
             out_idxlen: (0, 0),
             inputs:     vec![],
-            out:        vec![],
         }
     }
 
@@ -229,7 +228,7 @@ impl Matrix {
                 //   - if not, NodeConfigurator creates a new one on the fly
                 if self.instances.borrow().get(&cell.node_id).is_none() {
                     // TODO: Expects &str still! Need to expect a NodeId!
-                    // self.config.create_node(cell.node_id);
+                    self.config.create_node(cell.node_id);
                 }
             }
         }
@@ -273,10 +272,15 @@ impl Matrix {
                     continue;
                 }
 
+                // TODO: Get the input indices for in_1_out_idx to in_3_out_idx
+
                 println!("O {:?}", cell.node_id);
 
                 let op =
                     self.instances.borrow().get(&cell.node_id).unwrap().to_op();
+
+                prog.append_with_inputs(
+                    op, in_1_out_idx, in_2_out_idx, in_3_out_idx);
 
                 // Check if NodeOp in prog exists, and append to the
                 // input-copy-list.
@@ -383,7 +387,14 @@ mod tests {
 
         node_exec.process_graph_updates();
 
-        println!("PROG: {:?}", node_exec.get_prog());
+        println!("NODES: {:?}", node_exec.get_nodes());
+        println!("PROG: {:?}",  node_exec.get_prog());
+
+        let nodes = node_exec.get_nodes();
+
+        assert!(nodes[0].to_id(0) == NodeId::Sin(0));
+        assert!(nodes[1].to_id(1) == NodeId::Sin(1));
+        assert!(nodes[2].to_id(2) == NodeId::Sin(2));
 
         assert!(false);
     }

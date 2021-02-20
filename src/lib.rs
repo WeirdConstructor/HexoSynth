@@ -5,6 +5,7 @@ mod nodes;
 mod dsp;
 mod matrix;
 
+use dsp::NodeId;
 use serde::{Serialize, Deserialize};
 
 use baseplug::{
@@ -164,9 +165,9 @@ impl Plugin for HexoSynth {
     fn new(sample_rate: f32, _model: &HexoSynthModel) -> Self {
         let (mut node_conf, node_exec) = nodes::new_node_engine(sample_rate);
 
-        let amp_id = node_conf.create_node("amp").unwrap();
-        let sin_id = node_conf.create_node("sin").unwrap();
-        let out_id = node_conf.create_node("out").unwrap();
+        let amp_id = node_conf.create_node(NodeId::from_str("amp")).unwrap();
+        let sin_id = node_conf.create_node(NodeId::from_str("sin")).unwrap();
+        let out_id = node_conf.create_node(NodeId::from_str("out")).unwrap();
 
         let mut outlen = 0;
         let mut amp_outidxlen = (outlen, 0);
@@ -195,34 +196,29 @@ impl Plugin for HexoSynth {
 
         let mut prog_vec = Vec::new();
         for i in 0..50 {
-            prog_vec.push(NodeOp { idx: amp_id, inputs: vec![], out_idxlen: amp_outidxlen, out: vec![
-                // TODO FIXME: The compiler needs to keep track which output
-                //             to actually forward!
-                // TODO FIXME: The compiler also needs to keep track which inputs
-                //             to actually write to!
-            ] });
+            prog_vec.push(NodeOp { idx: amp_id, inputs: vec![], out_idxlen: amp_outidxlen });
         }
 
         for i in 0..50 {
-            prog_vec.push(NodeOp { idx: sin_id, out_idxlen: sin_outidxlen, out: vec![
-                OutOp { out_port_idx: 0, node_idx: out_id, dst_param_idx: 0 },
-            ], inputs: vec![
-                (amp_outidxlen.0, 0),
-                (amp_outidxlen.0, 0),
-                (amp_outidxlen.0, 0),
-                (amp_outidxlen.0, 0),
-                (amp_outidxlen.0, 0),
-                (amp_outidxlen.0, 0),
-                (amp_outidxlen.0, 0),
-                (amp_outidxlen.0, 0),
-                (amp_outidxlen.0, 0),
-                (amp_outidxlen.0, 0),
-                (amp_outidxlen.0, 0),
-                (amp_outidxlen.0, 0),
-                (amp_outidxlen.0, 0),
-            ]});
+            prog_vec.push(NodeOp { idx: sin_id, out_idxlen: sin_outidxlen,
+                inputs: vec![
+                    (amp_outidxlen.0, 0),
+                    (amp_outidxlen.0, 0),
+                    (amp_outidxlen.0, 0),
+                    (amp_outidxlen.0, 0),
+                    (amp_outidxlen.0, 0),
+                    (amp_outidxlen.0, 0),
+                    (amp_outidxlen.0, 0),
+                    (amp_outidxlen.0, 0),
+                    (amp_outidxlen.0, 0),
+                    (amp_outidxlen.0, 0),
+                    (amp_outidxlen.0, 0),
+                    (amp_outidxlen.0, 0),
+                    (amp_outidxlen.0, 0),
+                ]
+            });
         }
-        prog_vec.push(NodeOp { idx: out_id, out_idxlen: out_outidxlen, out: vec![ ],
+        prog_vec.push(NodeOp { idx: out_id, out_idxlen: out_outidxlen,
             inputs: vec![
                 (sin_outidxlen.0, 0),
                 (sin_outidxlen.0, 0),

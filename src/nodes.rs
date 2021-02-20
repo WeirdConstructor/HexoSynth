@@ -26,11 +26,30 @@ impl NodeProg {
             prog: vec![],
         }
     }
+
+    pub fn append_with_inputs(
+        &mut self,
+        node_op: NodeOp,
+        inp1: Option<(usize, usize)>,
+        inp2: Option<(usize, usize)>,
+        inp3: Option<(usize, usize)>)
+    {
+        let mut index = Option<usize>;
+
+        for n_op in self.prog.iter_mut() {
+            if n_op.idx == node_op.idx {
+                if let Some(inp1) = inp1 {
+//                    n_op.inputs.push(
+                }
+            }
+        }
+    }
 }
 
 /// Big messages for updating the NodeExecutor thread.
 /// Usually used for shoveling NodeProg and Nodes to and from
 /// the NodeExecutor thread.
+#[derive(Debug, Clone)]
 pub enum GraphMessage {
     NewNode { index: u8, node: Node },
     NewProg { prog: NodeProg },
@@ -137,8 +156,8 @@ impl NodeConfigurator {
         }
     }
 
-    pub fn create_node(&mut self, name: &str) -> Option<u8> {
-        if let Some((node, info)) = node_factory(name, self.sample_rate) {
+    pub fn create_node(&mut self, ni: NodeId) -> Option<u8> {
+        if let Some((node, info)) = node_factory(ni, self.sample_rate) {
             let mut index : Option<usize> = None;
             for i in 0..self.nodes.len() {
                 if let NodeInfo::Nop = self.nodes[i] {
@@ -232,8 +251,6 @@ pub struct NodeOp {
     pub out_idxlen: (usize, usize),
     /// Input indices, (<out vec index>, <own node input index>)
     pub inputs: Vec<(usize, usize)>,
-    /// Holds the output operations.
-    pub out:  Vec<OutOp>,
 }
 
 impl NodeOp {
@@ -242,7 +259,6 @@ impl NodeOp {
             idx:        0,
             out_idxlen: (0, 0),
             inputs:     vec![],
-            out:        vec![],
         }
     }
 }
@@ -297,7 +313,7 @@ impl NodeExecutor {
     #[inline]
     pub fn process_graph_updates(&mut self) {
         while let Some(upd) = self.graph_update_con.pop() {
-            println!("UPDATE GRAPH");
+            println!("UPDATE GRAPH {:?}", upd);
             match upd {
                 GraphMessage::NewNode { index, node } => {
                     let prev_node =
