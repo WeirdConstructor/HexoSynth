@@ -29,20 +29,25 @@ impl NodeProg {
 
     pub fn append_with_inputs(
         &mut self,
-        node_op: NodeOp,
+        mut node_op: NodeOp,
         inp1: Option<(usize, usize)>,
         inp2: Option<(usize, usize)>,
         inp3: Option<(usize, usize)>)
     {
-        let mut index = Option<usize>;
-
+        println!("APPEND: {:?}", node_op);
         for n_op in self.prog.iter_mut() {
             if n_op.idx == node_op.idx {
-                if let Some(inp1) = inp1 {
-//                    n_op.inputs.push(
-                }
+                if let Some(inp1) = inp1 { n_op.inputs.push(inp1); }
+                if let Some(inp2) = inp2 { n_op.inputs.push(inp2); }
+                if let Some(inp3) = inp3 { n_op.inputs.push(inp3); }
+                return;
             }
         }
+
+        if let Some(inp1) = inp1 { node_op.inputs.push(inp1); }
+        if let Some(inp2) = inp2 { node_op.inputs.push(inp2); }
+        if let Some(inp3) = inp3 { node_op.inputs.push(inp3); }
+        self.prog.push(node_op);
     }
 }
 
@@ -251,6 +256,21 @@ pub struct NodeOp {
     pub out_idxlen: (usize, usize),
     /// Input indices, (<out vec index>, <own node input index>)
     pub inputs: Vec<(usize, usize)>,
+}
+
+impl std::fmt::Display for NodeOp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Op(i={} out=({}-{})",
+               self.idx,
+               self.out_idxlen.0,
+               self.out_idxlen.1)?;
+
+        for i in self.inputs.iter() {
+            write!(f, " in=(o{} => i{})", i.0, i.1)?;
+        }
+
+        write!(f, ")")
+    }
 }
 
 impl NodeOp {

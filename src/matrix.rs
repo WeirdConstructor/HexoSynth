@@ -70,7 +70,7 @@ impl NodeInstance {
     pub fn to_op(&self) -> NodeOp {
         NodeOp {
             idx:        self.prog_idx as u8,
-            out_idxlen: (0, 0),
+            out_idxlen: (self.out_start, self.out_end),
             inputs:     vec![],
         }
     }
@@ -228,7 +228,9 @@ impl Matrix {
                 //   - if not, NodeConfigurator creates a new one on the fly
                 if self.instances.borrow().get(&cell.node_id).is_none() {
                     // TODO: Expects &str still! Need to expect a NodeId!
-                    self.config.create_node(cell.node_id);
+                    if let Some(new_idx) = self.config.create_node(cell.node_id) {
+                        cell.node_id = cell.node_id.set_instance(new_idx as usize);
+                    }
                 }
             }
         }
@@ -246,7 +248,7 @@ impl Matrix {
                 id = id.set_instance(id.instance() + 1);
             }
 
-            println!("INSERT: {:?}", id);
+            println!("INSERT: {:?} outidx: {},{}", id, out_idx, out_len);
 
             // - save offset and length of each node's
             //   allocation in the output vector.
@@ -272,6 +274,27 @@ impl Matrix {
                     continue;
                 }
 
+                let in_1 =
+                    if let Some(in1_idx) = cell.in1 {
+                        if let Some(in1_out_idx) = in_1_out_idx {
+                            Some((in1_out_idx, in1_idx as usize))
+                        } else { None }
+                    } else { None };
+
+                let in_2 =
+                    if let Some(in2_idx) = cell.in2 {
+                        if let Some(in2_out_idx) = in_2_out_idx {
+                            Some((in2_out_idx, in2_idx as usize))
+                        } else { None }
+                    } else { None };
+
+                let in_3 =
+                    if let Some(in3_idx) = cell.in3 {
+                        if let Some(in3_out_idx) = in_3_out_idx {
+                            Some((in3_out_idx, in3_idx as usize))
+                        } else { None }
+                    } else { None };
+
                 // TODO: Get the input indices for in_1_out_idx to in_3_out_idx
 
                 println!("O {:?}", cell.node_id);
@@ -279,13 +302,14 @@ impl Matrix {
                 let op =
                     self.instances.borrow().get(&cell.node_id).unwrap().to_op();
 
-                prog.append_with_inputs(
-                    op, in_1_out_idx, in_2_out_idx, in_3_out_idx);
+                prog.append_with_inputs(op, in_1, in_2, in_3);
 
                 // Check if NodeOp in prog exists, and append to the
                 // input-copy-list.
             }
         }
+
+        self.config.upload_prog(prog);
 
         println!("FBAROO");
         // - after each node has been created, use the node ordering
@@ -376,26 +400,33 @@ mod tests {
 
     #[test]
     fn check_matrix1() {
-        let (mut node_conf, mut node_exec) = crate::nodes::new_node_engine(44100.0);
+        use crate::nodes::new_node_engine;
+
+        let (mut node_conf, mut node_exec) = new_node_engine(44100.0);
         let mut matrix = Matrix::new(node_conf, 3, 3);
 
-        matrix.place(0, 0, Cell::empty(NodeId::Sin(0)).out(None, Some(0), None));
-        matrix.place(1, 0, Cell::empty(NodeId::Sin(0)).input(None, Some(0), None).out(None, None, Some(0)));
-        matrix.place(1, 1, Cell::empty(NodeId::Sin(0)).input(Some(0), None, None));
-
+        matrix.place(0, 0,
+            Cell::empty(NodeId::Sin(0))
+            .out(None, Some(0), None));
+        matrix.place(1, 0,
+            Cell::empty(NodeId::Sin(0))
+            .input(None, Some(0), None)
+            .out(None, None, Some(0)));
+        matrix.place(1, 1,
+            Cell::empty(NodeId::Sin(0))
+            .input(Some(0), None, None));
         matrix.sync();
 
         node_exec.process_graph_updates();
 
-        println!("NODES: {:?}", node_exec.get_nodes());
-        println!("PROG: {:?}",  node_exec.get_prog());
-
         let nodes = node_exec.get_nodes();
-
         assert!(nodes[0].to_id(0) == NodeId::Sin(0));
         assert!(nodes[1].to_id(1) == NodeId::Sin(1));
         assert!(nodes[2].to_id(2) == NodeId::Sin(2));
 
-        assert!(false);
+        let prog = node_exec.get_prog();
+        assert_eq!(prog.prog[0].to_string(), "Op(i=0 out=(0-1))");
+        assert_eq!(prog.prog[1].to_string(), "Op(i=1 out=(1-2) in=(o0 => i0))");
+        assert_eq!(prog.prog[2].to_string(), "Op(i=2 out=(2-3) in=(o1 => i0))");
     }
 }
