@@ -115,6 +115,10 @@ impl Matrix {
         }
     }
 
+    pub fn into_conf(self) -> NodeConfigurator {
+        self.config
+    }
+
     pub fn place(&mut self, x: usize, y: usize, mut cell: Cell) {
         cell.x = x as u8;
         cell.y = y as u8;
@@ -224,13 +228,21 @@ impl Matrix {
             for y in 0..self.h {
                 let mut cell = &mut self.matrix[x * self.h + y];
 
+                // - check if the previous node instances exist, if not,
+                //   create them on the fly now:
+                for inst in 0..cell.node_id.instance() {
+                    let new_hole_filler_node_id =
+                        cell.node_id.set_instance(inst);
+                    self.config.create_node(new_hole_filler_node_id);
+                    self.instances.borrow_mut().insert(
+                        new_hole_filler_node_id,
+                        NodeInstance::new(new_hole_filler_node_id));
+                }
+
                 // - check if each NodeId has a corresponding entry in NodeConfigurator
                 //   - if not, NodeConfigurator creates a new one on the fly
                 if self.instances.borrow().get(&cell.node_id).is_none() {
-                    // TODO: Expects &str still! Need to expect a NodeId!
-                    if let Some(new_idx) = self.config.create_node(cell.node_id) {
-                        cell.node_id = cell.node_id.set_instance(new_idx as usize);
-                    }
+                    self.config.create_node(cell.node_id);
                 }
             }
         }
@@ -399,7 +411,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn check_matrix1() {
+    fn check_matrix_3_sine() {
         use crate::nodes::new_node_engine;
 
         let (mut node_conf, mut node_exec) = new_node_engine(44100.0);
@@ -409,11 +421,11 @@ mod tests {
             Cell::empty(NodeId::Sin(0))
             .out(None, Some(0), None));
         matrix.place(1, 0,
-            Cell::empty(NodeId::Sin(0))
+            Cell::empty(NodeId::Sin(1))
             .input(None, Some(0), None)
             .out(None, None, Some(0)));
         matrix.place(1, 1,
-            Cell::empty(NodeId::Sin(0))
+            Cell::empty(NodeId::Sin(2))
             .input(Some(0), None, None));
         matrix.sync();
 
@@ -428,5 +440,63 @@ mod tests {
         assert_eq!(prog.prog[0].to_string(), "Op(i=0 out=(0-1))");
         assert_eq!(prog.prog[1].to_string(), "Op(i=1 out=(1-2) in=(o0 => i0))");
         assert_eq!(prog.prog[2].to_string(), "Op(i=2 out=(2-3) in=(o1 => i0))");
+    }
+
+    #[test]
+    fn check_matrix_into_output() {
+        use crate::nodes::new_node_engine;
+
+        let (mut node_conf, mut node_exec) = new_node_engine(44100.0);
+        let mut matrix = Matrix::new(node_conf, 3, 3);
+
+        matrix.place(0, 0,
+            Cell::empty(NodeId::Sin(0))
+            .out(None, Some(0), None));
+        matrix.place(1, 0,
+            Cell::empty(NodeId::Out(0))
+            .input(None, Some(0), None)
+            .out(None, None, Some(0)));
+        matrix.sync();
+
+        node_exec.process_graph_updates();
+
+        let nodes = node_exec.get_nodes();
+        assert!(nodes[0].to_id(0) == NodeId::Sin(0));
+        assert!(nodes[1].to_id(0) == NodeId::Out(0));
+
+        let prog = node_exec.get_prog();
+        assert_eq!(prog.prog.len(), 2);
+        assert_eq!(prog.prog[0].to_string(), "Op(i=0 out=(0-1))");
+        assert_eq!(prog.prog[1].to_string(), "Op(i=1 out=(1-1) in=(o0 => i0))");
+    }
+
+    #[test]
+    fn check_matrix_skip_instance() {
+        use crate::nodes::new_node_engine;
+
+        let (mut node_conf, mut node_exec) = new_node_engine(44100.0);
+        let mut matrix = Matrix::new(node_conf, 3, 3);
+
+        matrix.place(0, 0,
+            Cell::empty(NodeId::Sin(2))
+            .out(None, Some(0), None));
+        matrix.place(1, 0,
+            Cell::empty(NodeId::Out(0))
+            .input(None, Some(0), None)
+            .out(None, None, Some(0)));
+        matrix.sync();
+
+        node_exec.process_graph_updates();
+
+        let nodes = node_exec.get_nodes();
+        assert!(nodes[0].to_id(0) == NodeId::Sin(0));
+        assert!(nodes[1].to_id(0) == NodeId::Sin(0));
+        assert!(nodes[2].to_id(0) == NodeId::Sin(0));
+        assert!(nodes[3].to_id(0) == NodeId::Out(0));
+
+        let prog = node_exec.get_prog();
+        assert_eq!(prog.prog.len(), 2);
+        assert_eq!(prog.prog[0].to_string(), "Op(i=2 out=(2-3))");
+        assert_eq!(prog.prog[1].to_string(), "Op(i=3 out=(3-3) in=(o2 => i0))");
     }
 }

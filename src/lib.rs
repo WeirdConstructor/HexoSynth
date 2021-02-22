@@ -129,8 +129,10 @@ What I would love to have:
 */
 
 use nodes::*;
+use matrix::*;
 
 struct HexoSynth {
+//    matrix:     Matrix,
     node_conf:  NodeConfigurator,
     node_exec:  NodeExecutor,
 }
@@ -165,83 +167,19 @@ impl Plugin for HexoSynth {
     fn new(sample_rate: f32, _model: &HexoSynthModel) -> Self {
         let (mut node_conf, node_exec) = nodes::new_node_engine(sample_rate);
 
-        let amp_id = node_conf.create_node(NodeId::from_str("amp")).unwrap();
-        let sin_id = node_conf.create_node(NodeId::from_str("sin")).unwrap();
-        let out_id = node_conf.create_node(NodeId::from_str("out")).unwrap();
+        let mut matrix = Matrix::new(node_conf, 7, 7);
 
-        let mut outlen = 0;
-        let mut amp_outidxlen = (outlen, 0);
-        outlen += dsp::NodeInfo::from("amp").outputs();
-        amp_outidxlen.1 = outlen;
-
-        let mut sin_outidxlen = (outlen, 0);
-        outlen += dsp::NodeInfo::from("sin").outputs();
-        sin_outidxlen.1 = outlen;
-
-        let mut out_outidxlen = (outlen, 0);
-        outlen += dsp::NodeInfo::from("out").outputs();
-        out_outidxlen.1 = outlen;
-
-        let mut outvec = Vec::new();
-        outvec.resize(outlen, 0.0);
-
-        println!("OUTVEC: amp={},{} sin={},{} out={},{} {:?}",
-            amp_outidxlen.0,
-            amp_outidxlen.1,
-            sin_outidxlen.0,
-            sin_outidxlen.1,
-            out_outidxlen.0,
-            out_outidxlen.1,
-            outvec);
-
-        let mut prog_vec = Vec::new();
-        for i in 0..50 {
-            prog_vec.push(NodeOp { idx: amp_id, inputs: vec![], out_idxlen: amp_outidxlen });
-        }
-
-        for i in 0..50 {
-            prog_vec.push(NodeOp { idx: sin_id, out_idxlen: sin_outidxlen,
-                inputs: vec![
-                    (amp_outidxlen.0, 0),
-                    (amp_outidxlen.0, 0),
-                    (amp_outidxlen.0, 0),
-                    (amp_outidxlen.0, 0),
-                    (amp_outidxlen.0, 0),
-                    (amp_outidxlen.0, 0),
-                    (amp_outidxlen.0, 0),
-                    (amp_outidxlen.0, 0),
-                    (amp_outidxlen.0, 0),
-                    (amp_outidxlen.0, 0),
-                    (amp_outidxlen.0, 0),
-                    (amp_outidxlen.0, 0),
-                    (amp_outidxlen.0, 0),
-                ]
-            });
-        }
-        prog_vec.push(NodeOp { idx: out_id, out_idxlen: out_outidxlen,
-            inputs: vec![
-                (sin_outidxlen.0, 0),
-                (sin_outidxlen.0, 0),
-                (sin_outidxlen.0, 0),
-                (sin_outidxlen.0, 0),
-                (sin_outidxlen.0, 0),
-                (sin_outidxlen.0, 0),
-                (sin_outidxlen.0, 0),
-                (sin_outidxlen.0, 0),
-                (sin_outidxlen.0, 0),
-                (sin_outidxlen.0, 0),
-                (sin_outidxlen.0, 0),
-                (sin_outidxlen.0, 0),
-            ]
-        });
-
-        node_conf.upload_prog(nodes::NodeProg {
-            out: outvec,
-            prog: prog_vec,
-        });
+        matrix.place(0, 0,
+            Cell::empty(NodeId::Sin(0))
+            .out(None, Some(0), None));
+        matrix.place(1, 0,
+            Cell::empty(NodeId::Out(0))
+            .input(None, Some(0), None)
+            .out(None, None, Some(0)));
+        matrix.sync();
 
         Self {
-            node_conf,
+            node_conf: matrix.into_conf(),
             node_exec,
         }
     }
