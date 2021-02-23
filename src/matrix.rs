@@ -1,5 +1,5 @@
 use crate::nodes::{NodeOp, NodeConfigurator, NodeProg};
-use crate::dsp::{NodeId, NodeInfoHolder, NodeInfo};
+use crate::dsp::{NodeId, NodeInfoHolder};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Cell {
