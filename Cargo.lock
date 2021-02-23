@@ -46,6 +46,7 @@ checksum = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
 [[package]]
 name = "baseplug"
 version = "0.1.0"
+source = "git+https://github.com/WeirdConstructor/baseplug.git?branch=plugin_context#e6dc163de51b015b02c1877f1c2075030fac22d4"
 dependencies = [
  "baseplug-derive",
  "num-traits",
@@ -58,6 +59,7 @@ dependencies = [
 [[package]]
 name = "baseplug-derive"
 version = "0.1.0"
+source = "git+https://github.com/WeirdConstructor/baseplug.git?branch=plugin_context#e6dc163de51b015b02c1877f1c2075030fac22d4"
 dependencies = [
  "proc-macro2 1.0.24",
  "quote 1.0.9",

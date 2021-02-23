@@ -10,14 +10,14 @@ use out::Out;
 
 pub const MIDI_MAX_FREQ : f32 = 13289.75;
 
-enum UIType {
+pub enum UIType {
     Generic,
     LfoA,
     EnvA,
     OscA,
 }
 
-enum UICategory {
+pub enum UICategory {
     None,
     Oscillators,
     Time,

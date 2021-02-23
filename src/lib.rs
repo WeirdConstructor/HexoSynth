@@ -1,15 +1,16 @@
 #![allow(incomplete_features)]
 #![feature(generic_associated_types)]
 
-mod nodes;
-mod dsp;
-mod matrix;
+pub mod nodes;
+pub mod dsp;
+pub mod matrix;
 
 use dsp::NodeId;
 use serde::{Serialize, Deserialize};
 
 use baseplug::{
     ProcessContext,
+    PluginContext,
     Plugin,
 };
 
@@ -131,6 +132,16 @@ What I would love to have:
 use nodes::*;
 use matrix::*;
 
+struct HexoSynthShared {
+}
+
+impl PluginContext<HexoSynth> for HexoSynthShared {
+    fn new() -> Self {
+        Self {
+        }
+    }
+}
+
 struct HexoSynth {
 //    matrix:     Matrix,
     node_conf:  NodeConfigurator,
@@ -162,9 +173,10 @@ impl Plugin for HexoSynth {
     const OUTPUT_CHANNELS: usize = 2;
 
     type Model = HexoSynthModel;
+    type PluginContext = HexoSynthShared;
 
     #[inline]
-    fn new(sample_rate: f32, _model: &HexoSynthModel) -> Self {
+    fn new(sample_rate: f32, _model: &HexoSynthModel, _shared: &mut HexoSynthShared) -> Self {
         let (mut node_conf, node_exec) = nodes::new_node_engine(sample_rate);
 
         let mut matrix = Matrix::new(node_conf, 7, 7);
@@ -186,7 +198,7 @@ impl Plugin for HexoSynth {
 
     #[inline]
     fn process(&mut self, model: &HexoSynthModelProcess,
-               ctx: &mut ProcessContext<Self>) {
+               ctx: &mut ProcessContext<Self>, _shared: &mut HexoSynthShared) {
 
         let input  = &ctx.inputs[0].buffers;
         let output = &mut ctx.outputs[0].buffers;
