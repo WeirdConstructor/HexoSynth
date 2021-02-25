@@ -7,10 +7,14 @@ pub mod matrix;
 
 use dsp::NodeId;
 use serde::{Serialize, Deserialize};
+use raw_window_handle::HasRawWindowHandle;
+use std::rc::Rc;
 
 use baseplug::{
     ProcessContext,
     PluginContext,
+    WindowOpenResult,
+    PluginUI,
     Plugin,
 };
 
@@ -176,7 +180,7 @@ impl Plugin for HexoSynth {
     type PluginContext = HexoSynthShared;
 
     #[inline]
-    fn new(sample_rate: f32, _model: &HexoSynthModel, _shared: &mut HexoSynthShared) -> Self {
+    fn new(sample_rate: f32, _model: &HexoSynthModel, _shared: &HexoSynthShared) -> Self {
         let (mut node_conf, node_exec) = nodes::new_node_engine(sample_rate);
 
         let mut matrix = Matrix::new(node_conf, 7, 7);
@@ -198,7 +202,7 @@ impl Plugin for HexoSynth {
 
     #[inline]
     fn process(&mut self, model: &HexoSynthModelProcess,
-               ctx: &mut ProcessContext<Self>, _shared: &mut HexoSynthShared) {
+               ctx: &mut ProcessContext<Self>, _shared: &HexoSynthShared) {
 
         let input  = &ctx.inputs[0].buffers;
         let output = &mut ctx.outputs[0].buffers;
@@ -218,6 +222,112 @@ impl Plugin for HexoSynth {
 
             self.node_exec.process(&mut context);
         }
+    }
+}
+
+use hexotk::*;
+use hexotk::widgets::*;
+
+struct HexoSynthUIParams {
+    params: [f32; 100],
+}
+
+impl Parameters for HexoSynthUIParams {
+    fn len(&self) -> usize { self.params.len() }
+    fn get(&self, id: ParamID) -> f32 { self.params[id.param_id() as usize] }
+    fn get_denorm(&self, id: ParamID) -> f32 { self.params[id.param_id() as usize] }
+    fn set(&mut self, id: ParamID, v: f32) { self.params[id.param_id() as usize] = v; }
+    fn set_default(&mut self, id: ParamID) {
+        self.set(id, 0.0);
+    }
+
+    fn change_start(&mut self, id: ParamID) {
+//        println!("CHANGE START: {}", id);
+    }
+
+    fn change(&mut self, id: ParamID, v: f32, single: bool) {
+//        println!("CHANGE: {},{} ({})", id, v, single);
+        self.set(id, v);
+    }
+
+    fn change_end(&mut self, id: ParamID, v: f32) {
+//        println!("CHANGE END: {},{}", id, v);
+        self.set(id, v);
+    }
+
+    fn step_next(&mut self, id: ParamID) {
+        self.set(id, (self.get(id) + 0.2).fract());
+    }
+
+    fn step_prev(&mut self, id: ParamID) {
+        self.set(id, ((self.get(id) - 0.2) + 1.0).fract());
+    }
+
+    fn fmt<'a>(&self, id: ParamID, buf: &'a mut [u8]) -> usize {
+        use std::io::Write;
+        let mut bw = std::io::BufWriter::new(buf);
+        match write!(bw, "{:6.3}", self.get_denorm(id)) {
+            Ok(_)  => bw.buffer().len(),
+            Err(_) => 0,
+        }
+    }
+}
+
+
+impl PluginUI for HexoSynth {
+    type Handle = u32;
+
+    fn ui_size() -> (i16, i16) {
+        (800, 800)
+    }
+
+    fn ui_open(parent: &impl HasRawWindowHandle, ctx: &HexoSynthShared) -> WindowOpenResult<Self::Handle> {
+        open_window("HexoSynth", 800, 800, Some(parent.raw_window_handle()), Box::new(|| {
+            let wt_btn      = Rc::new(Button::new(80.0, 10.0));
+//            let wt_hexgrid  = Rc::new(HexGrid::new(14.0, 10.0));
+//            let wt_knob     = Rc::new(Knob::new(30.0, 10.0, 10.0));
+//            let wt_cont     = Rc::new(Container::new());
+
+//            let mut node_ctrls = ContainerData::new();
+//            node_ctrls.new_row()
+//               .add(wt_btn,          1.into(), UIPos::right( 6, 6), ButtonData::new_toggle("Test Btn"))
+//               .add(wt_knob.clone(), 2.into(), UIPos::center(3, 6), KnobData::new())
+//               .add(wt_knob.clone(), 2.into(), UIPos::center(3, 6), KnobData::new())
+//               .new_row()
+//               .add(wt_knob.clone(), 4.into(), UIPos::center(3, 6), KnobData::new())
+//               .add(wt_knob.clone(), 5.into(), UIPos::center(3, 6), KnobData::new())
+//               .add(wt_knob.clone(), 6.into(), UIPos::center(3, 6), KnobData::new())
+//               .add(wt_knob.clone(), 7.into(), UIPos::center(3, 6), KnobData::new());
+
+//            let mut con = ContainerData::new();
+//            con.new_row()
+//               .add_direct(NodeMatrixData::new(UIPos::center(7, 12), 11))
+//               .add(wt_cont.clone(), 0.into(), UIPos::center(5, 12), node_ctrls);
+
+            let mut ui = Box::new(UI::new(
+                WidgetData::new_box(
+                    wt_btn, 0.into(), UIPos::center(12, 12), ButtonData::new_toggle("Test Btn")),
+//                WidgetData::new_box(
+//                    wt_cont, 0.into(), UIPos::center(12, 12), con),
+                Box::new(HexoSynthUIParams { params: [0.0; 100] }),
+                (800 as f64, 800 as f64),
+            ));
+
+            ui
+        }));
+
+        Ok(10)
+    }
+
+    fn ui_param_notify(
+        _handle: &Self::Handle,
+        _param: &'static baseplug::Param<Self, <Self::Model as baseplug::Model<Self>>::Smooth>,
+        _val: f32,
+    ) {
+    }
+
+    fn ui_close(mut _handle: Self::Handle) {
+        // TODO: Close window!
     }
 }
 
