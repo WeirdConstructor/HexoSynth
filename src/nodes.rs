@@ -126,7 +126,6 @@ pub struct NodeConfigurator {
     feedback_con:       Consumer<QuickMessage>,
     /// Handles deallocation
     drop_thread:        DropThread,
-    sample_rate:        f32,
 }
 
 impl NodeConfigurator {
@@ -162,7 +161,7 @@ impl NodeConfigurator {
     }
 
     pub fn create_node(&mut self, ni: NodeId) -> Option<u8> {
-        if let Some((node, info)) = node_factory(ni, self.sample_rate) {
+        if let Some((node, info)) = node_factory(ni) {
             let mut index : Option<usize> = None;
             for i in 0..self.nodes.len() {
                 if let NodeInfo::Nop = self.nodes[i] {
@@ -196,7 +195,7 @@ impl NodeConfigurator {
 
 /// Creates a NodeConfigurator and a NodeExecutor which are interconnected
 /// by ring buffers.
-pub fn new_node_engine(sample_rate: f32) -> (NodeConfigurator, NodeExecutor) {
+pub fn new_node_engine() -> (NodeConfigurator, NodeExecutor) {
     let rb_graph     = RingBuffer::new(MAX_ALLOCATED_NODES * 2);
     let rb_quick     = RingBuffer::new(MAX_ALLOCATED_NODES * 8);
     let rb_drop      = RingBuffer::new(MAX_ALLOCATED_NODES * 2);
@@ -218,14 +217,13 @@ pub fn new_node_engine(sample_rate: f32) -> (NodeConfigurator, NodeExecutor) {
         quick_update_prod: rb_quick_prod,
         feedback_con:      rb_fb_con,
         drop_thread,
-        sample_rate,
     };
 
     let mut nodes = Vec::new();
     nodes.resize_with(MAX_ALLOCATED_NODES, || Node::Nop);
 
     let ne = NodeExecutor {
-        sample_rate,
+        sample_rate:       44100.0,
         nodes,
         prog:              NodeProg::empty(),
         graph_update_con:  rb_graph_con,
@@ -354,6 +352,12 @@ impl NodeExecutor {
 
         // TODO: Handle quick_update_con to start ramps for the
         //       passed parameters.
+    }
+
+    pub fn set_sample_rate(&mut self, sample_rate: f32) {
+        for n in self.nodes.iter_mut() {
+            n.set_sample_rate(sample_rate);
+        }
     }
 
     #[inline]

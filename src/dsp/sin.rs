@@ -14,12 +14,16 @@ pub struct Sin {
 impl Sin {
     pub fn outputs() -> usize { 1 }
 
-    pub fn new(srate: f32) -> Self {
+    pub fn new() -> Self {
         Self {
-            srate,
+            srate: 44100.0,
             input: [1.0; 1],
             phase: 0.0,
         }
+    }
+
+    pub fn set_sample_rate(&mut self, srate: f32) {
+        self.srate = srate;
     }
 
     #[inline]

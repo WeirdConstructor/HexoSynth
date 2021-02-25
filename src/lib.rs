@@ -135,21 +135,42 @@ What I would love to have:
 
 use nodes::*;
 use matrix::*;
+use std::sync::Arc;
+use std::sync::Mutex;
+use std::cell::RefCell;
 
 struct HexoSynthShared {
+    matrix:    RefCell<Matrix>,
+    node_exec: RefCell<NodeExecutor>,
 }
+
+unsafe impl Send for HexoSynthShared {}
+unsafe impl Sync for HexoSynthShared {}
 
 impl PluginContext<HexoSynth> for HexoSynthShared {
     fn new() -> Self {
+        let (mut node_conf, node_exec) = nodes::new_node_engine();
+        let mut matrix = Matrix::new(node_conf, 7, 7);
+
+        matrix.place(0, 0, Cell::empty(NodeId::Sin(0))
+                           .out(None, Some(0), None));
+        matrix.place(1, 0, Cell::empty(NodeId::Out(0))
+                           .input(None, Some(0), None)
+                           .out(None, None, Some(0)));
+        matrix.sync();
+
+
         Self {
+            matrix: RefCell::new(matrix),
+            node_exec: RefCell::new(node_exec),
         }
     }
 }
 
 struct HexoSynth {
 //    matrix:     Matrix,
-    node_conf:  NodeConfigurator,
-    node_exec:  NodeExecutor,
+//    node_conf:  NodeConfigurator,
+//    node_exec:  NodeExecutor,
 }
 
 struct Context<'a, 'b, 'c, 'd> {
@@ -180,34 +201,25 @@ impl Plugin for HexoSynth {
     type PluginContext = HexoSynthShared;
 
     #[inline]
-    fn new(sample_rate: f32, _model: &HexoSynthModel, _shared: &HexoSynthShared) -> Self {
-        let (mut node_conf, node_exec) = nodes::new_node_engine(sample_rate);
+    fn new(sample_rate: f32, _model: &HexoSynthModel, shared: &HexoSynthShared) -> Self {
+//        let (mut node_conf, node_exec) = nodes::new_node_engine(sample_rate);
 
-        let mut matrix = Matrix::new(node_conf, 7, 7);
+        let mut node_exec = shared.node_exec.borrow_mut();
+        node_exec.set_sample_rate(sample_rate);
 
-        matrix.place(0, 0,
-            Cell::empty(NodeId::Sin(0))
-            .out(None, Some(0), None));
-        matrix.place(1, 0,
-            Cell::empty(NodeId::Out(0))
-            .input(None, Some(0), None)
-            .out(None, None, Some(0)));
-        matrix.sync();
-
-        Self {
-            node_conf: matrix.into_conf(),
-            node_exec,
-        }
+        Self { }
     }
 
     #[inline]
     fn process(&mut self, model: &HexoSynthModelProcess,
-               ctx: &mut ProcessContext<Self>, _shared: &HexoSynthShared) {
+               ctx: &mut ProcessContext<Self>, shared: &HexoSynthShared) {
 
         let input  = &ctx.inputs[0].buffers;
         let output = &mut ctx.outputs[0].buffers;
 
-        self.node_exec.process_graph_updates();
+        let mut node_exec = shared.node_exec.borrow_mut();
+
+        node_exec.process_graph_updates();
 
         let mut context = Context {
             frame_idx: 0,
@@ -220,7 +232,7 @@ impl Plugin for HexoSynth {
             context.output[0][i] = 0.0;
             context.output[1][i] = 0.0;
 
-            self.node_exec.process(&mut context);
+            node_exec.process(&mut context);
         }
     }
 }
@@ -316,7 +328,7 @@ impl PluginUI for HexoSynth {
             ui
         }));
 
-        Ok(10)
+        Ok(42)
     }
 
     fn ui_param_notify(

@@ -6,20 +6,18 @@ pub struct Out {
     /// - 0: signal channel 1
     /// - 1: signal channel 2
     input:  [f32; 2],
-
-    /// Sample rate
-    srate: f32,
 }
 
 impl Out {
     pub fn outputs() -> usize { 0 }
 
-    pub fn new(srate: f32) -> Self {
+    pub fn new() -> Self {
         Self {
-            srate,
             input:  [0.0; 2],
         }
     }
+
+    pub fn set_sample_rate(&mut self, _srate: f32) { }
 
     #[inline]
     pub fn process<T: NodeAudioContext>(&mut self, ctx: &mut T, inputs: &[(usize, usize)], outinfo: &(usize, usize), out: &mut [f32]) {

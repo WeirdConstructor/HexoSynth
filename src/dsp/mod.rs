@@ -259,6 +259,16 @@ macro_rules! make_node_enum {
                     $(Node::$variant { .. } => NodeId::$variant(index as u8)),+
                 }
             }
+
+            pub fn set_sample_rate(&mut self, sample_rate: f32) {
+                match self {
+                    Node::$v1           => {},
+                    $(Node::$variant { node } => {
+                        node.set_sample_rate(sample_rate);
+                    }),+
+                }
+            }
+
         }
     }
 }
@@ -266,7 +276,7 @@ macro_rules! make_node_enum {
 node_list!{make_node_info_enum}
 node_list!{make_node_enum}
 
-pub fn node_factory(node_id: NodeId, sample_rate: f32) -> Option<(Node, NodeInfo)> {
+pub fn node_factory(node_id: NodeId) -> Option<(Node, NodeInfo)> {
     println!("Factory: {:?}", node_id);
 
     macro_rules! make_node_factory_match {
@@ -280,7 +290,7 @@ pub fn node_factory(node_id: NodeId, sample_rate: f32) -> Option<(Node, NodeInfo
         ) => {
             match node_id {
                 $(NodeId::$variant(_) => Some((
-                    Node::$variant { node: $variant::new(sample_rate) },
+                    Node::$variant { node: $variant::new() },
                     NodeInfo::$variant(crate::dsp::ni::$variant::new()),
                 )),)+
                 _ => None,
