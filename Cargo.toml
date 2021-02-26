@@ -18,8 +18,9 @@ serde_json = "1.0"
 ringbuf    = "0.2.2"
 
 [dev-dependencies]
-microfft = "0.3.1"
+microfft    = "0.3.1"
 num-complex = "0.2"
+hound       = "3.4.0"
 
 [lib]
 name="hexosynth"

@@ -2,6 +2,7 @@ use hexosynth::matrix::*;
 use hexosynth::nodes::new_node_engine;
 use hexosynth::dsp::*;
 
+use hound;
 use num_complex::Complex;
 use microfft;
 
@@ -16,6 +17,21 @@ macro_rules! assert_float_eq {
 }
 
 const SAMPLE_RATE : f32 = 44100.0;
+
+fn save_wav(name: &str, buf: &[f32]) {
+    let spec = hound::WavSpec {
+        channels: 1,
+        sample_rate: SAMPLE_RATE as u32,
+        bits_per_sample: 16,
+        sample_format: hound::SampleFormat::Int,
+    };
+
+    let mut writer = hound::WavWriter::create(name, spec).unwrap();
+    for s in buf.iter() {
+        let amp = i16::MAX as f32;
+        writer.write_sample((amp * s) as i16).unwrap();
+    }
+}
 
 fn run_no_input(node_exec: &mut hexosynth::nodes::NodeExecutor, seconds: f32) -> (Vec<f32>, Vec<f32>) {
     node_exec.set_sample_rate(SAMPLE_RATE);
@@ -130,6 +146,8 @@ fn check_matrix_sine() {
     let sum_r : f32 = out_r.iter().map(|v| v.abs()).sum();
     assert_float_eq!(sum_l, 112303.086);
     assert_float_eq!(sum_r, 0.0);
+
+    save_wav("check_matrix_sine.wav", &out_l);
 
     let rms_mimax = calc_rms_mimax_each_ms(&out_l[..], 1000.0);
     for i in 0..4 {
