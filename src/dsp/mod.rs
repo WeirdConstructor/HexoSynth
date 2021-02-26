@@ -10,6 +10,7 @@ use node_out::Out;
 
 pub const MIDI_MAX_FREQ : f32 = 13289.75;
 
+#[derive(Debug, Clone, Copy, PartialOrd, PartialEq)]
 pub enum UIType {
     Generic,
     LfoA,
@@ -17,6 +18,7 @@ pub enum UIType {
     OscA,
 }
 
+#[derive(Debug, Clone, Copy, PartialOrd, PartialEq)]
 pub enum UICategory {
     None,
     Oscillators,
@@ -55,11 +57,13 @@ impl UICategory {
                     $([$out_idx: literal $out: ident])*
                     ,)+
             ) => {
-                if $ui_cat == self {
-                    $(out.push(NodeId::$variant));*
-                }
+                $(if UICategory::$ui_cat == *self {
+                    out.push(NodeId::$variant(0));
+                })+
             }
         }
+
+        node_list!{make_cat_lister};
     }
 }
 
@@ -143,6 +147,30 @@ macro_rules! make_node_info_enum {
                 match self {
                     NodeId::$v1           => UICategory::None,
                     $(NodeId::$variant(_) => UICategory::$ui_cat),+
+                }
+            }
+
+            pub fn inp(&self, name: &str) -> Option<u8> {
+                match self {
+                    NodeId::$v1           => None,
+                    $(NodeId::$variant(_) => {
+                        match name {
+                            $(stringify!($para) => Some($in_idx),)*
+                            _ => None,
+                        }
+                    }),+
+                }
+            }
+
+            pub fn out(&self, name: &str) -> Option<u8> {
+                match self {
+                    NodeId::$v1           => None,
+                    $(NodeId::$variant(_) => {
+                        match name {
+                            $(stringify!($out) => Some($out_idx),)*
+                            _ => None,
+                        }
+                    }),+
                 }
             }
 
@@ -271,14 +299,14 @@ macro_rules! make_node_info_enum {
                 }
             }
 
-            pub fn inputs(&self) -> usize {
+            pub fn in_count(&self) -> usize {
                 match self {
                     NodeInfo::$v1           => 0,
                     $(NodeInfo::$variant(n) => n.in_count()),+
                 }
             }
 
-            pub fn outputs(&self) -> usize {
+            pub fn out_count(&self) -> usize {
                 match self {
                     NodeInfo::$v1           => 0,
                     $(NodeInfo::$variant(n) => n.out_count()),+

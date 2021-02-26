@@ -133,11 +133,12 @@ fn check_matrix_sine() {
     let (mut node_conf, mut node_exec) = new_node_engine();
     let mut matrix = Matrix::new(node_conf, 3, 3);
 
-    matrix.place(0, 0, Cell::empty(NodeId::Sin(2))
-                       .out(None, Some(0), None));
-    matrix.place(1, 0, Cell::empty(NodeId::Out(0))
-                       .input(None, Some(0), None)
-                       .out(None, None, Some(0)));
+    let sin = NodeId::Sin(2);
+    let out = NodeId::Out(0);
+    matrix.place(0, 0, Cell::empty(sin)
+                       .out(None, sin.out("sig"), None));
+    matrix.place(1, 0, Cell::empty(out)
+                       .input(None, out.inp("in1"), None));
     matrix.sync();
 
     let (mut out_l, mut out_r) = run_no_input(&mut node_exec, 4.0);

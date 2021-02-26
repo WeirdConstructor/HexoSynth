@@ -270,11 +270,11 @@ impl Matrix {
         self.config.for_each(|node_info, mut id, i| {
             // - calculate size of output vector.
             let out_idx = out_len;
-            out_len += node_info.outputs();
+            out_len += node_info.out_count();
 
             // - calculate size of input vector.
             let in_idx = in_len;
-            in_len += node_info.inputs();
+            in_len += node_info.in_count();
 
             while let Some(_) = self.instances.borrow().get(&id) {
                 id = id.set_instance(id.instance() + 1);
