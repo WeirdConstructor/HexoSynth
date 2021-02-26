@@ -18,12 +18,13 @@ impl Out {
     }
 
     pub fn set_sample_rate(&mut self, _srate: f32) { }
+    pub fn reset(&mut self) { }
 
     #[inline]
-    pub fn process<T: NodeAudioContext>(&mut self, ctx: &mut T, inputs: &[(usize, usize)], outinfo: &(usize, usize), out: &mut [f32]) {
-        for io in inputs.iter() { self.input[io.1] = out[io.0]; }
+    pub fn process<T: NodeAudioContext>(&mut self, ctx: &mut T, inputs: &[f32], _outputs: &mut [f32]) {
+        use crate::dsp::inp;
 
-        ctx.output(0, self.input[0]);
-        ctx.output(1, self.input[1]);
+        ctx.output(0, inp::Out::in1(inputs));
+        ctx.output(1, inp::Out::in2(inputs));
     }
 }

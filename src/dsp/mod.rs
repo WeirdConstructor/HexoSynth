@@ -1,12 +1,12 @@
-mod amp;
-mod sin;
-mod out;
+mod node_amp;
+mod node_sin;
+mod node_out;
 
 use crate::nodes::NodeAudioContext;
 
-use amp::Amp;
-use sin::Sin;
-use out::Out;
+use node_amp::Amp;
+use node_sin::Sin;
+use node_out::Out;
 
 pub const MIDI_MAX_FREQ : f32 = 13289.75;
 
@@ -31,14 +31,15 @@ macro_rules! node_list {
         $inmacro!{
             nop => Nop,
             amp => Amp UIType::Generic UICategory::XtoY
-               (0 gain 0.0, 2.0)
+               (0 sig  0.0, 1.0, 0.0)
+               (1 gain 0.0, 2.0, 1.0)
                [0 sig],
             sin => Sin UIType::Generic UICategory::Oscillators
-               (0 freq 0.0, crate::dsp::MIDI_MAX_FREQ)
+               (0 freq 0.0, crate::dsp::MIDI_MAX_FREQ, 440.0)
                [0 sig],
             out => Out UIType::Generic UICategory::IOUtil
-               (0 in1  0.0, 1.0)
-               (1 in2  0.0, 1.0),
+               (0 in1  0.0, 1.0, 0.0)
+               (1 in2  0.0, 1.0, 0.0),
         }
     }
 }
@@ -50,7 +51,7 @@ impl UICategory {
                 $($str: ident => $variant: ident
                     UIType:: $gui_type: ident
                     UICategory:: $ui_cat: ident
-                    $(($in_idx: literal $para: ident $min: expr, $max: expr))*
+                    $(($in_idx: literal $para: ident $min: expr, $max: expr, $def: expr))*
                     $([$out_idx: literal $out: ident])*
                     ,)+
             ) => {
@@ -67,7 +68,7 @@ macro_rules! make_node_info_enum {
         $($str: ident => $variant: ident
             UIType:: $gui_type: ident
             UICategory:: $ui_cat: ident
-            $(($in_idx: literal $para: ident $min: expr, $max: expr))*
+            $(($in_idx: literal $para: ident $min: expr, $max: expr, $def: expr))*
             $([$out_idx: literal $out: ident])*
             ,)+
     ) => {
@@ -151,13 +152,32 @@ macro_rules! make_node_info_enum {
                     $(NodeId::$variant(i) => *i as usize),+
                 }
             }
+
+            pub fn set_default_inputs(&self, inputs: &mut [f32]) {
+                match self {
+                    NodeId::$v1           => {},
+                    $(NodeId::$variant(_) => {
+                        $(inputs[$in_idx] =
+                            crate::dsp::norm_def::$variant::$para());+
+                    }),+
+                }
+            }
         }
 
         #[allow(non_snake_case)]
-        pub mod denorm {
+        pub mod denorm_v {
             $(pub mod $variant {
                 $(#[inline] pub fn $para(x: f32) -> f32 {
                     $min * (1.0 - x) + $max * x
+                })*
+            })+
+        }
+
+        #[allow(non_snake_case)]
+        pub mod norm_def {
+            $(pub mod $variant {
+                $(#[inline] pub fn $para() -> f32 {
+                      (($def - $min) / ($max - $min))
                 })*
             })+
         }
@@ -171,6 +191,33 @@ macro_rules! make_node_info_enum {
             })+
         }
 
+        #[allow(non_snake_case)]
+        pub mod denorm {
+            $(pub mod $variant {
+                $(#[inline] pub fn $para(inputs: &[f32]) -> f32 {
+                    let x = inputs[$in_idx];
+                    $min * (1.0 - x) + $max * x
+                })*
+            })+
+        }
+
+        #[allow(non_snake_case)]
+        pub mod inp {
+            $(pub mod $variant {
+                $(#[inline] pub fn $para(inputs: &[f32]) -> f32 {
+                    inputs[$in_idx]
+                })*
+            })+
+        }
+
+        #[allow(non_snake_case)]
+        pub mod out {
+            $(pub mod $variant {
+                $(#[inline] pub fn $out(outputs: &mut [f32], v: f32) {
+                    outputs[$out_idx] = v;
+                })*
+            })+
+        }
 
         mod ni {
             $(
@@ -197,7 +244,7 @@ macro_rules! make_node_info_enum {
 
                     pub fn denorm(&self, in_idx: usize, x: f32) -> f32 {
                         match in_idx {
-                            $($in_idx => crate::dsp::denorm::$variant::$para(x),)+
+                            $($in_idx => crate::dsp::denorm_v::$variant::$para(x),)+
                             _         => 0.0,
                         }
                     }
@@ -224,6 +271,13 @@ macro_rules! make_node_info_enum {
                 }
             }
 
+            pub fn inputs(&self) -> usize {
+                match self {
+                    NodeInfo::$v1           => 0,
+                    $(NodeInfo::$variant(n) => n.in_count()),+
+                }
+            }
+
             pub fn outputs(&self) -> usize {
                 match self {
                     NodeInfo::$v1           => 0,
@@ -239,7 +293,7 @@ macro_rules! make_node_enum {
         $($str: ident => $variant: ident
             UIType:: $gui_type: ident
             UICategory:: $ui_cat: ident
-            $(($in_idx: literal $para: ident $min: expr, $max: expr))*
+            $(($in_idx: literal $para: ident $min: expr, $max: expr, $def: expr))*
             $([$out_idx: literal $out: ident])*
             ,)+
     ) => {
@@ -257,6 +311,15 @@ macro_rules! make_node_enum {
                 match self {
                     Node::$v1               => NodeId::$v1,
                     $(Node::$variant { .. } => NodeId::$variant(index as u8)),+
+                }
+            }
+
+            pub fn reset(&mut self) {
+                match self {
+                    Node::$v1           => {},
+                    $(Node::$variant { node } => {
+                        node.reset();
+                    }),+
                 }
             }
 
@@ -284,7 +347,7 @@ pub fn node_factory(node_id: NodeId) -> Option<(Node, NodeInfo)> {
             $($str: ident => $variant: ident
                 UIType:: $gui_type: ident
                 UICategory:: $ui_cat: ident
-                $(($in_idx: literal $para: ident $min: expr, $max: expr))*
+                $(($in_idx: literal $para: ident $min: expr, $max: expr, $def: expr))*
                 $([$out_idx: literal $out: ident])*
             ,)+
         ) => {
@@ -303,19 +366,19 @@ pub fn node_factory(node_id: NodeId) -> Option<(Node, NodeInfo)> {
 
 impl Node {
     #[inline]
-    pub fn process<T: NodeAudioContext>(&mut self, ctx: &mut T, inputs: &[(usize, usize)], outinfo: &(usize, usize), out: &mut [f32]) {
+    pub fn process<T: NodeAudioContext>(&mut self, ctx: &mut T, inputs: &[f32], outputs: &mut [f32]) {
         macro_rules! make_node_process {
             ($s1: ident => $v1: ident,
                 $($str: ident => $variant: ident
                     UIType:: $gui_type: ident
                     UICategory:: $ui_cat: ident
-                    $(($in_idx: literal $para: ident $min: expr, $max: expr))*
+                    $(($in_idx: literal $para: ident $min: expr, $max: expr, $def: expr))*
                     $([$out_idx: literal $out: ident])*
                 ,)+
             ) => {
                 match self {
                     Node::$v1 => {},
-                    $(Node::$variant { node } => node.process(ctx, inputs, outinfo, out),)+
+                    $(Node::$variant { node } => node.process(ctx, inputs, outputs),)+
                 }
             }
         }

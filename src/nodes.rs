@@ -7,6 +7,7 @@ use crate::dsp::{node_factory, NodeInfo, Node, NodeId};
 #[derive(Debug, Clone)]
 pub struct NodeProg {
     pub out: Vec<f32>,
+    pub inp: Vec<f32>,
     pub prog: Vec<NodeOp>,
 }
 
@@ -14,17 +15,25 @@ impl NodeProg {
     pub fn empty() -> Self {
         Self {
             out: vec![],
+            inp: vec![],
             prog: vec![],
         }
     }
 
-    pub fn new(out_len: usize) -> Self {
+    pub fn new(out_len: usize, inp_len: usize) -> Self {
         let mut out = vec![];
         out.resize(out_len, 0.0);
+        let mut inp = vec![];
+        inp.resize(inp_len, 0.0);
         Self {
             out,
+            inp,
             prog: vec![],
         }
+    }
+
+    pub fn inputs_mut(&mut self) -> &mut [f32] {
+        &mut self.inp
     }
 
     pub fn append_with_inputs(
@@ -252,19 +261,23 @@ pub struct NodeOp {
     pub idx:  u8,
     /// Output index and length of the node:
     pub out_idxlen: (usize, usize),
+    /// Input index and length of the node:
+    pub in_idxlen: (usize, usize),
     /// Input indices, (<out vec index>, <own node input index>)
     pub inputs: Vec<(usize, usize)>,
 }
 
 impl std::fmt::Display for NodeOp {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Op(i={} out=({}-{})",
+        write!(f, "Op(i={} out=({}-{}) in=({}-{})",
                self.idx,
                self.out_idxlen.0,
-               self.out_idxlen.1)?;
+               self.out_idxlen.1,
+               self.in_idxlen.0,
+               self.in_idxlen.1)?;
 
         for i in self.inputs.iter() {
-            write!(f, " in=(o{} => i{})", i.0, i.1)?;
+            write!(f, " cpy=(o{} => i{})", i.0, i.1)?;
         }
 
         write!(f, ")")
@@ -276,6 +289,7 @@ impl NodeOp {
         Self {
             idx:        0,
             out_idxlen: (0, 0),
+            in_idxlen:  (0, 0),
             inputs:     vec![],
         }
     }
@@ -333,7 +347,8 @@ impl NodeExecutor {
         while let Some(upd) = self.graph_update_con.pop() {
             println!("UPDATE GRAPH {:?}", upd);
             match upd {
-                GraphMessage::NewNode { index, node } => {
+                GraphMessage::NewNode { index, mut node } => {
+                    node.set_sample_rate(self.sample_rate);
                     let prev_node =
                         std::mem::replace(
                             &mut self.nodes[index as usize],
@@ -355,6 +370,7 @@ impl NodeExecutor {
     }
 
     pub fn set_sample_rate(&mut self, sample_rate: f32) {
+        self.sample_rate = sample_rate;
         for n in self.nodes.iter_mut() {
             n.set_sample_rate(sample_rate);
         }
@@ -369,9 +385,23 @@ impl NodeExecutor {
     #[inline]
     pub fn process<T: NodeAudioContext>(&mut self, ctx: &mut T) {
         let nodes = &mut self.nodes;
+
         for op in self.prog.prog.iter() {
+            let out = op.out_idxlen;
+            let inp = op.in_idxlen;
+            {
+                let input = &mut self.prog.inp;
+                let out   = &self.prog.out;
+                for io in op.inputs.iter() {
+                    input[io.1] = out[io.0];
+                }
+            }
+
             nodes[op.idx as usize]
-            .process(ctx, &op.inputs, &op.out_idxlen, &mut self.prog.out);
+            .process(
+                ctx,
+                &self.prog.inp[inp.0..inp.1],
+                &mut self.prog.out[out.0..out.1]);
         }
     }
 }

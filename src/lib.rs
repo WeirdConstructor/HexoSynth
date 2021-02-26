@@ -140,8 +140,8 @@ use std::sync::Mutex;
 use std::cell::RefCell;
 
 struct HexoSynthShared {
-    matrix:    RefCell<Matrix>,
-    node_exec: RefCell<NodeExecutor>,
+    matrix:    Arc<Mutex<Matrix>>,
+    node_exec: Rc<RefCell<NodeExecutor>>,
 }
 
 unsafe impl Send for HexoSynthShared {}
@@ -157,12 +157,18 @@ impl PluginContext<HexoSynth> for HexoSynthShared {
         matrix.place(1, 0, Cell::empty(NodeId::Out(0))
                            .input(None, Some(0), None)
                            .out(None, None, Some(0)));
+
+        for x in 2..7 {
+            for y in 2..7 {
+                matrix.place(x, y, Cell::empty(NodeId::Sin(0)));
+            }
+        }
         matrix.sync();
 
 
         Self {
-            matrix: RefCell::new(matrix),
-            node_exec: RefCell::new(node_exec),
+            matrix:    Arc::new(Mutex::new(matrix)),
+            node_exec: Rc::new(RefCell::new(node_exec)),
         }
     }
 }

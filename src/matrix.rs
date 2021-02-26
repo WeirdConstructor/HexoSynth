@@ -55,15 +55,19 @@ struct NodeInstance {
     prog_idx:   usize,
     out_start:  usize,
     out_end:    usize,
+    in_start:   usize,
+    in_end:     usize,
 }
 
 impl NodeInstance {
     pub fn new(id: NodeId) -> Self {
         Self {
             id,
-            prog_idx:     0,
+            prog_idx:  0,
             out_start: 0,
             out_end:   0,
+            in_start:  0,
+            in_end:    0,
         }
     }
 
@@ -71,6 +75,7 @@ impl NodeInstance {
         NodeOp {
             idx:        self.prog_idx as u8,
             out_idxlen: (self.out_start, self.out_end),
+            in_idxlen:  (self.in_start, self.in_end),
             inputs:     vec![],
         }
     }
@@ -84,6 +89,16 @@ impl NodeInstance {
         self.out_start = s;
         self.out_end   = e;
         self
+    }
+
+    pub fn set_input(mut self, s: usize, e: usize) -> Self {
+        self.in_start = s;
+        self.in_end   = e;
+        self
+    }
+
+    pub fn get_input_slice<'a>(&self, inputs: &'a mut [f32]) -> &'a mut [f32] {
+        &mut inputs[self.in_start..self.in_end]
     }
 }
 
@@ -251,26 +266,34 @@ impl Matrix {
         // and this time calculate the output offsets.
         self.instances.borrow_mut().clear();
         let mut out_len = 0;
+        let mut in_len  = 0;
         self.config.for_each(|node_info, mut id, i| {
             // - calculate size of output vector.
             let out_idx = out_len;
             out_len += node_info.outputs();
 
+            // - calculate size of input vector.
+            let in_idx = in_len;
+            in_len += node_info.inputs();
+
             while let Some(_) = self.instances.borrow().get(&id) {
                 id = id.set_instance(id.instance() + 1);
             }
 
-            println!("INSERT: {:?} outidx: {},{}", id, out_idx, out_len);
+            println!("INSERT: {:?} outidx: {},{} inidx: {},{}",
+                     id, out_idx, out_len, in_idx, in_len);
 
             // - save offset and length of each node's
             //   allocation in the output vector.
             self.instances.borrow_mut().insert(id,
                 NodeInstance::new(id)
                 .set_index(i)
-                .set_output(out_idx, out_len));
+                .set_output(out_idx, out_len)
+                .set_input(in_idx, in_len));
         });
 
-        let mut prog = NodeProg::new(out_len);
+        let mut prog = NodeProg::new(out_len, in_len);
+        println!("NodeProg inputs_mut-len={}, in_len={}", prog.inputs_mut().len(), in_len);
 
         for x in 0..self.w {
             for y in 0..self.h {
@@ -286,33 +309,37 @@ impl Matrix {
                     continue;
                 }
 
+                let instances = self.instances.borrow();
+                let ni = instances.get(&cell.node_id).unwrap();
+                let op = ni.to_op();
+
                 let in_1 =
                     if let Some(in1_idx) = cell.in1 {
                         if let Some(in1_out_idx) = in_1_out_idx {
-                            Some((in1_out_idx, in1_idx as usize))
+                            Some((in1_out_idx, ni.in_start + in1_idx as usize))
                         } else { None }
                     } else { None };
 
                 let in_2 =
                     if let Some(in2_idx) = cell.in2 {
                         if let Some(in2_out_idx) = in_2_out_idx {
-                            Some((in2_out_idx, in2_idx as usize))
+                            Some((in2_out_idx, ni.in_start + in2_idx as usize))
                         } else { None }
                     } else { None };
 
                 let in_3 =
                     if let Some(in3_idx) = cell.in3 {
                         if let Some(in3_out_idx) = in_3_out_idx {
-                            Some((in3_out_idx, in3_idx as usize))
+                            Some((in3_out_idx, ni.in_start + in3_idx as usize))
                         } else { None }
                     } else { None };
 
                 // TODO: Get the input indices for in_1_out_idx to in_3_out_idx
 
-                println!("O {:?}", cell.node_id);
+                println!("O {:?} inputs_mut-len={}", cell.node_id, prog.inputs_mut().len());
 
-                let op =
-                    self.instances.borrow().get(&cell.node_id).unwrap().to_op();
+                cell.node_id.set_default_inputs(
+                    ni.get_input_slice(prog.inputs_mut()));
 
                 prog.append_with_inputs(op, in_1, in_2, in_3);
 
@@ -414,7 +441,7 @@ mod tests {
     fn check_matrix_3_sine() {
         use crate::nodes::new_node_engine;
 
-        let (mut node_conf, mut node_exec) = new_node_engine(44100.0);
+        let (mut node_conf, mut node_exec) = new_node_engine();
         let mut matrix = Matrix::new(node_conf, 3, 3);
 
         matrix.place(0, 0,
@@ -437,16 +464,16 @@ mod tests {
         assert!(nodes[2].to_id(2) == NodeId::Sin(2));
 
         let prog = node_exec.get_prog();
-        assert_eq!(prog.prog[0].to_string(), "Op(i=0 out=(0-1))");
-        assert_eq!(prog.prog[1].to_string(), "Op(i=1 out=(1-2) in=(o0 => i0))");
-        assert_eq!(prog.prog[2].to_string(), "Op(i=2 out=(2-3) in=(o1 => i0))");
+        assert_eq!(prog.prog[0].to_string(), "Op(i=0 out=(0-1) in=(0-1))");
+        assert_eq!(prog.prog[1].to_string(), "Op(i=1 out=(1-2) in=(1-2) cpy=(o0 => i1))");
+        assert_eq!(prog.prog[2].to_string(), "Op(i=2 out=(2-3) in=(2-3) cpy=(o1 => i2))");
     }
 
     #[test]
     fn check_matrix_into_output() {
         use crate::nodes::new_node_engine;
 
-        let (mut node_conf, mut node_exec) = new_node_engine(44100.0);
+        let (mut node_conf, mut node_exec) = new_node_engine();
         let mut matrix = Matrix::new(node_conf, 3, 3);
 
         matrix.place(0, 0,
@@ -458,6 +485,7 @@ mod tests {
             .out(None, None, Some(0)));
         matrix.sync();
 
+        node_exec.set_sample_rate(44100.0);
         node_exec.process_graph_updates();
 
         let nodes = node_exec.get_nodes();
@@ -466,15 +494,15 @@ mod tests {
 
         let prog = node_exec.get_prog();
         assert_eq!(prog.prog.len(), 2);
-        assert_eq!(prog.prog[0].to_string(), "Op(i=0 out=(0-1))");
-        assert_eq!(prog.prog[1].to_string(), "Op(i=1 out=(1-1) in=(o0 => i0))");
+        assert_eq!(prog.prog[0].to_string(), "Op(i=0 out=(0-1) in=(0-1))");
+        assert_eq!(prog.prog[1].to_string(), "Op(i=1 out=(1-1) in=(1-3) cpy=(o0 => i1))");
     }
 
     #[test]
     fn check_matrix_skip_instance() {
         use crate::nodes::new_node_engine;
 
-        let (mut node_conf, mut node_exec) = new_node_engine(44100.0);
+        let (mut node_conf, mut node_exec) = new_node_engine();
         let mut matrix = Matrix::new(node_conf, 3, 3);
 
         matrix.place(0, 0,
@@ -486,6 +514,7 @@ mod tests {
             .out(None, None, Some(0)));
         matrix.sync();
 
+        node_exec.set_sample_rate(44100.0);
         node_exec.process_graph_updates();
 
         let nodes = node_exec.get_nodes();
@@ -496,7 +525,7 @@ mod tests {
 
         let prog = node_exec.get_prog();
         assert_eq!(prog.prog.len(), 2);
-        assert_eq!(prog.prog[0].to_string(), "Op(i=2 out=(2-3))");
-        assert_eq!(prog.prog[1].to_string(), "Op(i=3 out=(3-3) in=(o2 => i0))");
+        assert_eq!(prog.prog[0].to_string(), "Op(i=2 out=(2-3) in=(2-3))");
+        assert_eq!(prog.prog[1].to_string(), "Op(i=3 out=(3-3) in=(3-5) cpy=(o2 => i3))");
     }
 }
