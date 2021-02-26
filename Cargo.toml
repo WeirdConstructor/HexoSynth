@@ -1,5 +1,5 @@
 [package]
-name        = "hexo_synth"
+name        = "hexosynth"
 version     = "0.1.0"
 authors     = ["Weird Constructor <weirdconstructor@m8geil.de>"]
 license     = "AGPL-3.0-or-later"
@@ -17,6 +17,10 @@ serde      = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 ringbuf    = "0.2.2"
 
+[dev-dependencies]
+microfft = "0.3.1"
+num-complex = "0.2"
+
 [lib]
 name="hexosynth"
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "lib"]

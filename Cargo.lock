@@ -508,11 +508,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "hexo_synth"
+name = "hexosynth"
 version = "0.1.0"
 dependencies = [
  "baseplug",
  "hexotk",
+ "microfft",
+ "num-complex",
  "raw-window-handle",
  "ringbuf",
  "serde",
@@ -719,6 +721,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "microfft"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "67783586410236dbd6d9caec031ac187cf173174a4afb662282b00abaaf2101f"
+dependencies = [
+ "num-complex",
+ "static_assertions",
+]
+
+[[package]]
 name = "mio"
 version = "0.6.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -826,6 +838,16 @@ dependencies = [
  "cc",
  "cfg-if 0.1.10",
  "libc",
+]
+
+[[package]]
+name = "num-complex"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b6b19411a9719e753aff12e5187b74d60d3dc449ec3f4dc21e3989c3f554bc95"
+dependencies = [
+ "autocfg",
+ "num-traits",
 ]
 
 [[package]]
@@ -1182,6 +1204,12 @@ dependencies = [
  "wayland-client",
  "wayland-protocols",
 ]
+
+[[package]]
+name = "static_assertions"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
 name = "stb_truetype"

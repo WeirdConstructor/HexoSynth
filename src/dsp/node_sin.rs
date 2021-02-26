@@ -36,7 +36,7 @@ impl Sin {
         let freq = 440.0;
 
         out::Sin::sig(outputs,
-            0.2 * (self.phase * 2.0 * std::f32::consts::PI).sin());
+            (self.phase * 2.0 * std::f32::consts::PI).sin());
 
         self.phase += freq / self.srate;
         self.phase = self.phase.fract();

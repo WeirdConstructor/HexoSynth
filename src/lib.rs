@@ -179,10 +179,10 @@ struct HexoSynth {
 //    node_exec:  NodeExecutor,
 }
 
-struct Context<'a, 'b, 'c, 'd> {
-    frame_idx:  usize,
-    output:     &'a mut [&'b mut [f32]],
-    input:      &'c [&'d [f32]],
+pub struct Context<'a, 'b, 'c, 'd> {
+    pub frame_idx:  usize,
+    pub output:     &'a mut [&'b mut [f32]],
+    pub input:      &'c [&'d [f32]],
 }
 
 impl<'a, 'b, 'c, 'd> nodes::NodeAudioContext for Context<'a, 'b, 'c, 'd> {
@@ -349,5 +349,5 @@ impl PluginUI for HexoSynth {
     }
 }
 
-#[cfg(not(test))]
+#[cfg(all(not(test), crate_type="cdylib"))]
 baseplug::vst2!(HexoSynth, b"HxsY");
