@@ -518,8 +518,12 @@ mod tests {
 
     #[test]
     fn check_pitch() {
+        assert_eq!(d_pit!(0.3, 0.001, 1.0).round() as i32, 110_i32);
+        assert_eq!((n_pit!(110.0, 0.001, 1.0) * 100.0).round() as i32, 30_i32);
         assert_eq!(d_pit!(0.5, 0.001, 1.0).round() as i32, 440_i32);
         assert_eq!((n_pit!(440.0, 0.001, 1.0) * 100.0).round() as i32, 50_i32);
+        assert_eq!(d_pit!(0.8, 0.001, 1.0).round() as i32, 3520_i32);
+        assert_eq!((n_pit!(3520.0, 0.001, 1.0) * 100.0).round() as i32, 80_i32);
 
         for i in 1..999 {
             let x = (i as f32) / 1000.0;
