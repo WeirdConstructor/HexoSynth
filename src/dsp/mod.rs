@@ -56,14 +56,14 @@ macro_rules! n_exp { ($x: expr, $min: expr, $max: expr) => { (($x - $min) / ($ma
 macro_rules! d_exp { ($x: expr, $min: expr, $max: expr) => { { let x : f32 = $x * $x; $min * (1.0 - x) + $max * x } } }
 
 macro_rules! n_pit { ($x: expr, $min: expr, $max: expr) => {
-    ((((($x as f32).max(0.01) / 440.0).log2() * 12.0) / 120.0) + 0.5)
+    (((($x as f32).max(0.01) / 440.0).log2() / 10.0) + 0.5)
 } }
 
 macro_rules! d_pit { ($x: expr, $min: expr, $max: expr) => {
     {
         // maps 0.5 to 69 (A4), and 0.6 to 81 (A5)
-        let note : f32 = (($x as f32) - 0.5) * 120.0; /* + 69.0 */
-        440.0 * (2.0_f32).powf((note /* - 69.0 */) / 12.0)
+        let note : f32 = (($x as f32) - 0.5) * 10.0; /* * 120.0 + 69.0 */
+        440.0 * (2.0_f32).powf((note /* - 69.0 */) /* / 12.0 */)
     }
 } }
 
