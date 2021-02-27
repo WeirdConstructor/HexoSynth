@@ -1,8 +1,10 @@
 const MAX_ALLOCATED_NODES : usize = 256;
+const MAX_SMOOTHERS       : usize = 128;
 const MAX_NODE_PROG_OPS   : usize = 256 * 3;
 
 use ringbuf::{RingBuffer, Producer, Consumer};
 use crate::dsp::{node_factory, NodeInfo, Node, NodeId};
+use crate::util::Smoother;
 
 /// A node graph execution program. It comes with buffers
 /// for the inputs, outputs and node parameters (knob values).
@@ -258,9 +260,13 @@ pub fn new_node_engine() -> (NodeConfigurator, NodeExecutor) {
     let mut nodes = Vec::new();
     nodes.resize_with(MAX_ALLOCATED_NODES, || Node::Nop);
 
+    let mut smoothers = Vec::new();
+    smoothers.resize_with(MAX_SMOOTHERS, || (0, Smoother::new()));
+
     let ne = NodeExecutor {
         sample_rate:       44100.0,
         nodes,
+        smoothers,
         prog:              NodeProg::empty(),
         graph_update_con:  rb_graph_con,
         quick_update_con:  rb_quick_con,
@@ -345,6 +351,9 @@ pub struct NodeExecutor {
     /// is sent back using the free-ringbuffer.
     nodes: Vec<Node>,
 
+    /// Contains the stand-by smoothing operators for incoming parameter changes.
+    smoothers: Vec<(usize, Smoother)>,
+
     /// Contains the to be executed nodes and output operations.
     /// Is copied from the input ringbuffer when a corresponding
     /// message arrives.
@@ -408,6 +417,10 @@ impl NodeExecutor {
         for n in self.nodes.iter_mut() {
             n.set_sample_rate(sample_rate);
         }
+
+        for sm in self.smoothers.iter_mut() {
+            sm.1.set_sample_rate(sample_rate);
+        }
     }
 
     #[inline]
@@ -417,19 +430,58 @@ impl NodeExecutor {
     pub fn get_prog(&self) -> &NodeProg { &self.prog }
 
     #[inline]
+    fn set_param(&mut self, input_idx: usize, value: f32) {
+        let prog = &mut self.prog;
+
+        if input_idx >= prog.params.len() {
+            return;
+        }
+
+        // First check if we already have a running smoother for this param:
+        for (sm_inp_idx, smoother) in
+            self.smoothers
+                .iter_mut()
+                .filter(|s| !s.1.is_done())
+        {
+            if *sm_inp_idx == input_idx {
+                smoother.set(prog.params[input_idx], value);
+                //d// println!("RE-SET SMOOTHER {} {:6.3} (old = {:6.3})",
+                //d//          input_idx, value, prog.params[input_idx]);
+                return;
+            }
+        }
+
+        // Find unused smoother and set it:
+        if let Some(sm) =
+            self.smoothers
+                .iter_mut()
+                .filter(|s| s.1.is_done())
+                .next()
+        {
+            sm.0 = input_idx;
+            sm.1.set(prog.params[input_idx], value);
+            println!("SET SMOOTHER {} {:6.3} (old = {:6.3})",
+                     input_idx, value, prog.params[input_idx]);
+        }
+    }
+
+    #[inline]
     pub fn process<T: NodeAudioContext>(&mut self, ctx: &mut T) {
-        let nodes = &mut self.nodes;
-        let prog  = &mut self.prog;
 
         while let Some(upd) = self.quick_update_con.pop() {
             match upd {
                 QuickMessage::ParamUpdate { input_idx, value } => {
-                    if input_idx < prog.params.len() {
-                        prog.params[input_idx] = value;
-                    }
+                    self.set_param(input_idx, value);
                 },
                 _ => {},
             }
+        }
+
+        let nodes = &mut self.nodes;
+        let prog  = &mut self.prog;
+
+        for (idx, smoother) in self.smoothers.iter_mut().filter(|s| !s.1.is_done()) {
+            prog.params[*idx] = smoother.next();
         }
 
         prog.inp.copy_from_slice(&prog.params[..]);

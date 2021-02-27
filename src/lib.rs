@@ -5,6 +5,8 @@ pub mod nodes;
 pub mod dsp;
 pub mod matrix;
 
+mod util;
+
 use dsp::NodeId;
 use serde::{Serialize, Deserialize};
 use raw_window_handle::HasRawWindowHandle;

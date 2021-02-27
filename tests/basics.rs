@@ -92,9 +92,25 @@ fn calc_rms_mimax_each_ms(buf: &[f32], ms: f32) -> Vec<(f32, f32, f32)> {
     res
 }
 
-fn fft_thres_at_ms(buf: &mut [f32], amp_thres: u32, ms_idx: f32) -> Vec<(u16, u32)> {
+enum FFT {
+    F16,
+    F32,
+    F64,
+    F128,
+    F512,
+    F1024,
+}
+
+fn fft_thres_at_ms(buf: &mut [f32], size: FFT, amp_thres: u32, ms_idx: f32) -> Vec<(u16, u32)> {
     let ms_sample_offs = ms_idx * (SAMPLE_RATE / 1000.0);
-    let fft_nbins = 1024;
+    let fft_nbins = match size {
+        FFT::F16      => 16,
+        FFT::F32      => 32,
+        FFT::F64      => 64,
+        FFT::F128     => 128,
+        FFT::F512     => 512,
+        FFT::F1024    => 1024,
+    };
     let len = fft_nbins;
 
     let mut idx    = ms_sample_offs as usize;
@@ -115,11 +131,25 @@ fn fft_thres_at_ms(buf: &mut [f32], amp_thres: u32, ms_idx: f32) -> Vec<(u16, u3
         *s *= w;
     }
 
-    let spec = microfft::real::rfft_1024(&mut buf[idx..(idx + len)]);
+    let spec =
+        match size {
+            FFT::F16 =>
+                microfft::real::rfft_16(&mut buf[idx..(idx + len)]),
+            FFT::F32 =>
+                microfft::real::rfft_32(&mut buf[idx..(idx + len)]),
+            FFT::F64 =>
+                microfft::real::rfft_64(&mut buf[idx..(idx + len)]),
+            FFT::F128 =>
+                microfft::real::rfft_128(&mut buf[idx..(idx + len)]),
+            FFT::F512 =>
+                microfft::real::rfft_512(&mut buf[idx..(idx + len)]),
+            FFT::F1024 =>
+                microfft::real::rfft_1024(&mut buf[idx..(idx + len)]),
+        };
     let amplitudes: Vec<_> = spec.iter().map(|c| c.norm() as u32).collect();
 
     for (i, amp) in amplitudes.iter().enumerate() {
-        if *amp > amp_thres {
+        if *amp >= amp_thres {
             let freq = (i as f32 * SAMPLE_RATE) / fft_nbins as f32;
             res.push((freq.round() as u16, *amp));
         }
@@ -157,15 +187,15 @@ fn check_matrix_sine() {
         assert_float_eq!(rms_mimax[i].2, 0.9999999);
     }
 
-    let fft_res = fft_thres_at_ms(&mut out_l[..], 100, 0.0);
+    let fft_res = fft_thres_at_ms(&mut out_l[..], FFT::F1024, 100, 0.0);
     assert_eq!(fft_res[0], (431, 248));
     assert_eq!(fft_res[1], (474, 169));
 
-    let fft_res = fft_thres_at_ms(&mut out_l[..], 100, 1000.0);
+    let fft_res = fft_thres_at_ms(&mut out_l[..], FFT::F1024, 100, 1000.0);
     assert_eq!(fft_res[0], (431, 248));
     assert_eq!(fft_res[1], (474, 169));
 
-    let fft_res = fft_thres_at_ms(&mut out_l[..], 100, 1500.0);
+    let fft_res = fft_thres_at_ms(&mut out_l[..], FFT::F1024, 100, 1500.0);
     assert_eq!(fft_res[0], (431, 248));
     assert_eq!(fft_res[1], (474, 169));
 }
@@ -186,24 +216,34 @@ fn check_sine_pitch_change() {
 
     let (mut out_l, mut out_r) = run_no_input(&mut node_exec, 0.2);
 
-    let fft_res = fft_thres_at_ms(&mut out_l[..], 100, 0.0);
+    let fft_res = fft_thres_at_ms(&mut out_l[..], FFT::F1024, 200, 0.0);
     assert_eq!(fft_res[0], (431, 248));
-    assert_eq!(fft_res[1], (474, 169));
+
+    let fft_res = fft_thres_at_ms(&mut out_l[..], FFT::F64, 20, 100.0);
+    assert_eq!(fft_res[0], (0, 22));
 
     let freq_param = sin.inp_param("freq").unwrap();
 
     matrix.set_param(
         freq_param,
-        freq_param.norm(220.0));
+        freq_param.norm(4400.0));
 
     let (mut out_l, mut out_r) = run_no_input(&mut node_exec, 1.0);
 
-    // Test the slope:
-    let fft_res = fft_thres_at_ms(&mut out_l[..], 200, 0.0);
-    println!("FFT: {:?}", fft_res);
-    assert_eq!(fft_res[0], (115, 253));
+    // Test at the start of the slope (~ 690 Hz):
+    let fft_res = fft_thres_at_ms(&mut out_l[..], FFT::F64, 15, 0.0);
+    assert_eq!(fft_res[0], (689, 15));
 
-    // Test the freq after the slope:
-    let fft_res = fft_thres_at_ms(&mut out_l[..], 100, 50.0);
-    assert_eq!(fft_res[0], (215, 253));
+    // In the middle (~ 2067 Hz):
+    let fft_res = fft_thres_at_ms(&mut out_l[..], FFT::F64, 15, 5.0);
+    assert_eq!(fft_res[0], (2067, 15));
+
+    // Goal (~ 4134 Hz)
+    let fft_res = fft_thres_at_ms(&mut out_l[..], FFT::F64, 14, 10.0);
+    assert_eq!(fft_res[0], (4134, 14));
+
+    // Test the freq after the slope in high res (closer to 4400 Hz):
+    let fft_res = fft_thres_at_ms(&mut out_l[..], FFT::F1024, 200, 400.0);
+    assert_eq!(fft_res[0], (4393, 251));
+
 }
