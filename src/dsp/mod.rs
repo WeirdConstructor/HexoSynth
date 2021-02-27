@@ -49,11 +49,26 @@ macro_rules! node_list {
 macro_rules! n_id { ($x: expr, $min: expr, $max: expr) => { $x } }
 macro_rules! d_id { ($x: expr, $min: expr, $max: expr) => { $x } }
 
-macro_rules! n_lin { ($x: expr, $min: expr, $max: expr) => { (($x - $min) / ($max - $min) as f32).abs() } }
-macro_rules! d_lin { ($x: expr, $min: expr, $max: expr) => { $min * (1.0 - $x) + $max * $x } }
+macro_rules! n_lin { ($x: expr, $min: expr, $max: expr) => {
+    (($x - $min) / ($max - $min) as f32).abs()
+} }
+macro_rules! d_lin { ($x: expr, $min: expr, $max: expr) => {
+    $min * (1.0 - $x) + $max * $x
+} }
 
-macro_rules! n_exp { ($x: expr, $min: expr, $max: expr) => { (($x - $min) / ($max - $min) as f32).abs().sqrt() } }
-macro_rules! d_exp { ($x: expr, $min: expr, $max: expr) => { { let x : f32 = $x * $x; $min * (1.0 - x) + $max * x } } }
+macro_rules! n_exp { ($x: expr, $min: expr, $max: expr) => {
+    (($x - $min) / ($max - $min) as f32).abs().sqrt()
+} }
+macro_rules! d_exp { ($x: expr, $min: expr, $max: expr) => {
+    { let x : f32 = $x * $x; $min * (1.0 - x) + $max * x }
+} }
+
+macro_rules! n_exp4 { ($x: expr, $min: expr, $max: expr) => {
+    (($x - $min) / ($max - $min)).abs().sqrt().sqrt()
+} }
+macro_rules! d_exp4 { ($x: expr, $min: expr, $max: expr) => {
+    { let x : f32 = $x * $x * $x * $x; $min * (1.0 - x) + $max * x }
+} }
 
 macro_rules! n_pit { ($x: expr, $min: expr, $max: expr) => {
     (((($x as f32).max(0.01) / 440.0).log2() / 10.0) + 0.5)
@@ -66,9 +81,6 @@ macro_rules! d_pit { ($x: expr, $min: expr, $max: expr) => {
         440.0 * (2.0_f32).powf((note /* - 69.0 */) /* / 12.0 */)
     }
 } }
-
-macro_rules! n_exp4 { ($x: expr, $min: expr, $max: expr) => { (($x - $min) / ($max - $min)).abs().sqrt().sqrt() } }
-macro_rules! d_exp4 { ($x: expr, $min: expr, $max: expr) => { { let x : f32 = $x * $x * $x * $x; $min * (1.0 - x) + $max * x } } }
 
 impl UICategory {
     fn get_node_ids(&self, idx: usize, out: &mut Vec<NodeId>) {
