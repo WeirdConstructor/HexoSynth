@@ -33,15 +33,15 @@ macro_rules! node_list {
         $inmacro!{
             nop => Nop,
             amp => Amp UIType::Generic UICategory::XtoY
-               (0 sig  n_id  d_id 0.0, 1.0, 0.0)
+               (0 sig  n_id  d_id  0.0, 1.0, 0.0)
                (1 gain n_exp d_exp 0.0, 2.0, 1.0)
                [0 sig],
             sin => Sin UIType::Generic UICategory::Oscillators
-               (0 freq n_exp d_exp 0.0, crate::dsp::MIDI_MAX_FREQ, 440.0)
+               (0 freq n_pit d_pit 0.001, 1.0, 440.0)
                [0 sig],
             out => Out UIType::Generic UICategory::IOUtil
-               (0 in1  n_id d_id 0.0, 1.0, 0.0)
-               (1 in2  n_id d_id 0.0, 1.0, 0.0),
+               (0 in1  n_id  d_id  0.0, 1.0, 0.0)
+               (1 in2  n_id  d_id  0.0, 1.0, 0.0),
         }
     }
 }
@@ -54,6 +54,18 @@ macro_rules! d_lin { ($x: expr, $min: expr, $max: expr) => { $min * (1.0 - $x) +
 
 macro_rules! n_exp { ($x: expr, $min: expr, $max: expr) => { (($x - $min) / ($max - $min) as f32).abs().sqrt() } }
 macro_rules! d_exp { ($x: expr, $min: expr, $max: expr) => { { let x : f32 = $x * $x; $min * (1.0 - x) + $max * x } } }
+
+macro_rules! n_pit { ($x: expr, $min: expr, $max: expr) => {
+    ((((($x as f32).max(0.01) / 440.0).log2() * 12.0) / 120.0) + 0.5)
+} }
+
+macro_rules! d_pit { ($x: expr, $min: expr, $max: expr) => {
+    {
+        // maps 0.5 to 69 (A4), and 0.6 to 81 (A5)
+        let note : f32 = (($x as f32) - 0.5) * 120.0; /* + 69.0 */
+        440.0 * (2.0_f32).powf((note /* - 69.0 */) / 12.0)
+    }
+} }
 
 macro_rules! n_exp4 { ($x: expr, $min: expr, $max: expr) => { (($x - $min) / ($max - $min)).abs().sqrt().sqrt() } }
 macro_rules! d_exp4 { ($x: expr, $min: expr, $max: expr) => { { let x : f32 = $x * $x * $x * $x; $min * (1.0 - x) + $max * x } } }
@@ -121,8 +133,8 @@ macro_rules! make_node_info_enum {
 
         #[derive(Debug, Clone, Copy, PartialOrd, PartialEq, Eq, Ord, Hash)]
         pub struct ParamId {
-            node: NodeId,
             name: &'static str,
+            node: NodeId,
             idx:  u8,
         }
 
@@ -489,5 +501,33 @@ impl Node {
         }
 
         node_list!{make_node_process}
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn check_node_size_staying_small() {
+        assert_eq!(std::mem::size_of::<Node>(),     12);
+        assert_eq!(std::mem::size_of::<NodeId>(),   2);
+        assert_eq!(std::mem::size_of::<ParamId>(),  24);
+    }
+
+    #[test]
+    fn check_pitch() {
+        assert_eq!(d_pit!(0.5, 0.001, 1.0).round() as i32, 440_i32);
+        assert_eq!((n_pit!(440.0, 0.001, 1.0) * 100.0).round() as i32, 50_i32);
+
+        for i in 1..999 {
+            let x = (i as f32) / 1000.0;
+            let r = d_pit!(x, 0.001, 1.0);
+            println!("x={:8.5} => {:8.5}", x, r);
+            assert_eq!(
+                (n_pit!(r, 0.001, 1.0) * 10000.0).round() as i32,
+                (x * 10000.0).round() as i32);
+        }
     }
 }

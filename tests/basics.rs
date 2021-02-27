@@ -232,11 +232,13 @@ fn check_sine_pitch_change() {
 
     // Test at the start of the slope (~ 690 Hz):
     let fft_res = fft_thres_at_ms(&mut out_l[..], FFT::F64, 15, 0.0);
-    assert_eq!(fft_res[0], (689, 15));
+    assert_eq!(fft_res[0], (0, 18));
+    assert_eq!(fft_res[1], (689, 15));
 
     // In the middle (~ 2067 Hz):
-    let fft_res = fft_thres_at_ms(&mut out_l[..], FFT::F64, 15, 5.0);
-    assert_eq!(fft_res[0], (2067, 15));
+    let fft_res = fft_thres_at_ms(&mut out_l[..], FFT::F64, 10, 5.0);
+    assert_eq!(fft_res[0], (1378, 14));
+    assert_eq!(fft_res[1], (2067, 12));
 
     // Goal (~ 4134 Hz)
     let fft_res = fft_thres_at_ms(&mut out_l[..], FFT::F64, 14, 10.0);
@@ -245,5 +247,4 @@ fn check_sine_pitch_change() {
     // Test the freq after the slope in high res (closer to 4400 Hz):
     let fft_res = fft_thres_at_ms(&mut out_l[..], FFT::F1024, 200, 400.0);
     assert_eq!(fft_res[0], (4393, 251));
-
 }
