@@ -33,7 +33,6 @@ impl Sin {
         use crate::dsp::out;
 
         let freq = denorm::Sin::freq(inputs);
-        let freq = 440.0;
 
         out::Sin::sig(outputs,
             (self.phase * 2.0 * std::f32::consts::PI).sin());
