@@ -4,19 +4,30 @@ const MAX_NODE_PROG_OPS   : usize = 256 * 3;
 use ringbuf::{RingBuffer, Producer, Consumer};
 use crate::dsp::{node_factory, NodeInfo, Node, NodeId};
 
+/// A node graph execution program. It comes with buffers
+/// for the inputs, outputs and node parameters (knob values).
 #[derive(Debug, Clone)]
 pub struct NodeProg {
-    pub out: Vec<f32>,
-    pub inp: Vec<f32>,
-    pub prog: Vec<NodeOp>,
+    /// The output vector, holding all the node outputs.
+    pub out:    Vec<f32>,
+    /// The param vector, holding all parameter inputs of the nodes, such as knob settings.
+    pub params: Vec<f32>,
+    /// The input vector that feeds the nodes. It's initialized from params
+    /// and then changed by the program signal paths that overwrite them
+    /// with the values in the node outputs.
+    pub inp:    Vec<f32>,
+    /// The node operations that are executed in the order they appear in this
+    /// vector.
+    pub prog:   Vec<NodeOp>,
 }
 
 impl NodeProg {
     pub fn empty() -> Self {
         Self {
-            out: vec![],
-            inp: vec![],
-            prog: vec![],
+            out:    vec![],
+            inp:    vec![],
+            params: vec![],
+            prog:   vec![],
         }
     }
 
@@ -25,15 +36,18 @@ impl NodeProg {
         out.resize(out_len, 0.0);
         let mut inp = vec![];
         inp.resize(inp_len, 0.0);
+        let mut params = vec![];
+        params.resize(inp_len, 0.0);
         Self {
             out,
             inp,
+            params,
             prog: vec![],
         }
     }
 
-    pub fn inputs_mut(&mut self) -> &mut [f32] {
-        &mut self.inp
+    pub fn params_mut(&mut self) -> &mut [f32] {
+        &mut self.params
     }
 
     pub fn append_with_inputs(
@@ -66,13 +80,13 @@ impl NodeProg {
 #[derive(Debug, Clone)]
 pub enum GraphMessage {
     NewNode { index: u8, node: Node },
-    NewProg { prog: NodeProg },
+    NewProg { prog: NodeProg, copy_old_out: bool },
 }
 
 /// Messages for small updates between the NodeExecutor thread
 /// and the NodeConfigurator.
 pub enum QuickMessage {
-    ParamUpdate { node_id: u8, param_id: u8, value: f32 },
+    ParamUpdate { input_idx: usize, value: f32 },
     Feedback    { node_id: u8, feedback_id: u8, value: f32 },
 }
 
@@ -169,6 +183,11 @@ impl NodeConfigurator {
         }
     }
 
+    pub fn set_param(&mut self, input_idx: usize, value: f32) {
+        self.quick_update_prod.push(
+            QuickMessage::ParamUpdate { input_idx, value });
+    }
+
     pub fn create_node(&mut self, ni: NodeId) -> Option<u8> {
         if let Some((node, info)) = node_factory(ni) {
             let mut index : Option<usize> = None;
@@ -197,8 +216,16 @@ impl NodeConfigurator {
         }
     }
 
-    pub fn upload_prog(&mut self, prog: NodeProg) {
-        self.graph_update_prod.push(GraphMessage::NewProg { prog });
+    /// Uploads a new NodeProg instance.
+    ///
+    /// The `copy_old_out` parameter should be set if there are only
+    /// new nodes appended to the end of the node instances.
+    /// It helps to prevent clicks when there is a feedback path somewhere.
+    ///
+    /// It must not be set when a completely new set of node instances
+    /// was created, for instance when a completely new patch was loaded.
+    pub fn upload_prog(&mut self, prog: NodeProg, copy_old_out: bool) {
+        self.graph_update_prod.push(GraphMessage::NewProg { prog, copy_old_out });
     }
 }
 
@@ -355,18 +382,25 @@ impl NodeExecutor {
                             node);
                     self.graph_drop_prod.push(DropMsg::Node { node: prev_node });
                 },
-                GraphMessage::NewProg { prog } => {
+                GraphMessage::NewProg { prog, copy_old_out } => {
                     let prev_prog =
                         std::mem::replace(
                             &mut self.prog,
                             prog);
+
+                    // XXX: Copying from the old vector works, because we only
+                    //      append nodes to the _end_ of the node instance vector.
+                    //      If we do a garbage collection, we can't do this.
+                    if copy_old_out {
+                        let old_len = prev_prog.out.len();
+                        self.prog.out[0..old_len].copy_from_slice(
+                            &prev_prog.out[..]);
+                    }
+
                     self.graph_drop_prod.push(DropMsg::Prog { prog: prev_prog });
                 },
             }
         }
-
-        // TODO: Handle quick_update_con to start ramps for the
-        //       passed parameters.
     }
 
     pub fn set_sample_rate(&mut self, sample_rate: f32) {
@@ -385,13 +419,27 @@ impl NodeExecutor {
     #[inline]
     pub fn process<T: NodeAudioContext>(&mut self, ctx: &mut T) {
         let nodes = &mut self.nodes;
+        let prog  = &mut self.prog;
 
-        for op in self.prog.prog.iter() {
+        while let Some(upd) = self.quick_update_con.pop() {
+            match upd {
+                QuickMessage::ParamUpdate { input_idx, value } => {
+                    if input_idx < prog.params.len() {
+                        prog.params[input_idx] = value;
+                    }
+                },
+                _ => {},
+            }
+        }
+
+        prog.inp.copy_from_slice(&prog.params[..]);
+
+        for op in prog.prog.iter() {
             let out = op.out_idxlen;
             let inp = op.in_idxlen;
             {
-                let input = &mut self.prog.inp;
-                let out   = &self.prog.out;
+                let input = &mut prog.inp;
+                let out   = &prog.out;
                 for io in op.inputs.iter() {
                     input[io.1] = out[io.0];
                 }
@@ -400,8 +448,8 @@ impl NodeExecutor {
             nodes[op.idx as usize]
             .process(
                 ctx,
-                &self.prog.inp[inp.0..inp.1],
-                &mut self.prog.out[out.0..out.1]);
+                &prog.inp[inp.0..inp.1],
+                &mut prog.out[out.0..out.1]);
         }
     }
 }

@@ -1,5 +1,5 @@
 use crate::nodes::{NodeOp, NodeConfigurator, NodeProg};
-use crate::dsp::{NodeId, NodeInfoHolder};
+use crate::dsp::{NodeId, ParamId, NodeInfoHolder};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Cell {
@@ -96,14 +96,17 @@ impl NodeInstance {
         self.in_end   = e;
         self
     }
-
-    pub fn get_input_slice<'a>(&self, inputs: &'a mut [f32]) -> &'a mut [f32] {
-        &mut inputs[self.in_start..self.in_end]
-    }
 }
 
 use std::rc::Rc;
 use std::cell::RefCell;
+
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+struct MatrixNodeParam {
+    param_id:   ParamId,
+    input_idx:  usize,
+    value:      f32,
+}
 
 pub struct Matrix {
     info_holder: NodeInfoHolder,
@@ -113,6 +116,8 @@ pub struct Matrix {
     h:           usize,
 
     instances:   Rc<RefCell<std::collections::HashMap<NodeId, NodeInstance>>>,
+    params:      Rc<RefCell<std::collections::HashMap<ParamId, MatrixNodeParam>>>,
+    params_old:  Rc<RefCell<std::collections::HashMap<ParamId, MatrixNodeParam>>>,
 }
 
 impl Matrix {
@@ -123,6 +128,8 @@ impl Matrix {
         Self {
             info_holder: NodeInfoHolder::new(),
             instances:   Rc::new(RefCell::new(std::collections::HashMap::new())),
+            params:      Rc::new(RefCell::new(std::collections::HashMap::new())),
+            params_old:  Rc::new(RefCell::new(std::collections::HashMap::new())),
             config,
             w,
             h,
@@ -138,6 +145,13 @@ impl Matrix {
         cell.x = x as u8;
         cell.y = y as u8;
         self.matrix[x * self.h + y] = cell;
+    }
+
+    pub fn set_param(&mut self, param: ParamId, v: f32) {
+        if let Some(nparam) = self.params.borrow_mut().get_mut(&param) {
+            nparam.value = v;
+            self.config.set_param(nparam.input_idx, v);
+        }
     }
 
     pub fn get_adjacent_out_vec_index(&self, x: usize, y: usize, dir: u8) -> Option<usize> {
@@ -265,6 +279,12 @@ impl Matrix {
         // Rebuild the instances, because they might changed
         // and this time calculate the output offsets.
         self.instances.borrow_mut().clear();
+
+        // Swap old and current parameter. Keep the old ones
+        // as reference.
+        std::mem::swap(&mut self.params_old, &mut self.params);
+        self.params.borrow_mut().clear();
+
         let mut out_len = 0;
         let mut in_len  = 0;
         self.config.for_each(|node_info, mut id, i| {
@@ -280,6 +300,23 @@ impl Matrix {
                 id = id.set_instance(id.instance() + 1);
             }
 
+            // Create new parameters and initialize them if they did not
+            // already exist from a previous matrix instance.
+            for param_idx in in_idx..in_len {
+                if let Some(param_id) = id.inp_param_by_idx(param_idx - in_idx) {
+                    if let Some(old_param) = self.params_old.borrow().get(&param_id) {
+                        self.params.borrow_mut().insert(param_id, *old_param);
+
+                    } else {
+                        self.params.borrow_mut().insert(param_id, MatrixNodeParam {
+                            param_id,
+                            input_idx:  param_idx,
+                            value:      param_id.norm_def(),
+                        });
+                    }
+                }
+            }
+
             println!("INSERT: {:?} outidx: {},{} inidx: {},{}",
                      id, out_idx, out_len, in_idx, in_len);
 
@@ -293,7 +330,6 @@ impl Matrix {
         });
 
         let mut prog = NodeProg::new(out_len, in_len);
-        println!("NodeProg inputs_mut-len={}, in_len={}", prog.inputs_mut().len(), in_len);
 
         for x in 0..self.w {
             for y in 0..self.h {
@@ -334,21 +370,16 @@ impl Matrix {
                         } else { None }
                     } else { None };
 
-                // TODO: Get the input indices for in_1_out_idx to in_3_out_idx
-
-                println!("O {:?} inputs_mut-len={}", cell.node_id, prog.inputs_mut().len());
-
-                cell.node_id.set_default_inputs(
-                    ni.get_input_slice(prog.inputs_mut()));
-
                 prog.append_with_inputs(op, in_1, in_2, in_3);
-
-                // Check if NodeOp in prog exists, and append to the
-                // input-copy-list.
             }
         }
 
-        self.config.upload_prog(prog);
+        // Copy the parameter values into the program:
+        for (param_id, param) in self.params.borrow().iter() {
+            prog.params_mut()[param.input_idx] = param.value;
+        }
+
+        self.config.upload_prog(prog, true); // true => copy_old_out
 
         println!("FBAROO");
         // - after each node has been created, use the node ordering

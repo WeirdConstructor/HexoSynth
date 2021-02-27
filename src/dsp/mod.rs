@@ -33,18 +33,30 @@ macro_rules! node_list {
         $inmacro!{
             nop => Nop,
             amp => Amp UIType::Generic UICategory::XtoY
-               (0 sig  0.0, 1.0, 0.0)
-               (1 gain 0.0, 2.0, 1.0)
+               (0 sig  n_id  d_id 0.0, 1.0, 0.0)
+               (1 gain n_exp d_exp 0.0, 2.0, 1.0)
                [0 sig],
             sin => Sin UIType::Generic UICategory::Oscillators
-               (0 freq 0.0, crate::dsp::MIDI_MAX_FREQ, 440.0)
+               (0 freq n_exp d_exp 0.0, crate::dsp::MIDI_MAX_FREQ, 440.0)
                [0 sig],
             out => Out UIType::Generic UICategory::IOUtil
-               (0 in1  0.0, 1.0, 0.0)
-               (1 in2  0.0, 1.0, 0.0),
+               (0 in1  n_id d_id 0.0, 1.0, 0.0)
+               (1 in2  n_id d_id 0.0, 1.0, 0.0),
         }
     }
 }
+
+macro_rules! n_id { ($x: expr, $min: expr, $max: expr) => { $x } }
+macro_rules! d_id { ($x: expr, $min: expr, $max: expr) => { $x } }
+
+macro_rules! n_lin { ($x: expr, $min: expr, $max: expr) => { (($x - $min) / ($max - $min) as f32).abs() } }
+macro_rules! d_lin { ($x: expr, $min: expr, $max: expr) => { $min * (1.0 - $x) + $max * $x } }
+
+macro_rules! n_exp { ($x: expr, $min: expr, $max: expr) => { (($x - $min) / ($max - $min) as f32).abs().sqrt() } }
+macro_rules! d_exp { ($x: expr, $min: expr, $max: expr) => { { let x : f32 = $x * $x; $min * (1.0 - x) + $max * x } } }
+
+macro_rules! n_exp4 { ($x: expr, $min: expr, $max: expr) => { (($x - $min) / ($max - $min)).abs().sqrt().sqrt() } }
+macro_rules! d_exp4 { ($x: expr, $min: expr, $max: expr) => { { let x : f32 = $x * $x * $x * $x; $min * (1.0 - x) + $max * x } } }
 
 impl UICategory {
     fn get_node_ids(&self, idx: usize, out: &mut Vec<NodeId>) {
@@ -53,7 +65,7 @@ impl UICategory {
                 $($str: ident => $variant: ident
                     UIType:: $gui_type: ident
                     UICategory:: $ui_cat: ident
-                    $(($in_idx: literal $para: ident $min: expr, $max: expr, $def: expr))*
+                    $(($in_idx: literal $para: ident $n_fun: ident $d_fun: ident $min: expr, $max: expr, $def: expr))*
                     $([$out_idx: literal $out: ident])*
                     ,)+
             ) => {
@@ -72,7 +84,7 @@ macro_rules! make_node_info_enum {
         $($str: ident => $variant: ident
             UIType:: $gui_type: ident
             UICategory:: $ui_cat: ident
-            $(($in_idx: literal $para: ident $min: expr, $max: expr, $def: expr))*
+            $(($in_idx: literal $para: ident $n_fun: ident $d_fun: ident $min: expr, $max: expr, $def: expr))*
             $([$out_idx: literal $out: ident])*
             ,)+
     ) => {
@@ -103,6 +115,55 @@ macro_rules! make_node_info_enum {
                 match nid {
                     NodeId::$v1           => &self.$s1,
                     $(NodeId::$variant(_) => &self.$str),+
+                }
+            }
+        }
+
+        #[derive(Debug, Clone, Copy, PartialOrd, PartialEq, Eq, Ord, Hash)]
+        pub struct ParamId {
+            node: NodeId,
+            name: &'static str,
+            idx:  u8,
+        }
+
+        impl ParamId {
+            pub fn node_id(&self) -> NodeId       { self.node }
+            pub fn inp(&self)     -> u8           { self.idx }
+            pub fn name(&self)    -> &'static str { self.name }
+
+            pub fn norm_def(&self) -> f32 {
+                match self.node {
+                    NodeId::$v1           => 0.0,
+                    $(NodeId::$variant(_) => {
+                        match self.idx {
+                            $($in_idx => crate::dsp::norm_def::$variant::$para(),)*
+                            _ => 0.0,
+                        }
+                    }),+
+                }
+            }
+
+            pub fn norm(&self, v: f32) -> f32 {
+                match self.node {
+                    NodeId::$v1           => 0.0,
+                    $(NodeId::$variant(_) => {
+                        match self.idx {
+                            $($in_idx => crate::dsp::norm_v::$variant::$para(v),)*
+                            _ => 0.0,
+                        }
+                    }),+
+                }
+            }
+
+            pub fn denorm(&self, v: f32) -> f32 {
+                match self.node {
+                    NodeId::$v1           => 0.0,
+                    $(NodeId::$variant(_) => {
+                        match self.idx {
+                            $($in_idx => crate::dsp::denorm_v::$variant::$para(v),)*
+                            _ => 0.0,
+                        }
+                    }),+
                 }
             }
         }
@@ -150,6 +211,38 @@ macro_rules! make_node_info_enum {
                 }
             }
 
+            pub fn inp_param_by_idx(&self, idx: usize) -> Option<ParamId> {
+                match self {
+                    NodeId::$v1           => None,
+                    $(NodeId::$variant(_) => {
+                        match idx {
+                            $($in_idx => Some(ParamId {
+                                node: *self,
+                                name: stringify!($para),
+                                idx:  $in_idx,
+                            }),)*
+                            _ => None,
+                        }
+                    }),+
+                }
+            }
+
+            pub fn inp_param(&self, name: &str) -> Option<ParamId> {
+                match self {
+                    NodeId::$v1           => None,
+                    $(NodeId::$variant(_) => {
+                        match name {
+                            $(stringify!($para) => Some(ParamId {
+                                node: *self,
+                                name: stringify!($para),
+                                idx:  $in_idx,
+                            }),)*
+                            _ => None,
+                        }
+                    }),+
+                }
+            }
+
             pub fn inp(&self, name: &str) -> Option<u8> {
                 match self {
                     NodeId::$v1           => None,
@@ -180,42 +273,26 @@ macro_rules! make_node_info_enum {
                     $(NodeId::$variant(i) => *i as usize),+
                 }
             }
-
-            pub fn set_default_inputs(&self, inputs: &mut [f32]) {
-                match self {
-                    NodeId::$v1           => {},
-                    $(NodeId::$variant(_) => {
-                        $(inputs[$in_idx] =
-                            crate::dsp::norm_def::$variant::$para());+
-                    }),+
-                }
-            }
         }
 
         #[allow(non_snake_case)]
         pub mod denorm_v {
             $(pub mod $variant {
-                $(#[inline] pub fn $para(x: f32) -> f32 {
-                    $min * (1.0 - x) + $max * x
-                })*
+                $(#[inline] pub fn $para(x: f32) -> f32 { $d_fun!(x, $min, $max) })*
             })+
         }
 
         #[allow(non_snake_case)]
         pub mod norm_def {
             $(pub mod $variant {
-                $(#[inline] pub fn $para() -> f32 {
-                      (($def - $min) / ($max - $min))
-                })*
+                $(#[inline] pub fn $para() -> f32 { $n_fun!($def, $min, $max) })*
             })+
         }
 
         #[allow(non_snake_case)]
-        pub mod norm {
+        pub mod norm_v {
             $(pub mod $variant {
-                $(#[inline] pub fn $para(v: f32) -> f32 {
-                      ((v - $min) / ($max - $min)).abs()
-                })*
+                $(#[inline] pub fn $para(v: f32) -> f32 { $n_fun!(v, $min, $max) })*
             })+
         }
 
@@ -224,7 +301,7 @@ macro_rules! make_node_info_enum {
             $(pub mod $variant {
                 $(#[inline] pub fn $para(inputs: &[f32]) -> f32 {
                     let x = inputs[$in_idx];
-                    $min * (1.0 - x) + $max * x
+                    $d_fun!(x, $min, $max)
                 })*
             })+
         }
@@ -265,7 +342,7 @@ macro_rules! make_node_info_enum {
 
                     pub fn norm(&self, in_idx: usize, x: f32) -> f32 {
                         match in_idx {
-                            $($in_idx => crate::dsp::norm::$variant::$para(x),)+
+                            $($in_idx => crate::dsp::norm_v::$variant::$para(x),)+
                             _         => 0.0,
                         }
                     }
@@ -321,7 +398,7 @@ macro_rules! make_node_enum {
         $($str: ident => $variant: ident
             UIType:: $gui_type: ident
             UICategory:: $ui_cat: ident
-            $(($in_idx: literal $para: ident $min: expr, $max: expr, $def: expr))*
+            $(($in_idx: literal $para: ident $n_fun: ident $d_fun: ident $min: expr, $max: expr, $def: expr))*
             $([$out_idx: literal $out: ident])*
             ,)+
     ) => {
@@ -375,7 +452,7 @@ pub fn node_factory(node_id: NodeId) -> Option<(Node, NodeInfo)> {
             $($str: ident => $variant: ident
                 UIType:: $gui_type: ident
                 UICategory:: $ui_cat: ident
-                $(($in_idx: literal $para: ident $min: expr, $max: expr, $def: expr))*
+                $(($in_idx: literal $para: ident $n_fun: ident $d_fun: ident $min: expr, $max: expr, $def: expr))*
                 $([$out_idx: literal $out: ident])*
             ,)+
         ) => {
@@ -400,7 +477,7 @@ impl Node {
                 $($str: ident => $variant: ident
                     UIType:: $gui_type: ident
                     UICategory:: $ui_cat: ident
-                    $(($in_idx: literal $para: ident $min: expr, $max: expr, $def: expr))*
+                    $(($in_idx: literal $para: ident $n_fun: ident $d_fun: ident $min: expr, $max: expr, $def: expr))*
                     $([$out_idx: literal $out: ident])*
                 ,)+
             ) => {

@@ -169,3 +169,41 @@ fn check_matrix_sine() {
     assert_eq!(fft_res[0], (431, 248));
     assert_eq!(fft_res[1], (474, 169));
 }
+
+
+#[test]
+fn check_sine_pitch_change() {
+    let (mut node_conf, mut node_exec) = new_node_engine();
+    let mut matrix = Matrix::new(node_conf, 3, 3);
+
+    let sin = NodeId::Sin(2);
+    let out = NodeId::Out(0);
+    matrix.place(0, 0, Cell::empty(sin)
+                       .out(None, sin.out("sig"), None));
+    matrix.place(1, 0, Cell::empty(out)
+                       .input(None, out.inp("in1"), None));
+    matrix.sync();
+
+    let (mut out_l, mut out_r) = run_no_input(&mut node_exec, 0.2);
+
+    let fft_res = fft_thres_at_ms(&mut out_l[..], 100, 0.0);
+    assert_eq!(fft_res[0], (431, 248));
+    assert_eq!(fft_res[1], (474, 169));
+
+    let freq_param = sin.inp_param("freq").unwrap();
+
+    matrix.set_param(
+        freq_param,
+        freq_param.norm(220.0));
+
+    let (mut out_l, mut out_r) = run_no_input(&mut node_exec, 1.0);
+
+    // Test the slope:
+    let fft_res = fft_thres_at_ms(&mut out_l[..], 200, 0.0);
+    println!("FFT: {:?}", fft_res);
+    assert_eq!(fft_res[0], (115, 253));
+
+    // Test the freq after the slope:
+    let fft_res = fft_thres_at_ms(&mut out_l[..], 100, 50.0);
+    assert_eq!(fft_res[0], (215, 253));
+}
