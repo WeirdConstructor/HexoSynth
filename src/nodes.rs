@@ -175,7 +175,7 @@ impl NodeConfigurator {
     pub fn for_each<F: FnMut(&NodeInfo, NodeId, usize)>(&self, mut f: F) {
         let mut i = 0;
         for n in self.nodes.iter() {
-            let nid = n.to_id(0);
+            let nid = n.to_id();
             if NodeId::Nop == nid {
                 break;
             }
@@ -191,12 +191,17 @@ impl NodeConfigurator {
     }
 
     pub fn create_node(&mut self, ni: NodeId) -> Option<u8> {
+        println!("create_node: {}", ni);
+
         if let Some((node, info)) = node_factory(ni) {
             let mut index : Option<usize> = None;
             for i in 0..self.nodes.len() {
                 if let NodeInfo::Nop = self.nodes[i] {
                     index = Some(i);
                     break;
+
+                } else if ni == self.nodes[i].to_id() {
+                    return Some(i as u8);
                 }
             }
 
@@ -205,6 +210,7 @@ impl NodeConfigurator {
                 self.graph_update_prod.push(
                     GraphMessage::NewNode { index: index as u8, node });
                 Some(index as u8)
+
             } else {
                 let index = self.nodes.len();
                 self.nodes.resize_with((self.nodes.len() + 1) * 2, || NodeInfo::Nop);

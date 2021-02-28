@@ -5,6 +5,7 @@ pub mod nodes;
 pub mod dsp;
 pub mod matrix;
 
+pub mod ui;
 mod util;
 
 use dsp::NodeId;
@@ -160,9 +161,17 @@ impl PluginContext<HexoSynth> for HexoSynthShared {
                            .input(None, Some(0), None)
                            .out(None, None, Some(0)));
 
-        for x in 2..7 {
-            for y in 2..7 {
-                matrix.place(x, y, Cell::empty(NodeId::Sin(0)));
+        matrix.place(0, 1, Cell::empty(NodeId::Sin(1))
+                           .out(None, Some(0), None));
+        matrix.place(1, 1, Cell::empty(NodeId::Sin(0))
+                           .input(None, Some(0), None)
+                           .out(None, None, Some(0)));
+
+        let mut i = 1;
+        for x in 2..5 {
+            for y in 2..5 {
+                matrix.place(x, y, Cell::empty(NodeId::Sin(i)));
+                i += 1;
             }
         }
         matrix.sync();
@@ -302,6 +311,11 @@ impl PluginUI for HexoSynth {
     }
 
     fn ui_open(parent: &impl HasRawWindowHandle, ctx: &HexoSynthShared) -> WindowOpenResult<Self::Handle> {
+//        use hexotk::components::matrix::NodeMatrixData;
+        use crate::ui::matrix::NodeMatrixData;
+
+        let matrix = ctx.matrix.clone();
+
         open_window("HexoSynth", 800, 800, Some(parent.raw_window_handle()), Box::new(|| {
             let wt_btn      = Rc::new(Button::new(80.0, 10.0));
 //            let wt_hexgrid  = Rc::new(HexGrid::new(14.0, 10.0));
@@ -325,8 +339,9 @@ impl PluginUI for HexoSynth {
 //               .add(wt_cont.clone(), 0.into(), UIPos::center(5, 12), node_ctrls);
 
             let mut ui = Box::new(UI::new(
-                WidgetData::new_box(
-                    wt_btn, 0.into(), UIPos::center(12, 12), ButtonData::new_toggle("Test Btn")),
+                Box::new(NodeMatrixData::new(matrix, UIPos::center(12, 12), 11)),
+//                WidgetData::new_box(
+//                    wt_btn, 0.into(), UIPos::center(12, 12), ButtonData::new_toggle("Test Btn")),
 //                WidgetData::new_box(
 //                    wt_cont, 0.into(), UIPos::center(12, 12), con),
                 Box::new(HexoSynthUIParams { params: [0.0; 100] }),
@@ -351,5 +366,5 @@ impl PluginUI for HexoSynth {
     }
 }
 
-#[cfg(all(not(test), crate_type="cdylib"))]
+#[cfg(any(not(test), crate_type="cdylib"))]
 baseplug::vst2!(HexoSynth, b"HxsY");

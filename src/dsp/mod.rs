@@ -119,26 +119,15 @@ macro_rules! make_node_info_enum {
         #[derive(Debug, Clone)]
         pub enum NodeInfo {
             $v1,
-            $($variant(crate::dsp::ni::$variant)),+
+            $($variant((NodeId, crate::dsp::ni::$variant))),+
         }
 
-        pub struct NodeInfoHolder {
-            $s1: NodeInfo,
-            $($str: NodeInfo),+
-        }
 
-        impl NodeInfoHolder {
-            pub fn new() -> Self {
-                Self {
-                    $s1: NodeInfo::$v1,
-                    $($str: NodeInfo::$variant(crate::dsp::ni::$variant::new())),+
-                }
-            }
-
-            pub fn from_node_id(&self, nid: NodeId) -> &NodeInfo {
+        impl NodeInfo {
+            pub fn from_node_id(nid: NodeId) -> NodeInfo {
                 match nid {
-                    NodeId::$v1           => &self.$s1,
-                    $(NodeId::$variant(_) => &self.$str),+
+                    NodeId::$v1           => NodeInfo::$v1,
+                    $(NodeId::$variant(_) => NodeInfo::$variant((nid, crate::dsp::ni::$variant::new()))),+
                 }
             }
         }
@@ -196,6 +185,15 @@ macro_rules! make_node_info_enum {
         pub enum NodeId {
             $v1,
             $($variant(u8)),+
+        }
+
+        impl std::fmt::Display for NodeId {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                match self {
+                    NodeId::$v1           => write!(f, "{}", stringify!($s1)),
+                    $(NodeId::$variant(i) => write!(f, "{} {}", stringify!($str), i)),+
+                }
+            }
         }
 
         impl NodeId {
@@ -388,29 +386,32 @@ macro_rules! make_node_info_enum {
             pub fn from(s: &str) -> Self {
                 match s {
                     stringify!($s1)    => NodeInfo::$v1,
-                    $(stringify!($str) => NodeInfo::$variant(crate::dsp::ni::$variant::new())),+,
+                    $(stringify!($str) =>
+                        NodeInfo::$variant(
+                            (NodeId::$variant(0),
+                             crate::dsp::ni::$variant::new()))),+,
                     _                  => NodeInfo::Nop,
                 }
             }
 
-            pub fn to_id(&self, instance: usize) -> NodeId {
+            pub fn to_id(&self) -> NodeId {
                 match self {
-                    NodeInfo::$v1           => NodeId::$v1,
-                    $(NodeInfo::$variant(_) => NodeId::$variant(instance as u8)),+
+                    NodeInfo::$v1                 => NodeId::$v1,
+                    $(NodeInfo::$variant((id, _)) => *id),+
                 }
             }
 
             pub fn in_count(&self) -> usize {
                 match self {
                     NodeInfo::$v1           => 0,
-                    $(NodeInfo::$variant(n) => n.in_count()),+
+                    $(NodeInfo::$variant(n) => n.1.in_count()),+
                 }
             }
 
             pub fn out_count(&self) -> usize {
                 match self {
                     NodeInfo::$v1           => 0,
-                    $(NodeInfo::$variant(n) => n.out_count()),+
+                    $(NodeInfo::$variant(n) => n.1.out_count()),+
                 }
             }
         }
@@ -436,10 +437,10 @@ macro_rules! make_node_enum {
         }
 
         impl Node {
-            pub fn to_id(&self, index: usize) -> NodeId {
+            pub fn to_id(&self, instance: usize) -> NodeId {
                 match self {
                     Node::$v1               => NodeId::$v1,
-                    $(Node::$variant { .. } => NodeId::$variant(index as u8)),+
+                    $(Node::$variant { .. } => NodeId::$variant(instance as u8)),+
                 }
             }
 
@@ -483,7 +484,7 @@ pub fn node_factory(node_id: NodeId) -> Option<(Node, NodeInfo)> {
             match node_id {
                 $(NodeId::$variant(_) => Some((
                     Node::$variant { node: $variant::new() },
-                    NodeInfo::$variant(crate::dsp::ni::$variant::new()),
+                    NodeInfo::from_node_id(node_id),
                 )),)+
                 _ => None,
             }

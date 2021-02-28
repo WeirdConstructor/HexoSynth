@@ -1,5 +1,5 @@
 use crate::nodes::{NodeOp, NodeConfigurator, NodeProg};
-use crate::dsp::{NodeId, ParamId, NodeInfoHolder};
+use crate::dsp::{NodeId, ParamId};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Cell {
@@ -32,6 +32,27 @@ impl Cell {
             in1: None,
             in2: None,
             in3: None,
+        }
+    }
+
+    pub fn label<'a>(&self, mut buf: &'a mut [u8]) -> Option<&'a str> {
+        use std::io::Write;
+        let mut cur = std::io::Cursor::new(buf);
+
+        if self.node_id == NodeId::Nop {
+            return None;
+        }
+
+//        let node_info = infoh.from_node_id(self.node_id);
+
+        match write!(cur, "{}", self.node_id) {
+            Ok(_)  => {
+                let len = cur.position() as usize;
+                Some(
+                    std::str::from_utf8(&(cur.into_inner())[0..len])
+                    .unwrap())
+            },
+            Err(_) => None,
         }
     }
 
@@ -109,7 +130,6 @@ struct MatrixNodeParam {
 }
 
 pub struct Matrix {
-    info_holder: NodeInfoHolder,
     config:      NodeConfigurator,
     matrix:      Vec<Cell>,
     w:           usize,
@@ -120,13 +140,14 @@ pub struct Matrix {
     params_old:  Rc<RefCell<std::collections::HashMap<ParamId, MatrixNodeParam>>>,
 }
 
+unsafe impl Send for Matrix {}
+
 impl Matrix {
     pub fn new(config: NodeConfigurator, w: usize, h: usize) -> Self {
         let mut matrix : Vec<Cell> = Vec::new();
         matrix.resize(w * h, Cell::empty(NodeId::Nop));
 
         Self {
-            info_holder: NodeInfoHolder::new(),
             instances:   Rc::new(RefCell::new(std::collections::HashMap::new())),
             params:      Rc::new(RefCell::new(std::collections::HashMap::new())),
             params_old:  Rc::new(RefCell::new(std::collections::HashMap::new())),
@@ -230,6 +251,15 @@ impl Matrix {
         Some(&self.matrix[(x as usize) * self.h + (y as usize)])
     }
 
+    pub fn for_each<F: Fn(usize, usize, &Cell)>(&self, f: F) {
+        for x in 0..self.w {
+            for y in 0..self.h {
+                let cell = &self.matrix[x * self.h + y];
+                f(x, y, cell);
+            }
+        }
+    }
+
     pub fn get(&self, x: usize, y: usize) -> Option<&Cell> {
         if x >= self.w || y >= self.h {
             return None;
@@ -253,31 +283,39 @@ impl Matrix {
             self.instances.borrow_mut().insert(id, NodeInstance::new(id));
         });
 
+        // Scan thought the matrix and check if (backend) nodes need to be created
+        // for new unknown nodes:
         for x in 0..self.w {
             for y in 0..self.h {
                 let mut cell = &mut self.matrix[x * self.h + y];
 
-                // - check if the previous node instances exist, if not,
-                //   create them on the fly now:
-                for inst in 0..cell.node_id.instance() {
-                    let new_hole_filler_node_id =
-                        cell.node_id.set_instance(inst);
-                    self.config.create_node(new_hole_filler_node_id);
-                    self.instances.borrow_mut().insert(
-                        new_hole_filler_node_id,
-                        NodeInstance::new(new_hole_filler_node_id));
-                }
-
                 // - check if each NodeId has a corresponding entry in NodeConfigurator
-                //   - if not, NodeConfigurator creates a new one on the fly
+                //   - if not, create a new one on the fly
                 if self.instances.borrow().get(&cell.node_id).is_none() {
+                    // - check if the previous node instances exist, if not,
+                    //   create them on the fly now:
+                    for inst in 0..cell.node_id.instance() {
+                        let new_hole_filler_node_id =
+                            cell.node_id.set_instance(inst);
+
+                        if self.instances.borrow().get(&new_hole_filler_node_id).is_none() {
+                            self.config.create_node(new_hole_filler_node_id);
+                            self.instances.borrow_mut().insert(
+                                new_hole_filler_node_id,
+                                NodeInstance::new(new_hole_filler_node_id));
+                        }
+                    }
+
                     self.config.create_node(cell.node_id);
+                    self.instances.borrow_mut().insert(
+                        cell.node_id,
+                        NodeInstance::new(cell.node_id));
                 }
             }
         }
 
-        // Rebuild the instances, because they might changed
-        // and this time calculate the output offsets.
+        // Rebuild the instances map, because new ones might have been created.
+        // And this time calculate the output offsets.
         self.instances.borrow_mut().clear();
 
         // Swap old and current parameter. Keep the old ones
@@ -296,9 +334,7 @@ impl Matrix {
             let in_idx = in_len;
             in_len += node_info.in_count();
 
-            while let Some(_) = self.instances.borrow().get(&id) {
-                id = id.set_instance(id.instance() + 1);
-            }
+            println!("{} = {}", i, id);
 
             // Create new parameters and initialize them if they did not
             // already exist from a previous matrix instance.
@@ -498,6 +534,31 @@ mod tests {
         assert_eq!(prog.prog[0].to_string(), "Op(i=0 out=(0-1) in=(0-1))");
         assert_eq!(prog.prog[1].to_string(), "Op(i=1 out=(1-2) in=(1-2) cpy=(o0 => i1))");
         assert_eq!(prog.prog[2].to_string(), "Op(i=2 out=(2-3) in=(2-3) cpy=(o1 => i2))");
+    }
+
+    #[test]
+    fn check_matrix_filled() {
+        use crate::nodes::new_node_engine;
+        use crate::dsp::{NodeId, Node};
+
+        let (mut node_conf, mut node_exec) = new_node_engine();
+        let mut matrix = Matrix::new(node_conf, 9, 9);
+
+        let mut i = 1;
+        for x in 0..9 {
+            for y in 0..9 {
+                matrix.place(x, y, Cell::empty(NodeId::Sin(i)));
+                i += 1;
+            }
+        }
+        matrix.sync();
+
+        node_exec.process_graph_updates();
+
+        let nodes = node_exec.get_nodes();
+        let ex_nodes : Vec<&Node> =
+            nodes.iter().filter(|n| n.to_id(0) != NodeId::Nop).collect();
+        assert_eq!(ex_nodes.len(), 9 * 9 + 1);
     }
 
     #[test]
