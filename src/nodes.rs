@@ -515,6 +515,9 @@ impl NodeExecutor {
         //
         // See also above in process_graph_updates().
 
+        // TESTING:
+        //d// prog.inp.copy_from_slice(&prog.params[..]);
+
         for op in prog.prog.iter() {
             let out = op.out_idxlen;
             let inp = op.in_idxlen;
