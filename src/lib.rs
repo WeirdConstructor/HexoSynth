@@ -153,7 +153,7 @@ unsafe impl Sync for HexoSynthShared {}
 impl PluginContext<HexoSynth> for HexoSynthShared {
     fn new() -> Self {
         let (mut node_conf, node_exec) = nodes::new_node_engine();
-        let mut matrix = Matrix::new(node_conf, 7, 7);
+        let mut matrix = Matrix::new(node_conf, 9, 8);
 
         matrix.place(0, 0, Cell::empty(NodeId::Sin(0))
                            .out(None, Some(0), None));

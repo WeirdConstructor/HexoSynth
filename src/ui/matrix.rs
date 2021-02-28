@@ -11,12 +11,68 @@ use crate::matrix::*;
 use std::sync::Arc;
 use std::sync::Mutex;
 
+use crate::dsp::{UICategory};
+
+enum MenuItem {
+    Category { lbl: &'static str, cat: UICategory },
+}
+
+impl MenuItem {
+    pub fn as_str<'a>(&'a self) -> &'a str {
+        match self {
+            MenuItem::Category { lbl, .. } => lbl,
+        }
+    }
+}
+
+enum MenuMode {
+    CategorySelect,
+}
+
 pub struct MatrixUIMenu {
     matrix: Arc<Mutex<Matrix>>,
+    items:  RefCell<Vec<MenuItem>>,
+    mode:   RefCell<MenuMode>,
+}
+
+impl MatrixUIMenu {
+    pub fn new(matrix: Arc<Mutex<Matrix>>) -> Self {
+        Self {
+            matrix,
+            items:  RefCell::new(vec![]),
+            mode:   RefCell::new(MenuMode::CategorySelect),
+        }
+    }
+
+    pub fn set_category_mode(&self) {
+        (*self.mode.borrow_mut()) = MenuMode::CategorySelect;
+        let mut items = self.items.borrow_mut();
+        items.clear();
+        items.push(MenuItem::Category {
+            lbl: "Osc",
+            cat: UICategory::Oscillators
+        });
+        items.push(MenuItem::Category {
+            lbl: "X->Y",
+            cat: UICategory::XtoY,
+        });
+        items.push(MenuItem::Category {
+            lbl: "Time",
+            cat: UICategory::Time,
+        });
+        items.push(MenuItem::Category {
+            lbl: "N->M",
+            cat: UICategory::NtoM,
+        });
+        items.push(MenuItem::Category {
+            lbl: "I/O",
+            cat: UICategory::IOUtil,
+        });
+    }
 }
 
 impl HexGridModel for MatrixUIMenu {
-    fn width(&self) -> usize { 3 }
+    fn width(&self)  -> usize { 3 }
     fn height(&self) -> usize { 3 }
 
     fn cell_click(&self, x: usize, y: usize, btn: MButton) {
@@ -36,7 +92,36 @@ impl HexGridModel for MatrixUIMenu {
 
     fn cell_label<'a>(&self, x: usize, y: usize, mut buf: &'a mut [u8]) -> Option<&'a str> {
         if x >= 3 || y >= 3 { return None; }
-        Some("test")
+        let items = self.items.borrow_mut();
+        let lbl =
+            match (x, y) {
+                (0, 0) => Some(items.get(6)?.as_str()),
+                (1, 0) => Some(items.get(0)?.as_str()),
+                (2, 0) => Some(items.get(1)?.as_str()),
+
+                (0, 1) => Some(items.get(1)?.as_str()),
+                (1, 1) => Some("Next>"),
+                (2, 1) => Some(items.get(3)?.as_str()),
+
+                (0, 2) => Some(items.get(5)?.as_str()),
+                (1, 2) => Some("<Back"),
+                (2, 2) => Some(items.get(4)?.as_str()),
+                _      => None,
+            };
+
+        if let Some(lbl) = lbl {
+            let len = buf.len().min(lbl.as_bytes().len());
+            buf[0..len].copy_from_slice(&lbl.as_bytes()[0..len]);
+
+            if let Ok(s) = std::str::from_utf8(&buf[0..len]) {
+                Some(s)
+            } else {
+                None
+            }
+
+        } else {
+            None
+        }
     }
 
     fn cell_edge<'a>(&self, x: usize, y: usize, edge: u8, out: &'a mut [u8]) -> Option<&'a str> {
@@ -47,31 +132,30 @@ impl HexGridModel for MatrixUIMenu {
 pub struct MatrixUIModel {
     matrix: Arc<Mutex<Matrix>>,
     menu:   Rc<MatrixUIMenu>,
+    w:      usize,
+    h:      usize,
 }
 
-const MATRIX_W : usize = 7;
-const MATRIX_H : usize = 7;
-
 impl HexGridModel for MatrixUIModel {
-    fn width(&self) -> usize { MATRIX_W }
-    fn height(&self) -> usize { MATRIX_H }
+    fn width(&self) -> usize { self.w }
+    fn height(&self) -> usize { self.h }
 
     fn cell_click(&self, x: usize, y: usize, btn: MButton) {
         println!("MENU CLICK CELL: {},{}: {:?}", x, y, btn);
     }
 
     fn cell_empty(&self, x: usize, y: usize) -> bool {
-        if x >= MATRIX_W || y >= MATRIX_H { return true; }
+        if x >= self.w || y >= self.h { return true; }
         false
     }
 
     fn cell_visible(&self, x: usize, y: usize) -> bool {
-        if x >= MATRIX_W || y >= MATRIX_H { return false; }
+        if x >= self.w || y >= self.h { return false; }
         true
     }
 
     fn cell_label<'a>(&self, x: usize, y: usize, buf: &'a mut [u8]) -> Option<&'a str> {
-        if x >= MATRIX_W || y >= MATRIX_H { return None; }
+        if x >= self.w || y >= self.h { return None; }
         let m = self.matrix.lock().unwrap();
         if let Some(cell) = m.get(x, y) {
             Some(cell.label(buf)?)
@@ -98,8 +182,18 @@ impl NodeMatrixData {
     pub fn new(matrix: Arc<Mutex<Matrix>>, pos: UIPos, node_id: u32) -> WidgetData {
         let wt_nmatrix  = Rc::new(NodeMatrix::new());
 
-        let menu_model   = Rc::new(MatrixUIMenu { matrix: matrix.clone() });
-        let matrix_model = Rc::new(MatrixUIModel { matrix, menu: menu_model.clone() });
+        let size = {
+            let m = matrix.lock().unwrap();
+            m.size()
+        };
+
+        let menu_model   = Rc::new(MatrixUIMenu::new(matrix.clone()));
+        let matrix_model = Rc::new(MatrixUIModel {
+            matrix,
+            menu: menu_model.clone(),
+            w: size.0,
+            h: size.1,
+        });
 
         let wt_hexgrid =
             Rc::new(HexGrid::new(14.0, 10.0));
@@ -169,6 +263,7 @@ impl WidgetType for NodeMatrix {
                         } else {
                             match ev {
                                 UIEvent::Click { x, y, .. } => {
+                                    data.matrix_model.menu.set_category_mode();
                                     data.display_menu = Some((*x, *y));
                                 },
                                 _ => {}

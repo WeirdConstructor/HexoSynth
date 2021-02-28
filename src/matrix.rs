@@ -158,6 +158,8 @@ impl Matrix {
         }
     }
 
+    pub fn size(&self) -> (usize, usize) { (self.w, self.h) }
+
     pub fn into_conf(self) -> NodeConfigurator {
         self.config
     }
