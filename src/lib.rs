@@ -168,18 +168,18 @@ impl PluginContext<HexoSynth> for HexoSynthShared {
                            .out(None, None, Some(0)));
 
         let mut i = 1;
-        for x in 2..7 {
-            for y in 2..7 {
+        for x in 4..9 {
+            for y in 4..8 {
                 matrix.place(x, y, Cell::empty(NodeId::Sin(i)));
                 i += 1;
             }
         }
 
-        matrix.place(0, 2, Cell::empty(NodeId::Sin(2))
-                           .out(None, Some(0), None));
-        matrix.place(1, 2, Cell::empty(NodeId::Sin(1))
-                           .input(None, Some(0), None)
-                           .out(None, None, Some(0)));
+//        matrix.place(0, 2, Cell::empty(NodeId::Sin(2))
+//                           .out(None, Some(0), None));
+//        matrix.place(1, 2, Cell::empty(NodeId::Sin(1))
+//                           .input(None, Some(0), None)
+//                           .out(None, None, Some(0)));
         matrix.sync();
 
 

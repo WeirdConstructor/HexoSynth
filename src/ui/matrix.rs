@@ -71,6 +71,34 @@ impl MatrixUIMenu {
     }
 }
 
+/* Menu Modes:
+
+
+- Empty Cell
+  - {RMB} Paste
+  - New Instance (first categories in edges)
+    - <Category> (first sub categories in edges)
+      - <Sub Category> (first nodes in edges)
+        - <Nodes>
+          (Implicit Show UI)
+          - <In / Out Assign: 3 In, 3 Out, Ok, Cancel>
+  - Existing Instance
+    - <List of existing instances>
+      (Implicit Show UI)
+      - <In / Out Assign: 3 In, 3 Out, Ok, Cancel>
+  - Paste (Instance ID in edge label?)
+    - <In / Out Assign: 3 In, 3 Out, Ok, Cancel>
+
+- Filled Cell
+  - {RMB} Cut
+  - {MMB} Show UI
+  - {LMB} (implicit Show UI)
+      - Edge Config
+      - Copy
+      - Paste
+      - Remove
+*/
+
 impl HexGridModel for MatrixUIMenu {
     fn width(&self)  -> usize { 3 }
     fn height(&self) -> usize { 3 }

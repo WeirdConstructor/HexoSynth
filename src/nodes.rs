@@ -398,18 +398,31 @@ impl NodeExecutor {
                     self.graph_drop_prod.push(DropMsg::Node { node: prev_node });
                 },
                 GraphMessage::NewProg { prog, copy_old_out } => {
-                    let prev_prog =
-                        std::mem::replace(
-                            &mut self.prog,
-                            prog);
+                    let prev_prog = std::mem::replace(&mut self.prog, prog);
 
                     // XXX: Copying from the old vector works, because we only
                     //      append nodes to the _end_ of the node instance vector.
                     //      If we do a garbage collection, we can't do this.
+                    //
+                    // XXX: Also, we need to initialize the input parameter
+                    //      vector, because we don't know if they are updated from
+                    //      the new program outputs anymore. So we need to 
+                    //      copy the old paramters to the inputs.
                     if copy_old_out {
                         let old_len = prev_prog.out.len();
                         self.prog.out[0..old_len].copy_from_slice(
                             &prev_prog.out[..]);
+
+
+                        // First overwrite by the new paramters, to make sure
+                        // _all_ inputs have a proper value (not just those
+                        // that existed before):
+                        self.prog.inp[0..self.prog.params.len()]
+                            .copy_from_slice(&self.prog.params[..]);
+                        // Then overwrite the inputs by the more current previous
+                        // parameters:
+                        self.prog.inp[0..prev_prog.params.len()]
+                            .copy_from_slice(&prev_prog.params[..]);
                     }
 
                     self.graph_drop_prod.push(DropMsg::Prog { prog: prev_prog });
@@ -487,10 +500,20 @@ impl NodeExecutor {
         let prog  = &mut self.prog;
 
         for (idx, smoother) in self.smoothers.iter_mut().filter(|s| !s.1.is_done()) {
-            prog.params[*idx] = smoother.next();
+            let v = smoother.next();
+            prog.inp[*idx]    = v;
+            prog.params[*idx] = v;
         }
 
-        prog.inp.copy_from_slice(&prog.params[..]);
+        // XXX: We can overwrite the inp input value vector with the outputs,
+        // because we always do this the same way as long as the program
+        // stays the same.
+        //
+        // If a new program comes, we need to initialize the new program inputs
+        // with the old parameters, because we don't know if they are not
+        // written by the following loop anymore.
+        //
+        // See also above in process_graph_updates().
 
         for op in prog.prog.iter() {
             let out = op.out_idxlen;

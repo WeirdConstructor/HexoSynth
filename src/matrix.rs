@@ -413,6 +413,8 @@ impl Matrix {
         }
 
         // Copy the parameter values into the program:
+        // They are extracted by process_graph_updates() later to
+        // reset the inp[] input value vector.
         for (param_id, param) in self.params.borrow().iter() {
             prog.params_mut()[param.input_idx] = param.value;
         }
