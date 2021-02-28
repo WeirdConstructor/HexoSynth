@@ -71,14 +71,14 @@ macro_rules! d_exp4 { ($x: expr, $min: expr, $max: expr) => {
 } }
 
 macro_rules! n_pit { ($x: expr, $min: expr, $max: expr) => {
-    (((($x as f32).max(0.01) / 440.0).log2() / 10.0) + 0.5)
+    ((($x as f32).max(0.01) / 440.0).log2() / 10.0)
+//    ((($x as f32).max(0.01) / 440.0).log2() / 5.0)
 } }
 
 macro_rules! d_pit { ($x: expr, $min: expr, $max: expr) => {
     {
-        // maps 0.5 to 69 (A4), and 0.6 to 81 (A5)
-        let note : f32 = (($x as f32) - 0.5) * 10.0; /* * 120.0 + 69.0 */
-        440.0 * (2.0_f32).powf((note /* - 69.0 */) /* / 12.0 */)
+        let note : f32 = ($x as f32) * 10.0;
+        440.0 * (2.0_f32).powf(note)
     }
 } }
 
@@ -531,15 +531,15 @@ mod tests {
 
     #[test]
     fn check_pitch() {
-        assert_eq!(d_pit!(0.3, 0.001, 1.0).round() as i32, 110_i32);
-        assert_eq!((n_pit!(110.0, 0.001, 1.0) * 100.0).round() as i32, 30_i32);
-        assert_eq!(d_pit!(0.5, 0.001, 1.0).round() as i32, 440_i32);
-        assert_eq!((n_pit!(440.0, 0.001, 1.0) * 100.0).round() as i32, 50_i32);
-        assert_eq!(d_pit!(0.8, 0.001, 1.0).round() as i32, 3520_i32);
-        assert_eq!((n_pit!(3520.0, 0.001, 1.0) * 100.0).round() as i32, 80_i32);
+        assert_eq!(d_pit!(-0.2, 0.001, 1.0).round() as i32, 110_i32);
+        assert_eq!((n_pit!(110.0, 0.001, 1.0) * 100.0).round() as i32, -20_i32);
+        assert_eq!(d_pit!(0.0, 0.001, 1.0).round() as i32, 440_i32);
+        assert_eq!((n_pit!(440.0, 0.001, 1.0) * 100.0).round() as i32, 0_i32);
+        assert_eq!(d_pit!(0.3, 0.001, 1.0).round() as i32, 3520_i32);
+        assert_eq!((n_pit!(3520.0, 0.001, 1.0) * 100.0).round() as i32, 30_i32);
 
         for i in 1..999 {
-            let x = (i as f32) / 1000.0;
+            let x = (((i as f32) / 1000.0) - 0.5) * 2.0;
             let r = d_pit!(x, 0.001, 1.0);
             println!("x={:8.5} => {:8.5}", x, r);
             assert_eq!(
