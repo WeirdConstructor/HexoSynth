@@ -122,7 +122,6 @@ macro_rules! make_node_info_enum {
             $($variant((NodeId, crate::dsp::ni::$variant))),+
         }
 
-
         impl NodeInfo {
             pub fn from_node_id(nid: NodeId) -> NodeInfo {
                 match nid {
@@ -362,6 +361,14 @@ macro_rules! make_node_info_enum {
                         }
                     }
 
+                    pub fn in_name(&self, in_idx: usize) -> Option<&'static str> {
+                        Some(*(self.inputs.get(in_idx)?))
+                    }
+
+                    pub fn out_name(&self, out_idx: usize) -> Option<&'static str> {
+                        Some(*(self.outputs.get(out_idx)?))
+                    }
+
                     pub fn norm(&self, in_idx: usize, x: f32) -> f32 {
                         match in_idx {
                             $($in_idx => crate::dsp::norm_v::$variant::$para(x),)+
@@ -391,6 +398,20 @@ macro_rules! make_node_info_enum {
                             (NodeId::$variant(0),
                              crate::dsp::ni::$variant::new()))),+,
                     _                  => NodeInfo::Nop,
+                }
+            }
+
+            pub fn in_name(&self, idx: usize) -> Option<&str> {
+                match self {
+                    NodeInfo::$v1                 => None,
+                    $(NodeInfo::$variant((_, ni)) => ni.in_name(idx)),+
+                }
+            }
+
+            pub fn out_name(&self, idx: usize) -> Option<&str> {
+                match self {
+                    NodeInfo::$v1                 => None,
+                    $(NodeInfo::$variant((_, ni)) => ni.out_name(idx)),+
                 }
             }
 

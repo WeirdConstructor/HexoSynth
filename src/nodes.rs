@@ -190,7 +190,7 @@ impl NodeConfigurator {
             QuickMessage::ParamUpdate { input_idx, value });
     }
 
-    pub fn create_node(&mut self, ni: NodeId) -> Option<u8> {
+    pub fn create_node(&mut self, ni: NodeId) -> Option<(&NodeInfo, u8)> {
         println!("create_node: {}", ni);
 
         if let Some((node, info)) = node_factory(ni) {
@@ -201,7 +201,7 @@ impl NodeConfigurator {
                     break;
 
                 } else if ni == self.nodes[i].to_id() {
-                    return Some(i as u8);
+                    return Some((&self.nodes[i], i as u8));
                 }
             }
 
@@ -209,7 +209,7 @@ impl NodeConfigurator {
                 self.nodes[index] = info;
                 self.graph_update_prod.push(
                     GraphMessage::NewNode { index: index as u8, node });
-                Some(index as u8)
+                Some((&self.nodes[index], index as u8))
 
             } else {
                 let index = self.nodes.len();
@@ -217,7 +217,7 @@ impl NodeConfigurator {
                 self.nodes[index] = info;
                 self.graph_update_prod.push(
                     GraphMessage::NewNode { index: index as u8, node });
-                Some(index as u8)
+                Some((&self.nodes[index], index as u8))
             }
         } else {
             None

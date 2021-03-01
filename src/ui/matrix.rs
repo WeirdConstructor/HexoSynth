@@ -192,8 +192,13 @@ impl HexGridModel for MatrixUIModel {
         }
     }
 
-    fn cell_edge<'a>(&self, x: usize, y: usize, edge: u8, out: &'a mut [u8]) -> Option<&'a str> {
-        None
+    fn cell_edge<'a>(&self, x: usize, y: usize, edge: u8, buf: &'a mut [u8]) -> Option<&'a str> {
+        let m = self.matrix.lock().unwrap();
+        if let Some(cell) = m.get(x, y) {
+            Some(m.edge_label(&cell, edge, buf)?)
+        } else {
+            None
+        }
     }
 }
 

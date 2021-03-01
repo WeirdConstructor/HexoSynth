@@ -1,5 +1,5 @@
 use crate::nodes::{NodeOp, NodeConfigurator, NodeProg};
-use crate::dsp::{NodeId, ParamId};
+use crate::dsp::{NodeInfo, NodeId, ParamId};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Cell {
@@ -34,6 +34,8 @@ impl Cell {
             in3: None,
         }
     }
+
+    pub fn node_id(&self) -> NodeId { self.node_id }
 
     pub fn label<'a>(&self, mut buf: &'a mut [u8]) -> Option<&'a str> {
         use std::io::Write;
@@ -136,6 +138,7 @@ pub struct Matrix {
     h:           usize,
 
     instances:   Rc<RefCell<std::collections::HashMap<NodeId, NodeInstance>>>,
+    infos:       Rc<RefCell<std::collections::HashMap<NodeId, NodeInfo>>>,
     params:      Rc<RefCell<std::collections::HashMap<ParamId, MatrixNodeParam>>>,
     params_old:  Rc<RefCell<std::collections::HashMap<ParamId, MatrixNodeParam>>>,
 }
@@ -149,6 +152,7 @@ impl Matrix {
 
         Self {
             instances:   Rc::new(RefCell::new(std::collections::HashMap::new())),
+            infos:       Rc::new(RefCell::new(std::collections::HashMap::new())),
             params:      Rc::new(RefCell::new(std::collections::HashMap::new())),
             params_old:  Rc::new(RefCell::new(std::collections::HashMap::new())),
             config,
@@ -262,6 +266,60 @@ impl Matrix {
         }
     }
 
+    pub fn edge_label<'a>(&self, cell: &Cell, edge: u8, mut buf: &'a mut [u8]) -> Option<&'a str> {
+        use std::io::Write;
+        let mut cur = std::io::Cursor::new(buf);
+
+        if cell.node_id == NodeId::Nop {
+            return None;
+        }
+
+        let out_idx =
+            match edge {
+                // out 1 - TR
+                0 => Some(cell.out1),
+                // out 2 - BR
+                1 => Some(cell.out2),
+                // out 3 - B
+                2 => Some(cell.out3),
+                _ => None,
+            };
+        let in_idx =
+            match edge {
+                // in 3 - BL
+                3 => Some(cell.in3),
+                // in 2 - TL
+                4 => Some(cell.in2),
+                // in 1 - T
+                5 => Some(cell.in1),
+                _ => None,
+            };
+
+        let infos = self.infos.borrow();
+        let info = infos.get(&cell.node_id)?;
+
+        let edge_str =
+            if let Some(out_idx) = out_idx {
+                info.out_name(out_idx? as usize)
+            } else if let Some(in_idx) = in_idx {
+                info.in_name(in_idx? as usize)
+            } else {
+                None
+            };
+
+        let edge_str = edge_str?;
+
+        match write!(cur, "{}", edge_str) {
+            Ok(_)  => {
+                let len = cur.position() as usize;
+                Some(
+                    std::str::from_utf8(&(cur.into_inner())[0..len])
+                    .unwrap())
+            },
+            Err(_) => None,
+        }
+    }
+
     pub fn get(&self, x: usize, y: usize) -> Option<&Cell> {
         if x >= self.w || y >= self.h {
             return None;
@@ -283,6 +341,7 @@ impl Matrix {
             }
 
             self.instances.borrow_mut().insert(id, NodeInstance::new(id));
+            self.infos.borrow_mut().insert(id, node_info.clone());
         });
 
         // Scan thought the matrix and check if (backend) nodes need to be created
@@ -290,6 +349,10 @@ impl Matrix {
         for x in 0..self.w {
             for y in 0..self.h {
                 let mut cell = &mut self.matrix[x * self.h + y];
+
+                if cell.node_id == NodeId::Nop {
+                    continue;
+                }
 
                 // - check if each NodeId has a corresponding entry in NodeConfigurator
                 //   - if not, create a new one on the fly
@@ -300,15 +363,26 @@ impl Matrix {
                         let new_hole_filler_node_id =
                             cell.node_id.set_instance(inst);
 
-                        if self.instances.borrow().get(&new_hole_filler_node_id).is_none() {
-                            self.config.create_node(new_hole_filler_node_id);
+                        if self.instances.borrow()
+                            .get(&new_hole_filler_node_id)
+                            .is_none()
+                        {
+                            let (info, _idx) =
+                                self.config.create_node(new_hole_filler_node_id)
+                                    .expect("NodeInfo existent in Matrix");
+                            self.infos.borrow_mut()
+                                .insert(new_hole_filler_node_id, info.clone());
                             self.instances.borrow_mut().insert(
                                 new_hole_filler_node_id,
                                 NodeInstance::new(new_hole_filler_node_id));
                         }
                     }
 
-                    self.config.create_node(cell.node_id);
+                    let (info, _idx) =
+                        self.config.create_node(cell.node_id)
+                            .expect("NodeInfo existent in Matrix");
+                    self.infos.borrow_mut()
+                        .insert(cell.node_id, info.clone());
                     self.instances.borrow_mut().insert(
                         cell.node_id,
                         NodeInstance::new(cell.node_id));
