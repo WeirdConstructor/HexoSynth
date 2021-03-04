@@ -1,6 +1,5 @@
 const MAX_ALLOCATED_NODES : usize = 256;
-const MAX_SMOOTHERS       : usize = 128;
-const MAX_NODE_PROG_OPS   : usize = 256 * 3;
+const MAX_SMOOTHERS       : usize = 36 + 4; // 6 * 6 modulator inputs + 4 UI Knobs
 
 use ringbuf::{RingBuffer, Producer, Consumer};
 use crate::dsp::{node_factory, NodeInfo, Node, NodeId};
@@ -387,7 +386,6 @@ impl NodeExecutor {
     #[inline]
     pub fn process_graph_updates(&mut self) {
         while let Some(upd) = self.graph_update_con.pop() {
-            println!("UPDATE GRAPH {:?}", upd);
             match upd {
                 GraphMessage::NewNode { index, mut node } => {
                     node.set_sample_rate(self.sample_rate);
@@ -479,8 +477,8 @@ impl NodeExecutor {
         {
             sm.0 = input_idx;
             sm.1.set(prog.params[input_idx], value);
-            println!("SET SMOOTHER {} {:6.3} (old = {:6.3})",
-                     input_idx, value, prog.params[input_idx]);
+            //d// println!("SET SMOOTHER {} {:6.3} (old = {:6.3})",
+            //d//          input_idx, value, prog.params[input_idx]);
         }
     }
 
