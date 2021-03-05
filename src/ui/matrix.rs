@@ -11,7 +11,7 @@ use crate::matrix::*;
 use std::sync::Arc;
 use std::sync::Mutex;
 
-use crate::dsp::{UICategory};
+use crate::dsp::{UICategory, NodeId};
 
 enum MenuItem {
     Category { lbl: &'static str, cat: UICategory },
@@ -306,6 +306,18 @@ impl WidgetType for NodeMatrix {
                     ui.queue_redraw();
                 }
             },
+            UIEvent::FieldDrag { id, button, src, dst } => {
+                data.with(|data: &mut NodeMatrixData| {
+                    let mut m = data.matrix_model.matrix.lock().unwrap();
+                    if let Some(src_cell) = m.get(src.0, src.1).copied() {
+                        m.place(dst.0, dst.1, src_cell);
+                        m.place(src.0, src.1, Cell::empty(NodeId::Nop));
+                        m.sync();
+                    }
+                });
+                ui.queue_redraw();
+            },
+//&& EV: FieldDrag { id: ParamID { node_id: 11, param_id: 1 }, button: Left, src: (1, 0), dst: (3, 1) }
             _ => {
                 println!("EV: {:?}", ev);
             },
