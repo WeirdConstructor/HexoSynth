@@ -2,7 +2,7 @@ use hexotk::widgets::hexgrid::HexGridModel;
 use hexotk::{MButton, ActiveZone, UIPos, ParamID};
 use hexotk::{Rect, WidgetUI, Painter, WidgetData, WidgetType, UIEvent};
 use hexotk::constants::*;
-use hexotk::widgets::{HexGrid, HexGridData};
+use hexotk::widgets::{HexGrid, HexGridData, HexCell, HexEdge};
 
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -118,7 +118,7 @@ impl HexGridModel for MatrixUIMenu {
         true
     }
 
-    fn cell_label<'a>(&self, x: usize, y: usize, mut buf: &'a mut [u8]) -> Option<&'a str> {
+    fn cell_label<'a>(&self, x: usize, y: usize, mut buf: &'a mut [u8]) -> Option<(&'a str, HexCell)> {
         if x >= 3 || y >= 3 { return None; }
         let items = self.items.borrow_mut();
         let lbl =
@@ -142,7 +142,7 @@ impl HexGridModel for MatrixUIMenu {
             buf[0..len].copy_from_slice(&lbl.as_bytes()[0..len]);
 
             if let Ok(s) = std::str::from_utf8(&buf[0..len]) {
-                Some(s)
+                Some((s, HexCell::Normal))
             } else {
                 None
             }
@@ -152,7 +152,7 @@ impl HexGridModel for MatrixUIMenu {
         }
     }
 
-    fn cell_edge<'a>(&self, x: usize, y: usize, edge: u8, out: &'a mut [u8]) -> Option<&'a str> {
+    fn cell_edge<'a>(&self, x: usize, y: usize, edge: u8, out: &'a mut [u8]) -> Option<(&'a str, HexEdge)> {
         None
     }
 }
@@ -182,20 +182,20 @@ impl HexGridModel for MatrixUIModel {
         true
     }
 
-    fn cell_label<'a>(&self, x: usize, y: usize, buf: &'a mut [u8]) -> Option<&'a str> {
+    fn cell_label<'a>(&self, x: usize, y: usize, buf: &'a mut [u8]) -> Option<(&'a str, HexCell)> {
         if x >= self.w || y >= self.h { return None; }
         let m = self.matrix.lock().unwrap();
         if let Some(cell) = m.get(x, y) {
-            Some(cell.label(buf)?)
+            Some((cell.label(buf)?, HexCell::Normal))
         } else {
             None
         }
     }
 
-    fn cell_edge<'a>(&self, x: usize, y: usize, edge: u8, buf: &'a mut [u8]) -> Option<&'a str> {
+    fn cell_edge<'a>(&self, x: usize, y: usize, edge: u8, buf: &'a mut [u8]) -> Option<(&'a str, HexEdge)> {
         let m = self.matrix.lock().unwrap();
         if let Some(cell) = m.get(x, y) {
-            Some(m.edge_label(&cell, edge, buf)?)
+            Some((m.edge_label(&cell, edge, buf)?, HexEdge::Arrow))
         } else {
             None
         }
