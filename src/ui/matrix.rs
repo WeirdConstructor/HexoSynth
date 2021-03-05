@@ -25,7 +25,9 @@ impl MenuItem {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 enum MenuMode {
+    None,
     CategorySelect,
 }
 
@@ -40,7 +42,7 @@ impl MatrixUIMenu {
         Self {
             matrix,
             items:  RefCell::new(vec![]),
-            mode:   RefCell::new(MenuMode::CategorySelect),
+            mode:   RefCell::new(MenuMode::None),
         }
     }
 
@@ -90,10 +92,9 @@ impl MatrixUIMenu {
     - <In / Out Assign: 3 In, 3 Out, Ok, Cancel>
 
 - Filled Cell
-  - {RMB} Cut
+  - {RMB} Edge Config
   - {MMB} Show UI
   - {LMB} (implicit Show UI)
-      - Edge Config
       - Copy
       - Paste
       - Remove
@@ -105,6 +106,7 @@ impl HexGridModel for MatrixUIMenu {
 
     fn cell_click(&self, x: usize, y: usize, btn: MButton) {
         println!("MENU CLICK CELL: {},{}: {:?}", x, y, btn);
+        *self.mode.borrow_mut() = MenuMode::None;
     }
 
     fn cell_empty(&self, x: usize, y: usize) -> bool {
@@ -169,7 +171,12 @@ impl HexGridModel for MatrixUIModel {
     fn height(&self) -> usize { self.h }
 
     fn cell_click(&self, x: usize, y: usize, btn: MButton) {
-        println!("MENU CLICK CELL: {},{}: {:?}", x, y, btn);
+        println!("MATRIX CLICK CELL: {},{}: {:?}", x, y, btn);
+        if MenuMode::None != *self.menu.mode.borrow() {
+            *self.menu.mode.borrow_mut() = MenuMode::None;
+        } else {
+            *self.menu.mode.borrow_mut() = MenuMode::CategorySelect;
+        }
     }
 
     fn cell_empty(&self, x: usize, y: usize) -> bool {
@@ -216,7 +223,7 @@ pub struct NodeMatrixData {
 
     matrix_model: Rc<MatrixUIModel>,
 
-    display_menu: Option<(f64, f64)>,
+    grid_click_pos: Option<(f64, f64)>,
 }
 
 impl NodeMatrixData {
@@ -255,7 +262,7 @@ impl NodeMatrixData {
                     ParamID::new(node_id, 2),
                     HexGridData::new(menu_model)),
                 matrix_model,
-                display_menu: None,
+                grid_click_pos: None,
             }))
     }
 }
@@ -275,44 +282,61 @@ impl WidgetType for NodeMatrix {
         data.with(|data: &mut NodeMatrixData| {
             (*data.hex_grid).draw(ui, p, pos);
 
-            if let Some(mouse_pos) = data.display_menu {
-                let menu_w = 270.0;
-                let menu_h = 280.0;
+            if let Some(mouse_pos) = data.grid_click_pos {
+                if MenuMode::None != *data.matrix_model.menu.mode.borrow() {
+                    let menu_w = 270.0;
+                    let menu_h = 280.0;
 
-                let menu_rect =
-                    Rect::from(
-                        mouse_pos.0 - menu_w * 0.5,
-                        mouse_pos.1 - menu_h * 0.5,
-                        menu_w,
-                        menu_h)
-                    .move_into(&pos);
+                    let menu_rect =
+                        Rect::from(
+                            mouse_pos.0 - menu_w * 0.5,
+                            mouse_pos.1 - menu_h * 0.5,
+                            menu_w,
+                            menu_h)
+                        .move_into(&pos);
 
-                (*data.hex_menu).draw(ui, p, menu_rect);
+                    (*data.hex_menu).draw(ui, p, menu_rect);
+                }
             }
         });
     }
 
     fn event(&self, ui: &mut dyn WidgetUI, data: &mut WidgetData, ev: &UIEvent) {
         match ev {
-            UIEvent::Click { id, button, .. } => {
+            UIEvent::Click { id, button, x, y, .. } => {
                 println!("EV: {:?} id={}, data.id={}", ev, *id, data.id());
-                if id.node_id() == data.id().node_id() {
-                    data.with(|data: &mut NodeMatrixData| {
-                        if let Some(_) = data.display_menu {
-                            data.hex_menu.event(ui, ev);
-                            data.display_menu = None;
-                        } else {
-                            match ev {
-                                UIEvent::Click { x, y, .. } => {
-                                    data.matrix_model.menu.set_category_mode();
-                                    data.display_menu = Some((*x, *y));
-                                },
-                                _ => {}
-                            }
-                        }
-                    });
+                data.with(|data: &mut NodeMatrixData| {
+                    if *id == data.hex_grid.id() {
+                        data.grid_click_pos = Some((*x, *y));
+                        data.hex_grid.event(ui, ev);
+
+                    } else if *id == data.hex_menu.id() {
+                        data.hex_menu.event(ui, ev);
+                    }
+
                     ui.queue_redraw();
-                }
+                });
+//                    data.with(|data: &mut NodeMatrixData| {
+//                        if MenuMode::None != *data.matrix_model.menu.mode.borrow() {
+//                        } else {
+//                        }
+
+//                        if let Some(_) = data.grid_click_pos {
+//                            data.hex_menu.event(ui, ev);
+//                            data.grid_click_pos = None;
+//                        } else {
+//                            match button {
+//                                MButton::Right => {
+//                                    data.matrix_model.menu.set_edge_mode();
+//                                },
+//                                _ => {
+//                                    data.matrix_model.menu.set_category_mode();
+//                                },
+//                            }
+//
+//                        }
+//                    });
+//                }
             },
             UIEvent::FieldDrag { id, button, src, dst } => {
                 data.with(|data: &mut NodeMatrixData| {
