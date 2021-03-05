@@ -39,6 +39,10 @@ impl Cell {
 
     pub fn node_id(&self) -> NodeId { self.node_id }
 
+    pub fn set_node_id(&mut self, new_id: NodeId) {
+        self.node_id = new_id;
+    }
+
     pub fn label<'a>(&self, mut buf: &'a mut [u8]) -> Option<&'a str> {
         use std::io::Write;
         let mut cur = std::io::Cursor::new(buf);
@@ -77,6 +81,7 @@ impl Cell {
 
 struct NodeInstance {
     id:         NodeId,
+    in_use:     bool,
     prog_idx:   usize,
     out_start:  usize,
     out_end:    usize,
@@ -88,6 +93,7 @@ impl NodeInstance {
     pub fn new(id: NodeId) -> Self {
         Self {
             id,
+            in_use:    false,
             prog_idx:  0,
             out_start: 0,
             out_end:   0,
@@ -95,6 +101,9 @@ impl NodeInstance {
             in_end:    0,
         }
     }
+
+    pub fn mark_used(&mut self) { self.in_use = true; }
+    pub fn is_used(&self) -> bool { self.in_use }
 
     pub fn to_op(&self) -> NodeOp {
         NodeOp {
@@ -354,6 +363,23 @@ impl Matrix {
         Some(&self.matrix[x * self.h + y])
     }
 
+    pub fn get_unused_instance_node_id(&self, mut id: NodeId) -> NodeId {
+        id = id.to_instance(id.instance() + 1);
+
+        let instances = self.instances.borrow();
+
+        while let Some(ni) = instances.get(&id) {
+            if !ni.is_used() {
+                return ni.id;
+            }
+
+            id = id.to_instance(id.instance() + 1);
+            println!("NODECHECK {}", id);
+        }
+
+        id
+    }
+
     pub fn sync(&mut self) {
         self.instances.borrow_mut().clear();
 
@@ -363,7 +389,7 @@ impl Matrix {
         self.config.for_each(|node_info, mut id, _i| {
             while let Some(_) = self.instances.borrow().get(&id) {
                 println!("OOO {:?}", id);
-                id = id.set_instance(id.instance() + 1);
+                id = id.to_instance(id.instance() + 1);
             }
 
             self.instances.borrow_mut().insert(id, NodeInstance::new(id));
@@ -387,7 +413,7 @@ impl Matrix {
                     //   create them on the fly now:
                     for inst in 0..cell.node_id.instance() {
                         let new_hole_filler_node_id =
-                            cell.node_id.set_instance(inst);
+                            cell.node_id.to_instance(inst);
 
                         if self.instances.borrow()
                             .get(&new_hole_filler_node_id)
@@ -483,8 +509,9 @@ impl Matrix {
                     continue;
                 }
 
-                let instances = self.instances.borrow();
-                let ni = instances.get(&cell.node_id).unwrap();
+                let mut instances = self.instances.borrow_mut();
+                let ni = instances.get_mut(&cell.node_id).unwrap();
+                ni.mark_used();
                 let op = ni.to_op();
 
                 let in_1 =

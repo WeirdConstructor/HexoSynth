@@ -196,10 +196,19 @@ macro_rules! make_node_info_enum {
         }
 
         impl NodeId {
-            pub fn set_instance(&self, instance: usize) -> NodeId {
+            pub fn to_instance(&self, instance: usize) -> NodeId {
                 match self {
                     NodeId::$v1           => NodeId::$v1,
                     $(NodeId::$variant(_) => NodeId::$variant(instance as u8)),+
+                }
+            }
+
+            pub fn eq_variant(&self, other: &NodeId) -> bool {
+                match self {
+                    NodeId::$v1           => *other == NodeId::$v1,
+                    $(NodeId::$variant(_) =>
+                        if let NodeId::$variant(_) = other { true }
+                        else { false }),+
                 }
             }
 
