@@ -195,7 +195,15 @@ impl HexGridModel for MatrixUIModel {
     fn cell_edge<'a>(&self, x: usize, y: usize, edge: u8, buf: &'a mut [u8]) -> Option<(&'a str, HexEdge)> {
         let m = self.matrix.lock().unwrap();
         if let Some(cell) = m.get(x, y) {
-            Some((m.edge_label(&cell, edge, buf)?, HexEdge::Arrow))
+            if let Some((lbl, is_connected)) = m.edge_label(&cell, edge, buf) {
+                if is_connected {
+                    Some((lbl, HexEdge::Arrow))
+                } else {
+                    Some((lbl, HexEdge::NoArrow))
+                }
+            } else {
+                None
+            }
         } else {
             None
         }
@@ -310,9 +318,11 @@ impl WidgetType for NodeMatrix {
                 data.with(|data: &mut NodeMatrixData| {
                     let mut m = data.matrix_model.matrix.lock().unwrap();
                     if let Some(src_cell) = m.get(src.0, src.1).copied() {
-                        m.place(dst.0, dst.1, src_cell);
-                        m.place(src.0, src.1, Cell::empty(NodeId::Nop));
-                        m.sync();
+                        if let Some(dst_cell) = m.get(dst.0, dst.1).copied() {
+                            m.place(dst.0, dst.1, src_cell);
+                            m.place(src.0, src.1, dst_cell);
+                            m.sync();
+                        }
                     }
                 });
                 ui.queue_redraw();

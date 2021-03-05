@@ -35,6 +35,8 @@ impl Cell {
         }
     }
 
+    pub fn is_empty(&self) -> bool { self.node_id == NodeId::Nop }
+
     pub fn node_id(&self) -> NodeId { self.node_id }
 
     pub fn label<'a>(&self, mut buf: &'a mut [u8]) -> Option<&'a str> {
@@ -249,12 +251,29 @@ impl Matrix {
             };
         let x = x as i32 + offs.0;
         let y = y as i32 + offs.1;
+        let y = if x % 2 == 1 { y - 1 } else { y };
 
         if x < 0 || y < 0 || (x as usize) >= self.w || (y as usize) >= self.h {
             return None;
         }
 
         Some(&self.matrix[(x as usize) * self.h + (y as usize)])
+    }
+
+    pub fn adjacent_edge_has_input(&self, x: usize, y: usize, edge: u8) -> bool {
+        if let Some(cell) = self.get_adjacent(x, y, edge) {
+            match edge {
+                // out 1 - TR => BL in 3
+                0 => cell.in3.is_some(),
+                // out 2 - BR => TL in 2
+                1 => cell.in2.is_some(),
+                // out 3 - B  => T in 1
+                2 => cell.in1.is_some(),
+                _ => false,
+            }
+        } else {
+            false
+        }
     }
 
     pub fn for_each<F: Fn(usize, usize, &Cell)>(&self, f: F) {
@@ -266,7 +285,7 @@ impl Matrix {
         }
     }
 
-    pub fn edge_label<'a>(&self, cell: &Cell, edge: u8, mut buf: &'a mut [u8]) -> Option<&'a str> {
+    pub fn edge_label<'a>(&self, cell: &Cell, edge: u8, mut buf: &'a mut [u8]) -> Option<(&'a str, bool)> {
         use std::io::Write;
         let mut cur = std::io::Cursor::new(buf);
 
@@ -298,8 +317,14 @@ impl Matrix {
         let infos = self.infos.borrow();
         let info = infos.get(&cell.node_id)?;
 
+        let mut is_connected_edge = false;
+
         let edge_str =
             if let Some(out_idx) = out_idx {
+                is_connected_edge =
+                    self.adjacent_edge_has_input(
+                        cell.x as usize, cell.y as usize, edge);
+
                 info.out_name(out_idx? as usize)
             } else if let Some(in_idx) = in_idx {
                 info.in_name(in_idx? as usize)
@@ -312,9 +337,10 @@ impl Matrix {
         match write!(cur, "{}", edge_str) {
             Ok(_)  => {
                 let len = cur.position() as usize;
-                Some(
+                Some((
                     std::str::from_utf8(&(cur.into_inner())[0..len])
-                    .unwrap())
+                    .unwrap(),
+                    is_connected_edge))
             },
             Err(_) => None,
         }

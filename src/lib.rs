@@ -167,16 +167,16 @@ impl PluginContext<HexoSynth> for HexoSynthShared {
                            .input(None, Some(0), None)
                            .out(None, None, Some(0)));
 
-        let mut i = 1;
-        for x in 2..9 {
-            for y in 2..8 {
-                matrix.place(x, y,
-                    Cell::empty(NodeId::Sin(i))
-                        .input(Some(0), Some(0), Some(0))
-                        .out(Some(0), Some(0), Some(0)));
-                i += 1;
-            }
-        }
+//        let mut i = 1;
+//        for x in 2..9 {
+//            for y in 2..8 {
+//                matrix.place(x, y,
+//                    Cell::empty(NodeId::Sin(i))
+//                        .input(Some(0), Some(0), Some(0))
+//                        .out(Some(0), Some(0), Some(0)));
+//                i += 1;
+//            }
+//        }
 
 //        matrix.place(0, 2, Cell::empty(NodeId::Sin(2))
 //                           .out(None, Some(0), None));
