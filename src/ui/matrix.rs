@@ -200,17 +200,17 @@ impl MatrixUIMenu {
             // Center
             (1, 1) => f(items.get(0)),
             // TR
-            (2, 1) => f(items.get(1)),
+            (2, 1) => f(items.get(2)),
             // BR
-            (2, 2) => f(items.get(2)),
+            (2, 2) => f(items.get(3)),
             // B
-            (1, 2) => f(items.get(3)),
+            (1, 2) => f(items.get(4)),
             // BL
-            (0, 2) => f(items.get(4)),
+            (0, 2) => f(items.get(5)),
             // TL
-            (0, 1) => f(items.get(5)),
+            (0, 1) => f(items.get(6)),
             // T
-            (1, 0) => f(items.get(6)),
+            (1, 0) => f(items.get(1)),
             _      => (),
         }
     }
@@ -224,12 +224,12 @@ impl MatrixUIMenu {
 
         let state = self.state.clone();
         items.push(MenuItem::Exit);
+        items.push(MenuItem::CellDir { state: state.clone(), dir: CellDir::T  });
         items.push(MenuItem::CellDir { state: state.clone(), dir: CellDir::TR });
         items.push(MenuItem::CellDir { state: state.clone(), dir: CellDir::BR });
         items.push(MenuItem::CellDir { state: state.clone(), dir: CellDir::B  });
         items.push(MenuItem::CellDir { state: state.clone(), dir: CellDir::BL });
-        items.push(MenuItem::CellDir { state: state.clone(), dir: CellDir::TL });
-        items.push(MenuItem::CellDir { state, dir: CellDir::T  });
+        items.push(MenuItem::CellDir { state,                dir: CellDir::TL });
     }
 
     pub fn set_category_mode(&self) {
@@ -343,6 +343,8 @@ impl HexGridModel for MatrixUIMenu {
         if x >= 3 || y >= 3 { return None; }
         let mut len = 0;
 
+        let mut hc = HexCell::Plain;
+
         self.with_item_at(x, y, &mut |item| {
             if let Some(item) = item {
                 let lbl = item.as_str();
@@ -352,7 +354,7 @@ impl HexGridModel for MatrixUIMenu {
         });
 
         if let Ok(s) = std::str::from_utf8(&buf[0..len]) {
-            Some((s, HexCell::Normal))
+            Some((s, HexCell::Plain))
         } else {
             None
         }
