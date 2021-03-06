@@ -517,7 +517,7 @@ impl NodeExecutor {
         //d// prog.inp.copy_from_slice(&prog.params[..]);
 
         for op in prog.prog.iter() {
-            println!("EXEC> {}", op);
+            //d// println!("EXEC> {}", op);
 
             let out = op.out_idxlen;
             let inp = op.in_idxlen;
@@ -525,7 +525,7 @@ impl NodeExecutor {
                 let input = &mut prog.inp;
                 let out   = &prog.out;
                 for io in op.inputs.iter() {
-                    println!("IL={}, OL={}, {}<={}", input.len(), out.len(), io.1, io.0);
+                    //d// println!("IL={}, OL={}, {}<={}", input.len(), out.len(), io.1, io.0);
                     input[io.1] = out[io.0];
                 }
             }

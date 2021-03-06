@@ -131,6 +131,18 @@ impl NodeInstance {
         }
     }
 
+    pub fn in_local2global(&self, idx: u8) -> Option<usize> {
+        let idx = self.in_start + idx as usize;
+        if idx < self.in_end { Some(idx) }
+        else { None }
+    }
+
+    pub fn out_local2global(&self, idx: u8) -> Option<usize> {
+        let idx = self.out_start + idx as usize;
+        if idx < self.out_end { Some(idx) }
+        else { None }
+    }
+
     pub fn set_index(mut self, idx: usize) -> Self {
         self.prog_idx = idx;
         self
@@ -222,6 +234,7 @@ impl Matrix {
 
         if let Some(cell) = self.get_adjacent(x, y, dir) {
             if cell.node_id != NodeId::Nop {
+                //d// println!("GETADJ {},{} @ {:?} => {:?}", x, y, dir, cell);
                 // check output 3
                 // - get the associated output index
                 // - get the NodeInstance of this cell
@@ -233,7 +246,7 @@ impl Matrix {
                     CellDir::T => {
                         if let Some(cell_out_i) = cell.out3 {
                             let ni = instances.get(&cell.node_id).unwrap();
-                            Some(ni.out_start + cell_out_i as usize)
+                            ni.out_local2global(cell_out_i)
                         } else {
                             None
                         }
@@ -241,7 +254,7 @@ impl Matrix {
                     CellDir::TL => {
                         if let Some(cell_out_i) = cell.out2 {
                             let ni = instances.get(&cell.node_id).unwrap();
-                            Some(ni.out_start + cell_out_i as usize)
+                            ni.out_local2global(cell_out_i)
                         } else {
                             None
                         }
@@ -249,7 +262,7 @@ impl Matrix {
                     CellDir::BL => {
                         if let Some(cell_out_i) = cell.out1 {
                             let ni = instances.get(&cell.node_id).unwrap();
-                            Some(ni.out_start + cell_out_i as usize)
+                            ni.out_local2global(cell_out_i)
                         } else {
                             None
                         }
@@ -268,7 +281,6 @@ impl Matrix {
         let offs : (i32, i32) = dir.to_offs();
         let x = x as i32 + offs.0;
         let y = y as i32 + offs.1;
-        let y = if x % 2 == 1 { y - 1 } else { y };
 
         if x < 0 || y < 0 || (x as usize) >= self.w || (y as usize) >= self.h {
             return None;
@@ -496,18 +508,16 @@ impl Matrix {
 
         for x in 0..self.w {
             for y in 0..self.h {
+                let cell = self.matrix[x * self.h + y];
+                if cell.node_id == NodeId::Nop {
+                    continue;
+                }
+
                 // Get the indices to the output vector for the
                 // corresponding input ports.
                 let in_1_out_idx = self.get_adjacent_out_vec_index(x, y, CellDir::T);
                 let in_2_out_idx = self.get_adjacent_out_vec_index(x, y, CellDir::TL);
                 let in_3_out_idx = self.get_adjacent_out_vec_index(x, y, CellDir::BL);
-
-
-                let mut cell = &mut self.matrix[x * self.h + y];
-
-                if cell.node_id == NodeId::Nop {
-                    continue;
-                }
 
                 println!("*** In1 OIdx: ({}) {:?}", cell.node_id, in_1_out_idx);
                 println!("*** In2 OIdx: ({}) {:?}", cell.node_id, in_2_out_idx);
@@ -521,21 +531,33 @@ impl Matrix {
                 let in_1 =
                     if let Some(in1_idx) = cell.in1 {
                         if let Some(in1_out_idx) = in_1_out_idx {
-                            Some((in1_out_idx, ni.in_start + in1_idx as usize))
+                            if let Some(in1_global_idx) =
+                                ni.in_local2global(in1_idx)
+                            {
+                                Some((in1_out_idx, in1_global_idx))
+                            } else { None }
                         } else { None }
                     } else { None };
 
                 let in_2 =
                     if let Some(in2_idx) = cell.in2 {
                         if let Some(in2_out_idx) = in_2_out_idx {
-                            Some((in2_out_idx, ni.in_start + in2_idx as usize))
+                            if let Some(in2_global_idx) =
+                                ni.in_local2global(in2_idx)
+                            {
+                                Some((in2_out_idx, in2_global_idx))
+                            } else { None }
                         } else { None }
                     } else { None };
 
                 let in_3 =
                     if let Some(in3_idx) = cell.in3 {
                         if let Some(in3_out_idx) = in_3_out_idx {
-                            Some((in3_out_idx, ni.in_start + in3_idx as usize))
+                            if let Some(in3_global_idx) =
+                                ni.in_local2global(in3_idx)
+                            {
+                                Some((in3_out_idx, in3_global_idx))
+                            } else { None }
                         } else { None }
                     } else { None };
 
