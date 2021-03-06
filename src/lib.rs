@@ -4,9 +4,12 @@
 pub mod nodes;
 pub mod dsp;
 pub mod matrix;
+pub mod cell_dir;
 
 pub mod ui;
 mod util;
+
+pub use CellDir;
 
 use dsp::NodeId;
 use serde::{Serialize, Deserialize};

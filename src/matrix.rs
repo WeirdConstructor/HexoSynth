@@ -1,5 +1,6 @@
 use crate::nodes::{NodeOp, NodeConfigurator, NodeProg};
 use crate::dsp::{NodeInfo, NodeId, ParamId};
+pub use crate::CellDir;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Cell {
@@ -192,7 +193,7 @@ impl Matrix {
         }
     }
 
-    pub fn get_adjacent_out_vec_index(&self, x: usize, y: usize, dir: u8) -> Option<usize> {
+    pub fn get_adjacent_out_vec_index(&self, x: usize, y: usize, dir: CellDir) -> Option<usize> {
         if dir > 5 || dir < 3 {
             return None;
         }
@@ -207,7 +208,7 @@ impl Matrix {
 
                 let instances = self.instances.borrow();
                 match dir {
-                    5 => {
+                    CellDir::B => {
                         if let Some(cell_out_i) = cell.out3 {
                             let ni = instances.get(&cell.node_id).unwrap();
                             Some(ni.out_start + cell_out_i as usize)
@@ -215,7 +216,7 @@ impl Matrix {
                             None
                         }
                     },
-                    4 => {
+                    CellDir::BR => {
                         if let Some(cell_out_i) = cell.out2 {
                             let ni = instances.get(&cell.node_id).unwrap();
                             Some(ni.out_start + cell_out_i as usize)
@@ -223,7 +224,7 @@ impl Matrix {
                             None
                         }
                     },
-                    3 => {
+                    CellDir::TR => {
                         if let Some(cell_out_i) = cell.out1 {
                             let ni = instances.get(&cell.node_id).unwrap();
                             Some(ni.out_start + cell_out_i as usize)
@@ -241,23 +242,8 @@ impl Matrix {
         }
     }
 
-    pub fn get_adjacent(&self, x: usize, y: usize, dir: u8) -> Option<&Cell> {
-        let offs : (i32, i32) =
-            match dir {
-                // out 1 - TR
-                0 => (0, 1),
-                // out 2 - BR
-                1 => (1, 1),
-                // out 3 - B
-                2 => (0, 1),
-                // in 3 - BL
-                3 => (-1, 1),
-                // in 2 - TL
-                4 => (-1, 0),
-                // in 1 - T
-                5 => (0, -1),
-                _ => (0, 0),
-            };
+    pub fn get_adjacent(&self, x: usize, y: usize, dir: CellDir) -> Option<&Cell> {
+        let offs : (i32, i32) = dir.to_offs();
         let x = x as i32 + offs.0;
         let y = y as i32 + offs.1;
         let y = if x % 2 == 1 { y - 1 } else { y };
@@ -269,15 +255,12 @@ impl Matrix {
         Some(&self.matrix[(x as usize) * self.h + (y as usize)])
     }
 
-    pub fn adjacent_edge_has_input(&self, x: usize, y: usize, edge: u8) -> bool {
+    pub fn adjacent_edge_has_input(&self, x: usize, y: usize, edge: CellDir) -> bool {
         if let Some(cell) = self.get_adjacent(x, y, edge) {
             match edge {
-                // out 1 - TR => BL in 3
-                0 => cell.in3.is_some(),
-                // out 2 - BR => TL in 2
-                1 => cell.in2.is_some(),
-                // out 3 - B  => T in 1
-                2 => cell.in1.is_some(),
+                CellDir::TR => cell.in3.is_some(),
+                CellDir::BR => cell.in2.is_some(),
+                CellDir::B  => cell.in1.is_some(),
                 _ => false,
             }
         } else {
@@ -294,7 +277,7 @@ impl Matrix {
         }
     }
 
-    pub fn edge_label<'a>(&self, cell: &Cell, edge: u8, mut buf: &'a mut [u8]) -> Option<(&'a str, bool)> {
+    pub fn edge_label<'a>(&self, cell: &Cell, edge: CellDir, mut buf: &'a mut [u8]) -> Option<(&'a str, bool)> {
         use std::io::Write;
         let mut cur = std::io::Cursor::new(buf);
 
@@ -304,22 +287,16 @@ impl Matrix {
 
         let out_idx =
             match edge {
-                // out 1 - TR
-                0 => Some(cell.out1),
-                // out 2 - BR
-                1 => Some(cell.out2),
-                // out 3 - B
-                2 => Some(cell.out3),
+                CellDir::TR => Some(cell.out1),
+                CellDir::BR => Some(cell.out2),
+                CellDir::B  => Some(cell.out3),
                 _ => None,
             };
         let in_idx =
             match edge {
-                // in 3 - BL
-                3 => Some(cell.in3),
-                // in 2 - TL
-                4 => Some(cell.in2),
-                // in 1 - T
-                5 => Some(cell.in1),
+                CellDir::BL => Some(cell.in3),
+                CellDir::TL => Some(cell.in2),
+                CellDir::T  => Some(cell.in1),
                 _ => None,
             };
 
@@ -499,9 +476,9 @@ impl Matrix {
             for y in 0..self.h {
                 // Get the indices to the output vector for the
                 // corresponding input ports.
-                let in_1_out_idx = self.get_adjacent_out_vec_index(x, y, 5);
-                let in_2_out_idx = self.get_adjacent_out_vec_index(x, y, 4);
-                let in_3_out_idx = self.get_adjacent_out_vec_index(x, y, 3);
+                let in_1_out_idx = self.get_adjacent_out_vec_index(x, y, CellDir::T);
+                let in_2_out_idx = self.get_adjacent_out_vec_index(x, y, CellDir::TL);
+                let in_3_out_idx = self.get_adjacent_out_vec_index(x, y, CellDir::BL);
 
                 let mut cell = &mut self.matrix[x * self.h + y];
 

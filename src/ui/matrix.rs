@@ -14,6 +14,9 @@ use std::sync::Mutex;
 use crate::dsp::{UICategory, NodeId};
 
 enum MenuItem {
+    Next,
+    Back,
+    Edge(CellDir),
     Category { lbl: &'static str, cat: UICategory },
 }
 
@@ -21,6 +24,12 @@ impl MenuItem {
     pub fn as_str<'a>(&'a self) -> &'a str {
         match self {
             MenuItem::Category { lbl, .. } => lbl,
+            MenuItem::Next                 => "Next>",
+            MenuItem::Back                 => "Back>",
+            MenuItem::Edge(e) => {
+                match e {
+                }
+            },
         }
     }
 }
@@ -46,10 +55,15 @@ impl MatrixUIMenu {
         }
     }
 
+    pub fn set_edge_assign_mode(&self) {
+    }
+
     pub fn set_category_mode(&self) {
         (*self.mode.borrow_mut()) = MenuMode::CategorySelect;
         let mut items = self.items.borrow_mut();
         items.clear();
+        items.push(MenuItem::Next);
+        items.push(MenuItem::Back);
         items.push(MenuItem::Category {
             lbl: "Osc",
             cat: UICategory::Oscillators
@@ -125,17 +139,17 @@ impl HexGridModel for MatrixUIMenu {
         let items = self.items.borrow_mut();
         let lbl =
             match (x, y) {
-                (0, 0) => Some(items.get(6)?.as_str()),
-                (1, 0) => Some(items.get(0)?.as_str()),
-                (2, 0) => Some(items.get(1)?.as_str()),
+                (0, 0) => Some(items.get(4)?.as_str()),
+                (1, 0) => Some(items.get(5)?.as_str()),
+                (2, 0) => Some(items.get(6)?.as_str()),
 
-                (0, 1) => Some(items.get(1)?.as_str()),
-                (1, 1) => Some("Next>"),
-                (2, 1) => Some(items.get(3)?.as_str()),
+                (0, 1) => Some(items.get(3)?.as_str()),
+                (1, 1) => Some(items.get(0)?.as_str()),
+                (2, 1) => Some(items.get(7)?.as_str()),
 
-                (0, 2) => Some(items.get(5)?.as_str()),
-                (1, 2) => Some("<Back"),
-                (2, 2) => Some(items.get(4)?.as_str()),
+                (0, 2) => Some(items.get(2)?.as_str()),
+                (1, 2) => Some(items.get(1)?.as_str()),
+                (2, 2) => Some(items.get(8)?.as_str()),
                 _      => None,
             };
 
@@ -154,7 +168,7 @@ impl HexGridModel for MatrixUIMenu {
         }
     }
 
-    fn cell_edge<'a>(&self, x: usize, y: usize, edge: u8, out: &'a mut [u8]) -> Option<(&'a str, HexEdge)> {
+    fn cell_edge<'a>(&self, x: usize, y: usize, edge: CellDir, out: &'a mut [u8]) -> Option<(&'a str, HexEdge)> {
         None
     }
 }
@@ -199,7 +213,7 @@ impl HexGridModel for MatrixUIModel {
         }
     }
 
-    fn cell_edge<'a>(&self, x: usize, y: usize, edge: u8, buf: &'a mut [u8]) -> Option<(&'a str, HexEdge)> {
+    fn cell_edge<'a>(&self, x: usize, y: usize, edge: CellDir, buf: &'a mut [u8]) -> Option<(&'a str, HexEdge)> {
         let m = self.matrix.lock().unwrap();
         if let Some(cell) = m.get(x, y) {
             if let Some((lbl, is_connected)) = m.edge_label(&cell, edge, buf) {
