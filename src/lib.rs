@@ -158,20 +158,19 @@ impl PluginContext<HexoSynth> for HexoSynthShared {
         let (mut node_conf, node_exec) = nodes::new_node_engine();
         let mut matrix = Matrix::new(node_conf, 9, 8);
 
-        matrix.place(0, 0, Cell::empty(NodeId::Sin(0))
-                           .out(None, Some(0), None));
+        matrix.place(0, 1, Cell::empty(NodeId::Sin(0))
+                           .out(Some(0), None, None));
         matrix.place(1, 0, Cell::empty(NodeId::Out(0))
-                           .input(None, Some(0), None)
-                           .out(None, None, Some(0)));
+                           .input(None, None, Some(0)));
 
-        matrix.place(0, 1, Cell::empty(NodeId::Sin(1))
-                           .out(None, Some(0), None));
-        matrix.place(1, 1, Cell::empty(NodeId::Sin(0))
-                           .input(None, Some(0), None)
-                           .out(None, None, Some(0)));
-        matrix.place(1, 2, Cell::empty(NodeId::Out(0))
-                           .input(Some(1), Some(0), None)
-                           .out(None, None, Some(0)));
+//        matrix.place(0, 1, Cell::empty(NodeId::Sin(1))
+//                           .out(None, Some(0), None));
+//        matrix.place(1, 1, Cell::empty(NodeId::Sin(0))
+//                           .input(None, Some(0), None)
+//                           .out(None, None, Some(0)));
+//        matrix.place(1, 2, Cell::empty(NodeId::Out(0))
+//                           .input(Some(1), Some(0), None)
+//                           .out(None, None, Some(0)));
 
 //        let mut i = 1;
 //        for x in 2..9 {

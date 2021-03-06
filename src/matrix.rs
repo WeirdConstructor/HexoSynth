@@ -233,6 +233,8 @@ impl Matrix {
         }
 
         if let Some(cell) = self.get_adjacent(x, y, dir) {
+            println!("       ADJ CELL: {},{} ({})", x, y, cell.node_id());
+
             if cell.node_id != NodeId::Nop {
                 //d// println!("GETADJ {},{} @ {:?} => {:?}", x, y, dir, cell);
                 // check output 3
@@ -278,9 +280,12 @@ impl Matrix {
     }
 
     pub fn get_adjacent(&self, x: usize, y: usize, dir: CellDir) -> Option<&Cell> {
-        let offs : (i32, i32) = dir.to_offs();
+        let (xo, yo) = (x, y);
+        let offs : (i32, i32) = dir.to_offs(x);
         let x = x as i32 + offs.0;
         let y = y as i32 + offs.1;
+
+        println!("            * {},{} => {},{} dir({:?}) offs: {:?}", xo, yo, x, y, dir, offs);
 
         if x < 0 || y < 0 || (x as usize) >= self.w || (y as usize) >= self.h {
             return None;
@@ -291,6 +296,7 @@ impl Matrix {
 
     pub fn adjacent_edge_has_input(&self, x: usize, y: usize, edge: CellDir) -> bool {
         if let Some(cell) = self.get_adjacent(x, y, edge) {
+            println!("       ADJ CELL: {},{} ({})", cell.x, cell.y, cell.node_id());
             match edge {
                 CellDir::TR => cell.in3.is_some(),
                 CellDir::BR => cell.in2.is_some(),
@@ -341,13 +347,16 @@ impl Matrix {
 
         let edge_str =
             if let Some(out_idx) = out_idx {
+                println!("    CHECK ADJ EDGE {},{} @ {:?}", cell.x, cell.y, edge);
                 is_connected_edge =
                     self.adjacent_edge_has_input(
                         cell.x as usize, cell.y as usize, edge);
 
                 info.out_name(out_idx? as usize)
+
             } else if let Some(in_idx) = in_idx {
                 info.in_name(in_idx? as usize)
+
             } else {
                 None
             };
@@ -512,6 +521,8 @@ impl Matrix {
                 if cell.node_id == NodeId::Nop {
                     continue;
                 }
+
+                println!("GET INPUT OUTIDXES for {} @ {},{}", cell.node_id, x, y);
 
                 // Get the indices to the output vector for the
                 // corresponding input ports.

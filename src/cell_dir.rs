@@ -59,18 +59,19 @@ impl CellDir {
         }
     }
 
-    pub fn to_offs(&self) -> (i32, i32) {
+    pub fn to_offs(&self, x: usize) -> (i32, i32) {
+        let even = x % 2 == 0;
         match self {
             // out 1 - TR
-            CellDir::TR => (0, 1),
+            CellDir::TR => (1, if even { -1 } else { 0 }),
             // out 2 - BR
-            CellDir::BR => (1, 1),
+            CellDir::BR => (1, if even { 0 } else { 1 }),
             // out 3 - B
             CellDir::B  => (0, 1),
             // in 3 - BL
-            CellDir::BL => (-1, 1),
+            CellDir::BL => (-1, if even { 0 } else { 1 }),
             // in 2 - TL
-            CellDir::TL => (-1, 0),
+            CellDir::TL => (-1, if even { -1 } else { 0 }),
             // in 1 - T
             CellDir::T  => (0, -1),
             _           => (0, 0),

@@ -408,6 +408,9 @@ impl HexGridModel for MatrixUIModel {
         if x >= self.w || y >= self.h { return None; }
         let m = self.matrix.lock().unwrap();
         if let Some(cell) = m.get(x, y) {
+            if cell.node_id() != NodeId::Nop {
+                println!("CELL {},{} => {:?}", x, y, cell);
+            }
             Some((cell.label(buf)?, HexCell::Normal))
         } else {
             None
@@ -421,6 +424,9 @@ impl HexGridModel for MatrixUIModel {
                 if is_connected {
                     Some((lbl, HexEdge::Arrow))
                 } else {
+            if cell.node_id() != NodeId::Nop {
+                println!("CELL EDGE UNCON {},{} => (EDGE {:?}) {:?}", x, y, edge, cell);
+            }
                     Some((lbl, HexEdge::NoArrow))
                 }
             } else {

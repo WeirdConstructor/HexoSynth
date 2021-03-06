@@ -320,3 +320,218 @@ fn check_matrix_out_config_bug1c_reduced() {
 
     let (mut out_l, mut out_r) = run_no_input(&mut node_exec, 0.2);
 }
+
+macro_rules! simple_sine_output_test {
+    ($matrix: ident, $block: tt) => {
+        let (mut node_conf, mut node_exec) = new_node_engine();
+        let mut $matrix = Matrix::new(node_conf, 7, 7);
+
+        $block;
+
+        $matrix.sync();
+
+        let (mut out_l, mut out_r) = run_no_input(&mut node_exec, 0.2);
+
+        let rms_mimax = calc_rms_mimax_each_ms(&out_l[..], 50.0);
+        assert_float_eq!(rms_mimax[0].0, 0.5);
+        assert_float_eq!(rms_mimax[0].1, -0.9999999);
+        assert_float_eq!(rms_mimax[0].2, 0.9999999);
+    }
+}
+
+#[test]
+fn check_matrix_connect_even_top_left() {
+    simple_sine_output_test!(matrix, {
+        matrix.place(1, 0, Cell::empty(NodeId::Sin(0))
+                           .out(None, Some(0), None));
+        matrix.place(2, 1, Cell::empty(NodeId::Out(0))
+                           .input(None, Some(0), None));
+    });
+}
+
+
+#[test]
+fn check_matrix_connect_even_bottom_left() {
+    simple_sine_output_test!(matrix, {
+        matrix.place(1, 1, Cell::empty(NodeId::Sin(0))
+                           .out(Some(0), None, None));
+        matrix.place(2, 1, Cell::empty(NodeId::Out(0))
+                           .input(None, None, Some(0)));
+    });
+}
+
+#[test]
+fn check_matrix_connect_even_top() {
+    simple_sine_output_test!(matrix, {
+        matrix.place(0, 0, Cell::empty(NodeId::Sin(0))
+                           .out(None, None, Some(0)));
+        matrix.place(0, 1, Cell::empty(NodeId::Out(0))
+                           .input(Some(0), None, None));
+    });
+}
+
+#[test]
+fn check_matrix_connect_odd_top_left() {
+    simple_sine_output_test!(matrix, {
+        matrix.place(0, 0, Cell::empty(NodeId::Sin(0))
+                           .out(None, Some(0), None));
+        matrix.place(1, 0, Cell::empty(NodeId::Out(0))
+                           .input(None, Some(0), None));
+    });
+}
+
+#[test]
+fn check_matrix_connect_odd_bottom_left() {
+    simple_sine_output_test!(matrix, {
+        matrix.place(0, 1, Cell::empty(NodeId::Sin(0))
+                           .out(Some(0), None, None));
+        matrix.place(1, 0, Cell::empty(NodeId::Out(0))
+                           .input(None, None, Some(0)));
+    });
+}
+
+#[test]
+fn check_matrix_connect_odd_top() {
+    simple_sine_output_test!(matrix, {
+        matrix.place(1, 0, Cell::empty(NodeId::Sin(0))
+                           .out(None, None, Some(0)));
+        matrix.place(1, 1, Cell::empty(NodeId::Out(0))
+                           .input(Some(0), None, None));
+    });
+}
+
+
+#[test]
+fn check_matrix_adj_odd() {
+    let (mut node_conf, mut node_exec) = new_node_engine();
+    let mut matrix = Matrix::new(node_conf, 7, 7);
+
+    /*
+            _____
+        I2 / I1  \ O1
+          /       \
+          \       /
+        I3 \_____/  O2
+             O3
+
+          0     1    2      3
+         ___         ___
+       0/   \  ___ 0/   \  ___
+        \___/0/S2 \ \___/0/   \
+         ___  \___/       \___/
+       1/S1 \        ___
+        \___/  ___ 1/S3 \  ___
+         ___ 1/S0 \ \___/1/   \
+       2/S6 \ \___/       \___/
+        \___/        ___
+               ___ 2/S4 \  ___
+             2/S5 \ \___/2/   \
+              \___/       \___/
+    */
+
+    matrix.place(1, 1, Cell::empty(NodeId::Sin(0))
+                       .out(Some(0), Some(0), Some(0))
+                       .input(Some(0), Some(0), Some(0)));
+
+    matrix.place(0, 1, Cell::empty(NodeId::Sin(1))
+                       .out(None, Some(0), None));
+    matrix.place(1, 0, Cell::empty(NodeId::Sin(2))
+                       .out(None, None, Some(0)));
+    matrix.place(2, 1, Cell::empty(NodeId::Sin(3))
+                       .input(None, None, Some(0)));
+    matrix.place(2, 2, Cell::empty(NodeId::Sin(4))
+                       .input(None, Some(0), None));
+    matrix.place(1, 2, Cell::empty(NodeId::Sin(5))
+                       .input(Some(0), None, None));
+    matrix.place(0, 2, Cell::empty(NodeId::Sin(6))
+                       .out(Some(0), None, None));
+    matrix.sync();
+
+    assert_eq!(
+        matrix.get_adjacent(1, 1, CellDir::B).unwrap().node_id(),
+        NodeId::Sin(5));
+    assert_eq!(
+        matrix.get_adjacent(1, 1, CellDir::BR).unwrap().node_id(),
+        NodeId::Sin(4));
+    assert_eq!(
+        matrix.get_adjacent(1, 1, CellDir::TR).unwrap().node_id(),
+        NodeId::Sin(3));
+
+    assert_eq!(
+        matrix.get_adjacent(1, 1, CellDir::T).unwrap().node_id(),
+        NodeId::Sin(2));
+    assert_eq!(
+        matrix.get_adjacent(1, 1, CellDir::TL).unwrap().node_id(),
+        NodeId::Sin(1));
+    assert_eq!(
+        matrix.get_adjacent(1, 1, CellDir::BL).unwrap().node_id(),
+        NodeId::Sin(6));
+}
+
+
+#[test]
+fn check_matrix_adj_even() {
+    let (mut node_conf, mut node_exec) = new_node_engine();
+    let mut matrix = Matrix::new(node_conf, 7, 7);
+
+    /*
+            _____
+        I2 / I1  \ O1
+          /       \
+          \       /
+        I3 \_____/  O2
+             O3
+
+          0     1    2      3
+         ___         ___
+       0/   \  ___ 0/S2 \  ___
+        \___/0/S1 \ \___/0/S3 \
+         ___  \___/       \___/
+       1/   \        ___
+        \___/  ___ 1/S0 \  ___
+         ___ 1/S6 \ \___/1/S4 \
+       2/   \ \___/       \___/
+        \___/        ___
+               ___ 2/S5 \  ___
+             2/   \ \___/2/   \
+              \___/       \___/
+    */
+
+    matrix.place(2, 1, Cell::empty(NodeId::Sin(0))
+                       .out(Some(0), Some(0), Some(0))
+                       .input(Some(0), Some(0), Some(0)));
+
+    matrix.place(1, 0, Cell::empty(NodeId::Sin(1))
+                       .out(None, Some(0), None));
+    matrix.place(2, 0, Cell::empty(NodeId::Sin(2))
+                       .out(None, None, Some(0)));
+    matrix.place(3, 0, Cell::empty(NodeId::Sin(3))
+                       .input(None, None, Some(0)));
+    matrix.place(3, 1, Cell::empty(NodeId::Sin(4))
+                       .input(None, Some(0), None));
+    matrix.place(2, 2, Cell::empty(NodeId::Sin(5))
+                       .input(Some(0), None, None));
+    matrix.place(1, 1, Cell::empty(NodeId::Sin(6))
+                       .out(Some(0), None, None));
+    matrix.sync();
+
+    assert_eq!(
+        matrix.get_adjacent(2, 1, CellDir::B).unwrap().node_id(),
+        NodeId::Sin(5));
+    assert_eq!(
+        matrix.get_adjacent(2, 1, CellDir::BR).unwrap().node_id(),
+        NodeId::Sin(4));
+    assert_eq!(
+        matrix.get_adjacent(2, 1, CellDir::TR).unwrap().node_id(),
+        NodeId::Sin(3));
+
+    assert_eq!(
+        matrix.get_adjacent(2, 1, CellDir::T).unwrap().node_id(),
+        NodeId::Sin(2));
+    assert_eq!(
+        matrix.get_adjacent(2, 1, CellDir::TL).unwrap().node_id(),
+        NodeId::Sin(1));
+    assert_eq!(
+        matrix.get_adjacent(2, 1, CellDir::BL).unwrap().node_id(),
+        NodeId::Sin(6));
+}
