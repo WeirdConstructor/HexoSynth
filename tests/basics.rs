@@ -248,3 +248,45 @@ fn check_sine_pitch_change() {
     let fft_res = fft_thres_at_ms(&mut out_l[..], FFT::F1024, 200, 400.0);
     assert_eq!(fft_res[0], (4393, 251));
 }
+
+#[test]
+fn check_matrix_out_config_bug1() {
+    let (mut node_conf, mut node_exec) = new_node_engine();
+    let mut matrix = Matrix::new(node_conf, 7, 7);
+
+    matrix.place(0, 0, Cell::empty(NodeId::Sin(0))
+                       .out(None, Some(0), None));
+    matrix.place(1, 0, Cell::empty(NodeId::Out(0))
+                       .input(None, Some(0), None)
+                       .out(None, None, Some(0)));
+
+    matrix.place(0, 1, Cell::empty(NodeId::Sin(1))
+                       .out(None, Some(0), None));
+    matrix.place(1, 1, Cell::empty(NodeId::Sin(0))
+                       .input(None, Some(0), None)
+                       .out(None, None, Some(0)));
+    matrix.place(1, 2, Cell::empty(NodeId::Out(0))
+                       .input(Some(1), Some(0), None)
+                       .out(None, None, Some(0)));
+
+    matrix.sync();
+
+    let (mut out_l, mut out_r) = run_no_input(&mut node_exec, 0.2);
+}
+
+#[test]
+fn check_matrix_out_config_bug1_reduced() {
+    let (mut node_conf, mut node_exec) = new_node_engine();
+    let mut matrix = Matrix::new(node_conf, 7, 7);
+
+    matrix.place(1, 0, Cell::empty(NodeId::Out(0))
+                       .input(Some(0), None, None)
+                       .out(None, None, Some(0)));
+    matrix.place(1, 2, Cell::empty(NodeId::Out(0))
+                       .input(Some(0), None, None)
+                       .out(None, None, None));
+
+    matrix.sync();
+
+    let (mut out_l, mut out_r) = run_no_input(&mut node_exec, 0.2);
+}

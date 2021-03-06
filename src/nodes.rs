@@ -58,7 +58,7 @@ impl NodeProg {
         inp2: Option<(usize, usize)>,
         inp3: Option<(usize, usize)>)
     {
-        println!("APPEND: {:?}", node_op);
+        println!("PROG APPEND: {}", node_op);
         for n_op in self.prog.iter_mut() {
             if n_op.idx == node_op.idx {
                 if let Some(inp1) = inp1 { n_op.inputs.push(inp1); }
@@ -517,12 +517,15 @@ impl NodeExecutor {
         //d// prog.inp.copy_from_slice(&prog.params[..]);
 
         for op in prog.prog.iter() {
+            println!("EXEC> {}", op);
+
             let out = op.out_idxlen;
             let inp = op.in_idxlen;
             {
                 let input = &mut prog.inp;
                 let out   = &prog.out;
                 for io in op.inputs.iter() {
+                    println!("IL={}, OL={}, {}<={}", input.len(), out.len(), io.1, io.0);
                     input[io.1] = out[io.0];
                 }
             }

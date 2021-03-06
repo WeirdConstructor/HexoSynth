@@ -410,14 +410,14 @@ macro_rules! make_node_info_enum {
                 }
             }
 
-            pub fn in_name(&self, idx: usize) -> Option<&str> {
+            pub fn in_name(&self, idx: usize) -> Option<&'static str> {
                 match self {
                     NodeInfo::$v1                 => None,
                     $(NodeInfo::$variant((_, ni)) => ni.in_name(idx)),+
                 }
             }
 
-            pub fn out_name(&self, idx: usize) -> Option<&str> {
+            pub fn out_name(&self, idx: usize) -> Option<&'static str> {
                 match self {
                     NodeInfo::$v1                 => None,
                     $(NodeInfo::$variant((_, ni)) => ni.out_name(idx)),+

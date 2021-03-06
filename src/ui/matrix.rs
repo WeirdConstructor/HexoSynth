@@ -2,7 +2,7 @@ use hexotk::widgets::hexgrid::HexGridModel;
 use hexotk::{MButton, ActiveZone, UIPos, ParamID};
 use hexotk::{Rect, WidgetUI, Painter, WidgetData, WidgetType, UIEvent};
 use hexotk::constants::*;
-use hexotk::widgets::{HexGrid, HexGridData, HexCell, HexEdge};
+use hexotk::widgets::{HexGrid, HexGridData, HexCell, HexEdge, HexDir};
 
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -11,13 +11,116 @@ use crate::matrix::*;
 use std::sync::Arc;
 use std::sync::Mutex;
 
-use crate::dsp::{UICategory, NodeId};
+use crate::dsp::{UICategory, NodeInfo, NodeId};
 
+struct MenuState {
+    matrix:    Arc<Mutex<Matrix>>,
+    cell:      Option<Cell>,
+    cell_dir:  Option<CellDir>,
+    node_info: Option<NodeInfo>,
+    list:      Vec<MenuItem>,
+    list_offs: usize,
+    self_ref:  Option<std::rc::Weak<RefCell<MenuState>>>,
+}
+
+impl MenuState {
+    fn new(matrix: Arc<Mutex<Matrix>>) -> Self {
+        Self {
+            matrix,
+            cell:       None,
+            node_info:  None,
+            cell_dir:   None,
+            list:       vec![],
+            list_offs:  0,
+            self_ref:   None,
+        }
+    }
+
+    fn init_self_ref(&mut self, self_ref: MenuStateRef) {
+        self.self_ref = Some(Rc::downgrade(&self_ref));
+    }
+
+    fn clear(&mut self) {
+        self.cell      = None;
+        self.cell_dir  = None;
+        self.node_info = None;
+        self.list_offs = 0;
+        self.list.clear();
+    }
+
+    fn load_items_if_any(&self, out_items: &mut Vec<MenuItem>) {
+        for (i, item) in self.list.iter().skip(self.list_offs).enumerate() {
+            if i == 0 {
+                out_items.clear();
+                out_items.push(MenuItem::Back);
+            }
+
+            out_items.push(item.clone());
+            if out_items.len() >= 7 {
+                break;
+            }
+        }
+    }
+
+    fn select_cell_io(&mut self, dir: CellDir) {
+        self.cell_dir = Some(dir);
+        self.list.clear();
+        self.list_offs = 0;
+
+        if let Some(state) = self.self_ref.as_ref().unwrap().upgrade() {
+            if let Some(node_info) = &self.node_info {
+                if dir.is_input() {
+                    for i in 0..node_info.in_count() {
+                        self.list.push(MenuItem::NodeInput {
+                            state: state.clone(),
+                            inp: i
+                        });
+                    }
+                } else {
+                    for i in 0..node_info.out_count() {
+                        self.list.push(MenuItem::NodeOutput {
+                            state: state.clone(),
+                            out: i
+                        });
+                    }
+                }
+            }
+        }
+
+    }
+
+    fn set_matrix_cell(&mut self, cell: Cell, node_info: NodeInfo) {
+        self.cell       = Some(cell);
+        self.node_info  = Some(node_info);
+    }
+
+    fn action_set_cell_io(&self, idx: usize) {
+        if let Some(dir) = self.cell_dir {
+            if let Some(cell) = self.cell {
+                let mut m = self.matrix.lock().unwrap();
+
+                let mut cell = cell.clone();
+                cell.set_io_dir(dir, idx);
+                let pos = cell.pos();
+
+                m.place(pos.0, pos.1, cell);
+                m.sync();
+            }
+        }
+    }
+}
+
+type MenuStateRef = Rc<RefCell<MenuState>>;
+
+#[derive(Clone)]
 enum MenuItem {
     Next,
     Back,
-    Edge(CellDir),
-    Category { lbl: &'static str, cat: UICategory },
+    Exit,
+    CellDir     { state: MenuStateRef, dir: CellDir },
+    NodeInput   { state: MenuStateRef, inp: usize },
+    NodeOutput  { state: MenuStateRef, out: usize },
+    Category    { state: MenuStateRef, lbl: &'static str, cat: UICategory },
 }
 
 impl MenuItem {
@@ -25,9 +128,31 @@ impl MenuItem {
         match self {
             MenuItem::Category { lbl, .. } => lbl,
             MenuItem::Next                 => "Next>",
-            MenuItem::Back                 => "Back>",
-            MenuItem::Edge(e) => {
-                match e {
+            MenuItem::Back                 => "<Back",
+            MenuItem::Exit                 => "<Exit",
+            MenuItem::CellDir { dir, .. } => {
+                match dir {
+                    CellDir::TR => "Out 1",
+                    CellDir::BR => "Out 2",
+                    CellDir::B  => "Out 3",
+                    CellDir::BL => "In 3",
+                    CellDir::TL => "In 2",
+                    CellDir::T  => "In 1",
+                    CellDir::C  => "Node",
+                }
+            },
+            MenuItem::NodeInput { inp, state } => {
+                if let Some(ni) = &state.borrow().node_info {
+                    ni.in_name(*inp).unwrap_or("inUK")
+                } else {
+                    ""
+                }
+            },
+            MenuItem::NodeOutput { out, state } => {
+                if let Some(ni) = &state.borrow().node_info {
+                    ni.out_name(*out).unwrap_or("outUK")
+                } else {
+                    ""
                 }
             },
         }
@@ -38,49 +163,104 @@ impl MenuItem {
 enum MenuMode {
     None,
     CategorySelect,
+    IOSelect,
 }
 
 pub struct MatrixUIMenu {
-    matrix: Arc<Mutex<Matrix>>,
-    items:  RefCell<Vec<MenuItem>>,
-    mode:   RefCell<MenuMode>,
+    matrix:     Arc<Mutex<Matrix>>,
+    items:      RefCell<Vec<MenuItem>>,
+    mode:       RefCell<MenuMode>,
+    state:      MenuStateRef,
 }
 
 impl MatrixUIMenu {
     pub fn new(matrix: Arc<Mutex<Matrix>>) -> Self {
+        let state  = Rc::new(RefCell::new(MenuState::new(matrix.clone())));
+        let state2 = state.clone();
+        state.borrow_mut().init_self_ref(state2);
+
         Self {
             matrix,
             items:  RefCell::new(vec![]),
             mode:   RefCell::new(MenuMode::None),
+            state,
         }
     }
 
-    pub fn set_edge_assign_mode(&self) {
+    pub fn exit_menu(&self) {
+        *self.mode.borrow_mut() = MenuMode::None;
+        self.state.borrow_mut().clear();
+    }
+
+    pub fn with_item_at<F: FnMut(Option<&MenuItem>)>(
+        &self, x: usize, y: usize, f: &mut F)
+    {
+        let items : std::cell::Ref<'_, Vec<MenuItem>> = self.items.borrow();
+        match (x, y) {
+            // Center
+            (1, 1) => f(items.get(0)),
+            // TR
+            (2, 1) => f(items.get(1)),
+            // BR
+            (2, 2) => f(items.get(2)),
+            // B
+            (1, 2) => f(items.get(3)),
+            // BL
+            (0, 2) => f(items.get(4)),
+            // TL
+            (0, 1) => f(items.get(5)),
+            // T
+            (1, 0) => f(items.get(6)),
+            _      => (),
+        }
+    }
+
+    pub fn set_edge_assign_mode(&self, cell: Cell, node_info: NodeInfo) {
+        self.state.borrow_mut().set_matrix_cell(cell, node_info);
+
+        (*self.mode.borrow_mut()) = MenuMode::IOSelect;
+        let mut items = self.items.borrow_mut();
+        items.clear();
+
+        let state = self.state.clone();
+        items.push(MenuItem::Exit);
+        items.push(MenuItem::CellDir { state: state.clone(), dir: CellDir::TR });
+        items.push(MenuItem::CellDir { state: state.clone(), dir: CellDir::BR });
+        items.push(MenuItem::CellDir { state: state.clone(), dir: CellDir::B  });
+        items.push(MenuItem::CellDir { state: state.clone(), dir: CellDir::BL });
+        items.push(MenuItem::CellDir { state: state.clone(), dir: CellDir::TL });
+        items.push(MenuItem::CellDir { state, dir: CellDir::T  });
     }
 
     pub fn set_category_mode(&self) {
         (*self.mode.borrow_mut()) = MenuMode::CategorySelect;
         let mut items = self.items.borrow_mut();
         items.clear();
-        items.push(MenuItem::Next);
-        items.push(MenuItem::Back);
+
+        let state = self.state.clone();
+        items.push(MenuItem::Exit);
         items.push(MenuItem::Category {
+            state: state.clone(),
             lbl: "Osc",
             cat: UICategory::Oscillators
         });
         items.push(MenuItem::Category {
+            state: state.clone(),
             lbl: "X->Y",
             cat: UICategory::XtoY,
         });
         items.push(MenuItem::Category {
+            state: state.clone(),
             lbl: "Time",
             cat: UICategory::Time,
         });
         items.push(MenuItem::Category {
+            state: state.clone(),
             lbl: "N->M",
             cat: UICategory::NtoM,
         });
         items.push(MenuItem::Category {
+            state,
             lbl: "I/O",
             cat: UICategory::IOUtil,
         });
@@ -119,8 +299,33 @@ impl HexGridModel for MatrixUIMenu {
     fn height(&self) -> usize { 3 }
 
     fn cell_click(&self, x: usize, y: usize, btn: MButton) {
-        println!("MENU CLICK CELL: {},{}: {:?}", x, y, btn);
-        *self.mode.borrow_mut() = MenuMode::None;
+        self.with_item_at(x, y, &mut |item| {
+            println!("MENU CLICK CELL: {},{}: {:?}", x, y, btn);
+            if let Some(item) = item {
+                match item {
+                    MenuItem::CellDir { dir, state }  => {
+                        state.borrow_mut().select_cell_io(*dir);
+                    },
+                    MenuItem::NodeInput { inp, state } => {
+                        state.borrow().action_set_cell_io(*inp);
+                        self.exit_menu();
+                    },
+                    MenuItem::NodeOutput { out, state } => {
+                        state.borrow().action_set_cell_io(*out);
+                        self.exit_menu();
+                    },
+                    MenuItem::Back => {
+                        self.exit_menu();
+                    },
+                    MenuItem::Exit => {
+                        self.exit_menu();
+                    },
+                    _ => {},
+                }
+            }
+        });
+
+        self.state.borrow().load_items_if_any(&mut *self.items.borrow_mut());
     }
 
     fn cell_empty(&self, x: usize, y: usize) -> bool {
@@ -136,39 +341,24 @@ impl HexGridModel for MatrixUIMenu {
 
     fn cell_label<'a>(&self, x: usize, y: usize, mut buf: &'a mut [u8]) -> Option<(&'a str, HexCell)> {
         if x >= 3 || y >= 3 { return None; }
-        let items = self.items.borrow_mut();
-        let lbl =
-            match (x, y) {
-                (0, 0) => Some(items.get(4)?.as_str()),
-                (1, 0) => Some(items.get(5)?.as_str()),
-                (2, 0) => Some(items.get(6)?.as_str()),
+        let mut len = 0;
 
-                (0, 1) => Some(items.get(3)?.as_str()),
-                (1, 1) => Some(items.get(0)?.as_str()),
-                (2, 1) => Some(items.get(7)?.as_str()),
-
-                (0, 2) => Some(items.get(2)?.as_str()),
-                (1, 2) => Some(items.get(1)?.as_str()),
-                (2, 2) => Some(items.get(8)?.as_str()),
-                _      => None,
-            };
-
-        if let Some(lbl) = lbl {
-            let len = buf.len().min(lbl.as_bytes().len());
-            buf[0..len].copy_from_slice(&lbl.as_bytes()[0..len]);
-
-            if let Ok(s) = std::str::from_utf8(&buf[0..len]) {
-                Some((s, HexCell::Normal))
-            } else {
-                None
+        self.with_item_at(x, y, &mut |item| {
+            if let Some(item) = item {
+                let lbl = item.as_str();
+                len = buf.len().min(lbl.as_bytes().len());
+                buf[0..len].copy_from_slice(&lbl.as_bytes()[0..len]);
             }
+        });
 
+        if let Ok(s) = std::str::from_utf8(&buf[0..len]) {
+            Some((s, HexCell::Normal))
         } else {
             None
         }
     }
 
-    fn cell_edge<'a>(&self, x: usize, y: usize, edge: CellDir, out: &'a mut [u8]) -> Option<(&'a str, HexEdge)> {
+    fn cell_edge<'a>(&self, x: usize, y: usize, edge: HexDir, out: &'a mut [u8]) -> Option<(&'a str, HexEdge)> {
         None
     }
 }
@@ -185,11 +375,22 @@ impl HexGridModel for MatrixUIModel {
     fn height(&self) -> usize { self.h }
 
     fn cell_click(&self, x: usize, y: usize, btn: MButton) {
+
         println!("MATRIX CLICK CELL: {},{}: {:?}", x, y, btn);
         if MenuMode::None != *self.menu.mode.borrow() {
             *self.menu.mode.borrow_mut() = MenuMode::None;
         } else {
-            *self.menu.mode.borrow_mut() = MenuMode::CategorySelect;
+            match btn {
+                MButton::Right => {
+                    let mut m = self.matrix.lock().unwrap();
+                    if let Some(mut cell) = m.get(x, y).copied() {
+                        if let Some(node_info) = m.info_for(&cell.node_id()) {
+                            self.menu.set_edge_assign_mode(cell, node_info);
+                        }
+                    }
+                },
+                _ => { self.menu.set_category_mode(); },
+            }
         }
     }
 
@@ -213,10 +414,10 @@ impl HexGridModel for MatrixUIModel {
         }
     }
 
-    fn cell_edge<'a>(&self, x: usize, y: usize, edge: CellDir, buf: &'a mut [u8]) -> Option<(&'a str, HexEdge)> {
+    fn cell_edge<'a>(&self, x: usize, y: usize, edge: HexDir, buf: &'a mut [u8]) -> Option<(&'a str, HexEdge)> {
         let m = self.matrix.lock().unwrap();
         if let Some(cell) = m.get(x, y) {
-            if let Some((lbl, is_connected)) = m.edge_label(&cell, edge, buf) {
+            if let Some((lbl, is_connected)) = m.edge_label(&cell, edge.into(), buf) {
                 if is_connected {
                     Some((lbl, HexEdge::Arrow))
                 } else {

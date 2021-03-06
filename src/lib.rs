@@ -9,7 +9,7 @@ pub mod cell_dir;
 pub mod ui;
 mod util;
 
-pub use CellDir;
+pub use cell_dir::CellDir;
 
 use dsp::NodeId;
 use serde::{Serialize, Deserialize};
@@ -168,6 +168,9 @@ impl PluginContext<HexoSynth> for HexoSynthShared {
                            .out(None, Some(0), None));
         matrix.place(1, 1, Cell::empty(NodeId::Sin(0))
                            .input(None, Some(0), None)
+                           .out(None, None, Some(0)));
+        matrix.place(1, 2, Cell::empty(NodeId::Out(0))
+                           .input(Some(1), Some(0), None)
                            .out(None, None, Some(0)));
 
 //        let mut i = 1;
@@ -378,5 +381,5 @@ impl PluginUI for HexoSynth {
     }
 }
 
-#[cfg(any(not(test), crate_type="cdylib"))]
-baseplug::vst2!(HexoSynth, b"HxsY");
+//#[cfg(not(test))]
+//baseplug::vst2!(HexoSynth, b"HxsY");

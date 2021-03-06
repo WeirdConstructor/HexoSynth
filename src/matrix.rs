@@ -65,6 +65,22 @@ impl Cell {
         }
     }
 
+    pub fn pos(&self) -> (usize, usize) {
+        (self.x as usize, self.y as usize)
+    }
+
+    pub fn set_io_dir(&mut self, dir: CellDir, idx: usize) {
+        match dir {
+            CellDir::TR => { self.out1 = Some(idx as u8); },
+            CellDir::BR => { self.out2 = Some(idx as u8); },
+            CellDir::B  => { self.out3 = Some(idx as u8); },
+            CellDir::BL => { self.in3  = Some(idx as u8); },
+            CellDir::TL => { self.in2  = Some(idx as u8); },
+            CellDir::T  => { self.in1  = Some(idx as u8); },
+            CellDir::C  => {},
+        }
+    }
+
     pub fn input(mut self, i1: Option<u8>, i2: Option<u8>, i3: Option<u8>) -> Self {
         self.in1 = i1;
         self.in2 = i2;
@@ -180,6 +196,10 @@ impl Matrix {
         self.config
     }
 
+    pub fn info_for(&self, node_id: &NodeId) -> Option<NodeInfo> {
+        self.infos.borrow().get(&node_id).cloned()
+    }
+
     pub fn place(&mut self, x: usize, y: usize, mut cell: Cell) {
         cell.x = x as u8;
         cell.y = y as u8;
@@ -193,8 +213,10 @@ impl Matrix {
         }
     }
 
-    pub fn get_adjacent_out_vec_index(&self, x: usize, y: usize, dir: CellDir) -> Option<usize> {
-        if dir > 5 || dir < 3 {
+    pub fn get_adjacent_out_vec_index(&self, x: usize, y: usize, dir: CellDir)
+        -> Option<usize>
+    {
+        if dir.is_output() {
             return None;
         }
 
@@ -208,7 +230,7 @@ impl Matrix {
 
                 let instances = self.instances.borrow();
                 match dir {
-                    CellDir::B => {
+                    CellDir::T => {
                         if let Some(cell_out_i) = cell.out3 {
                             let ni = instances.get(&cell.node_id).unwrap();
                             Some(ni.out_start + cell_out_i as usize)
@@ -216,7 +238,7 @@ impl Matrix {
                             None
                         }
                     },
-                    CellDir::BR => {
+                    CellDir::TL => {
                         if let Some(cell_out_i) = cell.out2 {
                             let ni = instances.get(&cell.node_id).unwrap();
                             Some(ni.out_start + cell_out_i as usize)
@@ -224,7 +246,7 @@ impl Matrix {
                             None
                         }
                     },
-                    CellDir::TR => {
+                    CellDir::BL => {
                         if let Some(cell_out_i) = cell.out1 {
                             let ni = instances.get(&cell.node_id).unwrap();
                             Some(ni.out_start + cell_out_i as usize)
@@ -480,11 +502,16 @@ impl Matrix {
                 let in_2_out_idx = self.get_adjacent_out_vec_index(x, y, CellDir::TL);
                 let in_3_out_idx = self.get_adjacent_out_vec_index(x, y, CellDir::BL);
 
+
                 let mut cell = &mut self.matrix[x * self.h + y];
 
                 if cell.node_id == NodeId::Nop {
                     continue;
                 }
+
+                println!("*** In1 OIdx: ({}) {:?}", cell.node_id, in_1_out_idx);
+                println!("*** In2 OIdx: ({}) {:?}", cell.node_id, in_2_out_idx);
+                println!("*** In3 OIdx: ({}) {:?}", cell.node_id, in_3_out_idx);
 
                 let mut instances = self.instances.borrow_mut();
                 let ni = instances.get_mut(&cell.node_id).unwrap();
