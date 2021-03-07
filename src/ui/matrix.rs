@@ -17,6 +17,9 @@ use std::sync::Mutex;
 
 use crate::dsp::{UICategory, NodeInfo, NodeId};
 
+trait MenuControl {
+}
+
 struct MenuState {
     matrix:    Arc<Mutex<Matrix>>,
     cell:      Option<Cell>,
@@ -133,12 +136,12 @@ impl MenuItem {
             MenuItem::Category { lbl, .. } => Some(lbl),
             MenuItem::CellDir { dir, .. } => {
                 match dir {
-                    CellDir::TR => Some("Out 1\nTop right output\nof the cell."),
-                    CellDir::BR => Some("Out 2"),
-                    CellDir::B  => Some("Out 3"),
-                    CellDir::BL => Some("In 3"),
-                    CellDir::TL => Some("In 2"),
-                    CellDir::T  => Some("In 1"),
+                    CellDir::TR => Some("Out 1\nTop right output of the cell."),
+                    CellDir::BR => Some("Out 2\nBottom right output of the cell."),
+                    CellDir::B  => Some("Out 3\nBottom output of the cell."),
+                    CellDir::BL => Some("In 3\nBottom left input of the cell."),
+                    CellDir::TL => Some("In 2\nTop left input of the cell."),
+                    CellDir::T  => Some("In 1\nTop input of the cell."),
                     CellDir::C  => Some("Node"),
                 }
             },
@@ -511,7 +514,7 @@ impl NodeMatrixData {
             m.size()
         };
 
-        let txtsrc = Rc::new(TextSourceRef::new(10));
+        let txtsrc = Rc::new(TextSourceRef::new(18));
 
         let menu_model   = Rc::new(MatrixUIMenu::new(matrix.clone(), txtsrc.clone()));
         let matrix_model = Rc::new(MatrixUIModel {

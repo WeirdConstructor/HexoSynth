@@ -42,7 +42,7 @@ impl Sin {
     }
 
     pub const freq : &'static str =
-        "Frequency of oscillator.\n(-1..1)\n";
+        "Sin freq\nFrequency of the oscillator.\n\nRange: (-1..1)\n";
     pub const sig : &'static str =
-        "Oscillator signal output.\n(-1..1)\n";
+        "Sin sig\nOscillator signal output.\n\nRange: (-1..1)\n";
 }

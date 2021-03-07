@@ -27,9 +27,9 @@ impl Amp {
     }
 
     pub const inp : &'static str =
-        "Signal input (-1..1)\n";
+        "Amp inp\nSignal input\nRange: (-1..1)\n";
     pub const gain : &'static str =
-        "Gain input (0..1)\n";
+        "Amp gain\nGain input\nRange: (0..1)\n";
     pub const sig : &'static str =
-        "Amplified signal output (-1..1)\n";
+        "Amp sig\nAmplified signal output\nRange: (-1..1)\n";
 }

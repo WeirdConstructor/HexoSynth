@@ -28,6 +28,8 @@ impl Out {
         ctx.output(1, inp::Out::ch2(inputs));
     }
 
-    pub const ch1 : &'static str = "Audio channel 1 (left)";
-    pub const ch2 : &'static str = "Audio channel 2 (right)";
+    pub const ch1 : &'static str =
+        "Out ch1\nAudio channel 1 (left)\nRange: (-1..1)";
+    pub const ch2 : &'static str =
+        "Out ch2\nAudio channel 2 (right)\nRange: (-1..1)";
 }
