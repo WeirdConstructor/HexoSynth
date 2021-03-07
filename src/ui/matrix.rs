@@ -177,7 +177,9 @@ impl HexGridModel for MatrixUIMenu {
     fn height(&self) -> usize { 3 }
 
     fn cell_hover(&self, x: usize, y: usize) {
-        self.menu.borrow_mut().set_hover_pos(x, y);
+        if let Some(idx) = self.grid2index(x, y) {
+            self.menu.borrow_mut().set_hover_index(idx);
+        }
         self.menu.borrow_mut().update();
     }
 
