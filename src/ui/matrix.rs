@@ -511,8 +511,7 @@ impl NodeMatrixData {
             m.size()
         };
 
-        let txtsrc = Rc::new(TextSourceRef::new());
-        txtsrc.set("Foobar\nXXX1239\nfiewfwe\n* 1\n* 2\n* 3");
+        let txtsrc = Rc::new(TextSourceRef::new(10));
 
         let menu_model   = Rc::new(MatrixUIMenu::new(matrix.clone(), txtsrc.clone()));
         let matrix_model = Rc::new(MatrixUIModel {
