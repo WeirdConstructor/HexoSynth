@@ -358,7 +358,7 @@ impl NodeMatrixData {
             m.size()
         };
 
-        let txtsrc = Rc::new(TextSourceRef::new(18));
+        let txtsrc = Rc::new(TextSourceRef::new(17));
 
         let menu_model   = Rc::new(MatrixUIMenu::new(matrix.clone(), txtsrc.clone()));
         let matrix_model = Rc::new(MatrixUIModel {

@@ -83,7 +83,7 @@ impl Menu {
             handler,
             cur:        MenuState::None,
             prev:       vec![],
-            lbl_fun:    Box::new(|_idx: usize, _ms: &MenuState| { None }),
+            lbl_fun:    Box::new(|_idx: usize, _help: bool, _ms: &MenuState| { None }),
             act_fun:    Box::new(|_idx: usize, _ms: &MenuState, _hdl: &mut Box<MenuActionHandler>| {}),
             hover_idx:  0,
             post_action: Rc::new(RefCell::new(PostAction::None)),
@@ -91,7 +91,7 @@ impl Menu {
     }
 }
 
-type MenuLblFun    = Box<dyn Fn(usize, &MenuState) -> Option<&'static str>>;
+type MenuLblFun    = Box<dyn Fn(usize, bool, &MenuState) -> Option<&'static str>>;
 type MenuActionFun = Box<dyn FnMut(usize, &MenuState, &mut Box<dyn MenuActionHandler>)>;
 
 impl Menu {
@@ -121,19 +121,31 @@ impl Menu {
 
         match self.cur {
             MenuState::None  => {
-                self.lbl_fun = Box::new(|_idx, _state| { None });
+                self.lbl_fun = Box::new(|_idx, _help, _state| { None });
                 self.act_fun = Box::new(|_idx, _state, _hdl| ());
             }
             MenuState::NodeCategory { .. } => {
-                self.lbl_fun = Box::new(|idx, _state| {
-                    match idx {
-                        0 => Some("<Exit"),
-                        1 => Some("Osc"),
-                        2 => Some("X->Y"),
-                        3 => Some("Time"),
-                        4 => Some("N->M"),
-                        5 => Some("I/O"),
-                        _ => None,
+                self.lbl_fun = Box::new(|idx, help, _state| {
+                    if help {
+                        match idx {
+                            0 => Some("\nExit Menu"),
+                            1 => Some("Osc\nAudio oscillators."),
+                            2 => Some("X->Y\nSignal changing nodes."),
+                            3 => Some("Time\n"),
+                            4 => Some("N->M\n"),
+                            5 => Some("I/O\nExternal connections (Audio, MIDI, ...)."),
+                            _ => None,
+                        }
+                    } else {
+                        match idx {
+                            0 => Some("<Exit"),
+                            1 => Some("Osc"),
+                            2 => Some("X->Y"),
+                            3 => Some("Time"),
+                            4 => Some("N->M"),
+                            5 => Some("I/O"),
+                            _ => None,
+                        }
                     }
                 });
                 self.act_fun = Box::new(move |idx, _state, _hdl| {
@@ -144,7 +156,7 @@ impl Menu {
                 });
             },
             MenuState::CellDir { .. } => {
-                self.lbl_fun = Box::new(|idx, _state| {
+                self.lbl_fun = Box::new(|idx, _help, _state| {
                     match idx {
                         0 => Some("<Exit"),
                         1 => Some("In 1"),
@@ -189,7 +201,7 @@ impl Menu {
                 });
             },
             MenuState::AssignPort { .. } => {
-                self.lbl_fun = Box::new(|idx, state| {
+                self.lbl_fun = Box::new(|idx, help, state| {
                     match idx {
                         0 => Some("<Back"),
                         _ => {
@@ -217,10 +229,18 @@ impl Menu {
                                     if next {
                                         Some("Next>")
                                     } else {
-                                        if cell_dir.is_output() {
-                                            node_info.out_name(cur_idx)
+                                        if help {
+                                            if cell_dir.is_output() {
+                                                node_info.out_help(cur_idx)
+                                            } else {
+                                                node_info.in_help(cur_idx)
+                                            }
                                         } else {
-                                            node_info.in_name(cur_idx)
+                                            if cell_dir.is_output() {
+                                                node_info.out_name(cur_idx)
+                                            } else {
+                                                node_info.in_name(cur_idx)
+                                            }
                                         }
                                     }
                                 },
@@ -290,8 +310,11 @@ impl MenuControl for Menu {
     }
 
     fn update(&mut self) {
-        // TODO: Update Setting the Text!
-        self.handler.update_help_text("HELP");
+        if let Some(txt) = (*self.lbl_fun)(self.hover_idx, true, &self.cur) {
+            self.handler.update_help_text(txt);
+        } else {
+            self.handler.update_help_text("");
+        }
     }
 
     fn select(&mut self, idx: usize) {
@@ -313,7 +336,7 @@ impl MenuControl for Menu {
     }
 
     fn label(&self, idx: usize) -> Option<&str> {
-        (*self.lbl_fun)(idx, &self.cur)
+        (*self.lbl_fun)(idx, false, &self.cur)
     }
 
     fn is_open(&self) -> bool {
