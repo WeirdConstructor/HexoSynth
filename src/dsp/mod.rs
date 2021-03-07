@@ -33,15 +33,15 @@ macro_rules! node_list {
         $inmacro!{
             nop => Nop,
             amp => Amp UIType::Generic UICategory::XtoY
-               (0 sig  n_id  d_id  0.0, 1.0, 0.0)
+               (0 inp  n_id  d_id  0.0, 1.0, 0.0)
                (1 gain n_exp d_exp 0.0, 2.0, 1.0)
                [0 sig],
             sin => Sin UIType::Generic UICategory::Oscillators
                (0 freq n_pit d_pit 0.001, 1.0, 440.0)
                [0 sig],
             out => Out UIType::Generic UICategory::IOUtil
-               (0 in1  n_id  d_id  0.0, 1.0, 0.0)
-               (1 in2  n_id  d_id  0.0, 1.0, 0.0),
+               (0 ch1  n_id  d_id  0.0, 1.0, 0.0)
+               (1 ch2  n_id  d_id  0.0, 1.0, 0.0),
         }
     }
 }
@@ -358,8 +358,10 @@ macro_rules! make_node_info_enum {
             $(
                 #[derive(Debug, Clone)]
                 pub struct $variant {
-                    inputs: Vec<&'static str>,
-                    outputs: Vec<&'static str>,
+                    inputs:         Vec<&'static str>,
+                    outputs:        Vec<&'static str>,
+                    input_help:     Vec<&'static str>,
+                    output_help:    Vec<&'static str>,
                 }
 
                 impl $variant {
@@ -367,6 +369,9 @@ macro_rules! make_node_info_enum {
                         Self {
                             inputs:  vec![$(stringify!($para),)*],
                             outputs: vec![$(stringify!($out),)*],
+
+                            input_help:  vec![$(crate::dsp::$variant::$para,)*],
+                            output_help: vec![$(crate::dsp::$variant::$out,)*],
                         }
                     }
 
@@ -376,6 +381,14 @@ macro_rules! make_node_info_enum {
 
                     pub fn out_name(&self, out_idx: usize) -> Option<&'static str> {
                         Some(*(self.outputs.get(out_idx)?))
+                    }
+
+                    pub fn in_help(&self, in_idx: usize) -> Option<&'static str> {
+                        Some(*(self.input_help.get(in_idx)?))
+                    }
+
+                    pub fn out_help(&self, out_idx: usize) -> Option<&'static str> {
+                        Some(*(self.output_help.get(out_idx)?))
                     }
 
                     pub fn norm(&self, in_idx: usize, x: f32) -> f32 {
@@ -421,6 +434,20 @@ macro_rules! make_node_info_enum {
                 match self {
                     NodeInfo::$v1                 => None,
                     $(NodeInfo::$variant((_, ni)) => ni.out_name(idx)),+
+                }
+            }
+
+            pub fn in_help(&self, idx: usize) -> Option<&'static str> {
+                match self {
+                    NodeInfo::$v1                 => None,
+                    $(NodeInfo::$variant((_, ni)) => ni.in_help(idx)),+
+                }
+            }
+
+            pub fn out_help(&self, idx: usize) -> Option<&'static str> {
+                match self {
+                    NodeInfo::$v1                 => None,
+                    $(NodeInfo::$variant((_, ni)) => ni.out_help(idx)),+
                 }
             }
 

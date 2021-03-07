@@ -233,7 +233,7 @@ impl Matrix {
         }
 
         if let Some(cell) = self.get_adjacent(x, y, dir) {
-            println!("       ADJ CELL: {},{} ({})", x, y, cell.node_id());
+            //d// println!("       ADJ CELL: {},{} ({})", x, y, cell.node_id());
 
             if cell.node_id != NodeId::Nop {
                 //d// println!("GETADJ {},{} @ {:?} => {:?}", x, y, dir, cell);
@@ -285,7 +285,7 @@ impl Matrix {
         let x = x as i32 + offs.0;
         let y = y as i32 + offs.1;
 
-        println!("            * {},{} => {},{} dir({:?}) offs: {:?}", xo, yo, x, y, dir, offs);
+        //d// println!("            * {},{} => {},{} dir({:?}) offs: {:?}", xo, yo, x, y, dir, offs);
 
         if x < 0 || y < 0 || (x as usize) >= self.w || (y as usize) >= self.h {
             return None;
@@ -296,7 +296,7 @@ impl Matrix {
 
     pub fn adjacent_edge_has_input(&self, x: usize, y: usize, edge: CellDir) -> bool {
         if let Some(cell) = self.get_adjacent(x, y, edge) {
-            println!("       ADJ CELL: {},{} ({})", cell.x, cell.y, cell.node_id());
+            //d// println!("       ADJ CELL: {},{} ({})", cell.x, cell.y, cell.node_id());
             match edge {
                 CellDir::TR => cell.in3.is_some(),
                 CellDir::BR => cell.in2.is_some(),
@@ -347,7 +347,7 @@ impl Matrix {
 
         let edge_str =
             if let Some(out_idx) = out_idx {
-                println!("    CHECK ADJ EDGE {},{} @ {:?}", cell.x, cell.y, edge);
+                //d// println!("    CHECK ADJ EDGE {},{} @ {:?}", cell.x, cell.y, edge);
                 is_connected_edge =
                     self.adjacent_edge_has_input(
                         cell.x as usize, cell.y as usize, edge);
@@ -394,7 +394,7 @@ impl Matrix {
             }
 
             id = id.to_instance(id.instance() + 1);
-            println!("NODECHECK {}", id);
+            //d// println!("NODECHECK {}", id);
         }
 
         id

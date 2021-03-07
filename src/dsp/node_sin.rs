@@ -40,4 +40,9 @@ impl Sin {
         self.phase += freq / self.srate;
         self.phase = self.phase.fract();
     }
+
+    pub const freq : &'static str =
+        "Frequency of oscillator.\n(-1..1)\n";
+    pub const sig : &'static str =
+        "Oscillator signal output.\n(-1..1)\n";
 }

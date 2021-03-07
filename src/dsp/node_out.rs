@@ -24,7 +24,10 @@ impl Out {
     pub fn process<T: NodeAudioContext>(&mut self, ctx: &mut T, inputs: &[f32], _outputs: &mut [f32]) {
         use crate::dsp::inp;
 
-        ctx.output(0, inp::Out::in1(inputs));
-        ctx.output(1, inp::Out::in2(inputs));
+        ctx.output(0, inp::Out::ch1(inputs));
+        ctx.output(1, inp::Out::ch2(inputs));
     }
+
+    pub const ch1 : &'static str = "Audio channel 1 (left)";
+    pub const ch2 : &'static str = "Audio channel 2 (right)";
 }

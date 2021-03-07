@@ -2,7 +2,11 @@ use hexotk::widgets::hexgrid::HexGridModel;
 use hexotk::{MButton, ActiveZone, UIPos, ParamID};
 use hexotk::{Rect, WidgetUI, Painter, WidgetData, WidgetType, UIEvent};
 use hexotk::constants::*;
-use hexotk::widgets::{HexGrid, HexGridData, HexCell, HexEdge, HexDir};
+use hexotk::widgets::{
+    HexGrid, HexGridData, HexCell, HexEdge, HexDir,
+    Container, ContainerData,
+    Text, TextSourceRef, TextData,
+};
 
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -124,6 +128,38 @@ enum MenuItem {
 }
 
 impl MenuItem {
+    pub fn as_help_text<'a>(&'a self) -> Option<&'a str> {
+        match self {
+            MenuItem::Category { lbl, .. } => Some(lbl),
+            MenuItem::CellDir { dir, .. } => {
+                match dir {
+                    CellDir::TR => Some("Out 1\nTop right output\nof the cell."),
+                    CellDir::BR => Some("Out 2"),
+                    CellDir::B  => Some("Out 3"),
+                    CellDir::BL => Some("In 3"),
+                    CellDir::TL => Some("In 2"),
+                    CellDir::T  => Some("In 1"),
+                    CellDir::C  => Some("Node"),
+                }
+            },
+            MenuItem::NodeInput { inp, state } => {
+                if let Some(ni) = &state.borrow().node_info {
+                    Some(ni.in_help(*inp).unwrap_or("inHUK"))
+                } else {
+                    None
+                }
+            },
+            MenuItem::NodeOutput { out, state } => {
+                if let Some(ni) = &state.borrow().node_info {
+                    Some(ni.out_help(*out).unwrap_or("outHUK"))
+                } else {
+                    None
+                }
+            },
+            _ => None,
+        }
+    }
+
     pub fn as_str<'a>(&'a self) -> &'a str {
         match self {
             MenuItem::Category { lbl, .. } => lbl,
@@ -167,14 +203,16 @@ enum MenuMode {
 }
 
 pub struct MatrixUIMenu {
-    matrix:     Arc<Mutex<Matrix>>,
-    items:      RefCell<Vec<MenuItem>>,
-    mode:       RefCell<MenuMode>,
-    state:      MenuStateRef,
+    matrix:         Arc<Mutex<Matrix>>,
+    items:          RefCell<Vec<MenuItem>>,
+    mode:           RefCell<MenuMode>,
+    state:          MenuStateRef,
+    help_txt:       Rc<TextSourceRef>,
+    last_hover_pos: RefCell<(usize, usize)>,
 }
 
 impl MatrixUIMenu {
-    pub fn new(matrix: Arc<Mutex<Matrix>>) -> Self {
+    pub fn new(matrix: Arc<Mutex<Matrix>>, help_txt: Rc<TextSourceRef>) -> Self {
         let state  = Rc::new(RefCell::new(MenuState::new(matrix.clone())));
         let state2 = state.clone();
         state.borrow_mut().init_self_ref(state2);
@@ -184,6 +222,8 @@ impl MatrixUIMenu {
             items:  RefCell::new(vec![]),
             mode:   RefCell::new(MenuMode::None),
             state,
+            help_txt,
+            last_hover_pos: RefCell::new((0, 0)),
         }
     }
 
@@ -265,6 +305,18 @@ impl MatrixUIMenu {
             cat: UICategory::IOUtil,
         });
     }
+
+    fn update_hover_text(&self) {
+        let (x, y) = *self.last_hover_pos.borrow();
+
+        self.with_item_at(x, y, &mut |item| {
+            if let Some(item) = item {
+                if let Some(lbl) = item.as_help_text() {
+                    self.help_txt.set(lbl);
+                }
+            }
+        });
+    }
 }
 
 /* Menu Modes:
@@ -298,6 +350,11 @@ impl HexGridModel for MatrixUIMenu {
     fn width(&self)  -> usize { 3 }
     fn height(&self) -> usize { 3 }
 
+    fn cell_hover(&self, x: usize, y: usize) {
+        *self.last_hover_pos.borrow_mut() = (x, y);
+        self.update_hover_text();
+    }
+
     fn cell_click(&self, x: usize, y: usize, btn: MButton) {
         self.with_item_at(x, y, &mut |item| {
             println!("MENU CLICK CELL: {},{}: {:?}", x, y, btn);
@@ -326,6 +383,7 @@ impl HexGridModel for MatrixUIMenu {
         });
 
         self.state.borrow().load_items_if_any(&mut *self.items.borrow_mut());
+        self.update_hover_text();
     }
 
     fn cell_empty(&self, x: usize, y: usize) -> bool {
@@ -410,9 +468,6 @@ impl HexGridModel for MatrixUIModel {
         if x >= self.w || y >= self.h { return None; }
         let m = self.matrix.lock().unwrap();
         if let Some(cell) = m.get(x, y) {
-            if cell.node_id() != NodeId::Nop {
-                println!("CELL {},{} => {:?}", x, y, cell);
-            }
             Some((cell.label(buf)?, HexCell::Normal))
         } else {
             None
@@ -426,9 +481,6 @@ impl HexGridModel for MatrixUIModel {
                 if is_connected {
                     Some((lbl, HexEdge::Arrow))
                 } else {
-            if cell.node_id() != NodeId::Nop {
-                println!("CELL EDGE UNCON {},{} => (EDGE {:?}) {:?}", x, y, edge, cell);
-            }
                     Some((lbl, HexEdge::NoArrow))
                 }
             } else {
@@ -443,6 +495,7 @@ impl HexGridModel for MatrixUIModel {
 pub struct NodeMatrixData {
     hex_grid:     Box<WidgetData>,
     hex_menu:     Box<WidgetData>,
+    hex_menu_id:  ParamID,
 
     matrix_model: Rc<MatrixUIModel>,
 
@@ -458,7 +511,10 @@ impl NodeMatrixData {
             m.size()
         };
 
-        let menu_model   = Rc::new(MatrixUIMenu::new(matrix.clone()));
+        let txtsrc = Rc::new(TextSourceRef::new());
+        txtsrc.set("Foobar\nXXX1239\nfiewfwe\n* 1\n* 2\n* 3");
+
+        let menu_model   = Rc::new(MatrixUIMenu::new(matrix.clone(), txtsrc.clone()));
         let matrix_model = Rc::new(MatrixUIModel {
             matrix,
             menu: menu_model.clone(),
@@ -470,6 +526,24 @@ impl NodeMatrixData {
             Rc::new(HexGrid::new(14.0, 10.0));
         let wt_hexgrid_menu =
             Rc::new(HexGrid::new_y_offs(14.0, 10.0).bg_color(UI_GRID_BG2_CLR));
+        let wt_cont = Rc::new(Container::new());
+        let wt_text = Rc::new(Text::new(12.0));
+
+
+        let hex_menu_id = ParamID::new(node_id, 2);
+        let mut hex_menu = ContainerData::new();
+        hex_menu.contrast_border()
+           .title("Menu")
+           .new_row()
+           .add_direct(WidgetData::new(
+                wt_hexgrid_menu.clone(),
+                hex_menu_id,
+                UIPos::center(8, 12),
+                HexGridData::new(menu_model)))
+           .add(wt_text.clone(),
+                ParamID::new(node_id, 4),
+                UIPos::center(4, 12),
+                TextData::new(txtsrc.clone()));
 
         WidgetData::new(
             wt_nmatrix,
@@ -481,9 +555,10 @@ impl NodeMatrixData {
                     ParamID::new(node_id, 1),
                     HexGridData::new(matrix_model.clone())),
                 hex_menu: WidgetData::new_tl_box(
-                    wt_hexgrid_menu.clone(),
-                    ParamID::new(node_id, 2),
-                    HexGridData::new(menu_model)),
+                    wt_cont,
+                    ParamID::new(node_id, 3),
+                    hex_menu),
+                hex_menu_id,
                 matrix_model,
                 grid_click_pos: None,
             }))
@@ -507,16 +582,21 @@ impl WidgetType for NodeMatrix {
 
             if let Some(mouse_pos) = data.grid_click_pos {
                 if MenuMode::None != *data.matrix_model.menu.mode.borrow() {
-                    let menu_w = 270.0;
-                    let menu_h = 280.0;
+                    let hex_w = 270.0;
+                    let txt_w = (hex_w / 8.0) * 4.0;
+                    let menu_w = hex_w + txt_w;
+                    let menu_h = 280.0 + UI_ELEM_TXT_H + 2.0 * UI_BORDER_WIDTH;
 
                     let menu_rect =
                         Rect::from(
-                            mouse_pos.0 - menu_w * 0.5,
+                            mouse_pos.0 - (hex_w * 0.5),
                             mouse_pos.1 - menu_h * 0.5,
                             menu_w,
                             menu_h)
                         .move_into(&pos);
+
+                    let hz = ui.hover_zone_for(data.hex_menu_id);
+                    //d// println!("HOVEER: {:?}", hz);
 
                     (*data.hex_menu).draw(ui, p, menu_rect);
                 }
@@ -532,8 +612,9 @@ impl WidgetType for NodeMatrix {
                     if *id == data.hex_grid.id() {
                         data.grid_click_pos = Some((*x, *y));
                         data.hex_grid.event(ui, ev);
+                        data.matrix_model.menu.update_hover_text();
 
-                    } else if *id == data.hex_menu.id() {
+                    } else if *id == data.hex_menu_id {
                         data.hex_menu.event(ui, ev);
                     }
 

@@ -23,6 +23,13 @@ impl Amp {
         use crate::dsp::denorm;
         out::Amp::sig(
             outputs,
-            inp::Amp::sig(inputs) * denorm::Amp::gain(inputs));
+            inp::Amp::inp(inputs) * denorm::Amp::gain(inputs));
     }
+
+    pub const inp : &'static str =
+        "Signal input (-1..1)\n";
+    pub const gain : &'static str =
+        "Gain input (0..1)\n";
+    pub const sig : &'static str =
+        "Amplified signal output (-1..1)\n";
 }
