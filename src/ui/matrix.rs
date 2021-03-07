@@ -36,6 +36,19 @@ impl MenuActionHandler for MatrixActionHandler {
     fn update_help_text(&mut self, txt: &str) {
         self.help_txt.set(txt);
     }
+
+    fn assign_cell_port(&mut self, mut cell: Cell, cell_dir: CellDir, idx: Option<usize>) {
+        let mut m = self.matrix.lock().unwrap();
+
+        if let Some(idx) = idx {
+            cell.set_io_dir(cell_dir, idx);
+        } else {
+            cell.clear_io_dir(cell_dir);
+        }
+        let pos = cell.pos();
+        m.place(pos.0, pos.1, cell);
+        m.sync();
+    }
 }
 
 pub struct MatrixUIMenu {

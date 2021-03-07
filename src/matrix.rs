@@ -69,6 +69,18 @@ impl Cell {
         (self.x as usize, self.y as usize)
     }
 
+    pub fn clear_io_dir(&mut self, dir: CellDir) {
+        match dir {
+            CellDir::TR => { self.out1 = None; },
+            CellDir::BR => { self.out2 = None; },
+            CellDir::B  => { self.out3 = None; },
+            CellDir::BL => { self.in3  = None; },
+            CellDir::TL => { self.in2  = None; },
+            CellDir::T  => { self.in1  = None; },
+            CellDir::C  => {},
+        }
+    }
+
     pub fn set_io_dir(&mut self, dir: CellDir, idx: usize) {
         match dir {
             CellDir::TR => { self.out1 = Some(idx as u8); },

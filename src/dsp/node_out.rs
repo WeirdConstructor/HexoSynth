@@ -32,4 +32,20 @@ impl Out {
         "Out ch1\nAudio channel 1 (left)\nRange: (-1..1)";
     pub const ch2 : &'static str =
         "Out ch2\nAudio channel 2 (right)\nRange: (-1..1)";
+
+    pub const ch3 : &'static str = "Out ch2\nAudio channel 2 (right)\nRange: (-1..1)";
+    pub const ch4 : &'static str = "Out ch2\nAudio channel 2 (right)\nRange: (-1..1)";
+    pub const ch5 : &'static str = "Out ch2\nAudio channel 2 (right)\nRange: (-1..1)";
+    pub const ch6 : &'static str = "Out ch2\nAudio channel 2 (right)\nRange: (-1..1)";
+    pub const ch7 : &'static str = "Out ch2\nAudio channel 2 (right)\nRange: (-1..1)";
+    pub const ch8 : &'static str = "Out ch2\nAudio channel 2 (right)\nRange: (-1..1)";
+    pub const ch9 : &'static str = "Out ch2\nAudio channel 2 (right)\nRange: (-1..1)";
+    pub const ch10: &'static str = "Out ch2\nAudio channel 2 (right)\nRange: (-1..1)";
+    pub const ch11: &'static str = "Out ch2\nAudio channel 2 (right)\nRange: (-1..1)";
+    pub const ch12: &'static str = "Out ch2\nAudio channel 2 (right)\nRange: (-1..1)";
+    pub const ch13: &'static str = "Out ch2\nAudio channel 2 (right)\nRange: (-1..1)";
+    pub const ch14: &'static str = "Out ch2\nAudio channel 2 (right)\nRange: (-1..1)";
+    pub const ch15: &'static str = "Out ch2\nAudio channel 2 (right)\nRange: (-1..1)";
+    pub const ch16: &'static str = "Out ch2\nAudio channel 2 (right)\nRange: (-1..1)";
+    pub const ch17: &'static str = "Out ch2\nAudio channel 2 (right)\nRange: (-1..1)";
 }
