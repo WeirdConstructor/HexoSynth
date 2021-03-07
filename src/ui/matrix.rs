@@ -59,10 +59,6 @@ pub struct MatrixUIMenu {
 
 impl MatrixUIMenu {
     pub fn new(matrix: Arc<Mutex<Matrix>>, help_txt: Rc<TextSourceRef>) -> Self {
-//        let state  = Rc::new(RefCell::new(MenuState::new(matrix.clone())));
-//        let state2 = state.clone();
-//        state.borrow_mut().init_self_ref(state2);
-
         Self {
             menu: Rc::new(RefCell::new(
                 Menu::new(
@@ -93,69 +89,6 @@ impl MatrixUIMenu {
             _      => None,
         }
     }
-
-//    pub fn set_edge_assign_mode(&self, cell: Cell, node_info: NodeInfo) {
-//        self.state.borrow_mut().set_matrix_cell(cell, node_info);
-//
-//        (*self.mode.borrow_mut()) = MenuMode::IOSelect;
-//        let mut items = self.items.borrow_mut();
-//        items.clear();
-//
-//        let state = self.state.clone();
-//        items.push(MenuItem::Exit);
-//        items.push(MenuItem::CellDir { state: state.clone(), dir: CellDir::T  });
-//        items.push(MenuItem::CellDir { state: state.clone(), dir: CellDir::TR });
-//        items.push(MenuItem::CellDir { state: state.clone(), dir: CellDir::BR });
-//        items.push(MenuItem::CellDir { state: state.clone(), dir: CellDir::B  });
-//        items.push(MenuItem::CellDir { state: state.clone(), dir: CellDir::BL });
-//        items.push(MenuItem::CellDir { state,                dir: CellDir::TL });
-//    }
-//
-//    pub fn set_category_mode(&self) {
-//        (*self.mode.borrow_mut()) = MenuMode::CategorySelect;
-//        let mut items = self.items.borrow_mut();
-//        items.clear();
-//
-//        let state = self.state.clone();
-//        items.push(MenuItem::Exit);
-//        items.push(MenuItem::Category {
-//            state: state.clone(),
-//            lbl: "Osc",
-//            cat: UICategory::Oscillators
-//        });
-//        items.push(MenuItem::Category {
-//            state: state.clone(),
-//            lbl: "X->Y",
-//            cat: UICategory::XtoY,
-//        });
-//        items.push(MenuItem::Category {
-//            state: state.clone(),
-//            lbl: "Time",
-//            cat: UICategory::Time,
-//        });
-//        items.push(MenuItem::Category {
-//            state: state.clone(),
-//            lbl: "N->M",
-//            cat: UICategory::NtoM,
-//        });
-//        items.push(MenuItem::Category {
-//            state,
-//            lbl: "I/O",
-//            cat: UICategory::IOUtil,
-//        });
-//    }
-//
-//    fn update_hover_text(&self) {
-//        let (x, y) = *self.last_hover_pos.borrow();
-//
-//        self.with_item_at(x, y, &mut |item| {
-//            if let Some(item) = item {
-//                if let Some(lbl) = item.as_help_text() {
-//                    self.help_txt.set(lbl);
-//                }
-//            }
-//        });
-//    }
 }
 
 /* Menu Modes:
@@ -200,34 +133,6 @@ impl HexGridModel for MatrixUIMenu {
         if let Some(idx) = self.grid2index(x, y) {
             self.menu.borrow_mut().select(idx);
         }
-//        self.with_item_at(x, y, &mut |item| {
-//            println!("MENU CLICK CELL: {},{}: {:?}", x, y, btn);
-//            if let Some(item) = item {
-//                match item {
-//                    MenuItem::CellDir { dir, state }  => {
-//                        state.borrow_mut().select_cell_io(*dir);
-//                    },
-//                    MenuItem::NodeInput { inp, state } => {
-//                        state.borrow().action_set_cell_io(*inp);
-//                        self.exit_menu();
-//                    },
-//                    MenuItem::NodeOutput { out, state } => {
-//                        state.borrow().action_set_cell_io(*out);
-//                        self.exit_menu();
-//                    },
-//                    MenuItem::Back => {
-//                        self.exit_menu();
-//                    },
-//                    MenuItem::Exit => {
-//                        self.exit_menu();
-//                    },
-//                    _ => {},
-//                }
-//            }
-//        });
-//
-//        self.state.borrow().load_items_if_any(&mut *self.items.borrow_mut());
-//        self.update_hover_text();
         self.menu.borrow_mut().update();
     }
 
@@ -466,27 +371,6 @@ impl WidgetType for NodeMatrix {
 
                     ui.queue_redraw();
                 });
-//                    data.with(|data: &mut NodeMatrixData| {
-//                        if MenuMode::None != *data.matrix_model.menu.mode.borrow() {
-//                        } else {
-//                        }
-
-//                        if let Some(_) = data.grid_click_pos {
-//                            data.hex_menu.event(ui, ev);
-//                            data.grid_click_pos = None;
-//                        } else {
-//                            match button {
-//                                MButton::Right => {
-//                                    data.matrix_model.menu.set_edge_mode();
-//                                },
-//                                _ => {
-//                                    data.matrix_model.menu.set_category_mode();
-//                                },
-//                            }
-//
-//                        }
-//                    });
-//                }
             },
             UIEvent::FieldDrag { id, button, src, dst } => {
                 data.with(|data: &mut NodeMatrixData| {
