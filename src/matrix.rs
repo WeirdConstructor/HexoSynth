@@ -407,7 +407,7 @@ impl Matrix {
     }
 
     pub fn get_unused_instance_node_id(&self, mut id: NodeId) -> NodeId {
-        id = id.to_instance(id.instance() + 1);
+        id = id.to_instance(id.instance());
 
         let instances = self.instances.borrow();
 
