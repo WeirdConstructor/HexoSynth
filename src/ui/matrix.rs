@@ -49,6 +49,16 @@ impl MenuActionHandler for MatrixActionHandler {
         m.place(pos.0, pos.1, cell);
         m.sync();
     }
+
+    fn assign_cell_new_node(&mut self, mut cell: Cell, node_id: NodeId) {
+        let mut m = self.matrix.lock().unwrap();
+
+        let node_id = m.get_unused_instance_node_id(node_id);
+        cell.set_node_id(node_id);
+        let pos = cell.pos();
+        m.place(pos.0, pos.1, cell);
+        m.sync();
+    }
 }
 
 pub struct MatrixUIMenu {
@@ -195,13 +205,18 @@ impl HexGridModel for MatrixUIModel {
             match btn {
                 MButton::Right => {
                     let mut m = self.matrix.lock().unwrap();
-                    if let Some(mut cell) = m.get(x, y).copied() {
+                    if let Some(mut cell) = m.get_copy(x, y) {
                         if let Some(node_info) = m.info_for(&cell.node_id()) {
                             menu.open_select_cell_dir(cell, node_info);
                         }
                     }
                 },
-                _ => { menu.open_select_node_category(); },
+                _ => {
+                    let mut m = self.matrix.lock().unwrap();
+                    if let Some(mut cell) = m.get_copy(x, y) {
+                        menu.open_select_node_category(cell);
+                    }
+                },
             }
         }
     }
@@ -263,7 +278,7 @@ impl NodeMatrixData {
             m.size()
         };
 
-        let txtsrc = Rc::new(TextSourceRef::new(17));
+        let txtsrc = Rc::new(TextSourceRef::new(30));
 
         let menu_model   = Rc::new(MatrixUIMenu::new(matrix.clone(), txtsrc.clone()));
         let matrix_model = Rc::new(MatrixUIModel {
@@ -274,9 +289,9 @@ impl NodeMatrixData {
         });
 
         let wt_hexgrid =
-            Rc::new(HexGrid::new(14.0, 10.0));
+            Rc::new(HexGrid::new(14.0, 10.0, 54.0));
         let wt_hexgrid_menu =
-            Rc::new(HexGrid::new_y_offs(14.0, 10.0).bg_color(UI_GRID_BG2_CLR));
+            Rc::new(HexGrid::new_y_offs(12.0, 10.0, 45.0).bg_color(UI_GRID_BG2_CLR));
         let wt_cont = Rc::new(Container::new());
         let wt_text = Rc::new(Text::new(12.0));
 
@@ -289,11 +304,11 @@ impl NodeMatrixData {
            .add_direct(WidgetData::new(
                 wt_hexgrid_menu.clone(),
                 hex_menu_id,
-                UIPos::center(8, 12),
+                UIPos::center(6, 12),
                 HexGridData::new(menu_model)))
            .add(wt_text.clone(),
                 ParamID::new(node_id, 4),
-                UIPos::center(4, 12),
+                UIPos::center(6, 12),
                 TextData::new(txtsrc.clone()));
 
         WidgetData::new(
@@ -333,10 +348,10 @@ impl WidgetType for NodeMatrix {
 
             if let Some(mouse_pos) = data.grid_click_pos {
                 if data.matrix_model.menu.menu.borrow().is_open() {
-                    let hex_w = 270.0;
-                    let txt_w = (hex_w / 8.0) * 4.0;
+                    let hex_w = 235.0;
+                    let txt_w = (hex_w / 6.0) * 6.0;
                     let menu_w = hex_w + txt_w;
-                    let menu_h = 280.0 + UI_ELEM_TXT_H + 2.0 * UI_BORDER_WIDTH;
+                    let menu_h = 240.0 + UI_ELEM_TXT_H + 2.0 * UI_BORDER_WIDTH;
 
                     let menu_rect =
                         Rect::from(

@@ -387,6 +387,17 @@ impl Matrix {
         }
     }
 
+    pub fn get_copy(&self, x: usize, y: usize) -> Option<Cell> {
+        if x >= self.w || y >= self.h {
+            return None;
+        }
+
+        let mut cell = self.matrix[x * self.h + y];
+        cell.x = x as u8;
+        cell.y = y as u8;
+        Some(cell)
+    }
+
     pub fn get(&self, x: usize, y: usize) -> Option<&Cell> {
         if x >= self.w || y >= self.h {
             return None;

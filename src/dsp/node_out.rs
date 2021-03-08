@@ -31,7 +31,7 @@ impl Out {
     pub const ch1 : &'static str =
         "Out ch1\nAudio channel 1 (left)\nRange: (-1..1)";
     pub const ch2 : &'static str =
-        "Out ch2\nAudio channel 2 (right)\nRange: (-1..1)";
+        "Out ch2\nAudio channel 2 (right)\nRange: (-1..1)ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 
     pub const ch3 : &'static str = "Out ch2\nAudio channel 2 (right)\nRange: (-1..1)";
     pub const ch4 : &'static str = "Out ch2\nAudio channel 2 (right)\nRange: (-1..1)";

@@ -6,6 +6,7 @@ use std::cell::RefCell;
 pub trait MenuActionHandler {
     fn update_help_text(&mut self, txt: &str);
     fn assign_cell_port(&mut self, cell: Cell, cell_dir: CellDir, idx: Option<usize>);
+    fn assign_cell_new_node(&mut self, cell: Cell, node_id: NodeId);
 }
 
 pub trait MenuControl {
@@ -16,19 +17,22 @@ pub trait MenuControl {
     fn label(&self, idx: usize) -> Option<&str>;
 
     fn is_open(&self) -> bool;
-    fn open_select_node_category(&mut self);
+    fn open_select_node_category(&mut self, cell: Cell);
     fn open_select_cell_dir(&mut self, cell: Cell, node_info: NodeInfo);
     fn close(&mut self);
-}
-
-enum MenuEvent {
 }
 
 #[derive(Debug, Clone)]
 enum MenuState {
     None,
     NodeCategory {
-        lbls: Vec<NodeId>
+        cell:   Cell,
+    },
+    SubCategory {
+        cell:   Cell,
+        cat:    UICategory,
+        offset: usize,
+        count:  usize,
     },
     CellDir {
         cell:       Cell,
@@ -124,26 +128,28 @@ impl Menu {
                 self.lbl_fun = Box::new(|_idx, _help, _state| { None });
                 self.act_fun = Box::new(|_idx, _state, _hdl| ());
             }
-            MenuState::NodeCategory { .. } => {
+            MenuState::NodeCategory { cell } => {
                 self.lbl_fun = Box::new(|idx, help, _state| {
                     if help {
                         match idx {
                             0 => Some("\nExit Menu"),
                             1 => Some("Osc\nAudio oscillators."),
-                            2 => Some("X->Y\nSignal changing nodes."),
-                            3 => Some("Time\n"),
-                            4 => Some("N->M\n"),
-                            5 => Some("I/O\nExternal connections (Audio, MIDI, ...)."),
+                            2 => Some("Signal\nSignal shapers:\n- Filters\n- Waveshapers\n- Delays"),
+                            3 => Some("CV\nControl voltage shapers:\n- CV converters\n- Quantizers\n- Sample & Hold\n- Slew"),
+                            4 => Some("Mod\nModulation sources:\n- Envelopes\n- LFOs\n- Sequencers\n- Utils"),
+                            5 => Some("N->M\nSignal merge and splitters:\n- Mixers\n- Logic\n- Math\n- Multiplexers"),
+                            6 => Some("I/O\nExternal connections:\n- Audio I/O\n- MIDI"),
                             _ => None,
                         }
                     } else {
                         match idx {
                             0 => Some("<Exit"),
                             1 => Some("Osc"),
-                            2 => Some("X->Y"),
-                            3 => Some("Time"),
-                            4 => Some("N->M"),
-                            5 => Some("I/O"),
+                            2 => Some("Signal"),
+                            3 => Some("CV"),
+                            4 => Some("Mod"),
+                            5 => Some("N->M"),
+                            6 => Some("I/O"),
                             _ => None,
                         }
                     }
@@ -151,7 +157,106 @@ impl Menu {
                 self.act_fun = Box::new(move |idx, _state, _hdl| {
                     match idx {
                         0 => { *pa.borrow_mut() = PostAction::close(); },
+                        1 | 2 | 3 | 4 | 5 | 6 => {
+                            let cat =
+                                match idx {
+                                    1 => UICategory::Osc,
+                                    2 => UICategory::Signal,
+                                    3 => UICategory::CV,
+                                    4 => UICategory::Mod,
+                                    5 => UICategory::NtoM,
+                                    6 => UICategory::IOUtil,
+                                    _ => UICategory::None,
+                                };
+
+                            let mut count = 0;
+                            cat.get_node_ids(0, |_| count += 1);
+
+                            *pa.borrow_mut() =
+                                PostAction::next_state(
+                                    MenuState::SubCategory {
+                                        cell,
+                                        cat,
+                                        count,
+                                        offset: 0,
+                                    });
+                        },
                         _ => (),
+                    }
+                });
+            },
+            MenuState::SubCategory { cell, cat, offset, count } => {
+                self.lbl_fun = Box::new(move |idx, _help, _state| {
+                    match idx {
+                        0 => Some("<Back"),
+                        _ => {
+                            let cur_idx = (idx - 1) + offset;
+
+                            let next =
+                                if idx == 6 {
+                                    let next_idx = cur_idx + 1;
+                                    next_idx < count
+                                } else {
+                                    false
+                                };
+
+                            if next {
+                                Some("Next>")
+                            } else {
+                                let mut names : [Option<&'static str>; 6] = [None; 6];
+                                let mut i = 0;
+                                cat.get_node_ids(offset, |node_id| {
+                                    if i < 6 {
+                                        names[i] = Some(node_id.name());
+                                    }
+                                    i += 1;
+                                });
+
+                                names[idx - 1]
+                            }
+                        }
+                    }
+                });
+                self.act_fun = Box::new(move |idx, state, hdl| {
+                    match idx {
+                        0 => { *pa.borrow_mut() = PostAction::back(); },
+                        _ => {
+                            let cur_idx = (idx - 1) + offset;
+
+                            let next =
+                                if idx == 6 {
+                                    let next_idx = cur_idx + 1;
+                                    next_idx < count
+                                } else {
+                                    false
+                                };
+
+                            if next {
+                                *pa.borrow_mut() =
+                                    PostAction::next_state(
+                                        MenuState::SubCategory {
+                                            cell,
+                                            cat,
+                                            offset: cur_idx,
+                                            count,
+                                        });
+                            } else {
+                                let mut i = 0;
+                                let mut out_node_id = None;
+                                cat.get_node_ids(offset, |node_id| {
+                                    if i == (idx - 1) {
+                                        out_node_id = Some(node_id);
+                                    }
+                                    i += 1;
+                                });
+
+                                if let Some(node_id) = out_node_id {
+                                    hdl.assign_cell_new_node(
+                                        cell.clone(), node_id);
+                                }
+                                *pa.borrow_mut() = PostAction::close();
+                            }
+                        },
                     }
                 });
             },
@@ -347,11 +452,9 @@ impl MenuControl for Menu {
         }
     }
 
-    fn open_select_node_category(&mut self) {
+    fn open_select_node_category(&mut self, cell: Cell) {
         self.activate_init_state(
-            MenuState::NodeCategory {
-                lbls: vec![],
-            });
+            MenuState::NodeCategory { cell });
     }
 
     fn open_select_cell_dir(&mut self, cell: Cell, node_info: NodeInfo) {

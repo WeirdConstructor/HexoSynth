@@ -21,10 +21,11 @@ pub enum UIType {
 #[derive(Debug, Clone, Copy, PartialOrd, PartialEq)]
 pub enum UICategory {
     None,
-    Oscillators,
-    Time,
+    Osc,
+    Mod,
     NtoM,
-    XtoY,
+    Signal,
+    CV,
     IOUtil,
 }
 
@@ -32,11 +33,11 @@ macro_rules! node_list {
     ($inmacro: ident) => {
         $inmacro!{
             nop => Nop,
-            amp => Amp UIType::Generic UICategory::XtoY
+            amp => Amp UIType::Generic UICategory::Signal
                (0 inp  n_id  d_id  0.0, 1.0, 0.0)
                (1 gain n_exp d_exp 0.0, 2.0, 1.0)
                [0 sig],
-            sin => Sin UIType::Generic UICategory::Oscillators
+            sin => Sin UIType::Generic UICategory::Osc
                (0 freq n_pit d_pit 0.001, 1.0, 440.0)
                [0 sig],
             out => Out UIType::Generic UICategory::IOUtil
@@ -98,7 +99,7 @@ macro_rules! d_pit { ($x: expr, $min: expr, $max: expr) => {
 } }
 
 impl UICategory {
-    fn get_node_ids(&self, idx: usize, out: &mut Vec<NodeId>) {
+    pub fn get_node_ids<F: FnMut(NodeId)>(&self, mut skip: usize, mut fun: F) {
         macro_rules! make_cat_lister {
             ($s1: ident => $v1: ident,
                 $($str: ident => $variant: ident
@@ -109,7 +110,11 @@ impl UICategory {
                     ,)+
             ) => {
                 $(if UICategory::$ui_cat == *self {
-                    out.push(NodeId::$variant(0));
+                    if skip == 0 {
+                        fun(NodeId::$variant(0));
+                    } else {
+                        skip -= 1
+                    }
                 })+
             }
         }
@@ -230,7 +235,14 @@ macro_rules! make_node_info_enum {
             pub fn from_node_info(ni: &NodeInfo) -> NodeId {
                 match ni {
                     NodeInfo::$v1           => NodeId::$v1,
-                    $(NodeInfo::$variant(_) => NodeId::$v1),+
+                    $(NodeInfo::$variant(_) => NodeId::$variant(0)),+
+                }
+            }
+
+            pub fn name(&self) -> &'static str {
+                match self {
+                    NodeId::$v1           => stringify!($s1),
+                    $(NodeId::$variant(_) => stringify!($str)),+
                 }
             }
 
