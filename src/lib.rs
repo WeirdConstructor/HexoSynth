@@ -156,38 +156,12 @@ unsafe impl Sync for HexoSynthShared {}
 impl PluginContext<HexoSynth> for HexoSynthShared {
     fn new() -> Self {
         let (mut node_conf, node_exec) = nodes::new_node_engine();
-        let mut matrix = Matrix::new(node_conf, 9, 8);
+        let mut matrix = Matrix::new(node_conf, 8, 7);
 
         matrix.place(0, 1, Cell::empty(NodeId::Sin(0))
                            .out(Some(0), None, None));
         matrix.place(1, 0, Cell::empty(NodeId::Out(0))
                            .input(None, None, Some(0)));
-
-//        matrix.place(0, 1, Cell::empty(NodeId::Sin(1))
-//                           .out(None, Some(0), None));
-//        matrix.place(1, 1, Cell::empty(NodeId::Sin(0))
-//                           .input(None, Some(0), None)
-//                           .out(None, None, Some(0)));
-//        matrix.place(1, 2, Cell::empty(NodeId::Out(0))
-//                           .input(Some(1), Some(0), None)
-//                           .out(None, None, Some(0)));
-
-//        let mut i = 1;
-//        for x in 2..9 {
-//            for y in 2..8 {
-//                matrix.place(x, y,
-//                    Cell::empty(NodeId::Sin(i))
-//                        .input(Some(0), Some(0), Some(0))
-//                        .out(Some(0), Some(0), Some(0)));
-//                i += 1;
-//            }
-//        }
-
-//        matrix.place(0, 2, Cell::empty(NodeId::Sin(2))
-//                           .out(None, Some(0), None));
-//        matrix.place(1, 2, Cell::empty(NodeId::Sin(1))
-//                           .input(None, Some(0), None)
-//                           .out(None, None, Some(0)));
         matrix.sync();
 
 
@@ -199,9 +173,6 @@ impl PluginContext<HexoSynth> for HexoSynthShared {
 }
 
 struct HexoSynth {
-//    matrix:     Matrix,
-//    node_conf:  NodeConfigurator,
-//    node_exec:  NodeExecutor,
 }
 
 pub struct Context<'a, 'b, 'c, 'd> {
@@ -233,8 +204,6 @@ impl Plugin for HexoSynth {
 
     #[inline]
     fn new(sample_rate: f32, _model: &HexoSynthModel, shared: &HexoSynthShared) -> Self {
-//        let (mut node_conf, node_exec) = nodes::new_node_engine(sample_rate);
-
         let mut node_exec = shared.node_exec.borrow_mut();
         node_exec.set_sample_rate(sample_rate);
 
@@ -321,45 +290,19 @@ impl PluginUI for HexoSynth {
     type Handle = u32;
 
     fn ui_size() -> (i16, i16) {
-        (800, 800)
+        (1400, 700)
     }
 
     fn ui_open(parent: &impl HasRawWindowHandle, ctx: &HexoSynthShared) -> WindowOpenResult<Self::Handle> {
-//        use hexotk::components::matrix::NodeMatrixData;
         use crate::ui::matrix::NodeMatrixData;
 
         let matrix = ctx.matrix.clone();
 
-        open_window("HexoSynth", 800, 800, Some(parent.raw_window_handle()), Box::new(|| {
-            let wt_btn      = Rc::new(Button::new(80.0, 10.0));
-//            let wt_hexgrid  = Rc::new(HexGrid::new(14.0, 10.0));
-//            let wt_knob     = Rc::new(Knob::new(30.0, 10.0, 10.0));
-//            let wt_cont     = Rc::new(Container::new());
-
-//            let mut node_ctrls = ContainerData::new();
-//            node_ctrls.new_row()
-//               .add(wt_btn,          1.into(), UIPos::right( 6, 6), ButtonData::new_toggle("Test Btn"))
-//               .add(wt_knob.clone(), 2.into(), UIPos::center(3, 6), KnobData::new())
-//               .add(wt_knob.clone(), 2.into(), UIPos::center(3, 6), KnobData::new())
-//               .new_row()
-//               .add(wt_knob.clone(), 4.into(), UIPos::center(3, 6), KnobData::new())
-//               .add(wt_knob.clone(), 5.into(), UIPos::center(3, 6), KnobData::new())
-//               .add(wt_knob.clone(), 6.into(), UIPos::center(3, 6), KnobData::new())
-//               .add(wt_knob.clone(), 7.into(), UIPos::center(3, 6), KnobData::new());
-
-//            let mut con = ContainerData::new();
-//            con.new_row()
-//               .add_direct(NodeMatrixData::new(UIPos::center(7, 12), 11))
-//               .add(wt_cont.clone(), 0.into(), UIPos::center(5, 12), node_ctrls);
-
+        open_window("HexoSynth", 1400, 700, Some(parent.raw_window_handle()), Box::new(|| {
             let mut ui = Box::new(UI::new(
                 Box::new(NodeMatrixData::new(matrix, UIPos::center(12, 12), 11)),
-//                WidgetData::new_box(
-//                    wt_btn, 0.into(), UIPos::center(12, 12), ButtonData::new_toggle("Test Btn")),
-//                WidgetData::new_box(
-//                    wt_cont, 0.into(), UIPos::center(12, 12), con),
                 Box::new(HexoSynthUIParams { params: [0.0; 100] }),
-                (800 as f64, 800 as f64),
+                (1400 as f64, 700 as f64),
             ));
 
             ui

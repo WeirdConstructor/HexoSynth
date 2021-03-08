@@ -1,6 +1,6 @@
 use hexotk::widgets::hexgrid::HexGridModel;
 use hexotk::{MButton, ActiveZone, UIPos, ParamID};
-use hexotk::{Rect, WidgetUI, Painter, WidgetData, WidgetType, UIEvent};
+use hexotk::{Rect, WidgetUI, Painter, WidgetData, WidgetType, UIEvent, wbox};
 use hexotk::constants::*;
 use hexotk::widgets::{
     HexGrid, HexGridData, HexCell, HexEdge, HexDir,
@@ -295,21 +295,20 @@ impl NodeMatrixData {
         let wt_cont = Rc::new(Container::new());
         let wt_text = Rc::new(Text::new(12.0));
 
-
         let hex_menu_id = ParamID::new(node_id, 2);
         let mut hex_menu = ContainerData::new();
         hex_menu.contrast_border()
            .title("Menu")
            .new_row()
-           .add_direct(WidgetData::new(
-                wt_hexgrid_menu.clone(),
+           .add(wbox!(
+                wt_hexgrid_menu,
                 hex_menu_id,
-                UIPos::center(6, 12),
+                center(6, 12),
                 HexGridData::new(menu_model)))
-           .add(wt_text.clone(),
+           .add(wbox!(wt_text,
                 ParamID::new(node_id, 4),
-                UIPos::center(6, 12),
-                TextData::new(txtsrc.clone()));
+                center(6, 12),
+                TextData::new(txtsrc.clone())));
 
         WidgetData::new(
             wt_nmatrix,
@@ -344,7 +343,9 @@ impl NodeMatrix {
 impl WidgetType for NodeMatrix {
     fn draw(&self, ui: &mut dyn WidgetUI, data: &mut WidgetData, p: &mut dyn Painter, pos: Rect) {
         data.with(|data: &mut NodeMatrixData| {
-            (*data.hex_grid).draw(ui, p, pos);
+
+            let hex_pos = pos.shrink(365.0, 0.0);
+            (*data.hex_grid).draw(ui, p, hex_pos);
 
             if let Some(mouse_pos) = data.grid_click_pos {
                 if data.matrix_model.menu.menu.borrow().is_open() {
