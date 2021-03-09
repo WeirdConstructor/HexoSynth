@@ -21,7 +21,7 @@ ringbuf    = "0.2.2"
 microfft    = "0.3.1"
 num-complex = "0.2"
 hound       = "3.4.0"
-cpal        = "0.13.1"
+jack        = "0.6.6"
 
 [lib]
 name="hexosynth"
