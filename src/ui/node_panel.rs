@@ -1,4 +1,4 @@
-use hexotk::{UIPos, ParamID, wbox};
+use hexotk::{UIPos, UIParam, wbox};
 use hexotk::{Rect, WidgetUI, Painter, WidgetData, WidgetType, UIEvent};
 use hexotk::constants::*;
 use hexotk::widgets::{
@@ -23,7 +23,7 @@ impl NodePanelData {
         let wt_cont = Rc::new(Container::new());
         let mut knobs =
             Box::new(wbox!(
-                wt_cont, ParamID::new(node_id, 1),
+                wt_cont, UIParam::new(node_id, 1),
                 center(12, 12), ContainerData::new()));
 
         Box::new(Self { matrix, knobs })
