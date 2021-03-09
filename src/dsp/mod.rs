@@ -580,13 +580,17 @@ pub fn node_factory(node_id: NodeId) -> Option<(Node, NodeInfo)> {
 
 impl Node {
     #[inline]
-    pub fn process<T: NodeAudioContext>(&mut self, ctx: &mut T, inputs: &[f32], outputs: &mut [f32]) {
+    pub fn process<T: NodeAudioContext>(
+        &mut self, ctx: &mut T, inputs: &[f32], outputs: &mut [f32])
+    {
         macro_rules! make_node_process {
             ($s1: ident => $v1: ident,
                 $($str: ident => $variant: ident
                     UIType:: $gui_type: ident
                     UICategory:: $ui_cat: ident
-                    $(($in_idx: literal $para: ident $n_fun: ident $d_fun: ident $min: expr, $max: expr, $def: expr))*
+                    $(($in_idx: literal $para: ident
+                       $n_fun: ident $d_fun: ident
+                       $min: expr, $max: expr, $def: expr))*
                     $([$out_idx: literal $out: ident])*
                 ,)+
             ) => {

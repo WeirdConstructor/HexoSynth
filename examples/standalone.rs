@@ -159,7 +159,6 @@ fn start_backend<F: FnMut()>(shared: Arc<HexoSynthShared>, mut f: F) {
             first = false;
         }
 
-
         let nframes = out_a_p.len();
 
         let mut context = Context {
