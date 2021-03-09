@@ -16,7 +16,7 @@ use serde::{Serialize, Deserialize};
 use raw_window_handle::HasRawWindowHandle;
 use std::rc::Rc;
 
-use baseplug::{
+pub use baseplug::{
     ProcessContext,
     PluginContext,
     WindowOpenResult,
@@ -27,7 +27,7 @@ use baseplug::{
 
 baseplug::model! {
     #[derive(Debug, Serialize, Deserialize)]
-    struct HexoSynthModel {
+    pub struct HexoSynthModel {
         #[model(min = 0.0, max = 1.0)]
         #[parameter(name = "A1")]
         mod_a1: f32,
@@ -145,9 +145,9 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::cell::RefCell;
 
-struct HexoSynthShared {
-    matrix:    Arc<Mutex<Matrix>>,
-    node_exec: Rc<RefCell<NodeExecutor>>,
+pub struct HexoSynthShared {
+    pub matrix:    Arc<Mutex<Matrix>>,
+    pub node_exec: Rc<RefCell<Option<NodeExecutor>>>,
 }
 
 unsafe impl Send for HexoSynthShared {}
@@ -167,12 +167,12 @@ impl PluginContext<HexoSynth> for HexoSynthShared {
 
         Self {
             matrix:    Arc::new(Mutex::new(matrix)),
-            node_exec: Rc::new(RefCell::new(node_exec)),
+            node_exec: Rc::new(RefCell::new(Some(node_exec))),
         }
     }
 }
 
-struct HexoSynth {
+pub struct HexoSynth {
 }
 
 pub struct Context<'a, 'b, 'c, 'd> {
@@ -205,6 +205,7 @@ impl Plugin for HexoSynth {
     #[inline]
     fn new(sample_rate: f32, _model: &HexoSynthModel, shared: &HexoSynthShared) -> Self {
         let mut node_exec = shared.node_exec.borrow_mut();
+        let mut node_exec = node_exec.as_mut().unwrap();
         node_exec.set_sample_rate(sample_rate);
 
         Self { }
@@ -218,6 +219,7 @@ impl Plugin for HexoSynth {
         let output = &mut ctx.outputs[0].buffers;
 
         let mut node_exec = shared.node_exec.borrow_mut();
+        let mut node_exec = node_exec.as_mut().unwrap();
 
         node_exec.process_graph_updates();
 
@@ -240,8 +242,14 @@ impl Plugin for HexoSynth {
 use hexotk::*;
 use hexotk::widgets::*;
 
-struct HexoSynthUIParams {
+pub struct HexoSynthUIParams {
     params: [f32; 100],
+}
+
+impl HexoSynthUIParams {
+    pub fn new() -> Self {
+        HexoSynthUIParams { params: [0.0; 100] }
+    }
 }
 
 impl Parameters for HexoSynthUIParams {
@@ -323,5 +331,5 @@ impl PluginUI for HexoSynth {
     }
 }
 
-#[cfg(not(test))]
-baseplug::vst2!(HexoSynth, b"HxsY");
+//#[cfg(not(test))]
+//baseplug::vst2!(HexoSynth, b"HxsY");
