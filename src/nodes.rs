@@ -305,6 +305,28 @@ pub struct NodeOp {
     pub inputs: Vec<(usize, usize)>,
 }
 
+/*
+
+Rewrite of the core for Vec<f32> (64 samples) buffers:
+
+- There are no dedicated input buffers anymore
+    - Input buffers are replaced by an Vec<&[f32]>
+      they are cleared and copied into before process() is called.
+- There are output buffers in the NodeProg
+- There are parameter buffers (with smoothed contents) in the NodeProg
+    - They are copied over from the old program!
+    - Smoothing is written to the corresponding samples in one go.
+- New: NodeProg stores not just input indices, but also
+       an extra adjacency table for the inputs of the nodes
+       that receive parameters buffers.
+       enum SrcIdx {
+            Output(usize),
+            Param(usize),
+       }
+       pub inputs: Vec<(<out vec index>, SrcIdx)>
+
+*/
+
 impl std::fmt::Display for NodeOp {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Op(i={} out=({}-{}) in=({}-{})",
@@ -525,7 +547,8 @@ impl NodeExecutor {
                 let input = &mut prog.inp;
                 let out   = &prog.out;
                 for io in op.inputs.iter() {
-                    //d// println!("IL={}, OL={}, {}<={}", input.len(), out.len(), io.1, io.0);
+                    //d// println!("IL={}, OL={}, {}<={}",
+                    //             input.len(), out.len(), io.1, io.0);
                     input[io.1] = out[io.0];
                 }
             }
