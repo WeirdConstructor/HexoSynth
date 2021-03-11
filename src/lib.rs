@@ -243,50 +243,51 @@ use hexotk::*;
 use hexotk::widgets::*;
 
 pub struct HexoSynthUIParams {
-    params: [f32; 100],
+    params: Vec<Atom>,
 }
 
 impl HexoSynthUIParams {
     pub fn new() -> Self {
-        HexoSynthUIParams { params: [0.0; 100] }
+        let mut params = vec![Atom::default(); 100];
+        HexoSynthUIParams { params }
     }
 }
 
-impl Parameters for HexoSynthUIParams {
+impl AtomDataModel for HexoSynthUIParams {
     fn len(&self) -> usize { self.params.len() }
-    fn get(&self, id: UIParam) -> f32 { self.params[id.param_id() as usize] }
-    fn get_denorm(&self, id: UIParam) -> f32 { self.params[id.param_id() as usize] }
-    fn set(&mut self, id: UIParam, v: f32) { self.params[id.param_id() as usize] = v; }
-    fn set_default(&mut self, id: UIParam) {
-        self.set(id, 0.0);
+    fn get(&self, id: AtomId) -> Atom { self.params[id.atom_id() as usize].clone() }
+    fn get_denorm(&self, id: AtomId) -> Atom { self.params[id.atom_id() as usize].clone() }
+    fn set(&mut self, id: AtomId, v: Atom) { self.params[id.atom_id() as usize] = v; }
+    fn set_default(&mut self, id: AtomId) {
+        self.set(id, self.get(id).default_of());
     }
 
-    fn change_start(&mut self, id: UIParam) {
+    fn change_start(&mut self, id: AtomId) {
 //        println!("CHANGE START: {}", id);
     }
 
-    fn change(&mut self, id: UIParam, v: f32, single: bool) {
+    fn change(&mut self, id: AtomId, v: f32, single: bool) {
 //        println!("CHANGE: {},{} ({})", id, v, single);
-        self.set(id, v);
+        self.set(id, Atom::param(v));
     }
 
-    fn change_end(&mut self, id: UIParam, v: f32) {
+    fn change_end(&mut self, id: AtomId, v: f32) {
 //        println!("CHANGE END: {},{}", id, v);
-        self.set(id, v);
+        self.set(id, Atom::param(v));
     }
 
-    fn step_next(&mut self, id: UIParam) {
-        self.set(id, (self.get(id) + 0.2).fract());
+    fn step_next(&mut self, id: AtomId) {
+        self.set(id, Atom::setting(self.get(id).i() + 1));
     }
 
-    fn step_prev(&mut self, id: UIParam) {
-        self.set(id, ((self.get(id) - 0.2) + 1.0).fract());
+    fn step_prev(&mut self, id: AtomId) {
+        self.set(id, Atom::setting(self.get(id).i() - 1));
     }
 
-    fn fmt<'a>(&self, id: UIParam, buf: &'a mut [u8]) -> usize {
+    fn fmt<'a>(&self, id: AtomId, buf: &'a mut [u8]) -> usize {
         use std::io::Write;
         let mut bw = std::io::BufWriter::new(buf);
-        match write!(bw, "{:6.3}", self.get_denorm(id)) {
+        match write!(bw, "{:6.3}", self.get_denorm(id).f()) {
             Ok(_)  => bw.buffer().len(),
             Err(_) => 0,
         }
@@ -309,7 +310,7 @@ impl PluginUI for HexoSynth {
         open_window("HexoSynth", 1400, 700, Some(parent.raw_window_handle()), Box::new(|| {
             let mut ui = Box::new(UI::new(
                 Box::new(NodeMatrixData::new(matrix, UIPos::center(12, 12), 11)),
-                Box::new(HexoSynthUIParams { params: [0.0; 100] }),
+                Box::new(HexoSynthUIParams::new()),
                 (1400 as f64, 700 as f64),
             ));
 

@@ -1,5 +1,5 @@
 use hexotk::widgets::hexgrid::HexGridModel;
-use hexotk::{MButton, ActiveZone, UIPos, UIParam};
+use hexotk::{MButton, ActiveZone, UIPos, AtomId};
 use hexotk::{Rect, WidgetUI, Painter, WidgetData, WidgetType, UIEvent, wbox};
 use hexotk::constants::*;
 use hexotk::widgets::{
@@ -262,7 +262,7 @@ impl HexGridModel for MatrixUIModel {
 pub struct NodeMatrixData {
     hex_grid:     Box<WidgetData>,
     hex_menu:     Box<WidgetData>,
-    hex_menu_id:  UIParam,
+    hex_menu_id:  AtomId,
 
     matrix_model: Rc<MatrixUIModel>,
 
@@ -295,7 +295,7 @@ impl NodeMatrixData {
         let wt_cont = Rc::new(Container::new());
         let wt_text = Rc::new(Text::new(12.0));
 
-        let hex_menu_id = UIParam::new(node_id, 2);
+        let hex_menu_id = AtomId::new(node_id, 2);
         let mut hex_menu = ContainerData::new();
         hex_menu.contrast_border()
            .title("Menu")
@@ -306,22 +306,22 @@ impl NodeMatrixData {
                 center(6, 12),
                 HexGridData::new(menu_model)))
            .add(wbox!(wt_text,
-                UIParam::new(node_id, 4),
+                AtomId::new(node_id, 4),
                 center(6, 12),
                 TextData::new(txtsrc.clone())));
 
         WidgetData::new(
             wt_nmatrix,
-            UIParam::new(node_id, 1),
+            AtomId::new(node_id, 1),
             pos,
             Box::new(Self {
                 hex_grid: WidgetData::new_tl_box(
                     wt_hexgrid.clone(),
-                    UIParam::new(node_id, 1),
+                    AtomId::new(node_id, 1),
                     HexGridData::new(matrix_model.clone())),
                 hex_menu: WidgetData::new_tl_box(
                     wt_cont,
-                    UIParam::new(node_id, 3),
+                    AtomId::new(node_id, 3),
                     hex_menu),
                 hex_menu_id,
                 matrix_model,

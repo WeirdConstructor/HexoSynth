@@ -168,7 +168,7 @@ fn check_matrix_sine() {
     matrix.place(0, 0, Cell::empty(sin)
                        .out(None, sin.out("sig"), None));
     matrix.place(1, 0, Cell::empty(out)
-                       .input(None, out.inp("in1"), None));
+                       .input(None, out.inp("ch1"), None));
     matrix.sync();
 
     let (mut out_l, mut out_r) = run_no_input(&mut node_exec, 4.0);
@@ -211,7 +211,7 @@ fn check_sine_pitch_change() {
     matrix.place(0, 0, Cell::empty(sin)
                        .out(None, sin.out("sig"), None));
     matrix.place(1, 0, Cell::empty(out)
-                       .input(None, out.inp("in1"), None));
+                       .input(None, out.inp("ch1"), None));
     matrix.sync();
 
     let (mut out_l, mut out_r) = run_no_input(&mut node_exec, 0.2);

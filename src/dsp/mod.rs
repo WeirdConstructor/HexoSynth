@@ -42,22 +42,7 @@ macro_rules! node_list {
                [0 sig],
             out => Out UIType::Generic UICategory::IOUtil
                (0  ch1  n_id  d_id  0.0, 1.0, 0.0)
-               (1  ch2  n_id  d_id  0.0, 1.0, 0.0)
-               (2  ch3  n_id  d_id  0.0, 1.0, 0.0)
-               (3  ch4  n_id  d_id  0.0, 1.0, 0.0)
-               (4  ch5  n_id  d_id  0.0, 1.0, 0.0)
-               (5  ch6  n_id  d_id  0.0, 1.0, 0.0)
-               (6  ch7  n_id  d_id  0.0, 1.0, 0.0)
-               (7  ch8  n_id  d_id  0.0, 1.0, 0.0)
-               (8  ch9  n_id  d_id  0.0, 1.0, 0.0)
-               (9  ch10 n_id  d_id  0.0, 1.0, 0.0)
-               (10 ch11 n_id  d_id  0.0, 1.0, 0.0)
-               (11 ch12 n_id  d_id  0.0, 1.0, 0.0)
-               (12 ch13 n_id  d_id  0.0, 1.0, 0.0)
-               (13 ch14 n_id  d_id  0.0, 1.0, 0.0)
-               (14 ch15 n_id  d_id  0.0, 1.0, 0.0)
-               (15 ch16 n_id  d_id  0.0, 1.0, 0.0)
-               (16 ch17 n_id  d_id  0.0, 1.0, 0.0),
+               (1  ch2  n_id  d_id  0.0, 1.0, 0.0),
         }
     }
 }
