@@ -2,7 +2,7 @@ const MAX_ALLOCATED_NODES : usize = 256;
 const MAX_SMOOTHERS       : usize = 36 + 4; // 6 * 6 modulator inputs + 4 UI Knobs
 
 use ringbuf::{RingBuffer, Producer, Consumer};
-use crate::dsp::{node_factory, NodeInfo, Node, NodeId};
+use crate::dsp::{node_factory, NodeInfo, Node, NodeId, SAtom};
 use crate::util::Smoother;
 
 /// A node graph execution program. It comes with buffers
@@ -37,17 +37,20 @@ impl NodeProg {
         }
     }
 
-    pub fn new(out_len: usize, inp_len: usize) -> Self {
+    pub fn new(out_len: usize, inp_len: usize, at_len: usize) -> Self {
         let mut out = vec![];
         out.resize(out_len, 0.0);
         let mut inp = vec![];
         inp.resize(inp_len, 0.0);
         let mut params = vec![];
         params.resize(inp_len, 0.0);
+        let mut atoms = vec![];
+        atoms.resize(at_len, SAtom::setting(0));
         Self {
             out,
             inp,
             params,
+            atoms,
             prog: vec![],
         }
     }
@@ -56,7 +59,7 @@ impl NodeProg {
         &mut self.params
     }
 
-    pub fn atoms_mut(&mut self) -> &mut [f32] {
+    pub fn atoms_mut(&mut self) -> &mut [SAtom] {
         &mut self.atoms
     }
 
@@ -96,6 +99,7 @@ pub enum GraphMessage {
 /// Messages for small updates between the NodeExecutor thread
 /// and the NodeConfigurator.
 pub enum QuickMessage {
+    AtomUpdate  { at_idx: usize, value: SAtom },
     ParamUpdate { input_idx: usize, value: f32 },
     Feedback    { node_id: u8, feedback_id: u8, value: f32 },
 }
@@ -191,6 +195,11 @@ impl NodeConfigurator {
             f(n, nid, i);
             i += 1;
         }
+    }
+
+    pub fn set_atom(&mut self, at_idx: usize, value: SAtom) {
+        self.quick_update_prod.push(
+            QuickMessage::AtomUpdate { at_idx, value });
     }
 
     pub fn set_param(&mut self, input_idx: usize, value: f32) {
@@ -373,6 +382,7 @@ impl NodeOp {
 enum DropMsg {
     Node { node: Node },
     Prog { prog: NodeProg },
+    Atom { atom: SAtom },
 }
 
 /// Holds the complete allocation of nodes and
@@ -442,11 +452,16 @@ impl NodeExecutor {
                     //      vector, because we don't know if they are updated from
                     //      the new program outputs anymore. So we need to 
                     //      copy the old paramters to the inputs.
+                    //
+                    //      => This does not apply to atom data, because that
+                    //         is always sent with the new program and "should"
+                    //         be up to date, even if we have a slight possible race
+                    //         condition between GraphMessage::NewProg
+                    //         and QuickMessage::AtomUpdate.
                     if copy_old_out {
                         let old_len = prev_prog.out.len();
                         self.prog.out[0..old_len].copy_from_slice(
                             &prev_prog.out[..]);
-
 
                         // First overwrite by the new paramters, to make sure
                         // _all_ inputs have a proper value (not just those
@@ -523,6 +538,14 @@ impl NodeExecutor {
 
         while let Some(upd) = self.quick_update_con.pop() {
             match upd {
+                QuickMessage::AtomUpdate { at_idx, value } => {
+                    let prog = &mut self.prog;
+                    let garbage =
+                        std::mem::replace(
+                            &mut prog.atoms[at_idx],
+                            value);
+                    self.graph_drop_prod.push(DropMsg::Atom { atom: garbage });
+                },
                 QuickMessage::ParamUpdate { input_idx, value } => {
                     self.set_param(input_idx, value);
                 },

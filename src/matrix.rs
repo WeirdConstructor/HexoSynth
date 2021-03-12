@@ -1,5 +1,5 @@
 use crate::nodes::{NodeOp, NodeConfigurator, NodeProg};
-use crate::dsp::{NodeInfo, NodeId, ParamId};
+use crate::dsp::{NodeInfo, NodeId, ParamId, SAtom};
 pub use crate::CellDir;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -194,7 +194,7 @@ struct MatrixNodeParam {
     value:      f32,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+#[derive(Debug, Clone)]
 struct MatrixNodeAtom {
     param_id:   ParamId,
     at_idx:     usize,
@@ -265,7 +265,7 @@ impl Matrix {
         //      if it was actually synced before!
         if param.is_atom() {
             if let Some(nparam) = self.atoms.borrow_mut().get_mut(&param) {
-                nparam.value = at;
+                nparam.value = at.clone();
                 self.config.set_atom(nparam.at_idx, at);
             }
         } else {
@@ -573,7 +573,7 @@ impl Matrix {
                 // little param_id for an Atom weirdness here.
                 if let Some(param_id) = id.atom_param_by_idx(atom_idx - at_idx) {
                     if let Some(old_atom) = self.atoms_old.borrow().get(&param_id) {
-                        self.atoms.borrow_mut().insert(param_id, *old_atom);
+                        self.atoms.borrow_mut().insert(param_id, old_atom.clone());
 
                     } else {
                         self.atoms.borrow_mut().insert(param_id, MatrixNodeAtom {
@@ -598,7 +598,7 @@ impl Matrix {
                 .set_atom(at_idx, at_len));
         });
 
-        let mut prog = NodeProg::new(out_len, in_len);
+        let mut prog = NodeProg::new(out_len, in_len, at_len);
 
         for x in 0..self.w {
             for y in 0..self.h {
@@ -669,7 +669,7 @@ impl Matrix {
         }
         // The atoms are referred to directly on process() call.
         for (param_id, param) in self.atoms.borrow().iter() {
-            prog.atoms_mut()[param.at_idx] = param.value;
+            prog.atoms_mut()[param.at_idx] = param.value.clone();
         }
 
         self.config.upload_prog(prog, true); // true => copy_old_out

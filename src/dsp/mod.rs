@@ -32,6 +32,20 @@ pub enum UICategory {
     IOUtil,
 }
 
+// A note about the input-indicies:
+//
+// Atoms and Input parameters share the same global ID space
+// because thats how the client of the Matrix API needs to refer to
+// them. Beyond the Matrix API the atom data is actually split apart
+// from the parameters, because they are not smoothed.
+//
+// The index there only matters for addressing the atoms in the global atom vector.
+//
+// But the actually second index here is for referring to the atom index
+// relative to the absolute count of atom data a Node has.
+// It is used by the [Matrix] to get the global ParamId for the atom data
+// when iterating through the atoms of a Node and initializes the default data
+// for new nodes.
 macro_rules! node_list {
     ($inmacro: ident) => {
         $inmacro!{
@@ -549,6 +563,13 @@ macro_rules! make_node_info_enum {
                 match self {
                     NodeInfo::$v1                 => NodeId::$v1,
                     $(NodeInfo::$variant((id, _)) => *id),+
+                }
+            }
+
+            pub fn at_count(&self) -> usize {
+                match self {
+                    NodeInfo::$v1           => 0,
+                    $(NodeInfo::$variant(n) => n.1.at_count()),+
                 }
             }
 

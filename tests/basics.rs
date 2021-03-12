@@ -265,7 +265,7 @@ fn check_sine_pitch_change() {
 
     matrix.set_param(
         freq_param,
-        freq_param.norm(4400.0));
+        SAtom::param(freq_param.norm(4400.0)));
 
     let (mut out_l, mut out_r) = run_no_input(&mut node_exec, 1.0);
 
