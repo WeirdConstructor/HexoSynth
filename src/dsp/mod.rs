@@ -288,6 +288,11 @@ macro_rules! make_node_info_enum {
                                 name: stringify!($para),
                                 idx:  $in_idx,
                             }),)*
+                            $($in_at_idx => Some(ParamId {
+                                node: *self,
+                                name: stringify!($atom),
+                                idx:  $in_at_idx,
+                            }),)*
                             _ => None,
                         }
                     }),+
@@ -396,8 +401,10 @@ macro_rules! make_node_info_enum {
                 #[derive(Debug, Clone)]
                 pub struct $variant {
                     inputs:         Vec<&'static str>,
+                    atoms:          Vec<&'static str>,
                     outputs:        Vec<&'static str>,
                     input_help:     Vec<&'static str>,
+                    atom_help:      Vec<&'static str>,
                     output_help:    Vec<&'static str>,
                 }
 
@@ -405,15 +412,25 @@ macro_rules! make_node_info_enum {
                     pub fn new() -> Self {
                         Self {
                             inputs:  vec![$(stringify!($para),)*],
+                            atoms:   vec![$(stringify!($atom),)*],
                             outputs: vec![$(stringify!($out),)*],
 
                             input_help:  vec![$(crate::dsp::$variant::$para,)*],
+                            atom_help:   vec![$(crate::dsp::$variant::$atom,)*],
                             output_help: vec![$(crate::dsp::$variant::$out,)*],
                         }
                     }
 
                     pub fn in_name(&self, in_idx: usize) -> Option<&'static str> {
-                        Some(*(self.inputs.get(in_idx)?))
+                        if let Some(s) = self.inputs.get(in_idx) {
+                            Some(*s)
+                        } else {
+                            Some(*(self.atoms.get(in_idx)?))
+                        }
+                    }
+
+                    pub fn at_name(&self, in_idx: usize) -> Option<&'static str> {
+                        Some(*(self.atoms.get(in_idx)?))
                     }
 
                     pub fn out_name(&self, out_idx: usize) -> Option<&'static str> {
@@ -421,7 +438,11 @@ macro_rules! make_node_info_enum {
                     }
 
                     pub fn in_help(&self, in_idx: usize) -> Option<&'static str> {
-                        Some(*(self.input_help.get(in_idx)?))
+                        if let Some(s) = self.inputs.get(in_idx) {
+                            Some(*s)
+                        } else {
+                            Some(*(self.atom_help.get(in_idx)?))
+                        }
                     }
 
                     pub fn out_help(&self, out_idx: usize) -> Option<&'static str> {
@@ -444,6 +465,7 @@ macro_rules! make_node_info_enum {
 
                     pub fn out_count(&self) -> usize { self.outputs.len() }
                     pub fn in_count(&self)  -> usize { self.inputs.len() }
+                    pub fn at_count(&self)  -> usize { self.atoms.len() }
                 }
             )+
         }

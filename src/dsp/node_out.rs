@@ -28,6 +28,9 @@ impl Out {
         ctx.output(1, inp::Out::ch2(inputs));
     }
 
+    pub const mono : &'static str =
+        "Out mono\nIf enabled, ch1 will be sent to both output channels\n(UI only)";
+
     pub const ch1 : &'static str =
         "Out ch1\nAudio channel 1 (left)\nRange: (-1..1)";
     pub const ch2 : &'static str =
