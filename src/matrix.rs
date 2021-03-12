@@ -116,6 +116,8 @@ struct NodeInstance {
     out_end:    usize,
     in_start:   usize,
     in_end:     usize,
+    at_start:   usize,
+    at_end:     usize,
 }
 
 impl NodeInstance {
@@ -128,6 +130,8 @@ impl NodeInstance {
             out_end:   0,
             in_start:  0,
             in_end:    0,
+            at_start:  0,
+            at_end:    0,
         }
     }
 
@@ -139,6 +143,7 @@ impl NodeInstance {
             idx:        self.prog_idx as u8,
             out_idxlen: (self.out_start, self.out_end),
             in_idxlen:  (self.in_start, self.in_end),
+            at_idxlen:  (self.at_start, self.at_end),
             inputs:     vec![],
         }
     }
@@ -171,6 +176,12 @@ impl NodeInstance {
         self.in_end   = e;
         self
     }
+
+    pub fn set_atom(mut self, s: usize, e: usize) -> Self {
+        self.at_start = s;
+        self.at_end   = e;
+        self
+    }
 }
 
 use std::rc::Rc;
@@ -183,16 +194,32 @@ struct MatrixNodeParam {
     value:      f32,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+struct MatrixNodeAtom {
+    param_id:   ParamId,
+    at_idx:     usize,
+    value:      SAtom,
+}
+
 pub struct Matrix {
     config:      NodeConfigurator,
     matrix:      Vec<Cell>,
     w:           usize,
     h:           usize,
 
+    /// Bookkeeping of [NodeInstance] in the [NodeConfigurator].
     instances:   Rc<RefCell<std::collections::HashMap<NodeId, NodeInstance>>>,
+    /// Storing some runtime information about the instanciated node 
     infos:       Rc<RefCell<std::collections::HashMap<NodeId, NodeInfo>>>,
+    /// Contains automateable parameters after the matrix was sync()'ed
     params:      Rc<RefCell<std::collections::HashMap<ParamId, MatrixNodeParam>>>,
+    /// Stores an old set of the values of automateable paramters.
     params_old:  Rc<RefCell<std::collections::HashMap<ParamId, MatrixNodeParam>>>,
+    /// Contains non automateable atom data for the nodes after the matrix was
+    /// sync()'ed.
+    atoms:       Rc<RefCell<std::collections::HashMap<ParamId, MatrixNodeAtom>>>,
+    /// Stores an old set of atom data.
+    atoms_old:   Rc<RefCell<std::collections::HashMap<ParamId, MatrixNodeAtom>>>,
 }
 
 unsafe impl Send for Matrix {}
@@ -207,6 +234,8 @@ impl Matrix {
             infos:       Rc::new(RefCell::new(std::collections::HashMap::new())),
             params:      Rc::new(RefCell::new(std::collections::HashMap::new())),
             params_old:  Rc::new(RefCell::new(std::collections::HashMap::new())),
+            atoms:       Rc::new(RefCell::new(std::collections::HashMap::new())),
+            atoms_old:   Rc::new(RefCell::new(std::collections::HashMap::new())),
             config,
             w,
             h,
@@ -230,10 +259,21 @@ impl Matrix {
         self.matrix[x * self.h + y] = cell;
     }
 
-    pub fn set_param(&mut self, param: ParamId, v: f32) {
-        if let Some(nparam) = self.params.borrow_mut().get_mut(&param) {
-            nparam.value = v;
-            self.config.set_param(nparam.input_idx, v);
+    pub fn set_param(&mut self, param: ParamId, at: SAtom) {
+        // XXX: The atoms and params maps are created when
+        //      the matrix is sync()'ed. Only call this function
+        //      if it was actually synced before!
+        if param.is_atom() {
+            if let Some(nparam) = self.atoms.borrow_mut().get_mut(&param) {
+                nparam.value = at;
+                self.config.set_atom(nparam.at_idx, at);
+            }
+        } else {
+            if let Some(nparam) = self.params.borrow_mut().get_mut(&param) {
+                let value = at.f();
+                nparam.value = value;
+                self.config.set_param(nparam.input_idx, value);
+            }
         }
     }
 
@@ -426,12 +466,9 @@ impl Matrix {
     pub fn sync(&mut self) {
         self.instances.borrow_mut().clear();
 
-        println!("FOO");
-
         // Build instance map, to find new nodes in the matrix.
         self.config.for_each(|node_info, mut id, _i| {
             while let Some(_) = self.instances.borrow().get(&id) {
-                println!("OOO {:?}", id);
                 id = id.to_instance(id.instance() + 1);
             }
 
@@ -496,6 +533,7 @@ impl Matrix {
 
         let mut out_len = 0;
         let mut in_len  = 0;
+        let mut at_len  = 0;
         self.config.for_each(|node_info, mut id, i| {
             // - calculate size of output vector.
             let out_idx = out_len;
@@ -504,6 +542,10 @@ impl Matrix {
             // - calculate size of input vector.
             let in_idx = in_len;
             in_len += node_info.in_count();
+
+            // - calculate size of atom vector.
+            let at_idx = at_len;
+            at_len += node_info.at_count();
 
             println!("{} = {}", i, id);
 
@@ -524,8 +566,27 @@ impl Matrix {
                 }
             }
 
-            println!("INSERT: {:?} outidx: {},{} inidx: {},{}",
-                     id, out_idx, out_len, in_idx, in_len);
+            // Create new atom data and initialize it if it did not
+            // already exist from a previous matrix instance.
+            for atom_idx in at_idx..at_len {
+                // XXX: See also the documentation of atom_param_by_idx about the
+                // little param_id for an Atom weirdness here.
+                if let Some(param_id) = id.atom_param_by_idx(atom_idx - at_idx) {
+                    if let Some(old_atom) = self.atoms_old.borrow().get(&param_id) {
+                        self.atoms.borrow_mut().insert(param_id, *old_atom);
+
+                    } else {
+                        self.atoms.borrow_mut().insert(param_id, MatrixNodeAtom {
+                            param_id,
+                            at_idx:  atom_idx,
+                            value:   param_id.as_atom_def(),
+                        });
+                    }
+                }
+            }
+
+            println!("INSERT: {:?} outidx: {},{} inidx: {},{} atidx: {},{}",
+                     id, out_idx, out_len, in_idx, in_len, at_idx, at_len);
 
             // - save offset and length of each node's
             //   allocation in the output vector.
@@ -533,7 +594,8 @@ impl Matrix {
                 NodeInstance::new(id)
                 .set_index(i)
                 .set_output(out_idx, out_len)
-                .set_input(in_idx, in_len));
+                .set_input(in_idx, in_len)
+                .set_atom(at_idx, at_len));
         });
 
         let mut prog = NodeProg::new(out_len, in_len);
@@ -599,16 +661,19 @@ impl Matrix {
             }
         }
 
-        // Copy the parameter values into the program:
+        // Copy the parameter values and atom data into the program:
         // They are extracted by process_graph_updates() later to
         // reset the inp[] input value vector.
         for (param_id, param) in self.params.borrow().iter() {
             prog.params_mut()[param.input_idx] = param.value;
         }
+        // The atoms are referred to directly on process() call.
+        for (param_id, param) in self.atoms.borrow().iter() {
+            prog.atoms_mut()[param.at_idx] = param.value;
+        }
 
         self.config.upload_prog(prog, true); // true => copy_old_out
 
-        println!("FBAROO");
         // - after each node has been created, use the node ordering
         //   in NodeConfigurator to create an output vector.
         //      - When a new output vector is received in the backend,

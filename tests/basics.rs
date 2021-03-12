@@ -200,6 +200,45 @@ fn check_matrix_sine() {
     assert_eq!(fft_res[1], (474, 169));
 }
 
+#[test]
+fn check_matrix_atom_set() {
+    let (mut node_conf, mut node_exec) = new_node_engine();
+    let mut matrix = Matrix::new(node_conf, 3, 3);
+
+    let sin = NodeId::Sin(2);
+    let out = NodeId::Out(0);
+    matrix.place(0, 0, Cell::empty(sin)
+                       .out(None, sin.out("sig"), None));
+    matrix.place(1, 0, Cell::empty(out)
+                       .input(None, out.inp("ch1"), None));
+    matrix.sync();
+
+    let mono_param = sin.inp_param("mono").unwrap();
+
+    matrix.set_param(mono_param, SAtom::setting(1));
+
+    let (mut out_l, mut out_r) = run_no_input(&mut node_exec, 4.0);
+
+    let sum_l : f32 = out_l.iter().map(|v| v.abs()).sum();
+    let sum_r : f32 = out_r.iter().map(|v| v.abs()).sum();
+    assert_float_eq!(sum_l, 112303.086);
+    assert_float_eq!(sum_r, 112303.086);
+
+    let rms_mimax = calc_rms_mimax_each_ms(&out_l[..], 1000.0);
+    for i in 0..4 {
+        assert_float_eq!(rms_mimax[i].0, 0.5);
+        assert_float_eq!(rms_mimax[i].1, -0.9999999);
+        assert_float_eq!(rms_mimax[i].2, 0.9999999);
+    }
+
+    let rms_mimax = calc_rms_mimax_each_ms(&out_r[..], 1000.0);
+    for i in 0..4 {
+        assert_float_eq!(rms_mimax[i].0, 0.5);
+        assert_float_eq!(rms_mimax[i].1, -0.9999999);
+        assert_float_eq!(rms_mimax[i].2, 0.9999999);
+    }
+}
+
 
 #[test]
 fn check_sine_pitch_change() {

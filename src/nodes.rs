@@ -11,8 +11,12 @@ use crate::util::Smoother;
 pub struct NodeProg {
     /// The output vector, holding all the node outputs.
     pub out:    Vec<f32>,
-    /// The param vector, holding all parameter inputs of the nodes, such as knob settings.
+    /// The param vector, holding all parameter inputs of the
+    /// nodes, such as knob settings.
     pub params: Vec<f32>,
+    /// The atom vector, holding all non automatable parameter inputs
+    /// of the nodes, such as samples or integer settings.
+    pub atoms:  Vec<SAtom>,
     /// The input vector that feeds the nodes. It's initialized from params
     /// and then changed by the program signal paths that overwrite them
     /// with the values in the node outputs.
@@ -28,6 +32,7 @@ impl NodeProg {
             out:    vec![],
             inp:    vec![],
             params: vec![],
+            atoms:  vec![],
             prog:   vec![],
         }
     }
@@ -49,6 +54,10 @@ impl NodeProg {
 
     pub fn params_mut(&mut self) -> &mut [f32] {
         &mut self.params
+    }
+
+    pub fn atoms_mut(&mut self) -> &mut [f32] {
+        &mut self.atoms
     }
 
     pub fn append_with_inputs(
@@ -301,6 +310,8 @@ pub struct NodeOp {
     pub out_idxlen: (usize, usize),
     /// Input index and length of the node:
     pub in_idxlen: (usize, usize),
+    /// Atom data index and length of the node:
+    pub at_idxlen: (usize, usize),
     /// Input indices, (<out vec index>, <own node input index>)
     pub inputs: Vec<(usize, usize)>,
 }
@@ -329,12 +340,14 @@ Rewrite of the core for Vec<f32> (64 samples) buffers:
 
 impl std::fmt::Display for NodeOp {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Op(i={} out=({}-{}) in=({}-{})",
+        write!(f, "Op(i={} out=({}-{}) in=({}-{}) at=({}-{})",
                self.idx,
                self.out_idxlen.0,
                self.out_idxlen.1,
                self.in_idxlen.0,
-               self.in_idxlen.1)?;
+               self.in_idxlen.1,
+               self.at_idxlen.0,
+               self.at_idxlen.1)?;
 
         for i in self.inputs.iter() {
             write!(f, " cpy=(o{} => i{})", i.0, i.1)?;
@@ -350,6 +363,7 @@ impl NodeOp {
             idx:        0,
             out_idxlen: (0, 0),
             in_idxlen:  (0, 0),
+            at_idxlen:  (0, 0),
             inputs:     vec![],
         }
     }

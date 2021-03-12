@@ -160,7 +160,20 @@ macro_rules! make_node_info_enum {
             pub fn inp(&self)     -> u8           { self.idx }
             pub fn name(&self)    -> &'static str { self.name }
 
-            pub fn as_atom(&self) -> SAtom {
+            pub fn is_atom(&self) -> bool {
+                match self.node {
+                    NodeId::$v1           => false,
+                    $(NodeId::$variant(_) => {
+                        match self.idx {
+                            $($in_idx    => false,)*
+                            $($in_at_idx => true,)*
+                            _            => false,
+                        }
+                    }),+
+                }
+            }
+
+            pub fn as_atom_def(&self) -> SAtom {
                 match self.node {
                     NodeId::$v1           => SAtom::param(0.0),
                     $(NodeId::$variant(_) => {
@@ -278,6 +291,28 @@ macro_rules! make_node_info_enum {
                 }
             }
 
+            /// This maps the atom index of the node to the absolute
+            /// ParamId in the GUI (and in the [Matrix]).
+            /// The Atom/Param duality is a bit weird because they share
+            /// the same ID namespace for the UI. But in the actual
+            /// backend, they are split. So the actual splitting happens
+            /// in the [Matrix].
+            pub fn atom_param_by_idx(&self, idx: usize) -> Option<ParamId> {
+                match self {
+                    NodeId::$v1           => None,
+                    $(NodeId::$variant(_) => {
+                        match idx {
+                            $($at_idx => Some(ParamId {
+                                node: *self,
+                                name: stringify!($atom),
+                                idx:  $in_at_idx,
+                            }),)*
+                            _ => None,
+                        }
+                    }),+
+                }
+            }
+
             pub fn inp_param_by_idx(&self, idx: usize) -> Option<ParamId> {
                 match self {
                     NodeId::$v1           => None,
@@ -287,11 +322,6 @@ macro_rules! make_node_info_enum {
                                 node: *self,
                                 name: stringify!($para),
                                 idx:  $in_idx,
-                            }),)*
-                            $($in_at_idx => Some(ParamId {
-                                node: *self,
-                                name: stringify!($atom),
-                                idx:  $in_at_idx,
                             }),)*
                             _ => None,
                         }
@@ -308,6 +338,11 @@ macro_rules! make_node_info_enum {
                                 node: *self,
                                 name: stringify!($para),
                                 idx:  $in_idx,
+                            }),)*
+                            $(stringify!($atom) => Some(ParamId {
+                                node: *self,
+                                name: stringify!($atom),
+                                idx:  $in_at_idx,
                             }),)*
                             _ => None,
                         }
