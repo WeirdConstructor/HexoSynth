@@ -4,6 +4,8 @@ mod node_out;
 
 use crate::nodes::NodeAudioContext;
 
+use hexotk::Atom;
+
 use node_amp::Amp;
 use node_sin::Sin;
 use node_out::Out;
@@ -42,7 +44,8 @@ macro_rules! node_list {
                [0 sig],
             out => Out UIType::Generic UICategory::IOUtil
                (0  ch1  n_id  d_id  0.0, 1.0, 0.0)
-               (1  ch2  n_id  d_id  0.0, 1.0, 0.0),
+               (1  ch2  n_id  d_id  0.0, 1.0, 0.0)
+               {2 0 mono Setting => setting(1)},
         }
     }
 }
@@ -90,7 +93,11 @@ impl UICategory {
                 $($str: ident => $variant: ident
                     UIType:: $gui_type: ident
                     UICategory:: $ui_cat: ident
-                    $(($in_idx: literal $para: ident $n_fun: ident $d_fun: ident $min: expr, $max: expr, $def: expr))*
+                    $(($in_idx: literal $para: ident
+                       $n_fun: ident $d_fun: ident
+                       $min: expr, $max: expr, $def: expr))*
+                    $({$in_at_idx: literal $at_idx: literal $atom: ident
+                       $at_type: ident => $at_fun: ident ($at_init: expr)})*
                     $([$out_idx: literal $out: ident])*
                     ,)+
             ) => {
@@ -113,7 +120,11 @@ macro_rules! make_node_info_enum {
         $($str: ident => $variant: ident
             UIType:: $gui_type: ident
             UICategory:: $ui_cat: ident
-            $(($in_idx: literal $para: ident $n_fun: ident $d_fun: ident $min: expr, $max: expr, $def: expr))*
+            $(($in_idx: literal $para: ident
+               $n_fun: ident $d_fun: ident
+               $min: expr, $max: expr, $def: expr))*
+            $({$in_at_idx: literal $at_idx: literal $atom: ident
+               $at_type: ident => $at_fun: ident ($at_init: expr)})*
             $([$out_idx: literal $out: ident])*
             ,)+
     ) => {
@@ -147,6 +158,19 @@ macro_rules! make_node_info_enum {
             pub fn node_id(&self) -> NodeId       { self.node }
             pub fn inp(&self)     -> u8           { self.idx }
             pub fn name(&self)    -> &'static str { self.name }
+
+            pub fn as_atom(&self) -> Atom {
+                match self.node {
+                    NodeId::$v1           => Atom::param(0.0),
+                    $(NodeId::$variant(_) => {
+                        match self.idx {
+                            $($in_idx    => Atom::param(crate::dsp::norm_def::$variant::$para()),)*
+                            $($in_at_idx => Atom::$at_fun($at_init),)*
+                            _ => Atom::param(0.0),
+                        }
+                    }),+
+                }
+            }
 
             pub fn norm_def(&self) -> f32 {
                 match self.node {
@@ -492,7 +516,11 @@ macro_rules! make_node_enum {
         $($str: ident => $variant: ident
             UIType:: $gui_type: ident
             UICategory:: $ui_cat: ident
-            $(($in_idx: literal $para: ident $n_fun: ident $d_fun: ident $min: expr, $max: expr, $def: expr))*
+            $(($in_idx: literal $para: ident
+               $n_fun: ident $d_fun: ident
+               $min: expr, $max: expr, $def: expr))*
+            $({$in_at_idx: literal $at_idx: literal $atom: ident
+               $at_type: ident => $at_fun: ident ($at_init: expr)})*
             $([$out_idx: literal $out: ident])*
             ,)+
     ) => {
@@ -546,7 +574,11 @@ pub fn node_factory(node_id: NodeId) -> Option<(Node, NodeInfo)> {
             $($str: ident => $variant: ident
                 UIType:: $gui_type: ident
                 UICategory:: $ui_cat: ident
-                $(($in_idx: literal $para: ident $n_fun: ident $d_fun: ident $min: expr, $max: expr, $def: expr))*
+                $(($in_idx: literal $para: ident
+                   $n_fun: ident $d_fun: ident
+                   $min: expr, $max: expr, $def: expr))*
+                $({$in_at_idx: literal $at_idx: literal $atom: ident
+                   $at_type: ident => $at_fun: ident ($at_init: expr)})*
                 $([$out_idx: literal $out: ident])*
             ,)+
         ) => {
@@ -576,6 +608,8 @@ impl Node {
                     $(($in_idx: literal $para: ident
                        $n_fun: ident $d_fun: ident
                        $min: expr, $max: expr, $def: expr))*
+                    $({$in_at_idx: literal $at_idx: literal $atom: ident
+                       $at_type: ident => $at_fun: ident ($at_init: expr)})*
                     $([$out_idx: literal $out: ident])*
                 ,)+
             ) => {
