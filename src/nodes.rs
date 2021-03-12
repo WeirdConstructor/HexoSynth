@@ -580,6 +580,7 @@ impl NodeExecutor {
 
             let out = op.out_idxlen;
             let inp = op.in_idxlen;
+            let at  = op.at_idxlen;
             {
                 let input = &mut prog.inp;
                 let out   = &prog.out;
@@ -593,6 +594,7 @@ impl NodeExecutor {
             nodes[op.idx as usize]
             .process(
                 ctx,
+                &prog.atoms[at.0..at.1],
                 &prog.inp[inp.0..inp.1],
                 &mut prog.out[out.0..out.1]);
         }

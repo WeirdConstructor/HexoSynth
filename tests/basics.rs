@@ -213,7 +213,7 @@ fn check_matrix_atom_set() {
                        .input(None, out.inp("ch1"), None));
     matrix.sync();
 
-    let mono_param = sin.inp_param("mono").unwrap();
+    let mono_param = out.inp_param("mono").unwrap();
 
     matrix.set_param(mono_param, SAtom::setting(1));
 

@@ -1,4 +1,5 @@
 use crate::nodes::NodeAudioContext;
+use crate::dsp::SAtom;
 
 /// A sine oscillator
 #[derive(Debug, Clone)]
@@ -28,7 +29,7 @@ impl Sin {
     }
 
     #[inline]
-    pub fn process<T: NodeAudioContext>(&mut self, ctx: &mut T, inputs: &[f32], outputs: &mut [f32]) {
+    pub fn process<T: NodeAudioContext>(&mut self, ctx: &mut T, atoms: &[SAtom], inputs: &[f32], outputs: &mut [f32]) {
         use crate::dsp::denorm;
         use crate::dsp::out;
 

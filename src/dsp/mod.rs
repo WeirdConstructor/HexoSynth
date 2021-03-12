@@ -60,7 +60,7 @@ macro_rules! node_list {
             out => Out UIType::Generic UICategory::IOUtil
                (0  ch1  n_id  d_id  0.0, 1.0, 0.0)
                (1  ch2  n_id  d_id  0.0, 1.0, 0.0)
-               {2 0 mono Setting => setting(1)},
+               {2 0 mono Setting => setting(0)},
         }
     }
 }
@@ -437,6 +437,15 @@ macro_rules! make_node_info_enum {
         }
 
         #[allow(non_snake_case)]
+        pub mod at {
+            $(pub mod $variant {
+                $(#[inline] pub fn $atom(atoms: &[crate::dsp::SAtom]) -> &crate::dsp::SAtom {
+                    &atoms[$at_idx]
+                })*
+            })+
+        }
+
+        #[allow(non_snake_case)]
         pub mod out {
             $(pub mod $variant {
                 $(#[inline] pub fn $out(outputs: &mut [f32], v: f32) {
@@ -677,7 +686,7 @@ pub fn node_factory(node_id: NodeId) -> Option<(Node, NodeInfo)> {
 impl Node {
     #[inline]
     pub fn process<T: NodeAudioContext>(
-        &mut self, ctx: &mut T, inputs: &[f32], outputs: &mut [f32])
+        &mut self, ctx: &mut T, atoms: &[SAtom], inputs: &[f32], outputs: &mut [f32])
     {
         macro_rules! make_node_process {
             ($s1: ident => $v1: ident,
@@ -694,7 +703,7 @@ impl Node {
             ) => {
                 match self {
                     Node::$v1 => {},
-                    $(Node::$variant { node } => node.process(ctx, inputs, outputs),)+
+                    $(Node::$variant { node } => node.process(ctx, atoms, inputs, outputs),)+
                 }
             }
         }

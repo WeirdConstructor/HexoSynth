@@ -1,4 +1,5 @@
 use crate::nodes::NodeAudioContext;
+use crate::dsp::SAtom;
 
 /// The (stereo) output port of the plugin
 #[derive(Debug, Clone)]
@@ -21,11 +22,17 @@ impl Out {
     pub fn reset(&mut self) { }
 
     #[inline]
-    pub fn process<T: NodeAudioContext>(&mut self, ctx: &mut T, inputs: &[f32], _outputs: &mut [f32]) {
+    pub fn process<T: NodeAudioContext>(&mut self, ctx: &mut T, atoms: &[SAtom], inputs: &[f32], _outputs: &mut [f32]) {
         use crate::dsp::inp;
+        use crate::dsp::at;
 
-        ctx.output(0, inp::Out::ch1(inputs));
-        ctx.output(1, inp::Out::ch2(inputs));
+        if at::Out::mono(atoms).i() > 0 {
+            ctx.output(0, inp::Out::ch1(inputs));
+            ctx.output(1, inp::Out::ch1(inputs));
+        } else {
+            ctx.output(0, inp::Out::ch1(inputs));
+            ctx.output(1, inp::Out::ch2(inputs));
+        }
     }
 
     pub const mono : &'static str =

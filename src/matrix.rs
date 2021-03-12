@@ -787,9 +787,9 @@ mod tests {
         assert!(nodes[2].to_id(2) == NodeId::Sin(2));
 
         let prog = node_exec.get_prog();
-        assert_eq!(prog.prog[0].to_string(), "Op(i=0 out=(0-1) in=(0-1))");
-        assert_eq!(prog.prog[1].to_string(), "Op(i=1 out=(1-2) in=(1-2) cpy=(o0 => i1))");
-        assert_eq!(prog.prog[2].to_string(), "Op(i=2 out=(2-3) in=(2-3) cpy=(o1 => i2))");
+        assert_eq!(prog.prog[0].to_string(), "Op(i=0 out=(0-1) in=(0-1) at=(0-0))");
+        assert_eq!(prog.prog[1].to_string(), "Op(i=1 out=(1-2) in=(1-2) at=(0-0) cpy=(o0 => i1))");
+        assert_eq!(prog.prog[2].to_string(), "Op(i=2 out=(2-3) in=(2-3) at=(0-0) cpy=(o1 => i2))");
     }
 
     #[test]
@@ -842,8 +842,8 @@ mod tests {
 
         let prog = node_exec.get_prog();
         assert_eq!(prog.prog.len(), 2);
-        assert_eq!(prog.prog[0].to_string(), "Op(i=0 out=(0-1) in=(0-1))");
-        assert_eq!(prog.prog[1].to_string(), "Op(i=1 out=(1-1) in=(1-3) cpy=(o0 => i1))");
+        assert_eq!(prog.prog[0].to_string(), "Op(i=0 out=(0-1) in=(0-1) at=(0-0))");
+        assert_eq!(prog.prog[1].to_string(), "Op(i=1 out=(1-1) in=(1-3) at=(0-1) cpy=(o0 => i1))");
     }
 
     #[test]
@@ -873,7 +873,7 @@ mod tests {
 
         let prog = node_exec.get_prog();
         assert_eq!(prog.prog.len(), 2);
-        assert_eq!(prog.prog[0].to_string(), "Op(i=2 out=(2-3) in=(2-3))");
-        assert_eq!(prog.prog[1].to_string(), "Op(i=3 out=(3-3) in=(3-5) cpy=(o2 => i3))");
+        assert_eq!(prog.prog[0].to_string(), "Op(i=2 out=(2-3) in=(2-3) at=(0-0))");
+        assert_eq!(prog.prog[1].to_string(), "Op(i=3 out=(3-3) in=(3-5) at=(0-1) cpy=(o2 => i3))");
     }
 }
