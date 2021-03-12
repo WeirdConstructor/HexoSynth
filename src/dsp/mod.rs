@@ -1,10 +1,11 @@
 mod node_amp;
 mod node_sin;
 mod node_out;
+mod satom;
 
 use crate::nodes::NodeAudioContext;
 
-use hexotk::Atom;
+pub use satom::*;
 
 use node_amp::Amp;
 use node_sin::Sin;
@@ -159,14 +160,14 @@ macro_rules! make_node_info_enum {
             pub fn inp(&self)     -> u8           { self.idx }
             pub fn name(&self)    -> &'static str { self.name }
 
-            pub fn as_atom(&self) -> Atom {
+            pub fn as_atom(&self) -> SAtom {
                 match self.node {
-                    NodeId::$v1           => Atom::param(0.0),
+                    NodeId::$v1           => SAtom::param(0.0),
                     $(NodeId::$variant(_) => {
                         match self.idx {
-                            $($in_idx    => Atom::param(crate::dsp::norm_def::$variant::$para()),)*
-                            $($in_at_idx => Atom::$at_fun($at_init),)*
-                            _ => Atom::param(0.0),
+                            $($in_idx    => SAtom::param(crate::dsp::norm_def::$variant::$para()),)*
+                            $($in_at_idx => SAtom::$at_fun($at_init),)*
+                            _            => SAtom::param(0.0),
                         }
                     }),+
                 }
