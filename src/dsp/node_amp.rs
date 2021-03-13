@@ -1,5 +1,5 @@
 use crate::nodes::NodeAudioContext;
-use crate::dsp::SAtom;
+use crate::dsp::{SAtom, ProcBuf};
 
 /// A simple amplifier
 #[derive(Debug, Clone)]
@@ -18,13 +18,18 @@ impl Amp {
     pub fn reset(&mut self) { }
 
     #[inline]
-    pub fn process<T: NodeAudioContext>(&mut self, _ctx: &mut T, _atoms: &[SAtom], inputs: &[f32], outputs: &mut [f32]) {
+    pub fn process<T: NodeAudioContext>(&mut self, ctx: &mut T, _atoms: &[SAtom], inputs: &[ProcBuf], outputs: &mut [ProcBuf]) {
         use crate::dsp::out;
         use crate::dsp::inp;
         use crate::dsp::denorm;
-        out::Amp::sig(
-            outputs,
-            inp::Amp::inp(inputs) * denorm::Amp::gain(inputs));
+
+        for frame in 0..ctx.nframes() {
+            out::Amp::sig(
+                outputs,
+                frame,
+                inp::Amp::inp(inputs, frame)
+                * denorm::Amp::gain(inputs, frame));
+        }
     }
 
     pub const inp : &'static str =

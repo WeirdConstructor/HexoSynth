@@ -177,18 +177,23 @@ pub struct HexoSynth {
 }
 
 pub struct Context<'a, 'b, 'c, 'd> {
-    pub frame_idx:  usize,
+    pub nframes:    usize,
     pub output:     &'a mut [&'b mut [f32]],
     pub input:      &'c [&'d [f32]],
 }
 
 impl<'a, 'b, 'c, 'd> nodes::NodeAudioContext for Context<'a, 'b, 'c, 'd> {
-    fn output(&mut self, channel: usize, v: f32) {
-        self.output[channel][self.frame_idx] = v;
+    #[inline]
+    fn nframes(&self) -> usize { self.nframes }
+
+    #[inline]
+    fn output(&mut self, channel: usize, frame: usize, v: f32) {
+        self.output[channel][frame] = v;
     }
 
-    fn input(&mut self, channel: usize) -> f32 {
-        self.input[channel][self.frame_idx]
+    #[inline]
+    fn input(&mut self, channel: usize, frame: usize) -> f32 {
+        self.input[channel][frame]
     }
 }
 
@@ -225,18 +230,18 @@ impl Plugin for HexoSynth {
         node_exec.process_graph_updates();
 
         let mut context = Context {
-            frame_idx: 0,
+            nframes: ctx.nframes,
             output,
             input,
         };
 
         for i in 0..ctx.nframes {
-            context.frame_idx    = i;
             context.output[0][i] = 0.0;
             context.output[1][i] = 0.0;
 
-            node_exec.process(&mut context);
         }
+
+        node_exec.process(&mut context);
     }
 }
 

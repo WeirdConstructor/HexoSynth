@@ -16,6 +16,59 @@ use node_out::Out;
 
 pub const MIDI_MAX_FREQ : f32 = 13289.75;
 
+pub const MAX_BLOCK_SIZE : usize = 64;
+
+/// A processing buffer with the exact right maximum size.
+pub struct ProcBuf(Box<[f32; MAX_BLOCK_SIZE]>);
+
+impl ProcBuf {
+    pub fn new() -> Self { ProcBuf(Box::new([0.0; 64])) }
+}
+
+impl ProcBuf {
+    pub fn slice(&mut self) -> &mut [f32] { &mut self.0[..] }
+
+    #[inline]
+    pub fn write(&mut self, idx: usize, v: f32) {
+        (*self.0)[idx] = v;
+    }
+
+    #[inline]
+    pub fn read(&self, idx: usize) -> f32 { (*self.0)[idx] }
+
+    #[inline]
+    pub fn fill(&mut self, v: f32) {
+        (*self.0).fill(v);
+    }
+}
+
+impl std::clone::Clone for ProcBuf {
+    fn clone(&self) -> Self {
+        let mut new = Self::new();
+        (*new.0).copy_from_slice(&self.0[..]);
+        new
+    }
+}
+
+impl std::fmt::Debug for ProcBuf {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "ProcBuf(0: {}, 32: {}, 63: {})",
+            self.0[0], self.0[32], self.0[63])
+    }
+}
+
+impl std::fmt::Display for ProcBuf {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "ProcBuf(0: {}, 32: {}, 63: {})",
+            self.0[0], self.0[32], self.0[63])
+    }
+}
+
+
 #[derive(Debug, Clone, Copy, PartialOrd, PartialEq)]
 pub enum UIType {
     Generic,
@@ -424,8 +477,8 @@ macro_rules! make_node_info_enum {
         #[allow(non_snake_case)]
         pub mod denorm {
             $(pub mod $variant {
-                $(#[inline] pub fn $para(inputs: &[f32]) -> f32 {
-                    let x = inputs[$in_idx];
+                $(#[inline] pub fn $para(inputs: &[crate::dsp::ProcBuf], frame: usize) -> f32 {
+                    let x = inputs[$in_idx].read(frame);
                     $d_fun!(x, $min, $max)
                 })*
             })+
@@ -434,8 +487,8 @@ macro_rules! make_node_info_enum {
         #[allow(non_snake_case)]
         pub mod inp {
             $(pub mod $variant {
-                $(#[inline] pub fn $para(inputs: &[f32]) -> f32 {
-                    inputs[$in_idx]
+                $(#[inline] pub fn $para(inputs: &[crate::dsp::ProcBuf], frame: usize) -> f32 {
+                    inputs[$in_idx].read(frame)
                 })*
             })+
         }
@@ -452,8 +505,8 @@ macro_rules! make_node_info_enum {
         #[allow(non_snake_case)]
         pub mod out {
             $(pub mod $variant {
-                $(#[inline] pub fn $out(outputs: &mut [f32], v: f32) {
-                    outputs[$out_idx] = v;
+                $(#[inline] pub fn $out(outputs: &mut [crate::dsp::ProcBuf], frame: usize, v: f32) {
+                    outputs[$out_idx].write(frame, v);
                 })*
             })+
         }
@@ -690,7 +743,7 @@ pub fn node_factory(node_id: NodeId) -> Option<(Node, NodeInfo)> {
 impl Node {
     #[inline]
     pub fn process<T: NodeAudioContext>(
-        &mut self, ctx: &mut T, atoms: &[SAtom], inputs: &[f32], outputs: &mut [f32])
+        &mut self, ctx: &mut T, atoms: &[SAtom], inputs: &[ProcBuf], outputs: &mut [ProcBuf])
     {
         macro_rules! make_node_process {
             ($s1: ident => $v1: ident,

@@ -2,21 +2,15 @@ const MAX_ALLOCATED_NODES : usize = 256;
 const MAX_SMOOTHERS       : usize = 36 + 4; // 6 * 6 modulator inputs + 4 UI Knobs
 
 use ringbuf::{RingBuffer, Producer, Consumer};
-use crate::dsp::{node_factory, NodeInfo, Node, NodeId, SAtom};
+use crate::dsp::{node_factory, NodeInfo, Node, NodeId, SAtom, ProcBuf};
 use crate::util::Smoother;
-
-//struct ProcBuf(Box<[f32; 64]>);
-//
-//impl ProcBuf {
-//    fn new() -> Self { ProcBuf(Box::new([0.0; 64])) }
-//}
 
 /// A node graph execution program. It comes with buffers
 /// for the inputs, outputs and node parameters (knob values).
 #[derive(Debug, Clone)]
 pub struct NodeProg {
     /// The output vector, holding all the node outputs.
-    pub out:    Vec<f32>,
+    pub out:    Vec<ProcBuf>,
     /// The param vector, holding all parameter inputs of the
     /// nodes, such as knob settings.
     pub params: Vec<f32>,
@@ -26,7 +20,7 @@ pub struct NodeProg {
     /// The input vector that feeds the nodes. It's initialized from params
     /// and then changed by the program signal paths that overwrite them
     /// with the values in the node outputs.
-    pub inp:    Vec<f32>,
+    pub inp:    Vec<ProcBuf>,
     /// The node operations that are executed in the order they appear in this
     /// vector.
     pub prog:   Vec<NodeOp>,
@@ -45,9 +39,9 @@ impl NodeProg {
 
     pub fn new(out_len: usize, inp_len: usize, at_len: usize) -> Self {
         let mut out = vec![];
-        out.resize(out_len, 0.0);
+        out.resize_with(out_len, || ProcBuf::new());
         let mut inp = vec![];
-        inp.resize(inp_len, 0.0);
+        inp.resize_with(inp_len, || ProcBuf::new());
         let mut params = vec![];
         params.resize(inp_len, 0.0);
         let mut atoms = vec![];
@@ -301,10 +295,13 @@ pub fn new_node_engine() -> (NodeConfigurator, NodeExecutor) {
     let mut smoothers = Vec::new();
     smoothers.resize_with(MAX_SMOOTHERS, || (0, Smoother::new()));
 
+    let target_refresh = Vec::with_capacity(MAX_SMOOTHERS);
+
     let ne = NodeExecutor {
         sample_rate:       44100.0,
         nodes,
         smoothers,
+        target_refresh,
         prog:              NodeProg::empty(),
         graph_update_con:  rb_graph_con,
         quick_update_con:  rb_quick_con,
@@ -408,6 +405,10 @@ pub struct NodeExecutor {
     /// Contains the stand-by smoothing operators for incoming parameter changes.
     smoothers: Vec<(usize, Smoother)>,
 
+    /// Contains target parameter values after a smoother finished,
+    /// these will refresh the input buffers:
+    target_refresh: Vec<(usize, f32)>,
+
     /// Contains the to be executed nodes and output operations.
     /// Is copied from the input ringbuffer when a corresponding
     /// message arrives.
@@ -427,8 +428,9 @@ pub struct NodeExecutor {
 }
 
 pub trait NodeAudioContext {
-    fn output(&mut self, channel: usize, v: f32);
-    fn input(&mut self, channel: usize) -> f32;
+    fn nframes(&self) -> usize;
+    fn output(&mut self, channel: usize, frame: usize, v: f32);
+    fn input(&mut self, channel: usize, frame: usize) -> f32;
 }
 
 impl NodeExecutor {
@@ -447,7 +449,7 @@ impl NodeExecutor {
                             DropMsg::Node { node: prev_node });
                 },
                 GraphMessage::NewProg { prog, copy_old_out } => {
-                    let prev_prog = std::mem::replace(&mut self.prog, prog);
+                    let mut prev_prog = std::mem::replace(&mut self.prog, prog);
 
                     // XXX: Copying from the old vector works, because we only
                     //      append nodes to the _end_ of the node instance vector.
@@ -464,19 +466,44 @@ impl NodeExecutor {
                     //         condition between GraphMessage::NewProg
                     //         and QuickMessage::AtomUpdate.
                     if copy_old_out {
-                        let old_len = prev_prog.out.len();
-                        self.prog.out[0..old_len].copy_from_slice(
-                            &prev_prog.out[..]);
+                        // XXX: The following is commented out, because presisting
+                        //      the output proc buffers does not make sense anymore.
+                        //      Because we don't allow cycles, so there is no
+                        //      way that a node can read from the previous
+                        //      iteration anyways.
+                        //
+                        // // Swap the old out buffers into the new NodeProg
+                        // // TODO: If we toss away most of the buffers anyways,
+                        // //       we could optimize this step with more
+                        // //       intelligence in the matrix compiler.
+                        // for (old_pb, new_pb) in
+                        //     prev_prog.out.iter_mut().zip(
+                        //         self.prog.out.iter_mut())
+                        // {
+                        //     std::mem::swap(old_pb, new_pb);
+                        // }
 
-                        // First overwrite by the new paramters, to make sure
-                        // _all_ inputs have a proper value (not just those
-                        // that existed before):
-                        self.prog.inp[0..self.prog.params.len()]
-                            .copy_from_slice(&self.prog.params[..]);
+                        // First overwrite by the current input parameters,
+                        // to make sure _all_ inputs have a proper value
+                        // (not just those that existed before).
+                        //
+                        // We preserve the modulation history in the next step.
+                        // This is also to make sure that new input ports
+                        // have a proper value too.
+                        for param_idx in 0..self.prog.params.len() {
+                            let param_val = self.prog.params[param_idx];
+                            self.prog.inp[param_idx].fill(param_val);
+                        }
+
                         // Then overwrite the inputs by the more current previous
-                        // parameters:
-                        self.prog.inp[0..prev_prog.params.len()]
-                            .copy_from_slice(&prev_prog.params[..]);
+                        // input processing buffers, so we keep any modulation
+                        // (smoothed) history of the block too.
+                        for (old_inp_pb, new_inp_pb) in
+                            prev_prog.inp.iter_mut().zip(
+                                self.prog.inp.iter_mut())
+                        {
+                            std::mem::swap(old_inp_pb, new_inp_pb);
+                        }
                     }
 
                     let _ =
@@ -565,10 +592,24 @@ impl NodeExecutor {
         let nodes = &mut self.nodes;
         let prog  = &mut self.prog;
 
+        while let Some((idx, v)) = self.target_refresh.pop() {
+            prog.inp[idx].fill(v);
+        }
+
         for (idx, smoother) in self.smoothers.iter_mut().filter(|s| !s.1.is_done()) {
-            let v = smoother.next();
-            prog.inp[*idx]    = v;
-            prog.params[*idx] = v;
+
+            let inp        = &mut prog.inp[*idx];
+            let mut last_v = 0.0;
+
+            for frame in 0..ctx.nframes() {
+                let v = smoother.next();
+
+                inp.write(frame, v);
+                last_v = v;
+            }
+
+            prog.params[*idx] = last_v;
+            self.target_refresh.push((*idx, last_v));
         }
 
         // XXX: We can overwrite the inp input value vector with the outputs,
@@ -607,27 +648,43 @@ impl NodeExecutor {
         */
 
         for op in prog.prog.iter() {
-            //d// println!("EXEC> {}", op);
-
             let out = op.out_idxlen;
             let inp = op.in_idxlen;
             let at  = op.at_idxlen;
+
+            // First we swap all (smoothed) input parameter ProcBuf
+            // instances in the node prog with the previously written
+            // output ProcBufs that are modulated. And after calling process()
+            // we swap the outputs back again.
+            //
+            // XXX: This requires, that the graph is not cyclic,
+            // because otherwise we would overwrite the swapped out input ProcBuf.
             {
                 let input = &mut prog.inp;
-                let out   = &prog.out;
+                let out   = &mut prog.out;
+
                 for io in op.inputs.iter() {
-                    //d// println!("IL={}, OL={}, {}<={}",
-                    //             input.len(), out.len(), io.1, io.0);
-                    input[io.1] = out[io.0];
+                    std::mem::swap(&mut input[io.1], &mut out[io.0]);
                 }
             }
 
             nodes[op.idx as usize]
-            .process(
-                ctx,
-                &prog.atoms[at.0..at.1],
-                &prog.inp[inp.0..inp.1],
-                &mut prog.out[out.0..out.1]);
+                .process(
+                    ctx,
+                    &prog.atoms[at.0..at.1],
+                    &prog.inp[inp.0..inp.1],
+                    &mut prog.out[out.0..out.1]);
+
+            // Swap back the output ProcBufs to be written to on the next
+            // iteration.
+            {
+                let input = &mut prog.inp;
+                let out   = &mut prog.out;
+
+                for io in op.inputs.iter() {
+                    std::mem::swap(&mut input[io.1], &mut out[io.0]);
+                }
+            }
         }
     }
 }

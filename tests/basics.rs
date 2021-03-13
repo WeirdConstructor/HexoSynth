@@ -37,24 +37,38 @@ fn run_no_input(node_exec: &mut hexosynth::nodes::NodeExecutor, seconds: f32) ->
     node_exec.set_sample_rate(SAMPLE_RATE);
     node_exec.process_graph_updates();
 
-    let nframes = (seconds * SAMPLE_RATE) as usize;
+    let mut nframes = (seconds * SAMPLE_RATE) as usize;
 
-    let input    = vec![0.0; nframes];
+    let input        = vec![0.0; nframes];
     let mut output_l = vec![0.0; nframes];
     let mut output_r = vec![0.0; nframes];
 
-    let mut context = hexosynth::Context {
-        frame_idx: 0,
-        output: &mut [output_l.as_mut(), output_r.as_mut()],
-        input: &[input.as_ref()],
-    };
-
     for i in 0..nframes {
-        context.frame_idx = i;
-        context.output[0][i] = 0.0;
-        context.output[1][i] = 0.0;
+        output_l[i] = 0.0;
+        output_r[i] = 0.0;
+    }
+
+    let mut offs = 0;
+    while nframes > 0 {
+        let cur_nframes =
+            if nframes >= hexosynth::dsp::MAX_BLOCK_SIZE {
+                hexosynth::dsp::MAX_BLOCK_SIZE
+            } else {
+                nframes
+            };
+        nframes -= cur_nframes;
+
+        println!("ITER CUR: {}", cur_nframes);
+        let mut context = hexosynth::Context {
+            nframes: cur_nframes,
+            output:  &mut [&mut output_l[offs..(offs + cur_nframes)],
+                           &mut output_r[offs..(offs + cur_nframes)]],
+            input:   &[&input[offs..(offs + cur_nframes)]],
+        };
 
         node_exec.process(&mut context);
+
+        offs += cur_nframes;
     }
 
     (output_l, output_r)

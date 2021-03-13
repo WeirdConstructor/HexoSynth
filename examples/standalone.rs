@@ -162,22 +162,44 @@ fn start_backend<F: FnMut()>(shared: Arc<HexoSynthShared>, mut f: F) {
 
         let nframes = out_a_p.len();
 
-        let mut context = Context {
-            frame_idx: 0,
-            output: &mut [out_a_p, out_b_p],
-            input: &[in_a_p, in_b_p],
-        };
-
         let mut node_exec = ne.lock().unwrap();
 
         node_exec.process_graph_updates();
 
-        for i in 0..nframes {
-            context.frame_idx    = i;
-            context.output[0][i] = 0.0;
-            context.output[1][i] = 0.0;
+        let mut frames_left = nframes;
+        let mut offs        = 0;
+
+        while frames_left > 0 {
+            let cur_nframes =
+                if frames_left >= hexosynth::dsp::MAX_BLOCK_SIZE {
+                    hexosynth::dsp::MAX_BLOCK_SIZE
+                } else {
+                    frames_left
+                };
+
+            frames_left -= cur_nframes;
+
+            let output = &mut [&mut out_a_p[offs..(offs + cur_nframes)],
+                               &mut out_b_p[offs..(offs + cur_nframes)]];
+            let input =
+                &[&in_a_p[offs..(offs + cur_nframes)],
+                  &in_b_p[offs..(offs + cur_nframes)]];
+
+            let mut context =
+                Context {
+                    nframes: cur_nframes,
+                    output,
+                    input,
+                };
+
+            for i in 0..context.nframes {
+                context.output[0][i] = 0.0;
+                context.output[1][i] = 0.0;
+            }
 
             node_exec.process(&mut context);
+
+            offs += cur_nframes;
         }
 
         jack::Control::Continue
