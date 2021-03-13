@@ -156,12 +156,14 @@ unsafe impl Sync for HexoSynthShared {}
 
 impl PluginContext<HexoSynth> for HexoSynthShared {
     fn new() -> Self {
+
         let (node_conf, node_exec) = nodes::new_node_engine();
-        let mut matrix = Matrix::new(node_conf, 8, 7);
+        let (w, h) = (8, 7);
+        let mut matrix = Matrix::new(node_conf, w, h);
 
         let mut i = 2;
-        for x in 0..8 {
-            for y in 0..7 {
+        for x in 0..w {
+            for y in 0..h {
                 matrix.place(x, y,
                     Cell::empty(NodeId::Sin(i))
                     .out(Some(0), None, None)

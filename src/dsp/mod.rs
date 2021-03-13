@@ -5,6 +5,7 @@ mod node_sin;
 #[allow(non_upper_case_globals)]
 mod node_out;
 mod satom;
+pub mod helpers;
 
 use crate::nodes::NodeAudioContext;
 
@@ -52,19 +53,13 @@ impl std::clone::Clone for ProcBuf {
 
 impl std::fmt::Debug for ProcBuf {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "ProcBuf(0: {}, 32: {}, 63: {})",
-            self.0[0], self.0[32], self.0[63])
+        write!(f, "ProcBuf(0: {})", self.0[0])
     }
 }
 
 impl std::fmt::Display for ProcBuf {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "ProcBuf(0: {}, 32: {}, 63: {})",
-            self.0[0], self.0[32], self.0[63])
+        write!(f, "ProcBuf(0: {})", self.0[0])
     }
 }
 
@@ -478,8 +473,7 @@ macro_rules! make_node_info_enum {
         pub mod denorm {
             $(pub mod $variant {
                 $(#[inline] pub fn $para(buf: &crate::dsp::ProcBuf, frame: usize) -> f32 {
-                    let x = buf.read(frame);
-                    $d_fun!(x, $min, $max)
+                    $d_fun!(buf.read(frame), $min, $max)
                 })*
             })+
         }

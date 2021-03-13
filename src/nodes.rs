@@ -309,6 +309,10 @@ pub fn new_node_engine() -> (NodeConfigurator, NodeExecutor) {
         // feedback_prod:     rb_fb_prod,
     };
 
+    // XXX: This is one of the earliest and most consistent point
+    //      in runtime to do this kind of initialization:
+    crate::dsp::helpers::init_cos_tab();
+
     (nc, ne)
 }
 
@@ -674,17 +678,35 @@ impl NodeExecutor {
                     &prog.atoms[at.0..at.1],
                     &prog.inp[inp.0..inp.1],
                     &mut prog.out[out.0..out.1]);
+            nodes[op.idx as usize]
+                .process(
+                    ctx,
+                    &prog.atoms[at.0..at.1],
+                    &prog.inp[inp.0..inp.1],
+                    &mut prog.out[out.0..out.1]);
+            nodes[op.idx as usize]
+                .process(
+                    ctx,
+                    &prog.atoms[at.0..at.1],
+                    &prog.inp[inp.0..inp.1],
+                    &mut prog.out[out.0..out.1]);
+            nodes[op.idx as usize]
+                .process(
+                    ctx,
+                    &prog.atoms[at.0..at.1],
+                    &prog.inp[inp.0..inp.1],
+                    &mut prog.out[out.0..out.1]);
 
             // Swap back the output ProcBufs to be written to on the next
             // iteration.
-//            {
-//                let input = &mut prog.inp;
-//                let out   = &mut prog.out;
-//
-//                for io in op.inputs.iter() {
-//                    std::mem::swap(&mut input[io.1], &mut out[io.0]);
-//                }
-//            }
+            {
+                let input = &mut prog.inp;
+                let out   = &mut prog.out;
+
+                for io in op.inputs.iter() {
+                    std::mem::swap(&mut input[io.1], &mut out[io.0]);
+                }
+            }
         }
     }
 }
