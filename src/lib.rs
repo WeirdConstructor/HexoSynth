@@ -2,6 +2,7 @@
 #![feature(generic_associated_types)]
 
 pub mod nodes;
+#[allow(unused_macros)]
 pub mod dsp;
 pub mod matrix;
 pub mod cell_dir;
@@ -155,7 +156,7 @@ unsafe impl Sync for HexoSynthShared {}
 
 impl PluginContext<HexoSynth> for HexoSynthShared {
     fn new() -> Self {
-        let (mut node_conf, node_exec) = nodes::new_node_engine();
+        let (node_conf, node_exec) = nodes::new_node_engine();
         let mut matrix = Matrix::new(node_conf, 8, 7);
 
         matrix.place(0, 1, Cell::empty(NodeId::Sin(0))
@@ -205,21 +206,21 @@ impl Plugin for HexoSynth {
     #[inline]
     fn new(sample_rate: f32, _model: &HexoSynthModel, shared: &HexoSynthShared) -> Self {
         let mut node_exec = shared.node_exec.borrow_mut();
-        let mut node_exec = node_exec.as_mut().unwrap();
+        let node_exec     = node_exec.as_mut().unwrap();
         node_exec.set_sample_rate(sample_rate);
 
         Self { }
     }
 
     #[inline]
-    fn process(&mut self, model: &HexoSynthModelProcess,
+    fn process(&mut self, _model: &HexoSynthModelProcess,
                ctx: &mut ProcessContext<Self>, shared: &HexoSynthShared) {
 
         let input  = &ctx.inputs[0].buffers;
         let output = &mut ctx.outputs[0].buffers;
 
         let mut node_exec = shared.node_exec.borrow_mut();
-        let mut node_exec = node_exec.as_mut().unwrap();
+        let node_exec     = node_exec.as_mut().unwrap();
 
         node_exec.process_graph_updates();
 
@@ -240,7 +241,6 @@ impl Plugin for HexoSynth {
 }
 
 use hexotk::*;
-use hexotk::widgets::*;
 
 pub struct HexoSynthUIParams {
     params: Vec<Atom>,
@@ -248,7 +248,7 @@ pub struct HexoSynthUIParams {
 
 impl HexoSynthUIParams {
     pub fn new() -> Self {
-        let mut params = vec![Atom::default(); 100];
+        let params = vec![Atom::default(); 100];
         HexoSynthUIParams { params }
     }
 }
@@ -262,11 +262,11 @@ impl AtomDataModel for HexoSynthUIParams {
         self.set(id, self.get(id).default_of());
     }
 
-    fn change_start(&mut self, id: AtomId) {
+    fn change_start(&mut self, _id: AtomId) {
 //        println!("CHANGE START: {}", id);
     }
 
-    fn change(&mut self, id: AtomId, v: f32, single: bool) {
+    fn change(&mut self, id: AtomId, v: f32, _single: bool) {
 //        println!("CHANGE: {},{} ({})", id, v, single);
         self.set(id, Atom::param(v));
     }
@@ -308,13 +308,11 @@ impl PluginUI for HexoSynth {
         let matrix = ctx.matrix.clone();
 
         open_window("HexoSynth", 1400, 700, Some(parent.raw_window_handle()), Box::new(|| {
-            let mut ui = Box::new(UI::new(
+            Box::new(UI::new(
                 Box::new(NodeMatrixData::new(matrix, UIPos::center(12, 12), 11)),
                 Box::new(HexoSynthUIParams::new()),
                 (1400 as f64, 700 as f64),
-            ));
-
-            ui
+            ))
         }));
 
         Ok(42)

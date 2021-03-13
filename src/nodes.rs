@@ -5,6 +5,12 @@ use ringbuf::{RingBuffer, Producer, Consumer};
 use crate::dsp::{node_factory, NodeInfo, Node, NodeId, SAtom};
 use crate::util::Smoother;
 
+//struct ProcBuf(Box<[f32; 64]>);
+//
+//impl ProcBuf {
+//    fn new() -> Self { ProcBuf(Box::new([0.0; 64])) }
+//}
+
 /// A node graph execution program. It comes with buffers
 /// for the inputs, outputs and node parameters (knob values).
 #[derive(Debug, Clone)]
@@ -98,6 +104,7 @@ pub enum GraphMessage {
 
 /// Messages for small updates between the NodeExecutor thread
 /// and the NodeConfigurator.
+#[derive(Debug)]
 pub enum QuickMessage {
     AtomUpdate  { at_idx: usize, value: SAtom },
     ParamUpdate { input_idx: usize, value: f32 },
@@ -142,7 +149,7 @@ impl DropThread {
 impl Drop for DropThread {
     fn drop(&mut self) {
         self.terminate.store(true, std::sync::atomic::Ordering::Relaxed);
-        self.th.take().unwrap().join();
+        let _ = self.th.take().unwrap().join();
     }
 }
 
@@ -159,9 +166,10 @@ pub struct NodeConfigurator {
     graph_update_prod:  Producer<GraphMessage>,
     /// For quick updates like UI paramter changes.
     quick_update_prod:  Producer<QuickMessage>,
-    /// For receiving feedback from the backend thread.
-    feedback_con:       Consumer<QuickMessage>,
+    // /// For receiving feedback from the backend thread.
+    // feedback_con:       Consumer<QuickMessage>,
     /// Handles deallocation
+    #[allow(dead_code)]
     drop_thread:        DropThread,
 }
 
@@ -177,11 +185,12 @@ impl NodeConfigurator {
         }
 
         self.nodes[idx] = NodeInfo::Nop;
-        self.graph_update_prod.push(
-            GraphMessage::NewNode {
-                index: idx as u8,
-                node: Node::Nop,
-            });
+        let _ =
+            self.graph_update_prod.push(
+                GraphMessage::NewNode {
+                    index: idx as u8,
+                    node: Node::Nop,
+                });
     }
 
     pub fn for_each<F: FnMut(&NodeInfo, NodeId, usize)>(&self, mut f: F) {
@@ -198,13 +207,15 @@ impl NodeConfigurator {
     }
 
     pub fn set_atom(&mut self, at_idx: usize, value: SAtom) {
-        self.quick_update_prod.push(
-            QuickMessage::AtomUpdate { at_idx, value });
+        let _ =
+            self.quick_update_prod.push(
+                QuickMessage::AtomUpdate { at_idx, value });
     }
 
     pub fn set_param(&mut self, input_idx: usize, value: f32) {
-        self.quick_update_prod.push(
-            QuickMessage::ParamUpdate { input_idx, value });
+        let _ =
+            self.quick_update_prod.push(
+                QuickMessage::ParamUpdate { input_idx, value });
     }
 
     pub fn create_node(&mut self, ni: NodeId) -> Option<(&NodeInfo, u8)> {
@@ -224,16 +235,18 @@ impl NodeConfigurator {
 
             if let Some(index) = index {
                 self.nodes[index] = info;
-                self.graph_update_prod.push(
-                    GraphMessage::NewNode { index: index as u8, node });
+                let _ =
+                    self.graph_update_prod.push(
+                        GraphMessage::NewNode { index: index as u8, node });
                 Some((&self.nodes[index], index as u8))
 
             } else {
                 let index = self.nodes.len();
                 self.nodes.resize_with((self.nodes.len() + 1) * 2, || NodeInfo::Nop);
                 self.nodes[index] = info;
-                self.graph_update_prod.push(
-                    GraphMessage::NewNode { index: index as u8, node });
+                let _ =
+                    self.graph_update_prod.push(
+                        GraphMessage::NewNode { index: index as u8, node });
                 Some((&self.nodes[index], index as u8))
             }
         } else {
@@ -250,7 +263,9 @@ impl NodeConfigurator {
     /// It must not be set when a completely new set of node instances
     /// was created, for instance when a completely new patch was loaded.
     pub fn upload_prog(&mut self, prog: NodeProg, copy_old_out: bool) {
-        self.graph_update_prod.push(GraphMessage::NewProg { prog, copy_old_out });
+        let _ =
+            self.graph_update_prod.push(
+                GraphMessage::NewProg { prog, copy_old_out });
     }
 }
 
@@ -260,12 +275,12 @@ pub fn new_node_engine() -> (NodeConfigurator, NodeExecutor) {
     let rb_graph     = RingBuffer::new(MAX_ALLOCATED_NODES * 2);
     let rb_quick     = RingBuffer::new(MAX_ALLOCATED_NODES * 8);
     let rb_drop      = RingBuffer::new(MAX_ALLOCATED_NODES * 2);
-    let rb_feedback  = RingBuffer::new(MAX_ALLOCATED_NODES);
+    // let rb_feedback  = RingBuffer::new(MAX_ALLOCATED_NODES);
 
     let (rb_graph_prod, rb_graph_con) = rb_graph.split();
     let (rb_quick_prod, rb_quick_con) = rb_quick.split();
     let (rb_drop_prod,  rb_drop_con)  = rb_drop.split();
-    let (rb_fb_prod,    rb_fb_con)    = rb_feedback.split();
+    // let (rb_fb_prod,    rb_fb_con)    = rb_feedback.split();
 
     let drop_thread = DropThread::new(rb_drop_con);
 
@@ -276,7 +291,7 @@ pub fn new_node_engine() -> (NodeConfigurator, NodeExecutor) {
         nodes,
         graph_update_prod: rb_graph_prod,
         quick_update_prod: rb_quick_prod,
-        feedback_con:      rb_fb_con,
+        // feedback_con:      rb_fb_con,
         drop_thread,
     };
 
@@ -294,7 +309,7 @@ pub fn new_node_engine() -> (NodeConfigurator, NodeExecutor) {
         graph_update_con:  rb_graph_con,
         quick_update_con:  rb_quick_con,
         graph_drop_prod:   rb_drop_prod,
-        feedback_prod:     rb_fb_prod,
+        // feedback_prod:     rb_fb_prod,
     };
 
     (nc, ne)
@@ -366,18 +381,6 @@ impl std::fmt::Display for NodeOp {
     }
 }
 
-impl NodeOp {
-    fn empty() -> Self {
-        Self {
-            idx:        0,
-            out_idxlen: (0, 0),
-            in_idxlen:  (0, 0),
-            at_idxlen:  (0, 0),
-            inputs:     vec![],
-        }
-    }
-}
-
 #[derive(Debug)]
 enum DropMsg {
     Node { node: Node },
@@ -416,8 +419,8 @@ pub struct NodeExecutor {
     quick_update_con:  Consumer<QuickMessage>,
     /// For receiving deleted/overwritten nodes from the backend thread.
     graph_drop_prod:   Producer<DropMsg>,
-    /// For receiving feedback from the backend thread.
-    feedback_prod:     Producer<QuickMessage>,
+    // /// For receiving feedback from the backend thread.
+    // feedback_prod:     Producer<QuickMessage>,
 
     /// The sample rate
     sample_rate: f32,
@@ -439,7 +442,9 @@ impl NodeExecutor {
                         std::mem::replace(
                             &mut self.nodes[index as usize],
                             node);
-                    self.graph_drop_prod.push(DropMsg::Node { node: prev_node });
+                    let _ =
+                        self.graph_drop_prod.push(
+                            DropMsg::Node { node: prev_node });
                 },
                 GraphMessage::NewProg { prog, copy_old_out } => {
                     let prev_prog = std::mem::replace(&mut self.prog, prog);
@@ -474,7 +479,9 @@ impl NodeExecutor {
                             .copy_from_slice(&prev_prog.params[..]);
                     }
 
-                    self.graph_drop_prod.push(DropMsg::Prog { prog: prev_prog });
+                    let _ =
+                        self.graph_drop_prod.push(
+                            DropMsg::Prog { prog: prev_prog });
                 },
             }
         }
@@ -544,7 +551,9 @@ impl NodeExecutor {
                         std::mem::replace(
                             &mut prog.atoms[at_idx],
                             value);
-                    self.graph_drop_prod.push(DropMsg::Atom { atom: garbage });
+                    let _ =
+                        self.graph_drop_prod.push(
+                            DropMsg::Atom { atom: garbage });
                 },
                 QuickMessage::ParamUpdate { input_idx, value } => {
                     self.set_param(input_idx, value);
@@ -574,6 +583,28 @@ impl NodeExecutor {
 
         // TESTING:
         //d// prog.inp.copy_from_slice(&prog.params[..]);
+
+        // The plan for block based processing:
+        /*
+
+            - inp and out become vectors of Vec<f32>
+            - for processing, we swap the Vec<f32> between inp and out
+              - this requires that we prevent cycles later on!
+                - write test for this!
+            - XXX: Think about using Box<[f32; 64]> instead! These are just
+                   8 bytes to copy, because we just copy pointers!
+                   And we need a nframes variable anyways.
+            - later we benchmark with a big local [&[f32]; ...] for
+              the inputs. unfortunately I think this will not be possible,
+              as we probably can't mut ref into a vector.
+              => DOES NOT WORK! We can't borrow from the source vector
+                 more than once. This means, the best we can do is
+                 either swapping or adressing the inp/out vectors
+                 by index. However, this still prevents reading
+                 from outputs while writing into them, because
+                 the vector their vectors sit in are not mutably
+                 borrowable multiple times.
+        */
 
         for op in prog.prog.iter() {
             //d// println!("EXEC> {}", op);

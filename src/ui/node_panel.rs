@@ -3,7 +3,6 @@ use hexotk::{Rect, WidgetUI, Painter, WidgetData, WidgetType, UIEvent};
 use hexotk::constants::*;
 use hexotk::widgets::{
     Container, ContainerData,
-    Text, TextSourceRef, TextData,
 };
 
 use std::rc::Rc;
@@ -12,7 +11,8 @@ use std::sync::Mutex;
 
 use crate::matrix::{Matrix};
 
-struct NodePanelData {
+pub struct NodePanelData {
+    #[allow(dead_code)]
     matrix: Arc<Mutex<Matrix>>,
 
     knobs:  Box<WidgetData>,
@@ -21,7 +21,7 @@ struct NodePanelData {
 impl NodePanelData {
     pub fn new(node_id: u32, matrix: Arc<Mutex<Matrix>>) -> Box<dyn std::any::Any> {
         let wt_cont = Rc::new(Container::new());
-        let mut knobs =
+        let knobs =
             Box::new(wbox!(
                 wt_cont, AtomId::new(node_id, 1),
                 center(12, 12), ContainerData::new()));
@@ -32,7 +32,11 @@ impl NodePanelData {
 
 
 #[derive(Debug)]
-struct NodePanel { }
+pub struct NodePanel { }
+
+impl NodePanel {
+    pub fn new() -> Self { NodePanel { } }
+}
 
 impl WidgetType for NodePanel {
     fn draw(&self, ui: &mut dyn WidgetUI, data: &mut WidgetData, p: &mut dyn Painter, pos: Rect) {

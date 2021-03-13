@@ -14,11 +14,11 @@ impl Amp {
         }
     }
 
-    pub fn set_sample_rate(&mut self, srate: f32) { }
+    pub fn set_sample_rate(&mut self, _srate: f32) { }
     pub fn reset(&mut self) { }
 
     #[inline]
-    pub fn process<T: NodeAudioContext>(&mut self, ctx: &mut T, atoms: &[SAtom], inputs: &[f32], outputs: &mut [f32]) {
+    pub fn process<T: NodeAudioContext>(&mut self, _ctx: &mut T, _atoms: &[SAtom], inputs: &[f32], outputs: &mut [f32]) {
         use crate::dsp::out;
         use crate::dsp::inp;
         use crate::dsp::denorm;

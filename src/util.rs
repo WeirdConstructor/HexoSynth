@@ -29,6 +29,7 @@ impl Smoother {
     pub fn is_done(&self) -> bool { self.done }
 
     #[inline]
+    #[allow(dead_code)]
     pub fn stop(&mut self) { self.done = true; }
 
     #[inline]

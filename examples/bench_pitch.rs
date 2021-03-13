@@ -24,7 +24,7 @@ fn build_table() -> Vec<f32> {
 #[inline]
 fn denorm_interp(tbl: &[f32], x: f32) -> f32 {
     let i     = x * 100.0;
-    let fract = i.fract();
+//    let fract = i.fract();
     let idx   = i.floor() as usize;
 //    println!("XX: {} => {} / {}", x, idx, fract);
     let f1 = tbl[idx];
@@ -42,7 +42,7 @@ fn denorm_interp(tbl: &[f32], x: f32) -> f32 {
 fn main() {
     let ta = std::time::Instant::now();
     let mut res : f64 = 0.0;
-    for i in 0..100000 {
+    for _i in 0..100000 {
         for x in 1..9999 {
             res += denorm_pow64((x as f32) / 10000.0) as f64;
         }
@@ -54,7 +54,7 @@ fn main() {
 
     let ta = std::time::Instant::now();
     let mut res : f64 = 0.0;
-    for i in 0..100000 {
+    for _i in 0..100000 {
         for x in 1..9999 {
             res += denorm_pow32((x as f32) / 10000.0) as f64;
         }
@@ -67,7 +67,7 @@ fn main() {
 
     let ta = std::time::Instant::now();
     let mut res : f64 = 0.0;
-    for i in 0..100000 {
+    for _i in 0..100000 {
         for x in 1..9999 {
             res += denorm_interp(&itbl[..], (x as f32) / 10000.0) as f64;
         }

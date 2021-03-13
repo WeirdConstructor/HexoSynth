@@ -1,5 +1,8 @@
+#[allow(non_upper_case_globals)]
 mod node_amp;
+#[allow(non_upper_case_globals)]
 mod node_sin;
+#[allow(non_upper_case_globals)]
 mod node_out;
 mod satom;
 
@@ -102,6 +105,7 @@ macro_rules! d_pit { ($x: expr, $min: expr, $max: expr) => {
 } }
 
 impl UICategory {
+    #[allow(unused_assignments)]
     pub fn get_node_ids<F: FnMut(NodeId)>(&self, mut skip: usize, mut fun: F) {
         macro_rules! make_cat_lister {
             ($s1: ident => $v1: ident,

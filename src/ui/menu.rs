@@ -88,7 +88,7 @@ impl Menu {
             cur:        MenuState::None,
             prev:       vec![],
             lbl_fun:    Box::new(|_idx: usize, _help: bool, _ms: &MenuState| { None }),
-            act_fun:    Box::new(|_idx: usize, _ms: &MenuState, _hdl: &mut Box<MenuActionHandler>| {}),
+            act_fun:    Box::new(|_idx: usize, _ms: &MenuState, _hdl: &mut Box<dyn MenuActionHandler>| {}),
             hover_idx:  0,
             post_action: Rc::new(RefCell::new(PostAction::None)),
         }
@@ -217,7 +217,7 @@ impl Menu {
                         }
                     }
                 });
-                self.act_fun = Box::new(move |idx, state, hdl| {
+                self.act_fun = Box::new(move |idx, _state, hdl| {
                     match idx {
                         0 => { *pa.borrow_mut() = PostAction::back(); },
                         _ => {
@@ -292,7 +292,7 @@ impl Menu {
 
                     if let Some(cell_dir) = cell_dir {
                         if let MenuState::CellDir { cell, node_info, .. } = state {
-                            let mut ms =
+                            let ms =
                                 MenuState::AssignPort {
                                     cell:      cell.clone(),
                                     node_info: node_info.clone(),

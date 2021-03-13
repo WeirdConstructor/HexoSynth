@@ -44,7 +44,7 @@ impl Cell {
         self.node_id = new_id;
     }
 
-    pub fn label<'a>(&self, mut buf: &'a mut [u8]) -> Option<&'a str> {
+    pub fn label<'a>(&self, buf: &'a mut [u8]) -> Option<&'a str> {
         use std::io::Write;
         let mut cur = std::io::Cursor::new(buf);
 
@@ -332,12 +332,9 @@ impl Matrix {
     }
 
     pub fn get_adjacent(&self, x: usize, y: usize, dir: CellDir) -> Option<&Cell> {
-        let (xo, yo) = (x, y);
         let offs : (i32, i32) = dir.to_offs(x);
         let x = x as i32 + offs.0;
         let y = y as i32 + offs.1;
-
-        //d// println!("            * {},{} => {},{} dir({:?}) offs: {:?}", xo, yo, x, y, dir, offs);
 
         if x < 0 || y < 0 || (x as usize) >= self.w || (y as usize) >= self.h {
             return None;
@@ -369,7 +366,7 @@ impl Matrix {
         }
     }
 
-    pub fn edge_label<'a>(&self, cell: &Cell, edge: CellDir, mut buf: &'a mut [u8]) -> Option<(&'a str, bool)> {
+    pub fn edge_label<'a>(&self, cell: &Cell, edge: CellDir, buf: &'a mut [u8]) -> Option<(&'a str, bool)> {
         use std::io::Write;
         let mut cur = std::io::Cursor::new(buf);
 
@@ -480,7 +477,7 @@ impl Matrix {
         // for new unknown nodes:
         for x in 0..self.w {
             for y in 0..self.h {
-                let mut cell = &mut self.matrix[x * self.h + y];
+                let cell = &mut self.matrix[x * self.h + y];
 
                 if cell.node_id == NodeId::Nop {
                     continue;
@@ -534,7 +531,7 @@ impl Matrix {
         let mut out_len = 0;
         let mut in_len  = 0;
         let mut at_len  = 0;
-        self.config.for_each(|node_info, mut id, i| {
+        self.config.for_each(|node_info, id, i| {
             // - calculate size of output vector.
             let out_idx = out_len;
             out_len += node_info.out_count();
@@ -664,11 +661,12 @@ impl Matrix {
         // Copy the parameter values and atom data into the program:
         // They are extracted by process_graph_updates() later to
         // reset the inp[] input value vector.
-        for (param_id, param) in self.params.borrow().iter() {
+        for (_param_id, param) in self.params.borrow().iter() {
             prog.params_mut()[param.input_idx] = param.value;
         }
+
         // The atoms are referred to directly on process() call.
-        for (param_id, param) in self.atoms.borrow().iter() {
+        for (_param_id, param) in self.atoms.borrow().iter() {
             prog.atoms_mut()[param.at_idx] = param.value.clone();
         }
 
@@ -764,7 +762,7 @@ mod tests {
     fn check_matrix_3_sine() {
         use crate::nodes::new_node_engine;
 
-        let (mut node_conf, mut node_exec) = new_node_engine();
+        let (node_conf, mut node_exec) = new_node_engine();
         let mut matrix = Matrix::new(node_conf, 3, 3);
 
         matrix.place(0, 0,
@@ -797,7 +795,7 @@ mod tests {
         use crate::nodes::new_node_engine;
         use crate::dsp::{NodeId, Node};
 
-        let (mut node_conf, mut node_exec) = new_node_engine();
+        let (node_conf, mut node_exec) = new_node_engine();
         let mut matrix = Matrix::new(node_conf, 9, 9);
 
         let mut i = 1;
@@ -821,7 +819,7 @@ mod tests {
     fn check_matrix_into_output() {
         use crate::nodes::new_node_engine;
 
-        let (mut node_conf, mut node_exec) = new_node_engine();
+        let (node_conf, mut node_exec) = new_node_engine();
         let mut matrix = Matrix::new(node_conf, 3, 3);
 
         matrix.place(0, 0,
@@ -850,7 +848,7 @@ mod tests {
     fn check_matrix_skip_instance() {
         use crate::nodes::new_node_engine;
 
-        let (mut node_conf, mut node_exec) = new_node_engine();
+        let (node_conf, mut node_exec) = new_node_engine();
         let mut matrix = Matrix::new(node_conf, 3, 3);
 
         matrix.place(0, 0,

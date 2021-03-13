@@ -1,10 +1,9 @@
 use hexotk::*;
-use hexotk::widgets::*;
+//use hexotk::widgets::*;
 use hexosynth::ui::matrix::NodeMatrixData;
 use hexosynth::*;
 use hexosynth::nodes::NodeExecutor;
 
-use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::Mutex;
 
@@ -142,9 +141,9 @@ fn start_backend<F: FnMut()>(shared: Arc<HexoSynthShared>, mut f: F) {
         client.register_port("hexosynth_out2", jack::AudioOut::default())
             .unwrap();
 
-    let mut node_exec = shared.node_exec.borrow_mut().take().unwrap();
-    let ne = Arc::new(Mutex::new(node_exec));
-    let ne2 = ne.clone();
+    let node_exec = shared.node_exec.borrow_mut().take().unwrap();
+    let ne        = Arc::new(Mutex::new(node_exec));
+    let ne2       = ne.clone();
 
     let mut first = true;
     let process_callback = move |client: &jack::Client, ps: &jack::ProcessScope| -> jack::Control {
@@ -154,8 +153,10 @@ fn start_backend<F: FnMut()>(shared: Arc<HexoSynthShared>, mut f: F) {
         let in_b_p = in_b.as_slice(ps);
 
         if first {
-            client.connect_ports_by_name("HexoSynth:hexosynth_out1", "system:playback_1");
-            client.connect_ports_by_name("HexoSynth:hexosynth_out2", "system:playback_2");
+            client.connect_ports_by_name("HexoSynth:hexosynth_out1", "system:playback_1")
+                .expect("jack connect ports works");
+            client.connect_ports_by_name("HexoSynth:hexosynth_out2", "system:playback_2")
+                .expect("jack connect ports works");
             first = false;
         }
 
@@ -204,14 +205,11 @@ fn main() {
         let matrix = shared.matrix.clone();
 
         open_window("HexoTK Standalone", 1400, 700, None, Box::new(|| {
-
-            let mut ui = Box::new(UI::new(
+            Box::new(UI::new(
                 Box::new(NodeMatrixData::new(matrix, UIPos::center(12, 12), 11)),
                 Box::new(HexoSynthUIParams::new()),
                 (1400 as f64, 700 as f64),
-            ));
-
-            ui
+            ))
         }));
     });
 }

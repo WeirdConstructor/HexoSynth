@@ -3,7 +3,7 @@ use hexosynth::nodes::new_node_engine;
 use hexosynth::dsp::*;
 
 use hound;
-use num_complex::Complex;
+//use num_complex::Complex;
 use microfft;
 
 macro_rules! assert_float_eq {
@@ -39,7 +39,7 @@ fn run_no_input(node_exec: &mut hexosynth::nodes::NodeExecutor, seconds: f32) ->
 
     let nframes = (seconds * SAMPLE_RATE) as usize;
 
-    let mut input    = vec![0.0; nframes];
+    let input    = vec![0.0; nframes];
     let mut output_l = vec![0.0; nframes];
     let mut output_r = vec![0.0; nframes];
 
@@ -92,6 +92,7 @@ fn calc_rms_mimax_each_ms(buf: &[f32], ms: f32) -> Vec<(f32, f32, f32)> {
     res
 }
 
+#[allow(unused)]
 enum FFT {
     F16,
     F32,
@@ -113,8 +114,8 @@ fn fft_thres_at_ms(buf: &mut [f32], size: FFT, amp_thres: u32, ms_idx: f32) -> V
     };
     let len = fft_nbins;
 
-    let mut idx    = ms_sample_offs as usize;
-    let mut res    = vec![];
+    let idx     = ms_sample_offs as usize;
+    let mut res = vec![];
 
     if (idx + len) > buf.len() {
         return res;
@@ -160,7 +161,7 @@ fn fft_thres_at_ms(buf: &mut [f32], size: FFT, amp_thres: u32, ms_idx: f32) -> V
 
 #[test]
 fn check_matrix_sine() {
-    let (mut node_conf, mut node_exec) = new_node_engine();
+    let (node_conf, mut node_exec) = new_node_engine();
     let mut matrix = Matrix::new(node_conf, 3, 3);
 
     let sin = NodeId::Sin(2);
@@ -171,7 +172,7 @@ fn check_matrix_sine() {
                        .input(None, out.inp("ch1"), None));
     matrix.sync();
 
-    let (mut out_l, mut out_r) = run_no_input(&mut node_exec, 4.0);
+    let (mut out_l, out_r) = run_no_input(&mut node_exec, 4.0);
 
     let sum_l : f32 = out_l.iter().map(|v| v.abs()).sum();
     let sum_r : f32 = out_r.iter().map(|v| v.abs()).sum();
@@ -202,7 +203,7 @@ fn check_matrix_sine() {
 
 #[test]
 fn check_matrix_atom_set() {
-    let (mut node_conf, mut node_exec) = new_node_engine();
+    let (node_conf, mut node_exec) = new_node_engine();
     let mut matrix = Matrix::new(node_conf, 3, 3);
 
     let sin = NodeId::Sin(2);
@@ -217,7 +218,7 @@ fn check_matrix_atom_set() {
 
     matrix.set_param(mono_param, SAtom::setting(1));
 
-    let (mut out_l, mut out_r) = run_no_input(&mut node_exec, 4.0);
+    let (out_l, out_r) = run_no_input(&mut node_exec, 4.0);
 
     let sum_l : f32 = out_l.iter().map(|v| v.abs()).sum();
     let sum_r : f32 = out_r.iter().map(|v| v.abs()).sum();
@@ -242,7 +243,7 @@ fn check_matrix_atom_set() {
 
 #[test]
 fn check_sine_pitch_change() {
-    let (mut node_conf, mut node_exec) = new_node_engine();
+    let (node_conf, mut node_exec) = new_node_engine();
     let mut matrix = Matrix::new(node_conf, 3, 3);
 
     let sin = NodeId::Sin(2);
@@ -253,7 +254,7 @@ fn check_sine_pitch_change() {
                        .input(None, out.inp("ch1"), None));
     matrix.sync();
 
-    let (mut out_l, mut out_r) = run_no_input(&mut node_exec, 0.2);
+    let (mut out_l, _out_r) = run_no_input(&mut node_exec, 0.2);
 
     let fft_res = fft_thres_at_ms(&mut out_l[..], FFT::F1024, 200, 0.0);
     assert_eq!(fft_res[0], (431, 248));
@@ -267,7 +268,7 @@ fn check_sine_pitch_change() {
         freq_param,
         SAtom::param(freq_param.norm(4400.0)));
 
-    let (mut out_l, mut out_r) = run_no_input(&mut node_exec, 1.0);
+    let (mut out_l, _out_r) = run_no_input(&mut node_exec, 1.0);
 
     // Test at the start of the slope (~ 690 Hz):
     let fft_res = fft_thres_at_ms(&mut out_l[..], FFT::F64, 15, 0.0);
@@ -290,7 +291,7 @@ fn check_sine_pitch_change() {
 
 #[test]
 fn check_matrix_out_config_bug1() {
-    let (mut node_conf, mut node_exec) = new_node_engine();
+    let (node_conf, mut node_exec) = new_node_engine();
     let mut matrix = Matrix::new(node_conf, 7, 7);
 
     matrix.place(0, 0, Cell::empty(NodeId::Sin(0))
@@ -310,12 +311,12 @@ fn check_matrix_out_config_bug1() {
 
     matrix.sync();
 
-    let (mut out_l, mut out_r) = run_no_input(&mut node_exec, 0.2);
+    let (_out_l, _out_r) = run_no_input(&mut node_exec, 0.2);
 }
 
 #[test]
 fn check_matrix_out_config_bug1_reduced() {
-    let (mut node_conf, mut node_exec) = new_node_engine();
+    let (node_conf, mut node_exec) = new_node_engine();
     let mut matrix = Matrix::new(node_conf, 7, 7);
 
     matrix.place(1, 0, Cell::empty(NodeId::Out(0))
@@ -327,12 +328,12 @@ fn check_matrix_out_config_bug1_reduced() {
 
     matrix.sync();
 
-    let (mut out_l, mut out_r) = run_no_input(&mut node_exec, 0.2);
+    let (_out_l, _out_r) = run_no_input(&mut node_exec, 0.2);
 }
 
 #[test]
 fn check_matrix_out_config_bug1b_reduced() {
-    let (mut node_conf, mut node_exec) = new_node_engine();
+    let (node_conf, mut node_exec) = new_node_engine();
     let mut matrix = Matrix::new(node_conf, 7, 7);
 
     matrix.place(1, 0, Cell::empty(NodeId::Out(0))
@@ -342,12 +343,12 @@ fn check_matrix_out_config_bug1b_reduced() {
 
     matrix.sync();
 
-    let (mut out_l, mut out_r) = run_no_input(&mut node_exec, 0.2);
+    let (_out_l, _out_r) = run_no_input(&mut node_exec, 0.2);
 }
 
 #[test]
 fn check_matrix_out_config_bug1c_reduced() {
-    let (mut node_conf, mut node_exec) = new_node_engine();
+    let (node_conf, mut node_exec) = new_node_engine();
     let mut matrix = Matrix::new(node_conf, 7, 7);
 
     matrix.place(1, 0, Cell::empty(NodeId::Sin(0))
@@ -357,19 +358,19 @@ fn check_matrix_out_config_bug1c_reduced() {
 
     matrix.sync();
 
-    let (mut out_l, mut out_r) = run_no_input(&mut node_exec, 0.2);
+    let (_out_l, _out_r) = run_no_input(&mut node_exec, 0.2);
 }
 
 macro_rules! simple_sine_output_test {
     ($matrix: ident, $block: tt) => {
-        let (mut node_conf, mut node_exec) = new_node_engine();
+        let (node_conf, mut node_exec) = new_node_engine();
         let mut $matrix = Matrix::new(node_conf, 7, 7);
 
         $block;
 
         $matrix.sync();
 
-        let (mut out_l, mut out_r) = run_no_input(&mut node_exec, 0.2);
+        let (out_l, _out_r) = run_no_input(&mut node_exec, 0.2);
 
         let rms_mimax = calc_rms_mimax_each_ms(&out_l[..], 50.0);
         assert_float_eq!(rms_mimax[0].0, 0.5);
@@ -442,7 +443,7 @@ fn check_matrix_connect_odd_top() {
 
 #[test]
 fn check_matrix_adj_odd() {
-    let (mut node_conf, mut node_exec) = new_node_engine();
+    let (node_conf, _node_exec) = new_node_engine();
     let mut matrix = Matrix::new(node_conf, 7, 7);
 
     /*
@@ -510,7 +511,7 @@ fn check_matrix_adj_odd() {
 
 #[test]
 fn check_matrix_adj_even() {
-    let (mut node_conf, mut node_exec) = new_node_engine();
+    let (node_conf, _node_exec) = new_node_engine();
     let mut matrix = Matrix::new(node_conf, 7, 7);
 
     /*
