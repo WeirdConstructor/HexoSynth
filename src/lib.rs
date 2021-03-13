@@ -159,6 +159,17 @@ impl PluginContext<HexoSynth> for HexoSynthShared {
         let (node_conf, node_exec) = nodes::new_node_engine();
         let mut matrix = Matrix::new(node_conf, 8, 7);
 
+        let mut i = 2;
+        for x in 0..8 {
+            for y in 0..7 {
+                matrix.place(x, y,
+                    Cell::empty(NodeId::Sin(i))
+                    .out(Some(0), None, None)
+                    .input(None, None, Some(0)));
+                i += 1;
+            }
+        }
+
         matrix.place(0, 1, Cell::empty(NodeId::Sin(0))
                            .out(Some(0), None, None));
         matrix.place(1, 0, Cell::empty(NodeId::Out(0))

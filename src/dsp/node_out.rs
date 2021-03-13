@@ -27,14 +27,17 @@ impl Out {
         use crate::dsp::at;
 
         if at::Out::mono(atoms).i() > 0 {
+            let in1 = inp::Out::ch1(inputs);
             for frame in 0..ctx.nframes() {
-                ctx.output(0, frame, inp::Out::ch1(inputs, frame));
-                ctx.output(1, frame, inp::Out::ch1(inputs, frame));
+                ctx.output(0, frame, in1.read(frame));
+                ctx.output(1, frame, in1.read(frame));
             }
         } else {
+            let in1 = inp::Out::ch1(inputs);
+            let in2 = inp::Out::ch2(inputs);
             for frame in 0..ctx.nframes() {
-                ctx.output(0, frame, inp::Out::ch1(inputs, frame));
-                ctx.output(1, frame, inp::Out::ch2(inputs, frame));
+                ctx.output(0, frame, in1.read(frame));
+                ctx.output(1, frame, in2.read(frame));
             }
         }
     }

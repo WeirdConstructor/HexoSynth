@@ -22,7 +22,7 @@ pub const MAX_BLOCK_SIZE : usize = 64;
 pub struct ProcBuf(Box<[f32; MAX_BLOCK_SIZE]>);
 
 impl ProcBuf {
-    pub fn new() -> Self { ProcBuf(Box::new([0.0; 64])) }
+    pub fn new() -> Self { ProcBuf(Box::new([0.0; MAX_BLOCK_SIZE])) }
 }
 
 impl ProcBuf {
@@ -477,9 +477,18 @@ macro_rules! make_node_info_enum {
         #[allow(non_snake_case)]
         pub mod denorm {
             $(pub mod $variant {
-                $(#[inline] pub fn $para(inputs: &[crate::dsp::ProcBuf], frame: usize) -> f32 {
-                    let x = inputs[$in_idx].read(frame);
+                $(#[inline] pub fn $para(buf: &crate::dsp::ProcBuf, frame: usize) -> f32 {
+                    let x = buf.read(frame);
                     $d_fun!(x, $min, $max)
+                })*
+            })+
+        }
+
+        #[allow(non_snake_case)]
+        pub mod inp_dir {
+            $(pub mod $variant {
+                $(#[inline] pub fn $para(inputs: &[crate::dsp::ProcBuf], frame: usize) -> f32 {
+                    inputs[$in_idx].read(frame)
                 })*
             })+
         }
@@ -487,8 +496,8 @@ macro_rules! make_node_info_enum {
         #[allow(non_snake_case)]
         pub mod inp {
             $(pub mod $variant {
-                $(#[inline] pub fn $para(inputs: &[crate::dsp::ProcBuf], frame: usize) -> f32 {
-                    inputs[$in_idx].read(frame)
+                $(#[inline] pub fn $para(inputs: &[crate::dsp::ProcBuf]) -> &crate::dsp::ProcBuf {
+                    &inputs[$in_idx]
                 })*
             })+
         }
@@ -503,10 +512,19 @@ macro_rules! make_node_info_enum {
         }
 
         #[allow(non_snake_case)]
-        pub mod out {
+        pub mod out_dir {
             $(pub mod $variant {
                 $(#[inline] pub fn $out(outputs: &mut [crate::dsp::ProcBuf], frame: usize, v: f32) {
                     outputs[$out_idx].write(frame, v);
+                })*
+            })+
+        }
+
+        #[allow(non_snake_case)]
+        pub mod out {
+            $(pub mod $variant {
+                $(#[inline] pub fn $out(outputs: &mut [crate::dsp::ProcBuf]) -> &mut crate::dsp::ProcBuf {
+                    &mut outputs[$out_idx]
                 })*
             })+
         }

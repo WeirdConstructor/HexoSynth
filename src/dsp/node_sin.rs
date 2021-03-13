@@ -35,14 +35,23 @@ impl Sin {
     {
         use crate::dsp::denorm;
         use crate::dsp::out;
+        use crate::dsp::inp;
+
+        let topi = 2.0 * std::f32::consts::PI;
+
+        let o    = out::Sin::sig(outputs);
+        let freq = inp::Sin::freq(inputs);
+        let isr  = 1.0 / self.srate;
 
         for frame in 0..ctx.nframes() {
-            let freq = denorm::Sin::freq(inputs, frame);
+            let freq = denorm::Sin::freq(freq, frame);
 
-            out::Sin::sig(outputs, frame,
-                (self.phase * 2.0 * std::f32::consts::PI).sin());
+//            out::Sin::sig(outputs, frame,
+//                (self.phase * topi).sin());
+//            o.write(frame, 0.0);
+            o.write(frame, (self.phase * topi).sin());
 
-            self.phase += freq / self.srate;
+            self.phase += freq * isr;
             self.phase = self.phase.fract();
         }
     }

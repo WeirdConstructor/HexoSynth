@@ -677,14 +677,14 @@ impl NodeExecutor {
 
             // Swap back the output ProcBufs to be written to on the next
             // iteration.
-            {
-                let input = &mut prog.inp;
-                let out   = &mut prog.out;
-
-                for io in op.inputs.iter() {
-                    std::mem::swap(&mut input[io.1], &mut out[io.0]);
-                }
-            }
+//            {
+//                let input = &mut prog.inp;
+//                let out   = &mut prog.out;
+//
+//                for io in op.inputs.iter() {
+//                    std::mem::swap(&mut input[io.1], &mut out[io.0]);
+//                }
+//            }
         }
     }
 }

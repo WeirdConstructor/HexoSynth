@@ -23,12 +23,11 @@ impl Amp {
         use crate::dsp::inp;
         use crate::dsp::denorm;
 
+        let gain = inp::Amp::gain(inputs);
+        let inp  = inp::Amp::inp(inputs);
+        let out  = out::Amp::sig(outputs);
         for frame in 0..ctx.nframes() {
-            out::Amp::sig(
-                outputs,
-                frame,
-                inp::Amp::inp(inputs, frame)
-                * denorm::Amp::gain(inputs, frame));
+            out.write(frame, inp.read(frame) * denorm::Amp::gain(gain, frame));
         }
     }
 
