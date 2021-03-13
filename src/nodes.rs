@@ -678,24 +678,24 @@ impl NodeExecutor {
                     &prog.atoms[at.0..at.1],
                     &prog.inp[inp.0..inp.1],
                     &mut prog.out[out.0..out.1]);
-            nodes[op.idx as usize]
-                .process(
-                    ctx,
-                    &prog.atoms[at.0..at.1],
-                    &prog.inp[inp.0..inp.1],
-                    &mut prog.out[out.0..out.1]);
-            nodes[op.idx as usize]
-                .process(
-                    ctx,
-                    &prog.atoms[at.0..at.1],
-                    &prog.inp[inp.0..inp.1],
-                    &mut prog.out[out.0..out.1]);
-            nodes[op.idx as usize]
-                .process(
-                    ctx,
-                    &prog.atoms[at.0..at.1],
-                    &prog.inp[inp.0..inp.1],
-                    &mut prog.out[out.0..out.1]);
+//            nodes[op.idx as usize]
+//                .process(
+//                    ctx,
+//                    &prog.atoms[at.0..at.1],
+//                    &prog.inp[inp.0..inp.1],
+//                    &mut prog.out[out.0..out.1]);
+//            nodes[op.idx as usize]
+//                .process(
+//                    ctx,
+//                    &prog.atoms[at.0..at.1],
+//                    &prog.inp[inp.0..inp.1],
+//                    &mut prog.out[out.0..out.1]);
+//            nodes[op.idx as usize]
+//                .process(
+//                    ctx,
+//                    &prog.atoms[at.0..at.1],
+//                    &prog.inp[inp.0..inp.1],
+//                    &mut prog.out[out.0..out.1]);
 
             // Swap back the output ProcBufs to be written to on the next
             // iteration.
