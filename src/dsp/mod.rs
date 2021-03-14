@@ -77,6 +77,12 @@ impl std::fmt::Display for ProcBuf {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+enum UIParamDesc {
+    Knob    { width: usize, prec: usize, unit: &'static str },
+    Setting { labels: &'static [&'static str], unit: &'static str },
+}
+
 
 #[derive(Debug, Clone, Copy, PartialOrd, PartialEq)]
 pub enum UIType {

@@ -13,22 +13,30 @@ pub struct NodeProg {
     /// It is not used directly, but will be merged into the `cur_inp`
     /// field together with the assigned outputs.
     pub inp:    Vec<ProcBuf>,
+
     /// The temporary input vector that is initialized from `inp`
     /// and is then merged with the associated outputs.
     pub cur_inp: Vec<ProcBuf>,
+
     /// The output vector, holding all the node outputs.
     pub out:    Vec<ProcBuf>,
+
     /// The param vector, holding all parameter inputs of the
     /// nodes, such as knob settings.
     pub params: Vec<f32>,
+
     /// The atom vector, holding all non automatable parameter inputs
     /// of the nodes, such as samples or integer settings.
     pub atoms:  Vec<SAtom>,
+
     /// The node operations that are executed in the order they appear in this
     /// vector.
     pub prog:   Vec<NodeOp>,
+
     /// A marker, that checks if we can still swap buffers with
-    /// with other NodeProg instances:
+    /// with other NodeProg instances. This is usally set if the ProcBuf pointers
+    /// have been copied into `cur_inp`. You can call `unlock_buffers` to
+    /// clear `locked_buffers`:
     pub locked_buffers: bool,
 }
 
