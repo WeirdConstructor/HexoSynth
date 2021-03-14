@@ -147,9 +147,6 @@ impl NodeProg {
 
     pub fn assign_outputs(&mut self) {
         for op in self.prog.iter() {
-            let out = op.out_idxlen;
-            let inp = op.in_idxlen;
-            let at  = op.at_idxlen;
 
             // First step is copying the ProcBufs to the `cur_inp` current
             // input buffer vector. It holds the data for smoothed paramter
@@ -168,6 +165,8 @@ impl NodeProg {
             // call of the nodes.
             let input_bufs = &mut self.cur_inp;
             let out_bufs   = &mut self.out;
+
+            let inp = op.in_idxlen;
 
             // First step (refresh inputs):
             input_bufs[inp.0..inp.1]

@@ -1,5 +1,5 @@
 use crate::nodes::NodeAudioContext;
-use crate::dsp::{SAtom, ProcBuf};
+use crate::dsp::{SAtom, ProcBuf, inp, at};
 
 /// The (stereo) output port of the plugin
 #[derive(Debug, Clone)]
@@ -23,9 +23,6 @@ impl Out {
 
     #[inline]
     pub fn process<T: NodeAudioContext>(&mut self, ctx: &mut T, atoms: &[SAtom], inputs: &[ProcBuf], _outputs: &mut [ProcBuf]) {
-        use crate::dsp::inp;
-        use crate::dsp::at;
-
         if at::Out::mono(atoms).i() > 0 {
             let in1 = inp::Out::ch1(inputs);
             for frame in 0..ctx.nframes() {

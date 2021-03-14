@@ -1,5 +1,7 @@
 use crate::nodes::NodeAudioContext;
-use crate::dsp::{SAtom, ProcBuf};
+use crate::dsp::{SAtom, ProcBuf, denorm, out, inp};
+use crate::dsp::helpers::fast_sin;
+
 
 /// A sine oscillator
 #[derive(Debug, Clone)]
@@ -35,11 +37,6 @@ impl Sin {
         &mut self, ctx: &mut T, _atoms: &[SAtom],
         inputs: &[ProcBuf], outputs: &mut [ProcBuf])
     {
-        use crate::dsp::denorm;
-        use crate::dsp::out;
-        use crate::dsp::inp;
-        use crate::dsp::helpers::fast_sin;
-
         let o    = out::Sin::sig(outputs);
         let freq = inp::Sin::freq(inputs);
         let isr  = 1.0 / self.srate;
@@ -48,8 +45,6 @@ impl Sin {
             let freq = denorm::Sin::freq(freq, frame);
 
             o.write(frame, fast_sin(self.phase * TWOPI));
-//            o.write(frame, (self.phase * TWOPI).sin());
-//            o.write(frame, (self.phase * TWOPI).sin());
 
             self.phase += freq * isr;
             self.phase = self.phase.fract();
