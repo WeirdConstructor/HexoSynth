@@ -22,7 +22,13 @@ impl Out {
     pub fn reset(&mut self) { }
 
     #[inline]
-    pub fn process<T: NodeAudioContext>(&mut self, ctx: &mut T, atoms: &[SAtom], inputs: &[ProcBuf], _outputs: &mut [ProcBuf]) {
+    pub fn process<T: NodeAudioContext>(
+        &mut self, ctx: &mut T, atoms: &[SAtom], _params: &[ProcBuf],
+        inputs: &[ProcBuf], outputs: &mut [ProcBuf])
+    {
+        use crate::dsp::inp;
+        use crate::dsp::at;
+
         if at::Out::mono(atoms).i() > 0 {
             let in1 = inp::Out::ch1(inputs);
             for frame in 0..ctx.nframes() {

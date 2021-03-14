@@ -769,7 +769,7 @@ pub fn node_factory(node_id: NodeId) -> Option<(Node, NodeInfo)> {
 impl Node {
     #[inline]
     pub fn process<T: NodeAudioContext>(
-        &mut self, ctx: &mut T, atoms: &[SAtom], inputs: &[ProcBuf], outputs: &mut [ProcBuf])
+        &mut self, ctx: &mut T, atoms: &[SAtom], params: &[ProcBuf], inputs: &[ProcBuf], outputs: &mut [ProcBuf])
     {
         macro_rules! make_node_process {
             ($s1: ident => $v1: ident,
@@ -786,7 +786,7 @@ impl Node {
             ) => {
                 match self {
                     Node::$v1 => {},
-                    $(Node::$variant { node } => node.process(ctx, atoms, inputs, outputs),)+
+                    $(Node::$variant { node } => node.process(ctx, atoms, params, inputs, outputs),)+
                 }
             }
         }

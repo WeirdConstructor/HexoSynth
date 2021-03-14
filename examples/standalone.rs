@@ -225,8 +225,7 @@ fn start_backend<F: FnMut()>(shared: Arc<HexoSynthShared>, mut f: F) {
     let active_client =
         client.activate_async(Notifications {
             node_exec: ne2,
-        }, process)
-            .unwrap();
+        }, process).unwrap();
 
     f();
 

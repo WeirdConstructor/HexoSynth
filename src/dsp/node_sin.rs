@@ -34,7 +34,7 @@ impl Sin {
 
     #[inline]
     pub fn process<T: NodeAudioContext>(
-        &mut self, ctx: &mut T, _atoms: &[SAtom],
+        &mut self, ctx: &mut T, _atoms: &[SAtom], _params: &[ProcBuf],
         inputs: &[ProcBuf], outputs: &mut [ProcBuf])
     {
         let o    = out::Sin::sig(outputs);

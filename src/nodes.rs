@@ -731,6 +731,7 @@ impl NodeExecutor {
                 .process(
                     ctx,
                     &prog.atoms[at.0..at.1],
+                    &prog.inp[inp.0..inp.1],
                     &prog.cur_inp[inp.0..inp.1],
                     &mut prog.out[out.0..out.1]);
         }
