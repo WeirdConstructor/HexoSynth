@@ -661,8 +661,38 @@ impl NodeExecutor {
     }
 
     #[inline]
-    pub fn process<T: NodeAudioContext>(&mut self, ctx: &mut T) {
+    fn process_smoothers(&mut self, nframes: usize) {
+        let prog  = &mut self.prog;
 
+        while let Some((idx, v)) = self.target_refresh.pop() {
+            prog.inp[idx].fill(v);
+        }
+
+        for (idx, smoother) in
+            self.smoothers
+                .iter_mut()
+                .filter(|s|
+                    !s.1.is_done())
+        {
+
+            let inp        = &mut prog.inp[*idx];
+            let mut last_v = 0.0;
+
+            for frame in 0..nframes {
+                let v = smoother.next();
+
+                inp.write(frame, v);
+                last_v = v;
+            }
+
+            prog.params[*idx] = last_v;
+            self.target_refresh.push((*idx, last_v));
+        }
+
+    }
+
+    #[inline]
+    pub fn process_param_updates(&mut self, nframes: usize) {
         while let Some(upd) = self.quick_update_con.pop() {
             match upd {
                 QuickMessage::AtomUpdate { at_idx, value } => {
@@ -682,46 +712,15 @@ impl NodeExecutor {
             }
         }
 
+        self.process_smoothers(nframes);
+    }
+
+    #[inline]
+    pub fn process<T: NodeAudioContext>(&mut self, ctx: &mut T) {
+        self.process_param_updates(ctx.nframes());
+
         let nodes = &mut self.nodes;
         let prog  = &mut self.prog;
-
-        while let Some((idx, v)) = self.target_refresh.pop() {
-            prog.inp[idx].fill(v);
-        }
-
-        for (idx, smoother) in
-            self.smoothers
-                .iter_mut()
-                .filter(|s|
-                    !s.1.is_done())
-        {
-
-            let inp        = &mut prog.inp[*idx];
-            let mut last_v = 0.0;
-
-            for frame in 0..ctx.nframes() {
-                let v = smoother.next();
-
-                inp.write(frame, v);
-                last_v = v;
-            }
-
-            prog.params[*idx] = last_v;
-            self.target_refresh.push((*idx, last_v));
-        }
-
-        // XXX: We can overwrite the inp input value vector with the outputs,
-        // because we always do this the same way as long as the NodeProg
-        // stays the same.
-        //
-        // If a new NodeProg comes, we need to initialize the new NodeProg inputs
-        // with the old parameters, because we don't know if they are not
-        // written by the following loop anymore.
-        //
-        // See also above in process_graph_updates().
-
-        // TESTING:
-        //d// prog.inp.copy_from_slice(&prog.params[..]);
 
         for op in prog.prog.iter() {
             let out = op.out_idxlen;
@@ -735,5 +734,8 @@ impl NodeExecutor {
                     &prog.cur_inp[inp.0..inp.1],
                     &mut prog.out[out.0..out.1]);
         }
+
+        // TODO:
+        // write outputs to feedback tripple buffer!
     }
 }
