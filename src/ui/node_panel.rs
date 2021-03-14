@@ -6,14 +6,67 @@ use hexotk::widgets::{
 };
 
 use std::rc::Rc;
+use std::cell::RefCell;
 use std::sync::Arc;
 use std::sync::Mutex;
 
 use crate::matrix::{Matrix};
 
+use crate::dsp::{NodeId, NodeInfo};
+
+pub struct GenericNodeUI {
+    dsp_node_id:    NodeId,
+    model_node_id:  u32,
+    info:           Option<NodeInfo>,
+    cont:           Option<Box<WidgetData>>,
+}
+
+impl GenericNodeUI {
+    pub fn new() -> Self {
+        Self {
+            dsp_node_id:    NodeId::Nop,
+            model_node_id:  0,
+            info:           None,
+            cont:           None,
+        }
+    }
+
+    pub fn set_target(&mut self, dsp_node_id: NodeId, model_node_id: u32) {
+        self.dsp_node_id   = dsp_node_id;
+        self.model_node_id = model_node_id;
+        self.info          = Some(NodeInfo::from_node_id(dsp_node_id));
+
+        self.rebuild();
+    }
+
+    pub fn rebuild(&mut self) {
+        let wt_cont = Rc::new(Container::new());
+
+        let cd = ContainerData::new();
+
+        // TODO:
+        // - detect all the inputs
+        // - detect which are atoms (or all atoms)
+        // - enumerate all for the AtomId below.
+        // - figure out their value ranges for the knobs.
+        //   => Maybe define an extra data type for this?
+        //      struct InputParamDesc { min, max, type }?
+        //      enum UIParamDesc { Knob { min: f32, max: f32 }, ... }
+        // - implement a transformation of UIParamDesc to WidgetData.
+
+        self.cont =
+            Some(Box::new(wbox!(
+                wt_cont,
+                AtomId::new(self.model_node_id, 1),
+                center(12, 12), cd)));
+    }
+}
+
 pub struct NodePanelData {
     #[allow(dead_code)]
     matrix: Arc<Mutex<Matrix>>,
+
+    node_ui: Rc<RefCell<GenericNodeUI>>,
 
     knobs:  Box<WidgetData>,
 }
@@ -26,7 +79,11 @@ impl NodePanelData {
                 wt_cont, AtomId::new(node_id, 1),
                 center(12, 12), ContainerData::new()));
 
-        Box::new(Self { matrix, knobs })
+        Box::new(Self {
+            matrix,
+            knobs,
+            node_ui: Rc::new(RefCell::new(GenericNodeUI::new())),
+        })
     }
 }
 
@@ -45,7 +102,7 @@ impl WidgetType for NodePanel {
         data.with(|data: &mut NodePanelData| {
             p.rect_fill(UI_BG_CLR, pos.x, pos.y, pos.w, pos.h);
 
-            let pos = pos.shrink(100.0, 100.0);
+            let pos = pos.shrink(10.0, 10.0);
             p.rect_fill(UI_PRIM_CLR, pos.x, pos.y, pos.w, pos.h);
 
             let knob_pos = pos.crop_top(200.0);

@@ -354,8 +354,11 @@ impl WidgetType for NodeMatrix {
     fn draw(&self, ui: &mut dyn WidgetUI, data: &mut WidgetData, p: &mut dyn Painter, pos: Rect) {
         data.with(|data: &mut NodeMatrixData| {
 
+            let panel_pos = pos.resize(360.0, pos.h);
+
             let hex_pos = pos.shrink(365.0, 0.0);
             (*data.hex_grid).draw(ui, p, hex_pos);
+            (*data.node_panel).draw(ui, p, panel_pos);
 
             if let Some(mouse_pos) = data.grid_click_pos {
                 if data.matrix_model.menu.menu.borrow().is_open() {
