@@ -20,46 +20,60 @@ pub const MIDI_MAX_FREQ : f32 = 13289.75;
 pub const MAX_BLOCK_SIZE : usize = 64;
 
 /// A processing buffer with the exact right maximum size.
-pub struct ProcBuf(Box<[f32; MAX_BLOCK_SIZE]>);
+#[derive(Clone, Copy)]
+pub struct ProcBuf(*mut [f32; MAX_BLOCK_SIZE]);
 
 impl ProcBuf {
-    pub fn new() -> Self { ProcBuf(Box::new([0.0; MAX_BLOCK_SIZE])) }
+    pub fn new() -> Self {
+        ProcBuf(Box::into_raw(Box::new([0.0; MAX_BLOCK_SIZE])))
+    }
+
+    pub fn null() -> Self {
+        ProcBuf(std::ptr::null_mut())
+    }
 }
 
-impl ProcBuf {
-    pub fn slice(&mut self) -> &mut [f32] { &mut self.0[..] }
+unsafe impl Send for ProcBuf {}
+//unsafe impl Sync for HexoSynthShared {}
 
+impl ProcBuf {
     #[inline]
     pub fn write(&mut self, idx: usize, v: f32) {
-        (*self.0)[idx] = v;
+        unsafe {
+            (*self.0)[idx] = v;
+        }
     }
 
     #[inline]
-    pub fn read(&self, idx: usize) -> f32 { (*self.0)[idx] }
+    pub fn read(&self, idx: usize) -> f32 { unsafe { (*self.0)[idx] } }
 
     #[inline]
     pub fn fill(&mut self, v: f32) {
-        (*self.0).fill(v);
+        unsafe {
+            (*self.0).fill(v);
+        }
     }
-}
 
-impl std::clone::Clone for ProcBuf {
-    fn clone(&self) -> Self {
-        let mut new = Self::new();
-        (*new.0).copy_from_slice(&self.0[..]);
-        new
+    pub fn free(&self) {
+        if !self.0.is_null() {
+            drop(unsafe { Box::from_raw(self.0) });
+        }
     }
 }
 
 impl std::fmt::Debug for ProcBuf {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "ProcBuf(0: {})", self.0[0])
+        unsafe {
+            write!(f, "ProcBuf(0: {})", (*self.0)[0])
+        }
     }
 }
 
 impl std::fmt::Display for ProcBuf {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "ProcBuf(0: {})", self.0[0])
+        unsafe {
+            write!(f, "ProcBuf(0: {})", (*self.0)[0])
+        }
     }
 }
 

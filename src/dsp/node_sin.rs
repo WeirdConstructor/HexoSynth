@@ -49,6 +49,7 @@ impl Sin {
 
             o.write(frame, fast_sin(self.phase * TWOPI));
 //            o.write(frame, (self.phase * TWOPI).sin());
+//            o.write(frame, (self.phase * TWOPI).sin());
 
             self.phase += freq * isr;
             self.phase = self.phase.fract();

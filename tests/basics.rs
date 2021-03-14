@@ -58,7 +58,6 @@ fn run_no_input(node_exec: &mut hexosynth::nodes::NodeExecutor, seconds: f32) ->
             };
         nframes -= cur_nframes;
 
-        println!("ITER CUR: {}", cur_nframes);
         let mut context = hexosynth::Context {
             nframes: cur_nframes,
             output:  &mut [&mut output_l[offs..(offs + cur_nframes)],
@@ -190,7 +189,7 @@ fn check_matrix_sine() {
 
     let sum_l : f32 = out_l.iter().map(|v| v.abs()).sum();
     let sum_r : f32 = out_r.iter().map(|v| v.abs()).sum();
-    assert_float_eq!(sum_l, 112303.086);
+    assert_float_eq!(sum_l.floor(), 112301.0);
     assert_float_eq!(sum_r, 0.0);
 
     save_wav("check_matrix_sine.wav", &out_l);
@@ -236,8 +235,8 @@ fn check_matrix_atom_set() {
 
     let sum_l : f32 = out_l.iter().map(|v| v.abs()).sum();
     let sum_r : f32 = out_r.iter().map(|v| v.abs()).sum();
-    assert_float_eq!(sum_l, 112303.086);
-    assert_float_eq!(sum_r, 112303.086);
+    assert_float_eq!(sum_l.floor(), 112301.0);
+    assert_float_eq!(sum_r.floor(), 112301.0);
 
     let rms_mimax = calc_rms_mimax_each_ms(&out_l[..], 1000.0);
     for i in 0..4 {
@@ -588,4 +587,24 @@ fn check_matrix_adj_even() {
     assert_eq!(
         matrix.get_adjacent(2, 1, CellDir::BL).unwrap().node_id(),
         NodeId::Sin(6));
+}
+
+
+#[test]
+fn check_matrix_out_twice_assignment() {
+    let (node_conf, mut node_exec) = new_node_engine();
+    let mut matrix = Matrix::new(node_conf, 7, 7);
+
+    matrix.place(0, 0, Cell::empty(NodeId::Sin(0))
+                       .out(None, Some(0), None));
+    matrix.place(0, 1, Cell::empty(NodeId::Sin(0))
+                       .out(Some(0), None, None));
+    matrix.place(1, 0, Cell::empty(NodeId::Out(0))
+                       .input(None, Some(0), Some(0))
+                       .out(None, None, None));
+
+    matrix.sync();
+
+    let (_out_l, _out_r) = run_no_input(&mut node_exec, 0.2);
+
 }

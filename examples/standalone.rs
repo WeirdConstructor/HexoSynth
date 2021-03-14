@@ -145,6 +145,13 @@ fn start_backend<F: FnMut()>(shared: Arc<HexoSynthShared>, mut f: F) {
     let ne        = Arc::new(Mutex::new(node_exec));
     let ne2       = ne.clone();
 
+    let oversample_simulation =
+        if let Some(arg) = std::env::args().skip(1).next() {
+            arg == "4x"
+        } else {
+            false
+        };
+
     let mut first = true;
     let process_callback = move |client: &jack::Client, ps: &jack::ProcessScope| -> jack::Control {
         let out_a_p = out_a.as_mut_slice(ps);
@@ -198,6 +205,12 @@ fn start_backend<F: FnMut()>(shared: Arc<HexoSynthShared>, mut f: F) {
             }
 
             node_exec.process(&mut context);
+
+            if oversample_simulation {
+                node_exec.process(&mut context);
+                node_exec.process(&mut context);
+                node_exec.process(&mut context);
+            }
 
             offs += cur_nframes;
         }
