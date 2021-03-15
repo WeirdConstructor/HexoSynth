@@ -4,7 +4,7 @@ use hexotk::Atom;
 pub enum SAtom {
     Str(String),
     MicroSample([f32; 8]),
-    AudioSample((String, std::sync::Arc<Vec<f32>>)),
+    AudioSample((String, Option<std::sync::Arc<Vec<f32>>>)),
     Setting(i64),
     Param(f32),
 }
@@ -15,14 +15,18 @@ impl SAtom {
     pub fn param(p: f32)        -> Self { SAtom::Param(p) }
     pub fn micro(m: &[f32; 8])  -> Self { SAtom::MicroSample(*m) }
     pub fn audio(s: &str, m: std::sync::Arc<Vec<f32>>) -> Self {
-        SAtom::AudioSample((s.to_string(), m))
+        SAtom::AudioSample((s.to_string(), Some(m)))
+    }
+
+    pub fn audio_unloaded(s: &str) -> Self {
+        SAtom::AudioSample((s.to_string(), None))
     }
 
     pub fn default_of(&self) -> Self {
         match self {
             SAtom::Str(_)         => SAtom::Str("".to_string()),
             SAtom::MicroSample(_) => SAtom::MicroSample([0.0; 8]),
-            SAtom::AudioSample(_) => SAtom::AudioSample(("".to_string(), std::sync::Arc::new(vec![]))),
+            SAtom::AudioSample(_) => SAtom::AudioSample(("".to_string(), None)),
             SAtom::Setting(_)     => SAtom::Setting(0),
             SAtom::Param(_)       => SAtom::Param(0.0),
         }
