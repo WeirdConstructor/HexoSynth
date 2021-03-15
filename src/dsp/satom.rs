@@ -69,3 +69,15 @@ impl From<Atom> for SAtom {
         }
     }
 }
+
+impl From<SAtom> for Atom {
+    fn from(n: SAtom) -> Atom {
+        match n {
+            SAtom::Str(s)         => Atom::Str(s),
+            SAtom::MicroSample(s) => Atom::MicroSample(s),
+            SAtom::AudioSample(s) => Atom::AudioSample(s),
+            SAtom::Setting(s)     => Atom::Setting(s),
+            SAtom::Param(s)       => Atom::Param(s),
+        }
+    }
+}
