@@ -3,6 +3,7 @@ use hexotk::{Rect, WidgetUI, Painter, WidgetData, WidgetType, UIEvent};
 use hexotk::constants::*;
 use hexotk::widgets::{
     Container, ContainerData,
+    Knob, KnobData,
 };
 
 use std::rc::Rc;
@@ -19,15 +20,21 @@ pub struct GenericNodeUI {
     model_node_id:  u32,
     info:           Option<NodeInfo>,
     cont:           Option<Box<WidgetData>>,
+
+    wt_knob:        Rc<Knob>,
 }
 
 impl GenericNodeUI {
     pub fn new() -> Self {
+        let wt_knob =
+            Rc::new(Knob::new(30.0, 12.0, 9.0));
+
         Self {
             dsp_node_id:    NodeId::Nop,
             model_node_id:  0,
             info:           None,
             cont:           None,
+            wt_knob,
         }
     }
 
@@ -42,7 +49,15 @@ impl GenericNodeUI {
     pub fn rebuild(&mut self) {
         let wt_cont = Rc::new(Container::new());
 
-        let cd = ContainerData::new();
+        let mut cd = ContainerData::new();
+
+        cd.contrast_border()
+          .new_row()
+          .add(wbox!(
+            self.wt_knob,
+            AtomId::new(0,0),
+            center(12, 12),
+            KnobData::new()));
 
         // TODO:
         // - detect all the inputs
@@ -53,6 +68,11 @@ impl GenericNodeUI {
         //      struct InputParamDesc { min, max, type }?
         //      enum UIParamDesc { Knob { min: f32, max: f32 }, ... }
         // - implement a transformation of UIParamDesc to WidgetData.
+        // - Implement a Settings input
+        // - Implement a sample input with string input.
+        // => Then dive off into preset serialization?!
+        // => Then dive off into sampler implementation
+        //    - With autom. Test!?
 
         self.cont =
             Some(Box::new(wbox!(
@@ -68,21 +88,18 @@ pub struct NodePanelData {
 
     node_ui: Rc<RefCell<GenericNodeUI>>,
 
-    knobs:  Box<WidgetData>,
+//    knobs:  Box<WidgetData>,
 }
 
 impl NodePanelData {
     pub fn new(node_id: u32, matrix: Arc<Mutex<Matrix>>) -> Box<dyn std::any::Any> {
         let wt_cont = Rc::new(Container::new());
-        let knobs =
-            Box::new(wbox!(
-                wt_cont, AtomId::new(node_id, 1),
-                center(12, 12), ContainerData::new()));
 
+        let node_ui = Rc::new(RefCell::new(GenericNodeUI::new()));
+        node_ui.borrow_mut().set_target(NodeId::Sin(0), 0);
         Box::new(Self {
             matrix,
-            knobs,
-            node_ui: Rc::new(RefCell::new(GenericNodeUI::new())),
+            node_ui,
         })
     }
 }
@@ -107,7 +124,10 @@ impl WidgetType for NodePanel {
 
             let knob_pos = pos.crop_top(200.0);
 
-            data.knobs.draw(ui, p, knob_pos);
+            let mut node_ui = data.node_ui.borrow_mut();
+            if let Some(cont) = &mut node_ui.cont {
+                cont.draw(ui, p, pos);
+            }
         });
     }
 

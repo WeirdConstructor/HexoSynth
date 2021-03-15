@@ -162,16 +162,16 @@ impl PluginContext<HexoSynth> for HexoSynthShared {
 //        let (w, h) = (15, 15);
         let mut matrix = Matrix::new(node_conf, w, h);
 
-        let mut i = 2;
-        for x in 0..w {
-            for y in 0..h {
-                matrix.place(x, y,
-                    Cell::empty(NodeId::Sin(i))
-                    .out(Some(0), Some(0), Some(0))
-                    .input(Some(0), Some(0), Some(0)));
-                i += 1;
-            }
-        }
+//        let mut i = 2;
+//        for x in 0..w {
+//            for y in 0..h {
+//                matrix.place(x, y,
+//                    Cell::empty(NodeId::Sin(i))
+//                    .out(Some(0), Some(0), Some(0))
+//                    .input(Some(0), Some(0), Some(0)));
+//                i += 1;
+//            }
+//        }
 
         matrix.place(0, 1, Cell::empty(NodeId::Sin(0))
                            .out(Some(0), None, None));
@@ -272,6 +272,15 @@ impl HexoSynthUIParams {
     }
 }
 
+// TODO: Connect the AtomDataModel with the Matrix:
+//      - Filter out NODE_MATRIX_ID requests.
+//      - Map AtomId to ParamId
+//      - Upon creation, read out all paramters from the Matrix
+//        - Make sure the matrix is properly initialized/synced on startup.
+//          So that the paramter defaults exists.
+//        - retain the paramters in HexoSynthUIParams for the UI
+//      - Make sure the NodeId defaults are properly loaded from dsp/mod.rs
+//      - writing paramters is translated to SAtom
 impl AtomDataModel for HexoSynthUIParams {
     fn len(&self) -> usize { self.params.len() }
     fn get(&self, id: AtomId) -> Atom { self.params[id.atom_id() as usize].clone() }
@@ -281,17 +290,17 @@ impl AtomDataModel for HexoSynthUIParams {
         self.set(id, self.get(id).default_of());
     }
 
-    fn change_start(&mut self, _id: AtomId) {
-//        println!("CHANGE START: {}", id);
+    fn change_start(&mut self, id: AtomId) {
+        println!("CHANGE START: {}", id);
     }
 
-    fn change(&mut self, id: AtomId, v: f32, _single: bool) {
-//        println!("CHANGE: {},{} ({})", id, v, single);
+    fn change(&mut self, id: AtomId, v: f32, single: bool) {
+        println!("CHANGE: {},{} ({})", id, v, single);
         self.set(id, Atom::param(v));
     }
 
     fn change_end(&mut self, id: AtomId, v: f32) {
-//        println!("CHANGE END: {},{}", id, v);
+        println!("CHANGE END: {},{}", id, v);
         self.set(id, Atom::param(v));
     }
 
@@ -313,6 +322,7 @@ impl AtomDataModel for HexoSynthUIParams {
     }
 }
 
+const NODE_MATRIX_ID : u32 = 9999;
 
 impl PluginUI for HexoSynth {
     type Handle = u32;
@@ -328,7 +338,7 @@ impl PluginUI for HexoSynth {
 
         open_window("HexoSynth", 1400, 700, Some(parent.raw_window_handle()), Box::new(|| {
             Box::new(UI::new(
-                Box::new(NodeMatrixData::new(matrix, UIPos::center(12, 12), 11)),
+                Box::new(NodeMatrixData::new(matrix, UIPos::center(12, 12), NODE_MATRIX_ID)),
                 Box::new(HexoSynthUIParams::new()),
                 (1400 as f64, 700 as f64),
             ))
