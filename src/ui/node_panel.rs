@@ -21,20 +21,24 @@ pub struct GenericNodeUI {
     info:           Option<NodeInfo>,
     cont:           Option<Box<WidgetData>>,
 
-    wt_knob:        Rc<Knob>,
+    wt_knob_01:    Rc<Knob>,
+    wt_knob_11:    Rc<Knob>,
 }
 
 impl GenericNodeUI {
     pub fn new() -> Self {
-        let wt_knob =
+        let wt_knob_01 =
             Rc::new(Knob::new(30.0, 12.0, 9.0));
+        let wt_knob_11 =
+            Rc::new(Knob::new(30.0, 12.0, 9.0).range_signed());
 
         Self {
             dsp_node_id:    NodeId::Nop,
             model_node_id:  0,
             info:           None,
             cont:           None,
-            wt_knob,
+            wt_knob_01,
+            wt_knob_11,
         }
     }
 
@@ -61,7 +65,7 @@ impl GenericNodeUI {
         cd.contrast_border()
           .new_row()
           .add(wbox!(
-            self.wt_knob,
+            self.wt_knob_11,
             AtomId::new(self.model_node_id, 0),
             center(12, 12),
             KnobData::new(param_name)));

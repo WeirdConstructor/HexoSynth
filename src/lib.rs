@@ -347,12 +347,20 @@ impl AtomDataModel for HexoSynthUIParams {
 
     fn change(&mut self, id: AtomId, v: f32, single: bool) {
         println!("CHANGE: {},{} ({})", id, v, single);
-        self.set(id, Atom::param(v));
+        if let Some((pid, _)) = self.get_param(id) {
+            if let Some((min, max)) = pid.param_min_max() {
+                self.set(id, Atom::param(v));
+            }
+        }
     }
 
     fn change_end(&mut self, id: AtomId, v: f32) {
         println!("CHANGE END: {},{}", id, v);
-        self.set(id, Atom::param(v));
+        if let Some((pid, _)) = self.get_param(id) {
+            if let Some((min, max)) = pid.param_min_max() {
+                self.set(id, Atom::param(v.clamp(min, max)));
+            }
+        }
     }
 
     fn step_next(&mut self, id: AtomId) {

@@ -269,6 +269,18 @@ macro_rules! make_node_info_enum {
                 }
             }
 
+            pub fn param_min_max(&self) -> Option<(f32, f32)> {
+                match self.node {
+                    NodeId::$v1           => None,
+                    $(NodeId::$variant(_) => {
+                        match self.idx {
+                            $($in_idx => Some(($min, $max)),)*
+                            _         => None,
+                        }
+                    }),+
+                }
+            }
+
             pub fn setting_min_max(&self) -> Option<(i64, i64)> {
                 match self.node {
                     NodeId::$v1           => None,
