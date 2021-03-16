@@ -186,27 +186,64 @@ impl Plugin for HexoSynth {
     fn process(&mut self, _model: &HexoSynthModelProcess,
                ctx: &mut ProcessContext<Self>, shared: &HexoSynthShared) {
 
-        let input  = &ctx.inputs[0].buffers;
-        let output = &mut ctx.outputs[0].buffers;
-
         let mut node_exec = shared.node_exec.borrow_mut();
         let node_exec     = node_exec.as_mut().unwrap();
 
         node_exec.process_graph_updates();
 
-        let mut context = Context {
-            nframes: ctx.nframes,
-            output,
-            input,
-        };
+        let mut frames_left = ctx.nframes;
+        let mut offs        = 0;
 
-        for i in 0..ctx.nframes {
-            context.output[0][i] = 0.0;
-            context.output[1][i] = 0.0;
+        while frames_left > 0 {
+            let cur_nframes =
+                if frames_left >= crate::dsp::MAX_BLOCK_SIZE {
+                    crate::dsp::MAX_BLOCK_SIZE
+                } else {
+                    frames_left
+                };
 
+            frames_left -= cur_nframes;
+
+            let input  = &[
+                &ctx.inputs[0].buffers[0][offs..(offs + cur_nframes)],
+                &ctx.inputs[0].buffers[1][offs..(offs + cur_nframes)],
+            ];
+
+            let split = ctx.outputs[0].buffers.split_at_mut(1);
+
+            let mut output = [
+                &mut ((*split.0[0])[offs..(offs + cur_nframes)]),
+                &mut ((*split.1[0])[offs..(offs + cur_nframes)]),
+            ];
+
+//            let output = &mut [&mut out_a_p[offs..(offs + cur_nframes)],
+//                               &mut out_b_p[offs..(offs + cur_nframes)]];
+//            let input =
+//                &[&in_a_p[offs..(offs + cur_nframes)],
+//                  &in_b_p[offs..(offs + cur_nframes)]];
+
+            let mut context =
+                Context {
+                    nframes: cur_nframes,
+                    output: &mut output[..],
+                    input,
+                };
+
+            for i in 0..context.nframes {
+                context.output[0][i] = 0.0;
+                context.output[1][i] = 0.0;
+            }
+
+            node_exec.process(&mut context);
+
+//            if oversample_simulation {
+//                node_exec.process(&mut context);
+//                node_exec.process(&mut context);
+//                node_exec.process(&mut context);
+//            }
+
+            offs += cur_nframes;
         }
-
-        node_exec.process(&mut context);
     }
 }
 
