@@ -349,7 +349,7 @@ impl AtomDataModel for HexoSynthUIParams {
         println!("CHANGE: {},{} ({})", id, v, single);
         if let Some((pid, _)) = self.get_param(id) {
             if let Some((min, max)) = pid.param_min_max() {
-                self.set(id, Atom::param(v));
+                self.set(id, Atom::param(v.clamp(min, max)));
             }
         }
     }

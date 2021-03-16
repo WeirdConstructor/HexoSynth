@@ -55,17 +55,28 @@ impl GenericNodeUI {
 
         let mut cd = ContainerData::new();
 
-        let param_name =
-            if let Some(param_id) = self.dsp_node_id.inp_param_by_idx(0) {
-                param_id.name()
+        let param_id =
+            // FIXME: We should skip these params or just not enumerate there!
+            self.dsp_node_id.inp_param_by_idx(0).unwrap();
+
+        let param_name = param_id.name();
+
+        let knob_type =
+            if let Some((min, max)) = param_id.param_min_max() {
+                if min < 0.0 {
+                    self.wt_knob_11.clone()
+                } else {
+                    self.wt_knob_01.clone()
+                }
             } else {
-                "bad param"
+                // FIXME: Widget type should be determined by the Atom enum!
+                self.wt_knob_01.clone()
             };
 
         cd.contrast_border()
           .new_row()
           .add(wbox!(
-            self.wt_knob_11,
+            knob_type,
             AtomId::new(self.model_node_id, 0),
             center(12, 12),
             KnobData::new(param_name)));
