@@ -51,13 +51,20 @@ impl GenericNodeUI {
 
         let mut cd = ContainerData::new();
 
+        let param_name =
+            if let Some(param_id) = self.dsp_node_id.inp_param_by_idx(0) {
+                param_id.name()
+            } else {
+                "bad param"
+            };
+
         cd.contrast_border()
           .new_row()
           .add(wbox!(
             self.wt_knob,
             AtomId::new(self.model_node_id, 0),
             center(12, 12),
-            KnobData::new()));
+            KnobData::new(param_name)));
 
         // TODO:
         // - detect all the inputs
