@@ -272,7 +272,7 @@ impl HexoSynthUIParams {
                     0
                 };
 
-            //d// println!("NODEID: {} => idx={}", param_id.node_id(), node_idx);
+            println!("NODEID: {} => idx={}", param_id.node_id(), node_idx);
 
             new_hm.insert(
                 AtomId::new(node_idx, param_id.inp() as u32),

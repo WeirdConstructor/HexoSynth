@@ -55,7 +55,7 @@ impl GenericNodeUI {
           .new_row()
           .add(wbox!(
             self.wt_knob,
-            AtomId::new(0,0),
+            AtomId::new(self.model_node_id, 0),
             center(12, 12),
             KnobData::new()));
 
