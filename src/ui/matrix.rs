@@ -386,16 +386,23 @@ impl WidgetType for NodeMatrix {
 
     fn event(&self, ui: &mut dyn WidgetUI, data: &mut WidgetData, ev: &UIEvent) {
         match ev {
-            UIEvent::Click { id, x, y, .. } => {
-                println!("EV: {:?} id={}, data.id={}", ev, *id, data.id());
+            UIEvent::Click { id, x, y, button, .. } => {
+                println!("EV: {:?} id={}, btn={:?}, data.id={}",
+                         ev, *id, button, data.id());
                 data.with(|data: &mut NodeMatrixData| {
-                    if *id == data.hex_grid.id() {
-                        data.grid_click_pos = Some((*x, *y));
-                        data.hex_grid.event(ui, ev);
-                        data.matrix_model.menu.menu.borrow_mut().update();
-
-                    } else if *id == data.hex_menu_id {
+                    if *id == data.hex_menu_id {
                         data.hex_menu.event(ui, ev);
+                    } else {
+                        match button {
+                            MButton::Right => {
+                                if *id == data.hex_grid.id() {
+                                    data.grid_click_pos = Some((*x, *y));
+                                    data.hex_grid.event(ui, ev);
+                                    data.matrix_model.menu.menu.borrow_mut().update();
+                                }
+                            },
+                            _ => { },
+                        }
                     }
 
                     ui.queue_redraw();

@@ -129,15 +129,16 @@ macro_rules! node_list {
                (1 gain n_exp d_exp 0.0, 2.0, 1.0)
                [0 sig],
             sin => Sin UIType::Generic UICategory::Osc
-               (0 freq n_pit d_pit 0.001, 1.0, 440.0)
+               (0 freq n_pit d_pit -1.0, 1.0, 440.0)
                [0 sig],
             out => Out UIType::Generic UICategory::IOUtil
                (0  ch1  n_id  d_id  0.0, 1.0, 0.0)
                (1  ch2  n_id  d_id  0.0, 1.0, 0.0)
              // node_param_idx
-             //   atom_idx
-             //     name            constructor min max
-             //          SAtom_Type         default value
+             // | atom_idx
+             // | | name            constructor min max
+             // | | |    SAtom_Type |       defa|lt_|value
+             // | | |    |          |       |   |   |
                {2 0 mono Setting => setting(0)  0   1},
         }
     }
