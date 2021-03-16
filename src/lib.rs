@@ -10,12 +10,20 @@ pub mod cell_dir;
 pub mod ui;
 mod util;
 
+use nodes::*;
+use matrix::*;
+
 pub use cell_dir::CellDir;
 
 use dsp::NodeId;
 use serde::{Serialize, Deserialize};
 use raw_window_handle::HasRawWindowHandle;
+
 use std::rc::Rc;
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
+use std::cell::RefCell;
+
 
 pub use baseplug::{
     ProcessContext,
@@ -88,63 +96,6 @@ impl Default for HexoSynthModel {
         }
     }
 }
-
-/*
-
-Requirements:
-
-- Pre-allocated Nodes in the audio backend
-  (mono voice for now)
-- mod_a1 to mod_b6 are automateable from the Host
-  => Sync from VST interface into backend, with smoothing
-     is done by baseplug
-- UI parameters for the Nodes in the audio backend
-  have their fixed adresses.
-  - Automated values are sent over a ring buffer to the backend
-    => the backend then initializes or searches a ramp with
-       that parameter id and initializes it. for the next 64 frames.
-- State of Nodes in the backend is not reset until a specific reset
-  button is pressed.
-
-What I would love to have:
-
-- No fixed amount of pre-allocated nodes
-  PROBLEM 1 => This means, we can't bind UI parameters fixed anymore.
-  PROBLEM 2 => State of Nodes that are in use between the Graph updates
-               needs to persist.
-  - Solution 1:
-    - Make a globally synchronized list of nodes
-        - Frontend: List of Node types in use.
-            - Index in the List is the Node-ID
-            - UI Parameters are stored in the Frontend-List
-            - Updates for Parameters are sent automatically to the
-              backend.
-        - Backend:
-            - Received parameters updates are converted into ramps.
-    - Invariants:
-        - Always send UI parameters updates AND connections
-          AFTER updating the Node list in the backend.
-          => Can only do this using a ring buffer with a command queue
-            COMMANDS:
-                - Create Node with <type> at <idx>
-                  with default values <params> from <boxed node>
-                - Update Parameter <p> Node <idx> to <v> in next iteration.
-                - Remove Node <idx>
-                  (This creates an empty dummy node)
-                - Update Eval Program <boxed prog>
-          => Requires a ring buffer for feedback:
-            EVENTS:
-                - Removed Node <boxed node>
-                - Old Program <boxed prog>
-                - Feedback Trigger <node-idx> <feedback-id>
-
-*/
-
-use nodes::*;
-use matrix::*;
-use std::sync::Arc;
-use std::sync::Mutex;
-use std::cell::RefCell;
 
 pub struct HexoSynthShared {
     pub matrix:    Arc<Mutex<Matrix>>,
@@ -260,15 +211,93 @@ impl Plugin for HexoSynth {
 }
 
 use hexotk::*;
+use dsp::ParamId;
 
 pub struct HexoSynthUIParams {
-    params: Vec<Atom>,
+    params:     HashMap<AtomId, (ParamId, Atom)>,
+    /// An index to keep AtomId's unique throughout the whole
+    /// program runtime. Once a NodeId is assigned, it will always
+    /// keep this index. Otherwise all AtomId references in the UI
+    /// would have to update. Which is not realistic.
+    node2idx:   Rc<RefCell<(u32, HashMap<NodeId, u32>)>>,
+    matrix:     Arc<Mutex<Matrix>>,
+    /// Generation counter, to check for matrix updates.
+    matrix_gen: RefCell<usize>,
 }
 
 impl HexoSynthUIParams {
-    pub fn new() -> Self {
-        let params = vec![Atom::default(); 100];
-        HexoSynthUIParams { params }
+    pub fn new(matrix: Arc<Mutex<Matrix>>) -> Self {
+        let params = HashMap::new();
+
+        let matrix_gen = matrix.lock().unwrap().get_generation();
+
+        let mut hsup =
+            HexoSynthUIParams {
+                params,
+                matrix_gen: RefCell::new(matrix_gen),
+                node2idx: Rc::new(RefCell::new((0, HashMap::new()))),
+                matrix
+            };
+
+        hsup.sync_from_matrix();
+
+        hsup
+    }
+
+    pub fn sync_from_matrix(&mut self) {
+        let node2idx = self.node2idx.clone();
+
+        let m = self.matrix.lock().unwrap();
+
+        // TODO: this could all lead to speed problems in the UI:
+        //       the allocation might cause a (too long?) pause.
+        //       if this is too slow, then matrix.sync() is probably also
+        //       too slow and we need to do that on an extra thread.
+        //       and all communication in HexoSynthUIParams needs to happen
+        //       through an Arc<Mutex<HashMap<AtomId, ...>>>.
+        let mut new_hm = HashMap::new();
+
+        m.for_each_atom(|_node_idx, param_id, satom| {
+            let node_idx =
+                if let (cur_idx, map) = &mut *self.node2idx.borrow_mut() {
+                    if let Some(idx) = map.get(&param_id.node_id()) {
+                        *idx
+                    } else {
+                        let idx = *cur_idx;
+                        *cur_idx += 1;
+                        map.insert(param_id.node_id(), idx);
+                        idx
+                    }
+                } else {
+                    0
+                };
+
+            //d// println!("NODEID: {} => idx={}", param_id.node_id(), node_idx);
+
+            new_hm.insert(
+                AtomId::new(node_idx, param_id.inp() as u32),
+                (param_id, satom.clone().into()));
+        });
+
+        *self.matrix_gen.borrow_mut() = m.get_generation();
+
+        self.params = new_hm;
+    }
+
+    pub fn get_param(&self, id: AtomId) -> Option<&(ParamId, Atom)> {
+        self.params.get(&id)
+    }
+
+    pub fn set_param(&mut self, id: AtomId, atom: Atom) {
+        let pid =
+            if let Some((pid, _)) = self.params.get(&id) {
+                *pid
+            } else {
+                return;
+            };
+
+        self.params.insert(id, (pid, atom.clone()));
+        self.matrix.lock().unwrap().set_param(pid, atom.into());
     }
 }
 
@@ -282,12 +311,34 @@ impl HexoSynthUIParams {
 //      - Make sure the NodeId defaults are properly loaded from dsp/mod.rs
 //      - writing paramters is translated to SAtom
 impl AtomDataModel for HexoSynthUIParams {
-    fn len(&self) -> usize { self.params.len() }
-    fn get(&self, id: AtomId) -> Atom { self.params[id.atom_id() as usize].clone() }
-    fn get_denorm(&self, id: AtomId) -> Atom { self.params[id.atom_id() as usize].clone() }
-    fn set(&mut self, id: AtomId, v: Atom) { self.params[id.atom_id() as usize] = v; }
+    fn len(&self) -> usize {
+        self.params.len()
+    }
+
+    fn check_sync(&mut self) {
+        let cur_gen = self.matrix.lock().unwrap().get_generation();
+        if *self.matrix_gen.borrow() < cur_gen {
+            self.sync_from_matrix();
+        }
+    }
+
+    fn get(&self, id: AtomId) -> Option<&Atom> {
+        Some(&self.get_param(id)?.1)
+    }
+
+    fn get_denorm(&self, id: AtomId) -> Option<f32> {
+        let (pid, atom) = self.get_param(id)?;
+        Some(pid.denorm(atom.f()))
+    }
+
+    fn set(&mut self, id: AtomId, v: Atom) {
+        self.set_param(id, v);
+    }
+
     fn set_default(&mut self, id: AtomId) {
-        self.set(id, self.get(id).default_of());
+        if let Some((pid, _)) = self.get_param(id) {
+            self.set(id, pid.as_atom_def().into());
+        }
     }
 
     fn change_start(&mut self, id: AtomId) {
@@ -305,19 +356,46 @@ impl AtomDataModel for HexoSynthUIParams {
     }
 
     fn step_next(&mut self, id: AtomId) {
-        self.set(id, Atom::setting(self.get(id).i() + 1));
+        if let Some((pid, atom)) = self.get_param(id) {
+            if let Atom::Setting(i) = atom {
+                if let Some((min, max)) = pid.setting_min_max() {
+                    let new = i + 1;
+                    let new =
+                        if new > max { min }
+                        else { new };
+
+                    self.set(id, Atom::setting(new));
+                }
+            }
+        }
     }
 
     fn step_prev(&mut self, id: AtomId) {
-        self.set(id, Atom::setting(self.get(id).i() - 1));
+        if let Some((pid, atom)) = self.get_param(id) {
+            if let Atom::Setting(i) = atom {
+                if let Some((min, max)) = pid.setting_min_max() {
+                    let new = i - 1;
+                    let new =
+                        if new < min { max }
+                        else { new };
+
+                    self.set(id, Atom::setting(new));
+                }
+            }
+        }
     }
 
     fn fmt<'a>(&self, id: AtomId, buf: &'a mut [u8]) -> usize {
         use std::io::Write;
         let mut bw = std::io::BufWriter::new(buf);
-        match write!(bw, "{:6.3}", self.get_denorm(id).f()) {
-            Ok(_)  => bw.buffer().len(),
-            Err(_) => 0,
+
+        if let Some(denorm_v) = self.get_denorm(id) {
+            match write!(bw, "{:6.3}", denorm_v) {
+                Ok(_)  => bw.buffer().len(),
+                Err(_) => 0,
+            }
+        } else {
+            0
         }
     }
 }
@@ -338,8 +416,8 @@ impl PluginUI for HexoSynth {
 
         open_window("HexoSynth", 1400, 700, Some(parent.raw_window_handle()), Box::new(|| {
             Box::new(UI::new(
-                Box::new(NodeMatrixData::new(matrix, UIPos::center(12, 12), NODE_MATRIX_ID)),
-                Box::new(HexoSynthUIParams::new()),
+                Box::new(NodeMatrixData::new(matrix.clone(), UIPos::center(12, 12), NODE_MATRIX_ID)),
+                Box::new(HexoSynthUIParams::new(matrix)),
                 (1400 as f64, 700 as f64),
             ))
         }));

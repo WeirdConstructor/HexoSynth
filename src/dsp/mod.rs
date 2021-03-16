@@ -122,6 +122,9 @@ macro_rules! node_list {
         $inmacro!{
             nop => Nop,
             amp => Amp UIType::Generic UICategory::Signal
+             // node_param_idx
+             //   name       denorm_fun
+             //        norm_fun    min  max  default
                (0 inp  n_id  d_id  0.0, 1.0, 0.0)
                (1 gain n_exp d_exp 0.0, 2.0, 1.0)
                [0 sig],
@@ -131,7 +134,11 @@ macro_rules! node_list {
             out => Out UIType::Generic UICategory::IOUtil
                (0  ch1  n_id  d_id  0.0, 1.0, 0.0)
                (1  ch2  n_id  d_id  0.0, 1.0, 0.0)
-               {2 0 mono Setting => setting(0)},
+             // node_param_idx
+             //   atom_idx
+             //     name            constructor min max
+             //          SAtom_Type         default value
+               {2 0 mono Setting => setting(0)  0   1},
         }
     }
 }
@@ -184,7 +191,8 @@ impl UICategory {
                        $n_fun: ident $d_fun: ident
                        $min: expr, $max: expr, $def: expr))*
                     $({$in_at_idx: literal $at_idx: literal $atom: ident
-                       $at_type: ident => $at_fun: ident ($at_init: expr)})*
+                       $at_type: ident => $at_fun: ident ($at_init: expr)
+                       $amin: literal $amax: literal})*
                     $([$out_idx: literal $out: ident])*
                     ,)+
             ) => {
@@ -211,7 +219,8 @@ macro_rules! make_node_info_enum {
                $n_fun: ident $d_fun: ident
                $min: expr, $max: expr, $def: expr))*
             $({$in_at_idx: literal $at_idx: literal $atom: ident
-               $at_type: ident => $at_fun: ident ($at_init: expr)})*
+               $at_type: ident => $at_fun: ident ($at_init: expr)
+               $amin: literal $amax: literal})*
             $([$out_idx: literal $out: ident])*
             ,)+
     ) => {
@@ -254,6 +263,18 @@ macro_rules! make_node_info_enum {
                             $($in_idx    => false,)*
                             $($in_at_idx => true,)*
                             _            => false,
+                        }
+                    }),+
+                }
+            }
+
+            pub fn setting_min_max(&self) -> Option<(i64, i64)> {
+                match self.node {
+                    NodeId::$v1           => None,
+                    $(NodeId::$variant(_) => {
+                        match self.idx {
+                            $($in_at_idx => Some(($amin, $amax)),)*
+                            _            => None,
                         }
                     }),+
                 }
@@ -697,7 +718,8 @@ macro_rules! make_node_enum {
                $n_fun: ident $d_fun: ident
                $min: expr, $max: expr, $def: expr))*
             $({$in_at_idx: literal $at_idx: literal $atom: ident
-               $at_type: ident => $at_fun: ident ($at_init: expr)})*
+               $at_type: ident => $at_fun: ident ($at_init: expr)
+               $amin: literal $amax: literal})*
             $([$out_idx: literal $out: ident])*
             ,)+
     ) => {
@@ -755,7 +777,8 @@ pub fn node_factory(node_id: NodeId) -> Option<(Node, NodeInfo)> {
                    $n_fun: ident $d_fun: ident
                    $min: expr, $max: expr, $def: expr))*
                 $({$in_at_idx: literal $at_idx: literal $atom: ident
-                   $at_type: ident => $at_fun: ident ($at_init: expr)})*
+                   $at_type: ident => $at_fun: ident ($at_init: expr)
+                   $amin: literal $amax: literal})*
                 $([$out_idx: literal $out: ident])*
             ,)+
         ) => {
@@ -786,7 +809,8 @@ impl Node {
                        $n_fun: ident $d_fun: ident
                        $min: expr, $max: expr, $def: expr))*
                     $({$in_at_idx: literal $at_idx: literal $atom: ident
-                       $at_type: ident => $at_fun: ident ($at_init: expr)})*
+                       $at_type: ident => $at_fun: ident ($at_init: expr)
+                       $amin: literal $amax: literal})*
                     $([$out_idx: literal $out: ident])*
                 ,)+
             ) => {

@@ -240,8 +240,8 @@ fn main() {
 
         open_window("HexoTK Standalone", 1400, 700, None, Box::new(|| {
             Box::new(UI::new(
-                Box::new(NodeMatrixData::new(matrix, UIPos::center(12, 12), 11)),
-                Box::new(HexoSynthUIParams::new()),
+                Box::new(NodeMatrixData::new(matrix.clone(), UIPos::center(12, 12), 11)),
+                Box::new(HexoSynthUIParams::new(matrix)),
                 (1400 as f64, 700 as f64),
             ))
         }));

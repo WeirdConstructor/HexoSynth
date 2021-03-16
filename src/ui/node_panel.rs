@@ -96,7 +96,7 @@ impl NodePanelData {
         let wt_cont = Rc::new(Container::new());
 
         let node_ui = Rc::new(RefCell::new(GenericNodeUI::new()));
-        node_ui.borrow_mut().set_target(NodeId::Sin(0), 0);
+        node_ui.borrow_mut().set_target(NodeId::Sin(0), 1);
         Box::new(Self {
             matrix,
             node_ui,

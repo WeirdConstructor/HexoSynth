@@ -207,6 +207,11 @@ pub struct Matrix {
     w:           usize,
     h:           usize,
 
+    /// A counter that increases for each sync(), it can be used
+    /// by other components of the application to detect changes in
+    /// the matrix to resync their own data.
+    gen_counter: usize,
+
     /// Bookkeeping of [NodeInstance] in the [NodeConfigurator].
     instances:   Rc<RefCell<std::collections::HashMap<NodeId, NodeInstance>>>,
     /// Storing some runtime information about the instanciated node 
@@ -236,6 +241,7 @@ impl Matrix {
             params_old:  Rc::new(RefCell::new(std::collections::HashMap::new())),
             atoms:       Rc::new(RefCell::new(std::collections::HashMap::new())),
             atoms_old:   Rc::new(RefCell::new(std::collections::HashMap::new())),
+            gen_counter: 0,
             config,
             w,
             h,
@@ -258,6 +264,28 @@ impl Matrix {
         cell.y = y as u8;
         self.matrix[x * self.h + y] = cell;
     }
+
+    pub fn for_each_atom<F: FnMut(usize, ParamId, &SAtom)>(&self, mut f: F) {
+        for (_, matrix_param) in self.atoms.borrow().iter() {
+            if let Some(instance) =
+                self.instances.borrow().get(&matrix_param.param_id.node_id())
+            {
+                f(instance.prog_idx, matrix_param.param_id,
+                  &matrix_param.value);
+            }
+        }
+
+        for (_, matrix_param) in self.params.borrow().iter() {
+            if let Some(instance) =
+                self.instances.borrow().get(&matrix_param.param_id.node_id())
+            {
+                f(instance.prog_idx, matrix_param.param_id,
+                  &SAtom::param(matrix_param.value));
+            }
+        }
+    }
+
+    pub fn get_generation(&self) -> usize { self.gen_counter }
 
     pub fn set_param(&mut self, param: ParamId, at: SAtom) {
         // XXX: The atoms and params maps are created when
@@ -671,6 +699,7 @@ impl Matrix {
         }
 
         self.config.upload_prog(prog, true); // true => copy_old_out
+        self.gen_counter += 1;
 
         // - after each node has been created, use the node ordering
         //   in NodeConfigurator to create an output vector.
