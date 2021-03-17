@@ -136,10 +136,12 @@ pub fn note_to_freq(note: f32) -> f32 {
 // * DspEffectLibrary.h - library with template-based inline-effects
 // * Copyright (c) 2006-2014 Tobias Doerffel <tobydox/at/users.sourceforge.net>
 //
-// Signal distortion
-// gain:        0.1 - 5.0       default = 1.0
-// threshold:   0.0 - 100.0     default = 0.8
-// i:           signal
+/// Signal distortion
+/// ```ignore
+/// gain:        0.1 - 5.0       default = 1.0
+/// threshold:   0.0 - 100.0     default = 0.8
+/// i:           signal
+/// ```
 pub fn f_distort(gain: f32, threshold: f32, i: f32) -> f32 {
     gain * (
         i * ( i.abs() + threshold )
@@ -150,10 +152,12 @@ pub fn f_distort(gain: f32, threshold: f32, i: f32) -> f32 {
 // * DspEffectLibrary.h - library with template-based inline-effects
 // * Copyright (c) 2006-2014 Tobias Doerffel <tobydox/at/users.sourceforge.net>
 //
-// Foldback Signal distortion
-// gain:        0.1 - 5.0       default = 1.0
-// threshold:   0.0 - 100.0     default = 0.8
-// i:           signal
+/// Foldback Signal distortion
+/// ```ignore
+/// gain:        0.1 - 5.0       default = 1.0
+/// threshold:   0.0 - 100.0     default = 0.8
+/// i:           signal
+/// ```
 pub fn f_fold_distort(gain: f32, threshold: f32, i: f32) -> f32 {
     if i >= threshold || i < -threshold {
         gain
@@ -201,7 +205,9 @@ pub fn range2p_exp4(v: f32, a: f32, b: f32) -> f32 {
     (((v - a) / (b - a)).abs()).sqrt().sqrt()
 }
 
-// gain: 24.0 - -90.0   default = 0.0
+/// ```ignore
+/// gain: 24.0 - -90.0   default = 0.0
+/// ```
 pub fn gain2coef(gain: f32) -> f32 {
     if gain > -90.0 {
         10.0_f32.powf(gain * 0.05)
