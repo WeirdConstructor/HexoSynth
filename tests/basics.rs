@@ -589,7 +589,6 @@ fn check_matrix_adj_even() {
         NodeId::Sin(6));
 }
 
-
 #[test]
 fn check_matrix_out_twice_assignment() {
     let (node_conf, mut node_exec) = new_node_engine();

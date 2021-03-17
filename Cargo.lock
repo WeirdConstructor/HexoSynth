@@ -11,6 +11,7 @@ checksum = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
 [[package]]
 name = "baseplug"
 version = "0.1.0"
+source = "git+https://github.com/WeirdConstructor/baseplug.git?branch=plugin_context#e38132bf0a4b3e25d93ed72d94b909a3bcdeb004"
 dependencies = [
  "baseplug-derive",
  "num-traits",
@@ -23,6 +24,7 @@ dependencies = [
 [[package]]
 name = "baseplug-derive"
 version = "0.1.0"
+source = "git+https://github.com/WeirdConstructor/baseplug.git?branch=plugin_context#e38132bf0a4b3e25d93ed72d94b909a3bcdeb004"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -286,6 +288,7 @@ dependencies = [
 [[package]]
 name = "hexotk"
 version = "0.1.0"
+source = "git+https://m8geil.de:3000/WeirdConstructor/HexoTK.git#284c44fb2c95a8cd47645111f7a0816f42c14448"
 dependencies = [
  "baseview",
  "femtovg",
