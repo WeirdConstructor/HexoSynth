@@ -204,6 +204,19 @@ macro_rules! node_list {
     }
 }
 
+pub mod labels {
+    pub mod Test {
+        pub const s : [&'static str; 11] = [
+            "Zero", "One", "Two", "Three", "Four",
+            "Five", "Six", "Seven", "Eigth", "Nine", "Ten"
+        ];
+    }
+
+    pub mod Out {
+        pub const mono : [&'static str; 2] = ["Mono", "Stereo"];
+    }
+}
+
 impl UICategory {
     #[allow(unused_assignments)]
     pub fn get_node_ids<F: FnMut(NodeId)>(&self, mut skip: usize, mut fun: F) {
@@ -300,6 +313,18 @@ macro_rules! make_node_info_enum {
                         match self.idx {
                             $($in_idx => Some(($min, $max)),)*
                             _         => None,
+                        }
+                    }),+
+                }
+            }
+
+            pub fn setting_lbl(&self, lbl_idx: usize) -> Option<&'static str> {
+                match self.node {
+                    NodeId::$v1           => None,
+                    $(NodeId::$variant(_) => {
+                        match self.idx {
+                            $($in_at_idx => Some(crate::dsp::labels::$variant::$atom[lbl_idx]),)*
+                            _            => None,
                         }
                     }),+
                 }
