@@ -29,8 +29,9 @@ project to be notified once I release a beta or stable release.
 I have a pretty detailed TODO list in my private notebook, but
 this is the rough road map:
 
-- Make a UI thats more or less fluently usable and easily extendable
+- Make a UI that is more or less fluently usable and easily extendable
 with new modules.
+- Take a bit of care that there is online help.
 - Add lots of modules (Oscillators, Filters, Envelopes, LFOs, Quantizers, ...).
 - Factor out the DSP code into it's own crate.
 - Comment the code for easier maintenance.
@@ -52,6 +53,28 @@ There exists an automate test suite for the DSP and backend code:
 ## Known Bugs
 
 * The ones you encounter and create as issues on GitHub.
+
+## Contributions
+
+I currently have a quite precise vision of what I want to achieve and my goal
+is to make music with this project eventually.
+
+The projects is still young, and I currently don't have that much time to
+devote for project coordination. So please don't be offended if your issue rots
+in the GitHub issue tracker, or your pull requests is left dangling around
+for ages.
+
+I might merge pull requests if I find the time and think that the contributions
+are in line with my vision.
+
+Please bear in mind, that I can only accept contributions under the License
+of this project (AGPLv3 or later).
+
+## Contact the Author
+
+You can reach me via Discord or Mastodon. I'm joined most public Rust Discord
+servers, especially the "Rust Audio" Discord server. I am also on freenode.net,
+for instance in the `#lad` channel (nick `weirdctr`).
 
 ## Support Development
 
