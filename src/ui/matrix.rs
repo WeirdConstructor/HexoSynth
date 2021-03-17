@@ -277,9 +277,6 @@ impl HexGridModel for MatrixUIModel {
                     }
                 },
                 _ => {
-//                    let m = self.matrix.lock().unwrap();
-//                    if let Some(cell) = m.get_copy(x, y) {
-//                    }
                 },
             }
         }

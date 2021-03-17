@@ -52,19 +52,8 @@ impl GenericNodeUI {
         self.rebuild();
     }
 
-    pub fn rebuild(&mut self) {
-        let wt_cont = Rc::new(Container::new());
-
-        let mut cd = ContainerData::new();
-
-        println!("REBUILD NODE UI: {} {}",
-                 self.dsp_node_id,
-                 self.model_node_id);
-
-        let param_id =
-            // FIXME: We should skip these params or just not enumerate there!
-            self.dsp_node_id.inp_param_by_idx(0).unwrap();
-
+    fn build_atom_input(&self, pos: (u8, u8), idx: usize) -> Option<WidgetData> {
+        let param_id = self.dsp_node_id.inp_param_by_idx(idx)?;
         let param_name = param_id.name();
 
         let knob_type =
@@ -79,13 +68,28 @@ impl GenericNodeUI {
                 self.wt_knob_01.clone()
             };
 
-        cd.contrast_border()
-          .new_row()
-          .add(wbox!(
+        Some(wbox!(
             knob_type,
-            AtomId::new(self.model_node_id, 0),
-            center(12, 12),
-            KnobData::new(param_name)));
+            AtomId::new(self.model_node_id, idx as u32),
+            center(pos.0, pos.1),
+            KnobData::new(param_name)))
+    }
+
+    pub fn rebuild(&mut self) {
+        let wt_cont = Rc::new(Container::new());
+
+        let mut cd = ContainerData::new();
+
+        println!("REBUILD NODE UI: {} {}",
+                 self.dsp_node_id,
+                 self.model_node_id);
+        cd.contrast_border().new_row();
+
+        for idx in 0..4 {
+            if let Some(wd) = self.build_atom_input((4, 12), idx) {
+                cd.add(wd);
+            }
+        }
 
         // TODO:
         // - detect all the inputs
