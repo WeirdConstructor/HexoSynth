@@ -4,6 +4,9 @@ mod node_amp;
 mod node_sin;
 #[allow(non_upper_case_globals)]
 mod node_out;
+#[allow(non_upper_case_globals)]
+mod node_test;
+
 mod satom;
 pub mod helpers;
 
@@ -14,6 +17,7 @@ pub use satom::*;
 use node_amp::Amp;
 use node_sin::Sin;
 use node_out::Out;
+use node_test::Test;
 
 pub const MIDI_MAX_FREQ : f32 = 13289.75;
 
@@ -103,6 +107,59 @@ pub enum UICategory {
     IOUtil,
 }
 
+macro_rules! n_id { ($x: expr) => { $x } }
+macro_rules! d_id { ($x: expr) => { $x } }
+
+macro_rules! define_lin {
+    ($n_id: ident $d_id: ident $min: expr, $max: expr) => {
+        macro_rules! $n_id { ($x: expr) => {
+            (($x - $min) / ($max - $min) as f32).abs()
+        } }
+
+        macro_rules! $d_id { ($x: expr) => {
+            $min * (1.0 - $x) + $max * $x
+        } }
+    }
+}
+
+macro_rules! define_exp {
+    ($n_id: ident $d_id: ident $min: expr, $max: expr) => {
+        macro_rules! $n_id { ($x: expr) => {
+            (($x - $min) / ($max - $min) as f32).abs().sqrt()
+        } }
+        macro_rules! $d_id { ($x: expr) => {
+            { let x : f32 = $x * $x; $min * (1.0 - x) + $max * x }
+        } }
+    }
+}
+
+macro_rules! define_exp4 {
+    ($n_id: ident $d_id: ident $min: expr, $max: expr) => {
+        macro_rules! $n_id { ($x: expr) => {
+            (($x - $min) / ($max - $min)).abs().sqrt().sqrt()
+        } }
+        macro_rules! $d_id { ($x: expr) => {
+            { let x : f32 = $x * $x * $x * $x; $min * (1.0 - x) + $max * x }
+        } }
+    }
+}
+
+macro_rules! n_pit { ($x: expr) => {
+    ((($x as f32).max(0.01) / 440.0).log2() / 10.0)
+//    ((($x as f32).max(0.01) / 440.0).log2() / 5.0)
+} }
+
+macro_rules! d_pit { ($x: expr) => {
+    {
+        let note : f32 = ($x as f32) * 10.0;
+        440.0 * (2.0_f32).powf(note)
+    }
+} }
+
+//          norm-fun      denorm-min
+//                 denorm-fun  denorm-max
+define_exp!{n_gain d_gain 0.0, 2.0}
+
 // A note about the input-indicies:
 //
 // Atoms and Input parameters share the same global ID space
@@ -123,62 +180,29 @@ macro_rules! node_list {
             nop => Nop,
             amp => Amp UIType::Generic UICategory::Signal
              // node_param_idx
-             //   name       denorm_fun
-             //        norm_fun    min  max  default
-               (0 inp  n_id  d_id  0.0, 1.0, 0.0)
-               (1 gain n_exp d_exp 0.0, 2.0, 1.0)
+             //   name            denorm_fun norm norm denorm
+             //        norm_fun              min  max  default
+               (0 inp  n_id       d_id       0.0, 1.0, 0.0)
+               (1 gain n_gain     d_gain     0.0, 1.0, 1.0)
                [0 sig],
             sin => Sin UIType::Generic UICategory::Osc
-               (0 freq n_pit d_pit -1.0, 1.0, 440.0)
+               (0 freq n_pit      d_pit     -1.0, 1.0, 440.0)
                [0 sig],
             out => Out UIType::Generic UICategory::IOUtil
-               (0  ch1  n_id  d_id  0.0, 1.0, 0.0)
-               (1  ch2  n_id  d_id  0.0, 1.0, 0.0)
+               (0  ch1  n_id      d_id       0.0, 1.0, 0.0)
+               (1  ch2  n_id      d_id       0.0, 1.0, 0.0)
              // node_param_idx
              // | atom_idx
              // | | name            constructor min max
              // | | |    SAtom_Type |       defa|lt_|value
              // | | |    |          |       |   |   |
                {2 0 mono Setting => setting(0)  0   1},
+            test => Test UIType::Generic UICategory::IOUtil
+               (0 f     n_id      d_id       0.0, 1.0, 0.5)
+               {1 0 s    Setting => setting(0)  0   10},
         }
     }
 }
-
-macro_rules! n_id { ($x: expr, $min: expr, $max: expr) => { $x } }
-macro_rules! d_id { ($x: expr, $min: expr, $max: expr) => { $x } }
-
-macro_rules! n_lin { ($x: expr, $min: expr, $max: expr) => {
-    (($x - $min) / ($max - $min) as f32).abs()
-} }
-macro_rules! d_lin { ($x: expr, $min: expr, $max: expr) => {
-    $min * (1.0 - $x) + $max * $x
-} }
-
-macro_rules! n_exp { ($x: expr, $min: expr, $max: expr) => {
-    (($x - $min) / ($max - $min) as f32).abs().sqrt()
-} }
-macro_rules! d_exp { ($x: expr, $min: expr, $max: expr) => {
-    { let x : f32 = $x * $x; $min * (1.0 - x) + $max * x }
-} }
-
-macro_rules! n_exp4 { ($x: expr, $min: expr, $max: expr) => {
-    (($x - $min) / ($max - $min)).abs().sqrt().sqrt()
-} }
-macro_rules! d_exp4 { ($x: expr, $min: expr, $max: expr) => {
-    { let x : f32 = $x * $x * $x * $x; $min * (1.0 - x) + $max * x }
-} }
-
-macro_rules! n_pit { ($x: expr, $min: expr, $max: expr) => {
-    ((($x as f32).max(0.01) / 440.0).log2() / 10.0)
-//    ((($x as f32).max(0.01) / 440.0).log2() / 5.0)
-} }
-
-macro_rules! d_pit { ($x: expr, $min: expr, $max: expr) => {
-    {
-        let note : f32 = ($x as f32) * 10.0;
-        440.0 * (2.0_f32).powf(note)
-    }
-} }
 
 impl UICategory {
     #[allow(unused_assignments)]
@@ -192,7 +216,7 @@ impl UICategory {
                        $n_fun: ident $d_fun: ident
                        $min: expr, $max: expr, $def: expr))*
                     $({$in_at_idx: literal $at_idx: literal $atom: ident
-                       $at_type: ident => $at_fun: ident ($at_init: expr)
+                       $at_type: ident => $at_fun: ident ($at_init: tt)
                        $amin: literal $amax: literal})*
                     $([$out_idx: literal $out: ident])*
                     ,)+
@@ -505,21 +529,21 @@ macro_rules! make_node_info_enum {
         #[allow(non_snake_case)]
         pub mod denorm_v {
             $(pub mod $variant {
-                $(#[inline] pub fn $para(x: f32) -> f32 { $d_fun!(x, $min, $max) })*
+                $(#[inline] pub fn $para(x: f32) -> f32 { $d_fun!(x) })*
             })+
         }
 
         #[allow(non_snake_case)]
         pub mod norm_def {
             $(pub mod $variant {
-                $(#[inline] pub fn $para() -> f32 { $n_fun!($def, $min, $max) })*
+                $(#[inline] pub fn $para() -> f32 { $n_fun!($def) })*
             })+
         }
 
         #[allow(non_snake_case)]
         pub mod norm_v {
             $(pub mod $variant {
-                $(#[inline] pub fn $para(v: f32) -> f32 { $n_fun!(v, $min, $max) })*
+                $(#[inline] pub fn $para(v: f32) -> f32 { $n_fun!(v) })*
             })+
         }
 
@@ -527,7 +551,7 @@ macro_rules! make_node_info_enum {
         pub mod denorm {
             $(pub mod $variant {
                 $(#[inline] pub fn $para(buf: &crate::dsp::ProcBuf, frame: usize) -> f32 {
-                    $d_fun!(buf.read(frame), $min, $max)
+                    $d_fun!(buf.read(frame))
                 })*
             })+
         }

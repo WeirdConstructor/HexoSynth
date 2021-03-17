@@ -126,7 +126,10 @@ impl PluginContext<HexoSynth> for HexoSynthShared {
 
         matrix.place(0, 1, Cell::empty(NodeId::Sin(0))
                            .out(Some(0), None, None));
-        matrix.place(1, 0, Cell::empty(NodeId::Out(0))
+        matrix.place(1, 0, Cell::empty(NodeId::Amp(0))
+                           .out(Some(0), None, None)
+                           .input(None, None, Some(0)));
+        matrix.place(2, 0, Cell::empty(NodeId::Out(0))
                            .input(None, None, Some(0)));
         matrix.sync();
 
@@ -364,6 +367,7 @@ impl AtomDataModel for HexoSynthUIParams {
         println!("CHANGE: {},{} ({})", id, v, single);
         if let Some((pid, _)) = self.get_param(id) {
             if let Some((min, max)) = pid.param_min_max() {
+        println!("CHANGE: {},{} ({}), min={}, max={}", id, v, single, min, max);
                 self.set(id, Atom::param(v.clamp(min, max)));
             }
         }
