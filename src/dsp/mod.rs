@@ -323,8 +323,13 @@ macro_rules! make_node_info_enum {
                     NodeId::$v1           => None,
                     $(NodeId::$variant(_) => {
                         match self.idx {
-                            $($in_at_idx => Some(crate::dsp::labels::$variant::$atom[lbl_idx]),)*
-                            _            => None,
+                            $($in_at_idx =>
+                                if lbl_idx < crate::dsp::labels::$variant::$atom.len() {
+                                    Some(crate::dsp::labels::$variant::$atom[lbl_idx])
+                                } else {
+                                    None
+                                },)*
+                            _  => None,
                         }
                     }),+
                 }
@@ -491,6 +496,27 @@ macro_rules! make_node_info_enum {
                                 node: *self,
                                 name: stringify!($para),
                                 idx:  $in_idx,
+                            }),)*
+                            _ => None,
+                        }
+                    }),+
+                }
+            }
+
+            pub fn param_by_idx(&self, idx: usize) -> Option<ParamId> {
+                match self {
+                    NodeId::$v1           => None,
+                    $(NodeId::$variant(_) => {
+                        match idx {
+                            $($in_idx => Some(ParamId {
+                                node: *self,
+                                name: stringify!($para),
+                                idx:  $in_idx,
+                            }),)*
+                            $($in_at_idx => Some(ParamId {
+                                node: *self,
+                                name: stringify!($atom),
+                                idx:  $in_at_idx,
                             }),)*
                             _ => None,
                         }

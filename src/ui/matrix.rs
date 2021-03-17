@@ -478,10 +478,16 @@ impl WidgetType for NodeMatrix {
                                     data.grid_click_pos = Some((*x, *y));
                                     data.hex_grid.event(ui, ev);
                                     data.matrix_model.menu.menu.borrow_mut().update();
+                                } else {
+                                    data.node_panel.event(ui, ev);
                                 }
                             },
                             _ => {
-                                data.hex_grid.event(ui, ev);
+                                if *id == data.hex_grid.id() {
+                                    data.hex_grid.event(ui, ev);
+                                } else {
+                                    data.node_panel.event(ui, ev);
+                                }
                             },
                         }
                     }

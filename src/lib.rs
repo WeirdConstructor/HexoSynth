@@ -131,6 +131,8 @@ impl PluginContext<HexoSynth> for HexoSynthShared {
                            .input(None, None, Some(0)));
         matrix.place(2, 0, Cell::empty(NodeId::Out(0))
                            .input(None, None, Some(0)));
+        matrix.place(4, 4, Cell::empty(NodeId::Test(0))
+                           .input(None, None, None));
         matrix.sync();
 
 
@@ -383,6 +385,8 @@ impl AtomDataModel for HexoSynthUIParams {
     }
 
     fn step_next(&mut self, id: AtomId) {
+        println!("STEP NEXT!!!: {}", id);
+
         if let Some((pid, atom)) = self.get_param(id) {
             if let Atom::Setting(i) = atom {
                 if let Some((min, max)) = pid.setting_min_max() {
@@ -416,11 +420,31 @@ impl AtomDataModel for HexoSynthUIParams {
         use std::io::Write;
         let mut bw = std::io::BufWriter::new(buf);
 
-        if let Some(denorm_v) = self.get_denorm(id) {
-            match write!(bw, "{:6.3}", denorm_v) {
-                Ok(_)  => bw.buffer().len(),
-                Err(_) => 0,
+        if let Some((pid, atom)) = self.get_param(id) {
+            if let Atom::Setting(i) = atom {
+                if let Some(lbl) = pid.setting_lbl(i.abs() as usize) {
+                    match write!(bw, "{}", lbl) {
+                        Ok(_)  => bw.buffer().len(),
+                        Err(_) => 0,
+                    }
+                } else {
+                    match write!(bw, "{}", i) {
+                        Ok(_)  => bw.buffer().len(),
+                        Err(_) => 0,
+                    }
+                }
+
+            } else {
+                if let Some(denorm_v) = self.get_denorm(id) {
+                    match write!(bw, "{:6.3}", denorm_v) {
+                        Ok(_)  => bw.buffer().len(),
+                        Err(_) => 0,
+                    }
+                } else {
+                    0
+                }
             }
+
         } else {
             0
         }

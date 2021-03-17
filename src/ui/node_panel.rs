@@ -4,6 +4,7 @@ use hexotk::constants::*;
 use hexotk::widgets::{
     Container, ContainerData,
     Knob, KnobData,
+    Button, ButtonData,
 };
 
 use std::rc::Rc;
@@ -15,7 +16,7 @@ use crate::matrix::Matrix;
 
 use crate::ui::matrix::MatrixEditorRef;
 
-use crate::dsp::{NodeId, NodeInfo};
+use crate::dsp::{NodeId, NodeInfo, SAtom};
 
 pub struct GenericNodeUI {
     dsp_node_id:    NodeId,
@@ -25,6 +26,7 @@ pub struct GenericNodeUI {
 
     wt_knob_01:    Rc<Knob>,
     wt_knob_11:    Rc<Knob>,
+    wt_btn:        Rc<Button>,
 }
 
 impl GenericNodeUI {
@@ -33,6 +35,7 @@ impl GenericNodeUI {
             Rc::new(Knob::new(30.0, 12.0, 9.0));
         let wt_knob_11 =
             Rc::new(Knob::new(30.0, 12.0, 9.0).range_signed());
+        let wt_btn = Rc::new(Button::new(50.0, 12.0));
 
         Self {
             dsp_node_id:    NodeId::Nop,
@@ -41,6 +44,7 @@ impl GenericNodeUI {
             cont:           None,
             wt_knob_01,
             wt_knob_11,
+            wt_btn,
         }
     }
 
@@ -53,26 +57,38 @@ impl GenericNodeUI {
     }
 
     fn build_atom_input(&self, pos: (u8, u8), idx: usize) -> Option<WidgetData> {
-        let param_id = self.dsp_node_id.inp_param_by_idx(idx)?;
+        let param_id = self.dsp_node_id.param_by_idx(idx)?;
         let param_name = param_id.name();
 
-        let knob_type =
-            if let Some((min, max)) = param_id.param_min_max() {
-                if min < 0.0 {
-                    self.wt_knob_11.clone()
-                } else {
-                    self.wt_knob_01.clone()
-                }
-            } else {
-                // FIXME: Widget type should be determined by the Atom enum!
-                self.wt_knob_01.clone()
-            };
+        match param_id.as_atom_def() {
+            SAtom::Param(_) => {
+                let knob_type =
+                    if let Some((min, max)) = param_id.param_min_max() {
+                        if min < 0.0 {
+                            self.wt_knob_11.clone()
+                        } else {
+                            self.wt_knob_01.clone()
+                        }
+                    } else {
+                        // FIXME: Widget type should be determined by the Atom enum!
+                        self.wt_knob_01.clone()
+                    };
 
-        Some(wbox!(
-            knob_type,
-            AtomId::new(self.model_node_id, idx as u32),
-            center(pos.0, pos.1),
-            KnobData::new(param_name)))
+                Some(wbox!(
+                    knob_type,
+                    AtomId::new(self.model_node_id, idx as u32),
+                    center(pos.0, pos.1),
+                    KnobData::new(param_name)))
+            },
+            SAtom::Setting(_) => {
+                Some(wbox!(
+                    self.wt_btn.clone(),
+                    AtomId::new(self.model_node_id, idx as u32),
+                    center(pos.0, pos.1),
+                    ButtonData::new_toggle(param_name)))
+            },
+            _ => { None },
+        }
     }
 
     pub fn rebuild(&mut self) {
@@ -195,6 +211,12 @@ impl WidgetType for NodePanel {
         avail
     }
 
-    fn event(&self, _ui: &mut dyn WidgetUI, _data: &mut WidgetData, _ev: &UIEvent) {
+    fn event(&self, ui: &mut dyn WidgetUI, data: &mut WidgetData, ev: &UIEvent) {
+        data.with(|data: &mut NodePanelData| {
+            let mut node_ui = data.node_ui.borrow_mut();
+            if let Some(cont) = &mut node_ui.cont {
+                cont.event(ui, ev);
+            }
+        });
     }
 }
