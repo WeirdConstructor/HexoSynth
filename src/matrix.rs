@@ -255,6 +255,10 @@ impl Matrix {
         self.config
     }
 
+    pub fn unique_index_for(&self, node_id: &NodeId) -> Option<usize> {
+        self.config.unique_index_for(*node_id)
+    }
+
     pub fn info_for(&self, node_id: &NodeId) -> Option<NodeInfo> {
         self.infos.borrow().get(&node_id).cloned()
     }
@@ -267,19 +271,18 @@ impl Matrix {
 
     pub fn for_each_atom<F: FnMut(usize, ParamId, &SAtom)>(&self, mut f: F) {
         for (_, matrix_param) in self.atoms.borrow().iter() {
-            if let Some(instance) =
-                self.instances.borrow().get(&matrix_param.param_id.node_id())
+            if let Some(unique_idx) =
+                self.config.unique_index_for(matrix_param.param_id.node_id())
             {
-                f(instance.prog_idx, matrix_param.param_id,
-                  &matrix_param.value);
+                f(unique_idx, matrix_param.param_id, &matrix_param.value);
             }
         }
 
         for (_, matrix_param) in self.params.borrow().iter() {
-            if let Some(instance) =
-                self.instances.borrow().get(&matrix_param.param_id.node_id())
+            if let Some(unique_idx) =
+                self.config.unique_index_for(matrix_param.param_id.node_id())
             {
-                f(instance.prog_idx, matrix_param.param_id,
+                f(unique_idx, matrix_param.param_id,
                   &SAtom::param(matrix_param.value));
             }
         }

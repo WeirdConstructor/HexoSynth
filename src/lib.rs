@@ -252,11 +252,6 @@ use dsp::ParamId;
 
 pub struct HexoSynthUIParams {
     params:     HashMap<AtomId, (ParamId, Atom)>,
-    /// An index to keep AtomId's unique throughout the whole
-    /// program runtime. Once a NodeId is assigned, it will always
-    /// keep this index. Otherwise all AtomId references in the UI
-    /// would have to update. Which is not realistic.
-    node2idx:   Rc<RefCell<(u32, HashMap<NodeId, u32>)>>,
     matrix:     Arc<Mutex<Matrix>>,
     /// Generation counter, to check for matrix updates.
     matrix_gen: RefCell<usize>,
@@ -272,7 +267,6 @@ impl HexoSynthUIParams {
             HexoSynthUIParams {
                 params,
                 matrix_gen: RefCell::new(matrix_gen),
-                node2idx: Rc::new(RefCell::new((0, HashMap::new()))),
                 matrix
             };
 
@@ -282,8 +276,6 @@ impl HexoSynthUIParams {
     }
 
     pub fn sync_from_matrix(&mut self) {
-        let node2idx = self.node2idx.clone();
-
         let m = self.matrix.lock().unwrap();
 
         // TODO: this could all lead to speed problems in the UI:
@@ -294,25 +286,11 @@ impl HexoSynthUIParams {
         //       through an Arc<Mutex<HashMap<AtomId, ...>>>.
         let mut new_hm = HashMap::new();
 
-        m.for_each_atom(|_node_idx, param_id, satom| {
-            let node_idx =
-                if let (cur_idx, map) = &mut *self.node2idx.borrow_mut() {
-                    if let Some(idx) = map.get(&param_id.node_id()) {
-                        *idx
-                    } else {
-                        let idx = *cur_idx;
-                        *cur_idx += 1;
-                        map.insert(param_id.node_id(), idx);
-                        idx
-                    }
-                } else {
-                    0
-                };
-
-            println!("NODEID: {} => idx={}", param_id.node_id(), node_idx);
+        m.for_each_atom(|unique_idx, param_id, satom| {
+            println!("NODEID: {} => idx={}", param_id.node_id(), unique_idx);
 
             new_hm.insert(
-                AtomId::new(node_idx, param_id.inp() as u32),
+                AtomId::new(unique_idx as u32, param_id.inp() as u32),
                 (param_id, satom.clone().into()));
         });
 

@@ -178,9 +178,64 @@ impl HexGridModel for MatrixUIMenu {
     }
 }
 
+#[derive(Debug)]
+pub struct MatrixEditor {
+    grid_focus_pos: Option<(usize, usize)>,
+    focus_node_id:  NodeId,
+}
+
+impl MatrixEditor {
+    pub fn new() -> Self {
+        Self {
+            grid_focus_pos: None,
+            focus_node_id:  NodeId::Nop,
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct MatrixEditorRef(Rc<RefCell<MatrixEditor>>);
+
+impl std::fmt::Debug for MatrixEditorRef {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "MatrixEditorRef({:?})", *self.0.borrow())
+    }
+}
+
+impl MatrixEditorRef {
+    pub fn new() -> Self {
+        Self(Rc::new(RefCell::new(MatrixEditor::new())))
+    }
+
+    pub fn get_recent_focus(&self) -> NodeId {
+        self.0.borrow().focus_node_id
+    }
+
+    pub fn is_cell_focussed(&self, x: usize, y: usize) -> bool {
+        if let Some((mx, my)) = self.0.borrow().grid_focus_pos {
+            mx == x && my == y
+        } else {
+            false
+        }
+    }
+
+    pub fn clear_focus_pos(&self) {
+        self.0.borrow_mut().grid_focus_pos = None;
+    }
+
+    pub fn set_focus_pos(&self, x: usize, y: usize, node_id: NodeId) {
+        self.0.borrow_mut().focus_node_id = node_id;
+        self.0.borrow_mut().grid_focus_pos = Some((x, y));
+    }
+}
+
+
 pub struct MatrixUIModel {
     matrix: Arc<Mutex<Matrix>>,
     menu:   Rc<MatrixUIMenu>,
+
+    editor: MatrixEditorRef,
+
     w:      usize,
     h:      usize,
 }
@@ -196,6 +251,7 @@ impl HexGridModel for MatrixUIModel {
 
         if menu.is_open() {
             menu.close();
+
         } else {
             match btn {
                 MButton::Right => {
@@ -203,14 +259,27 @@ impl HexGridModel for MatrixUIModel {
                     if let Some(cell) = m.get_copy(x, y) {
                         if let Some(node_info) = m.info_for(&cell.node_id()) {
                             menu.open_select_cell_dir(cell, node_info);
+                        } else {
+                            menu.open_select_node_category(cell);
                         }
                     }
                 },
-                _ => {
+                MButton::Left => {
                     let m = self.matrix.lock().unwrap();
                     if let Some(cell) = m.get_copy(x, y) {
-                        menu.open_select_node_category(cell);
+                        if cell.node_id() == NodeId::Nop {
+                            self.editor.clear_focus_pos();
+                        } else {
+                            self.editor.set_focus_pos(x, y, cell.node_id());
+                        }
+                    } else {
+                        self.editor.clear_focus_pos();
                     }
+                },
+                _ => {
+//                    let m = self.matrix.lock().unwrap();
+//                    if let Some(cell) = m.get_copy(x, y) {
+//                    }
                 },
             }
         }
@@ -229,8 +298,16 @@ impl HexGridModel for MatrixUIModel {
     fn cell_label<'a>(&self, x: usize, y: usize, buf: &'a mut [u8]) -> Option<(&'a str, HexCell)> {
         if x >= self.w || y >= self.h { return None; }
         let m = self.matrix.lock().unwrap();
+
+        let hl =
+            if self.editor.is_cell_focussed(x, y) {
+                HexCell::HLight
+            } else {
+                HexCell::Normal
+            };
+
         if let Some(cell) = m.get(x, y) {
-            Some((cell.label(buf)?, HexCell::Normal))
+            Some((cell.label(buf)?, hl))
         } else {
             None
         }
@@ -284,12 +361,15 @@ impl NodeMatrixData {
 
         let txtsrc = Rc::new(TextSourceRef::new(30));
 
+        let editor = MatrixEditorRef::new();
+
         let menu_model   = Rc::new(MatrixUIMenu::new(matrix.clone(), txtsrc.clone()));
         let matrix_model = Rc::new(MatrixUIModel {
-            matrix: matrix.clone(),
-            menu: menu_model.clone(),
-            w: size.0,
-            h: size.1,
+            matrix:         matrix.clone(),
+            menu:           menu_model.clone(),
+            editor:         editor.clone(),
+            w:              size.0,
+            h:              size.1,
         });
 
         let wt_node_panel = Rc::new(NodePanel::new());
@@ -332,7 +412,7 @@ impl NodeMatrixData {
                     wt_node_panel,
                     AtomId::new(node_id, NODE_PANEL_ID),
                     center(12, 12),
-                    NodePanelData::new(node_id, matrix.clone()))),
+                    NodePanelData::new(node_id, matrix.clone(), editor))),
                 hex_menu_id,
                 matrix_model,
                 grid_click_pos: None,
@@ -389,9 +469,11 @@ impl WidgetType for NodeMatrix {
             UIEvent::Click { id, x, y, button, .. } => {
                 println!("EV: {:?} id={}, btn={:?}, data.id={}",
                          ev, *id, button, data.id());
+
                 data.with(|data: &mut NodeMatrixData| {
                     if *id == data.hex_menu_id {
                         data.hex_menu.event(ui, ev);
+
                     } else {
                         match button {
                             MButton::Right => {
@@ -401,7 +483,9 @@ impl WidgetType for NodeMatrix {
                                     data.matrix_model.menu.menu.borrow_mut().update();
                                 }
                             },
-                            _ => { },
+                            _ => {
+                                data.hex_grid.event(ui, ev);
+                            },
                         }
                     }
 
@@ -413,6 +497,11 @@ impl WidgetType for NodeMatrix {
                     let mut m = data.matrix_model.matrix.lock().unwrap();
                     if let Some(mut src_cell) = m.get(src.0, src.1).copied() {
                         if let Some(dst_cell) = m.get(dst.0, dst.1).copied() {
+                            if data.matrix_model.editor.is_cell_focussed(src.0, src.1) {
+                                data.matrix_model.editor.set_focus_pos(
+                                    dst.0, dst.1, src_cell.node_id());
+                            }
+
                             match button {
                                 MButton::Left => {
                                     m.place(dst.0, dst.1, src_cell);

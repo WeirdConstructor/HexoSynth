@@ -1,6 +1,8 @@
 const MAX_ALLOCATED_NODES : usize = 256;
 const MAX_SMOOTHERS       : usize = 36 + 4; // 6 * 6 modulator inputs + 4 UI Knobs
 
+use std::collections::HashMap;
+
 use ringbuf::{RingBuffer, Producer, Consumer};
 use crate::dsp::{node_factory, NodeInfo, Node, NodeId, SAtom, ProcBuf};
 use crate::util::Smoother;
@@ -259,6 +261,12 @@ impl Drop for DropThread {
 pub struct NodeConfigurator {
     /// Holds all the nodes, their parameters and type.
     nodes:              Vec<NodeInfo>,
+    /// An index of all nodes ever instanciated.
+    /// Be aware, that currently there is no cleanup implemented.
+    /// That means, any instanciated NodeId will persist throughout
+    /// the whole runtime. A garbage collector might be implemented
+    /// when saving presets.
+    node2idx:           HashMap<NodeId, usize>,
     /// For updating the NodeExecutor with graph updates.
     graph_update_prod:  Producer<GraphMessage>,
     /// For quick updates like UI paramter changes.
@@ -271,24 +279,28 @@ pub struct NodeConfigurator {
 }
 
 impl NodeConfigurator {
-    pub fn drop_node(&mut self, idx: usize) {
-        if idx >= self.nodes.len() {
-            return;
-        }
-
-        match self.nodes[idx] {
-            NodeInfo::Nop => { return; },
-            _ => {},
-        }
-
-        self.nodes[idx] = NodeInfo::Nop;
-        let _ =
-            self.graph_update_prod.push(
-                GraphMessage::NewNode {
-                    index: idx as u8,
-                    node: Node::Nop,
-                });
-    }
+// FIXME: We can't drop nodes at runtime!
+//        We need to reinitialize the whole engine for this.
+//        There are too many things relying on the node index (UI).
+//
+//    pub fn drop_node(&mut self, idx: usize) {
+//        if idx >= self.nodes.len() {
+//            return;
+//        }
+//
+//        match self.nodes[idx] {
+//            NodeInfo::Nop => { return; },
+//            _ => {},
+//        }
+//
+//        self.nodes[idx] = NodeInfo::Nop;
+//        let _ =
+//            self.graph_update_prod.push(
+//                GraphMessage::NewNode {
+//                    index: idx as u8,
+//                    node: Node::Nop,
+//                });
+//    }
 
     pub fn for_each<F: FnMut(&NodeInfo, NodeId, usize)>(&self, mut f: F) {
         let mut i = 0;
@@ -301,6 +313,10 @@ impl NodeConfigurator {
             f(n, nid, i);
             i += 1;
         }
+    }
+
+    pub fn unique_index_for(&self, ni: NodeId) -> Option<usize> {
+        self.node2idx.get(&ni).copied()
     }
 
     pub fn set_atom(&mut self, at_idx: usize, value: SAtom) {
@@ -320,6 +336,7 @@ impl NodeConfigurator {
 
         if let Some((node, info)) = node_factory(ni) {
             let mut index : Option<usize> = None;
+
             for i in 0..self.nodes.len() {
                 if let NodeInfo::Nop = self.nodes[i] {
                     index = Some(i);
@@ -331,6 +348,8 @@ impl NodeConfigurator {
             }
 
             if let Some(index) = index {
+                self.node2idx.insert(ni, index);
+
                 self.nodes[index] = info;
                 let _ =
                     self.graph_update_prod.push(
@@ -339,6 +358,8 @@ impl NodeConfigurator {
 
             } else {
                 let index = self.nodes.len();
+                self.node2idx.insert(ni, index);
+
                 self.nodes.resize_with((self.nodes.len() + 1) * 2, || NodeInfo::Nop);
                 self.nodes[index] = info;
                 let _ =
@@ -388,6 +409,7 @@ pub fn new_node_engine() -> (NodeConfigurator, NodeExecutor) {
         nodes,
         graph_update_prod: rb_graph_prod,
         quick_update_prod: rb_quick_prod,
+        node2idx:          HashMap::new(),
         // feedback_con:      rb_fb_con,
         drop_thread,
     };

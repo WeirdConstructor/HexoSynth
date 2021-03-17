@@ -11,7 +11,9 @@ use std::cell::RefCell;
 use std::sync::Arc;
 use std::sync::Mutex;
 
-use crate::matrix::{Matrix};
+use crate::matrix::Matrix;
+
+use crate::ui::matrix::MatrixEditorRef;
 
 use crate::dsp::{NodeId, NodeInfo};
 
@@ -54,6 +56,10 @@ impl GenericNodeUI {
         let wt_cont = Rc::new(Container::new());
 
         let mut cd = ContainerData::new();
+
+        println!("REBUILD NODE UI: {} {}",
+                 self.dsp_node_id,
+                 self.model_node_id);
 
         let param_id =
             // FIXME: We should skip these params or just not enumerate there!
@@ -110,11 +116,13 @@ pub struct NodePanelData {
 
     node_ui: Rc<RefCell<GenericNodeUI>>,
 
-//    knobs:  Box<WidgetData>,
+    prev_focus: NodeId,
+
+    editor: MatrixEditorRef,
 }
 
 impl NodePanelData {
-    pub fn new(node_id: u32, matrix: Arc<Mutex<Matrix>>) -> Box<dyn std::any::Any> {
+    pub fn new(node_id: u32, matrix: Arc<Mutex<Matrix>>, editor: MatrixEditorRef) -> Box<dyn std::any::Any> {
         let wt_cont = Rc::new(Container::new());
 
         let node_ui = Rc::new(RefCell::new(GenericNodeUI::new()));
@@ -122,16 +130,40 @@ impl NodePanelData {
         Box::new(Self {
             matrix,
             node_ui,
+            editor,
+            prev_focus: NodeId::Nop,
         })
+    }
+
+    fn check_focus_change(&mut self) {
+        let cur_focus = self.editor.get_recent_focus();
+        if cur_focus != self.prev_focus {
+            self.prev_focus = cur_focus;
+
+            if cur_focus != NodeId::Nop {
+                self.node_ui.borrow_mut().set_target(
+                    cur_focus,
+                    self.matrix.lock().unwrap()
+                        .unique_index_for(&cur_focus)
+                        .unwrap_or(0)
+                        as u32);
+            }
+        }
+//        if prev_focus != cur_focus {
+//            self.node_ui.set_target(
+//        }
     }
 }
 
 
 #[derive(Debug)]
-pub struct NodePanel { }
+pub struct NodePanel {
+}
 
 impl NodePanel {
-    pub fn new() -> Self { NodePanel { } }
+    pub fn new() -> Self {
+        NodePanel { }
+    }
 }
 
 impl WidgetType for NodePanel {
@@ -139,6 +171,8 @@ impl WidgetType for NodePanel {
         let pos = pos.shrink(UI_PADDING, UI_PADDING);
 
         data.with(|data: &mut NodePanelData| {
+            data.check_focus_change();
+
             p.rect_fill(UI_BG_CLR, pos.x, pos.y, pos.w, pos.h);
 
             let pos = pos.shrink(10.0, 10.0);
