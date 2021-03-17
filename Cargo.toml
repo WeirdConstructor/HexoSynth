@@ -7,7 +7,7 @@ edition     = "2018"
 description = "HexoSynth - A hexagonal modular synthesizer plugin"
 
 [dependencies]
-hexotk     = { git = "https://m8geil.de:3000/WeirdConstructor/HexoTK.git" }
+hexotk     = { git = "https://github.com/WeirdConstructor/HexoTK.git" }
 #;hexotk     = { path = "../hexotk" }
 raw-window-handle  = "0.3"
 #baseplug   = { git = "https://github.com/wrl/baseplug.git" }
