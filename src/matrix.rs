@@ -702,6 +702,7 @@ impl Matrix {
         }
 
         self.config.upload_prog(prog, true); // true => copy_old_out
+
         self.gen_counter += 1;
 
         // - after each node has been created, use the node ordering

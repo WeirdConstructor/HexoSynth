@@ -694,7 +694,7 @@ macro_rules! make_node_info_enum {
                     }
 
                     pub fn in_help(&self, in_idx: usize) -> Option<&'static str> {
-                        if let Some(s) = self.inputs.get(in_idx) {
+                        if let Some(s) = self.input_help.get(in_idx) {
                             Some(*s)
                         } else {
                             Some(*(self.atom_help.get(in_idx)?))

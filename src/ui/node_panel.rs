@@ -5,6 +5,7 @@ use hexotk::widgets::{
     Container, ContainerData,
     Knob, KnobData,
     Button, ButtonData,
+    Text, TextSourceRef, TextData,
 };
 
 use std::rc::Rc;
@@ -18,6 +19,9 @@ use crate::ui::matrix::MatrixEditorRef;
 
 use crate::dsp::{NodeId, NodeInfo, SAtom};
 
+const PANEL_HELP_TEXT_ID      : u32 = 1;
+const PANEL_HELP_TEXT_CONT_ID : u32 = 2;
+
 pub struct GenericNodeUI {
     dsp_node_id:    NodeId,
     model_node_id:  u32,
@@ -27,6 +31,9 @@ pub struct GenericNodeUI {
     wt_knob_01:    Rc<Knob>,
     wt_knob_11:    Rc<Knob>,
     wt_btn:        Rc<Button>,
+    wt_text:       Rc<Text>,
+
+    help_txt:      Rc<TextSourceRef>,
 }
 
 impl GenericNodeUI {
@@ -36,15 +43,18 @@ impl GenericNodeUI {
         let wt_knob_11 =
             Rc::new(Knob::new(30.0, 12.0, 9.0).range_signed());
         let wt_btn = Rc::new(Button::new(50.0, 12.0));
+        let wt_text = Rc::new(Text::new(10.0));
 
         Self {
             dsp_node_id:    NodeId::Nop,
             model_node_id:  0,
             info:           None,
             cont:           None,
+            help_txt:       Rc::new(TextSourceRef::new(40)),
             wt_knob_01,
             wt_knob_11,
             wt_btn,
+            wt_text,
         }
     }
 
@@ -91,6 +101,16 @@ impl GenericNodeUI {
         }
     }
 
+    pub fn check_hover_text_for(&mut self, at_id: AtomId) {
+        if at_id.node_id() == self.model_node_id {
+            if let Some(info) = &self.info {
+                if let Some(txt) = info.in_help(at_id.atom_id() as usize) {
+                    self.help_txt.set(txt);
+                }
+            }
+        }
+    }
+
     pub fn rebuild(&mut self) {
         let wt_cont = Rc::new(Container::new());
 
@@ -102,10 +122,29 @@ impl GenericNodeUI {
         cd.contrast_border().new_row();
 
         for idx in 0..4 {
-            if let Some(wd) = self.build_atom_input((4, 12), idx) {
+            if let Some(wd) = self.build_atom_input((4, 6), idx) {
                 cd.add(wd);
             }
         }
+
+        let mut txt_cd = ContainerData::new();
+        txt_cd
+            .level(1)
+            .shrink(0.0, 0.0)
+//            .contrast_border()
+            .border();
+
+        txt_cd.new_row()
+            .add(wbox!(self.wt_text,
+               AtomId::new(crate::NODE_PANEL_ID, PANEL_HELP_TEXT_ID),
+               center(12, 12),
+               TextData::new(self.help_txt.clone())));
+
+        cd.new_row()
+          .add(wbox!(wt_cont,
+               AtomId::new(crate::NODE_PANEL_ID, PANEL_HELP_TEXT_CONT_ID),
+               center(12, 2),
+               txt_cd));
 
         // TODO:
         // - detect all the inputs
@@ -201,6 +240,10 @@ impl WidgetType for NodePanel {
             let knob_pos = pos.crop_top(200.0);
 
             let mut node_ui = data.node_ui.borrow_mut();
+            if let Some(at_id) = ui.hover_atom_id() {
+                node_ui.check_hover_text_for(at_id);
+            }
+
             if let Some(cont) = &mut node_ui.cont {
                 cont.draw(ui, p, pos);
             }

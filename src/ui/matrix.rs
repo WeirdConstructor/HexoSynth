@@ -495,32 +495,34 @@ impl WidgetType for NodeMatrix {
                     ui.queue_redraw();
                 });
             },
-            UIEvent::FieldDrag { button, src, dst, .. } => {
+            UIEvent::FieldDrag { id, button, src, dst, .. } => {
                 data.with(|data: &mut NodeMatrixData| {
-                    let mut m = data.matrix_model.matrix.lock().unwrap();
-                    if let Some(mut src_cell) = m.get(src.0, src.1).copied() {
-                        if let Some(dst_cell) = m.get(dst.0, dst.1).copied() {
-                            if data.matrix_model.editor.is_cell_focussed(src.0, src.1) {
-                                data.matrix_model.editor.set_focus_pos(
-                                    dst.0, dst.1, src_cell.node_id());
-                            }
+                    if *id == data.hex_grid.id() {
+                        let mut m = data.matrix_model.matrix.lock().unwrap();
+                        if let Some(mut src_cell) = m.get(src.0, src.1).copied() {
+                            if let Some(dst_cell) = m.get(dst.0, dst.1).copied() {
+                                if data.matrix_model.editor.is_cell_focussed(src.0, src.1) {
+                                    data.matrix_model.editor.set_focus_pos(
+                                        dst.0, dst.1, src_cell.node_id());
+                                }
 
-                            match button {
-                                MButton::Left => {
-                                    m.place(dst.0, dst.1, src_cell);
-                                    m.place(src.0, src.1, dst_cell);
-                                    m.sync();
-                                },
-                                MButton::Right => {
-                                    m.place(dst.0, dst.1, src_cell);
-                                    m.sync();
-                                },
-                                MButton::Middle => {
-                                    let unused_id = m.get_unused_instance_node_id(src_cell.node_id());
-                                    src_cell.set_node_id(unused_id);
-                                    m.place(dst.0, dst.1, src_cell);
-                                    m.sync();
-                                },
+                                match button {
+                                    MButton::Left => {
+                                        m.place(dst.0, dst.1, src_cell);
+                                        m.place(src.0, src.1, dst_cell);
+                                        m.sync();
+                                    },
+                                    MButton::Right => {
+                                        m.place(dst.0, dst.1, src_cell);
+                                        m.sync();
+                                    },
+                                    MButton::Middle => {
+                                        let unused_id = m.get_unused_instance_node_id(src_cell.node_id());
+                                        src_cell.set_node_id(unused_id);
+                                        m.place(dst.0, dst.1, src_cell);
+                                        m.sync();
+                                    },
+                                }
                             }
                         }
                     }
