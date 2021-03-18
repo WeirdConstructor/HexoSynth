@@ -6,6 +6,7 @@ use hexotk::widgets::{
     Knob, KnobData,
     Button, ButtonData,
     Text, TextSourceRef, TextData,
+    Graph, GraphData,
 };
 
 use std::rc::Rc;
@@ -17,10 +18,30 @@ use crate::matrix::Matrix;
 
 use crate::ui::matrix::MatrixEditorRef;
 
-use crate::dsp::{NodeId, NodeInfo, SAtom};
+use crate::dsp::{NodeId, NodeInfo, SAtom, GraphAtomData};
 
 const PANEL_HELP_TEXT_ID      : u32 = 1;
 const PANEL_HELP_TEXT_CONT_ID : u32 = 2;
+const PANEL_GRAPH_ID          : u32 = 3;
+
+struct GraphAtomDataAdapter<'a> {
+    ui: &'a dyn WidgetUI,
+}
+
+impl<'a> GraphAtomData for GraphAtomDataAdapter<'a> {
+    fn get(&self, node_id: usize, param_idx: u32) -> Option<SAtom> {
+        Some(self.ui.atoms().get(AtomId::new(node_id as u32, param_idx))?
+             .clone()
+             .into())
+    }
+
+    fn get_denorm(&self, node_id: usize, param_idx: u32) -> f32 {
+        self.ui.atoms()
+            .get_denorm(
+                AtomId::new(node_id as u32, param_idx))
+            .unwrap_or(0.0)
+    }
+}
 
 pub struct GenericNodeUI {
     dsp_node_id:    NodeId,
@@ -32,6 +53,7 @@ pub struct GenericNodeUI {
     wt_knob_11:    Rc<Knob>,
     wt_btn:        Rc<Button>,
     wt_text:       Rc<Text>,
+    wt_graph:      Rc<Graph>,
 
     help_txt:      Rc<TextSourceRef>,
 }
@@ -42,8 +64,9 @@ impl GenericNodeUI {
             Rc::new(Knob::new(30.0, 12.0, 9.0));
         let wt_knob_11 =
             Rc::new(Knob::new(30.0, 12.0, 9.0).range_signed());
-        let wt_btn = Rc::new(Button::new(50.0, 12.0));
-        let wt_text = Rc::new(Text::new(10.0));
+        let wt_btn   = Rc::new(Button::new(50.0, 12.0));
+        let wt_text  = Rc::new(Text::new(10.0));
+        let wt_graph = Rc::new(Graph::new(240.0, 100.0));
 
         Self {
             dsp_node_id:    NodeId::Nop,
@@ -55,6 +78,7 @@ impl GenericNodeUI {
             wt_knob_11,
             wt_btn,
             wt_text,
+            wt_graph,
         }
     }
 
@@ -139,6 +163,20 @@ impl GenericNodeUI {
                AtomId::new(crate::NODE_PANEL_ID, PANEL_HELP_TEXT_ID),
                center(12, 12),
                TextData::new(self.help_txt.clone())));
+
+        if let Some(mut graph_fun) = self.dsp_node_id.graph_fun() {
+            let graph_fun =
+                Box::new(move |ui: &dyn WidgetUI, init: bool, x: f64| -> f64 {
+                    let gd = GraphAtomDataAdapter { ui };
+                    graph_fun(&gd, init, x as f32) as f64
+                });
+
+            cd.new_row()
+              .add(wbox!(self.wt_graph,
+                   AtomId::new(crate::NODE_PANEL_ID, PANEL_GRAPH_ID),
+                   center(12, 2),
+                   GraphData::new(30, graph_fun)));
+        }
 
         cd.new_row()
           .add(wbox!(wt_cont,

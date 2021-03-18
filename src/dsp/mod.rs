@@ -23,6 +23,16 @@ pub const MIDI_MAX_FREQ : f32 = 13289.75;
 
 pub const MAX_BLOCK_SIZE : usize = 64;
 
+/// This trait is an interface between the graph functions
+/// and the AtomDataModel of the UI.
+pub trait GraphAtomData {
+    fn get(&self, node_id: usize, param_idx: u32) -> Option<SAtom>;
+    fn get_denorm(&self, node_id: usize, param_idx: u32) -> f32;
+}
+
+
+pub type GraphFun = Box<dyn FnMut(&dyn GraphAtomData, bool, f32) -> f32>;
+
 /// A processing buffer with the exact right maximum size.
 #[derive(Clone, Copy)]
 pub struct ProcBuf(*mut [f32; MAX_BLOCK_SIZE]);
@@ -417,6 +427,13 @@ macro_rules! make_node_info_enum {
                 match self {
                     NodeId::$v1           => NodeId::$v1,
                     $(NodeId::$variant(_) => NodeId::$variant(instance as u8)),+
+                }
+            }
+
+            pub fn graph_fun(&self) -> Option<GraphFun> {
+                match self {
+                    NodeId::$v1           => None,
+                    $(NodeId::$variant(_) => crate::dsp::$variant::graph_fun()),+
                 }
             }
 

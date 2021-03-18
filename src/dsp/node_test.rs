@@ -1,5 +1,5 @@
 use crate::nodes::NodeAudioContext;
-use crate::dsp::{SAtom, ProcBuf};
+use crate::dsp::{SAtom, ProcBuf, GraphFun, GraphAtomData};
 
 /// A simple amplifier
 #[derive(Debug, Clone)]
@@ -32,6 +32,12 @@ impl Test {
 //        for frame in 0..ctx.nframes() {
 //            out.write(frame, inp.read(frame) * denorm::Test::gain(gain, frame));
 //        }
+    }
+
+    pub fn graph_fun() -> Option<GraphFun> {
+        Some(Box::new(|gd: &dyn GraphAtomData, init: bool, x: f32| -> f32 {
+            x
+        }))
     }
 
     pub const f : &'static str = "F Test";

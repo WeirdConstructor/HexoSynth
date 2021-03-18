@@ -1,5 +1,5 @@
 use crate::nodes::NodeAudioContext;
-use crate::dsp::{SAtom, ProcBuf, denorm, out, inp};
+use crate::dsp::{SAtom, ProcBuf, denorm, out, inp, GraphFun};
 use crate::dsp::helpers::fast_sin;
 
 
@@ -50,6 +50,8 @@ impl Sin {
             self.phase = self.phase.fract();
         }
     }
+
+    pub fn graph_fun() -> Option<GraphFun> { None }
 
     pub const freq : &'static str =
         "Sin freq\nFrequency of the oscillator.\n\nRange: (-1..1)\n";
