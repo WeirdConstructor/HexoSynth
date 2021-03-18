@@ -182,15 +182,15 @@ macro_rules! node_list {
              // node_param_idx
              //   name            denorm_fun norm norm denorm
              //        norm_fun              min  max  default
-               (0 inp  n_id       d_id       0.0, 1.0, 0.0)
+               (0 inp  n_id       d_id      -1.0, 1.0, 0.0)
                (1 gain n_gain     d_gain     0.0, 1.0, 1.0)
                [0 sig],
             sin => Sin UIType::Generic UICategory::Osc
                (0 freq n_pit      d_pit     -1.0, 1.0, 440.0)
                [0 sig],
             out => Out UIType::Generic UICategory::IOUtil
-               (0  ch1  n_id      d_id       0.0, 1.0, 0.0)
-               (1  ch2  n_id      d_id       0.0, 1.0, 0.0)
+               (0  ch1  n_id      d_id      -1.0, 1.0, 0.0)
+               (1  ch2  n_id      d_id      -1.0, 1.0, 0.0)
              // node_param_idx
              // | atom_idx
              // | | name            constructor min max
