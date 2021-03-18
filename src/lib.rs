@@ -1,6 +1,12 @@
 #![allow(incomplete_features)]
 #![feature(generic_associated_types)]
 
+use core::arch::x86_64::{
+    _MM_FLUSH_ZERO_ON,
+    _MM_SET_FLUSH_ZERO_MODE,
+    _MM_GET_FLUSH_ZERO_MODE
+};
+
 pub mod nodes;
 #[allow(unused_macros)]
 pub mod dsp;
@@ -191,6 +197,11 @@ impl Plugin for HexoSynth {
     fn process(&mut self, _model: &HexoSynthModelProcess,
                ctx: &mut ProcessContext<Self>, shared: &HexoSynthShared) {
 
+        let prev_ftz = unsafe { _MM_GET_FLUSH_ZERO_MODE() };
+        unsafe {
+            _MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
+        }
+
         let mut node_exec = shared.node_exec.borrow_mut();
         let node_exec     = node_exec.as_mut().unwrap();
 
@@ -248,6 +259,10 @@ impl Plugin for HexoSynth {
 //            }
 
             offs += cur_nframes;
+        }
+
+        unsafe {
+            _MM_SET_FLUSH_ZERO_MODE(prev_ftz);
         }
     }
 }
