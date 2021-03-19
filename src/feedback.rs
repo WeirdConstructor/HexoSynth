@@ -43,20 +43,28 @@ pub struct BackendFeedbackProvider {
 }
 
 impl BackendFeedbackProvider {
+    /// Checks if there are any used feedback buffers to be
+    /// collected.
     pub fn check_recycle(&mut self) {
         while let Some(buf) = self.rb_recycle_con.pop() {
             self.unused_feedback_buffers.push(buf);
         }
     }
 
+    /// Hands out an unused [FeedbackBuf] for filling and
+    /// sending to the [FeedbackProcessor] thread.
     pub fn get_unused_fb_buf(&mut self) -> Option<FeedbackBufPtr> {
         self.unused_feedback_buffers.pop()
     }
 
+    /// A helper function for writing tests.
+    /// Returns the number of [FeedbackBuf] we can hand out
+    /// until there are none anymore.
     pub fn count_unused_fb_bufs(&self) -> usize {
         self.unused_feedback_buffers.len()
     }
 
+    /// Sends a [FeedbackBuf] to the [FeedbackProcessor].
     pub fn send_fb_buf(&mut self, buf: FeedbackBufPtr) {
         match self.rb_fb_prod.push(buf) {
             Ok(_)    => (),
@@ -141,16 +149,22 @@ impl FeedbackProcessor {
         }
     }
 
+    /// Helper function for tests, to access the current state of
+    /// the min/max buffers.
     pub fn minmax_slice_for_signal(&self, idx: usize) -> &[(f32, f32)] {
         &self.procs[idx].buf[..]
     }
 
-    pub fn process_fb_buf(&mut self, fb_buf: &mut FeedbackBufPtr) {
+    /// Internal helper function for `process`.
+    fn process_fb_buf(&mut self, fb_buf: &mut FeedbackBufPtr) {
         for proc in self.procs.iter_mut() {
             proc.process(fb_buf);
         }
     }
 
+    /// Processes all queued [FeedbackBuf] instances and sends
+    /// then back to the [BackendFeedbackProvider] thread after
+    /// used for recycling.
     pub fn process(&mut self) {
         while let Some(mut buf) = self.rb_fb_con.pop() {
             self.process_fb_buf(&mut buf);
@@ -159,6 +173,8 @@ impl FeedbackProcessor {
     }
 }
 
+/// Creates a pair of interconnected BackendFeedbackProvider and FeedbackProcessor
+/// instances, to be sent to different threads.
 pub fn new_feedback_processor() -> (BackendFeedbackProvider, FeedbackProcessor) {
     let rb_feedback  = RingBuffer::new(FEEDBACK_BUF_COUNT);
     let rb_recycle   = RingBuffer::new(FEEDBACK_BUF_COUNT);
@@ -352,8 +368,4 @@ mod tests {
         let sl = frontend.minmax_slice_for_signal(0);
         assert_eq!(sl[0], (-0.95, 0.86));
     }
-
-    // TODO: Testcase for two incomplete buffers 32/32
-
-    // TODO: Testcase for two incomplete buffers 1/63
 }
