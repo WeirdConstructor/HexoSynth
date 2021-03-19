@@ -372,7 +372,8 @@ impl AtomDataModel for HexoSynthUIParams {
 
     fn set_default(&mut self, id: AtomId) {
         if let Some((pid, _)) = self.get_param(id) {
-            self.set(id, pid.as_atom_def().into());
+            let at = pid.as_atom_def().into();
+            self.set(id, at);
         }
     }
 

@@ -97,7 +97,7 @@ impl GenericNodeUI {
         match param_id.as_atom_def() {
             SAtom::Param(_) => {
                 let knob_type =
-                    if let Some((min, max)) = param_id.param_min_max() {
+                    if let Some((min, _max)) = param_id.param_min_max() {
                         if min < 0.0 {
                             self.wt_knob_11.clone()
                         } else {
@@ -219,9 +219,7 @@ pub struct NodePanelData {
 }
 
 impl NodePanelData {
-    pub fn new(node_id: u32, matrix: Arc<Mutex<Matrix>>, editor: MatrixEditorRef) -> Box<dyn std::any::Any> {
-        let wt_cont = Rc::new(Container::new());
-
+    pub fn new(_node_id: u32, matrix: Arc<Mutex<Matrix>>, editor: MatrixEditorRef) -> Box<dyn std::any::Any> {
         let node_ui = Rc::new(RefCell::new(GenericNodeUI::new()));
         node_ui.borrow_mut().set_target(NodeId::Sin(0), 1);
         Box::new(Self {
@@ -274,8 +272,6 @@ impl WidgetType for NodePanel {
 
             let pos = pos.shrink(10.0, 10.0);
             p.rect_fill(UI_PRIM_CLR, pos.x, pos.y, pos.w, pos.h);
-
-            let knob_pos = pos.crop_top(200.0);
 
             let mut node_ui = data.node_ui.borrow_mut();
             if let Some(at_id) = ui.hover_atom_id() {

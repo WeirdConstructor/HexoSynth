@@ -91,11 +91,11 @@ impl std::fmt::Display for ProcBuf {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-enum UIParamDesc {
-    Knob    { width: usize, prec: usize, unit: &'static str },
-    Setting { labels: &'static [&'static str], unit: &'static str },
-}
+//#[derive(Debug, Clone, Copy)]
+//enum UIParamDesc {
+//    Knob    { width: usize, prec: usize, unit: &'static str },
+//    Setting { labels: &'static [&'static str], unit: &'static str },
+//}
 
 
 #[derive(Debug, Clone, Copy, PartialOrd, PartialEq)]
@@ -214,6 +214,8 @@ macro_rules! node_list {
     }
 }
 
+#[allow(non_snake_case)]
+#[allow(non_upper_case_globals)]
 pub mod labels {
     pub mod Test {
         pub const s : [&'static str; 11] = [

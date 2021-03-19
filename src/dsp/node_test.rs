@@ -19,8 +19,8 @@ impl Test {
 
     #[inline]
     pub fn process<T: NodeAudioContext>(
-        &mut self, ctx: &mut T, _atoms: &[SAtom], _params: &[ProcBuf],
-        inputs: &[ProcBuf], outputs: &mut [ProcBuf])
+        &mut self, _ctx: &mut T, _atoms: &[SAtom], _params: &[ProcBuf],
+        _inputs: &[ProcBuf], _outputs: &mut [ProcBuf])
     {
 //        use crate::dsp::out;
 //        use crate::dsp::inp;
@@ -35,7 +35,7 @@ impl Test {
     }
 
     pub fn graph_fun() -> Option<GraphFun> {
-        Some(Box::new(|gd: &dyn GraphAtomData, init: bool, x: f32| -> f32 {
+        Some(Box::new(|_gd: &dyn GraphAtomData, _init: bool, x: f32| -> f32 {
             x
         }))
     }

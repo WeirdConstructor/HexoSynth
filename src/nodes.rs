@@ -207,7 +207,6 @@ pub enum GraphMessage {
 pub enum QuickMessage {
     AtomUpdate  { at_idx: usize, value: SAtom },
     ParamUpdate { input_idx: usize, value: f32 },
-    Feedback    { node_id: u8, feedback_id: u8, value: f32 },
 }
 
 /// For receiving deleted/overwritten nodes from the backend
@@ -738,7 +737,6 @@ impl NodeExecutor {
                 QuickMessage::ParamUpdate { input_idx, value } => {
                     self.set_param(input_idx, value);
                 },
-                _ => {},
             }
         }
 
