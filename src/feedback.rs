@@ -53,6 +53,10 @@ impl BackendFeedbackProvider {
         self.unused_feedback_buffers.pop()
     }
 
+    pub fn count_unused_fb_bufs(&self) -> usize {
+        self.unused_feedback_buffers.len()
+    }
+
     pub fn send_fb_buf(&mut self, buf: FeedbackBufPtr) {
         match self.rb_fb_prod.push(buf) {
             Ok(_)    => (),
@@ -89,35 +93,27 @@ impl FeedbackMinMax {
     }
 
     pub fn process(&mut self, fb_buf: &mut FeedbackBufPtr) {
-        let cur_minmax_proc_len = self.cur_min_max.2;
-        let rest_len =
-            FEEDBACK_INPUT_LEN_PER_SAMPLE - cur_minmax_proc_len;
+        println!("XXX {}", self.sig_idx);
 
-        let (min, max, len) =
-            fb_buf.calc_minmax(self.sig_idx, cur_minmax_proc_len, rest_len);
+        while let Some(sample) =
+            fb_buf.next_sample_for_signal(self.sig_idx)
+        {
+            self.cur_min_max.0 = self.cur_min_max.0.min(sample);
+            self.cur_min_max.1 = self.cur_min_max.1.max(sample);
+            self.cur_min_max.2 += 1;
 
-        if len == 0 {
-            return;
-        }
+            if self.cur_min_max.2 >= FEEDBACK_INPUT_LEN_PER_SAMPLE {
+                self.buf[self.buf_write_ptr] = (
+                    self.cur_min_max.0,
+                    self.cur_min_max.1
+                );
 
-        self.cur_min_max.0 = min.min(self.cur_min_max.0);
-        self.cur_min_max.1 = max.max(self.cur_min_max.1);
+                self.buf_write_ptr = (self.buf_write_ptr + 1) % self.buf.len();
 
-        let next_minmax_proc_len = cur_minmax_proc_len + len;
-
-        if next_minmax_proc_len >= FEEDBACK_INPUT_LEN_PER_SAMPLE {
-            self.buf[self.buf_write_ptr] = (
-                self.cur_min_max.0,
-                self.cur_min_max.1
-            );
-
-            self.buf_write_ptr = (self.buf_write_ptr + 1) % self.buf.len();
-
-            self.cur_min_max.0 =  100.0;
-            self.cur_min_max.1 = -100.0;
-            self.cur_min_max.2 = 0;
-        } else {
-            self.cur_min_max.2 = next_minmax_proc_len;
+                self.cur_min_max.0 =  100.0;
+                self.cur_min_max.1 = -100.0;
+                self.cur_min_max.2 = 0;
+            }
         }
     }
 }
@@ -198,7 +194,10 @@ pub struct FeedbackBuf {
     sig_blocks: [f32; FB_SIG_CNT * MAX_BLOCK_SIZE],
 
     /// Holds the lengths of the individual signal data blocks in `sig_blocks`.
-    len:        [u8; FB_SIG_CNT],
+    len:        [usize; FB_SIG_CNT],
+
+    /// Holds the lengths of the individual signal data blocks in `sig_blocks`.
+    read_idx:   [usize; FB_SIG_CNT],
 }
 
 impl FeedbackBuf {
@@ -207,41 +206,25 @@ impl FeedbackBuf {
         Box::new(Self {
             sig_blocks: [0.0; FB_SIG_CNT * MAX_BLOCK_SIZE],
             len:        [0; FB_SIG_CNT],
+            read_idx:   [0; FB_SIG_CNT],
         })
     }
 
-    /// Calculates the minmax of one of the 6 signal blocks.
-    /// `offs` is the offset into the samples, and `len` is the maximum
-    /// number of samples to calculate the min/max for.
-    pub fn calc_minmax(&mut self, idx: usize, offs: usize, len: usize) -> (f32, f32, usize) {
-        if idx > 5 { return (0.0, 0.0, 0); }
+    pub fn reset(&mut self) {
+        self.len      = [0; FB_SIG_CNT];
+        self.read_idx = [0; FB_SIG_CNT];
+    }
 
-        let mut min =  100.0;
-        let mut max = -100.0;
+    pub fn next_sample_for_signal(&mut self, idx: usize) -> Option<f32> {
+        let rd_idx = self.read_idx[idx];
+        if rd_idx >= self.len[idx] {
+            return None;
+        }
 
+        self.read_idx[idx] = rd_idx + 1;
         let sb_idx = idx * MAX_BLOCK_SIZE;
 
-        let sb_len = self.len[idx] as usize;
-
-        if offs >= sb_len {
-            return (0.0, 0.0, 0);
-        }
-
-        let len =
-            if len > (sb_len - offs) {
-                sb_len as usize - offs
-            } else {
-                len
-            };
-
-        for i in offs..len {
-            let s = self.sig_blocks[sb_idx + i];
-
-            min = s.min(min);
-            max = s.max(max);
-        }
-
-        (min, max, len)
+        Some(self.sig_blocks[sb_idx + rd_idx])
     }
 
     pub fn feed(&mut self, idx: usize, len: usize, slice: &[f32]) {
@@ -249,7 +232,7 @@ impl FeedbackBuf {
         self.sig_blocks[sb_idx..(sb_idx + len)]
             .copy_from_slice(slice);
 
-        self.len[idx] = len as u8;
+        self.len[idx] = len;
     }
 }
 
@@ -260,28 +243,78 @@ pub type FeedbackBufPtr = Box<FeedbackBuf>;
 mod tests {
     use super::*;
 
+    fn send_n_feedback_bufs(backend: &mut BackendFeedbackProvider,
+                            first: f32, last: f32, count: usize)
+    {
+        for _ in 0..count {
+            let mut fb = backend.get_unused_fb_buf().unwrap();
+
+            let mut samples : Vec<f32> = vec![];
+            for _ in 0..MAX_BLOCK_SIZE {
+                samples.push(0.0);
+            }
+            samples[0] = first;
+            samples[MAX_BLOCK_SIZE - 1] = last;
+
+            fb.feed(0, MAX_BLOCK_SIZE, &samples[..]);
+
+            backend.send_fb_buf(fb);
+        }
+    }
+
     #[test]
-    fn check_feedback_proc1() {
+    fn check_feedback_proc() {
         let (mut backend, mut frontend) = new_feedback_processor();
 
-        let mut fb = backend.get_unused_fb_buf().unwrap();
+        let count1 =
+            (FEEDBACK_INPUT_LEN_PER_SAMPLE / MAX_BLOCK_SIZE) + 1;
+        let count2 =
+            2 * ((FEEDBACK_INPUT_LEN_PER_SAMPLE / MAX_BLOCK_SIZE) + 1);
 
-        let mut samples : Vec<f32> = vec![];
-        for _ in 0..MAX_BLOCK_SIZE {
-            samples.push(0.0);
-        }
-        samples[0] = -0.9;
-        samples[MAX_BLOCK_SIZE - 1] = 0.8;
+        send_n_feedback_bufs(&mut backend, -0.9, 0.8, count1);
 
-        fb.feed(0, MAX_BLOCK_SIZE, &samples[..]);
-
-        backend.send_fb_buf(fb);
+        send_n_feedback_bufs(&mut backend, -0.7, 0.6, count2);
 
         frontend.process();
 
         let sl = frontend.minmax_slice_for_signal(0);
         println!("{:?}", sl);
 
-        assert!(false);
+        assert_eq!(sl[0], (-0.9, 0.8));
+        assert_eq!(sl[1], (-0.7, 0.8));
+        assert_eq!(sl[2], (-0.7, 0.6));
+
+        assert_eq!(
+            backend.count_unused_fb_bufs(),
+            FEEDBACK_BUF_COUNT - count1 - count2);
+
+        backend.check_recycle();
+
+        assert_eq!(
+            backend.count_unused_fb_bufs(),
+            FEEDBACK_BUF_COUNT);
     }
+
+    #[test]
+    fn check_feedback_partial() {
+        let (mut backend, mut frontend) = new_feedback_processor();
+
+        let count1 = FEEDBACK_INPUT_LEN_PER_SAMPLE / MAX_BLOCK_SIZE;
+
+        send_n_feedback_bufs(&mut backend, -0.9, 0.8, count1);
+
+//        send_n_feedback_bufs(&mut backend, -0.7, 0.6, count2);
+
+        frontend.process();
+
+        let sl = frontend.minmax_slice_for_signal(0);
+        println!("{:?}", sl);
+        assert_eq!(sl[0], (0.0, 0.0));
+
+        send_n_feedback_bufs(&mut backend, -0.9, 0.8, count1);
+    }
+
+    // TODO: Testcase for two incomplete buffers 32/32
+
+    // TODO: Testcase for two incomplete buffers 1/63
 }
