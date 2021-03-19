@@ -946,19 +946,19 @@ mod tests {
 
     #[test]
     fn check_pitch() {
-        assert_eq!(d_pit!(-0.2, 0.001, 1.0).round() as i32, 110_i32);
-        assert_eq!((n_pit!(110.0, 0.001, 1.0) * 100.0).round() as i32, -20_i32);
-        assert_eq!(d_pit!(0.0, 0.001, 1.0).round() as i32, 440_i32);
-        assert_eq!((n_pit!(440.0, 0.001, 1.0) * 100.0).round() as i32, 0_i32);
-        assert_eq!(d_pit!(0.3, 0.001, 1.0).round() as i32, 3520_i32);
-        assert_eq!((n_pit!(3520.0, 0.001, 1.0) * 100.0).round() as i32, 30_i32);
+        assert_eq!(d_pit!(-0.2).round() as i32, 110_i32);
+        assert_eq!((n_pit!(110.0) * 100.0).round() as i32, -20_i32);
+        assert_eq!(d_pit!(0.0).round() as i32, 440_i32);
+        assert_eq!((n_pit!(440.0) * 100.0).round() as i32, 0_i32);
+        assert_eq!(d_pit!(0.3).round() as i32, 3520_i32);
+        assert_eq!((n_pit!(3520.0) * 100.0).round() as i32, 30_i32);
 
         for i in 1..999 {
             let x = (((i as f32) / 1000.0) - 0.5) * 2.0;
-            let r = d_pit!(x, 0.001, 1.0);
+            let r = d_pit!(x);
             println!("x={:8.5} => {:8.5}", x, r);
             assert_eq!(
-                (n_pit!(r, 0.001, 1.0) * 10000.0).round() as i32,
+                (n_pit!(r) * 10000.0).round() as i32,
                 (x * 10000.0).round() as i32);
         }
     }

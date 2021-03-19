@@ -1,10 +1,15 @@
 const MAX_ALLOCATED_NODES : usize = 256;
 const MAX_SMOOTHERS       : usize = 36 + 4; // 6 * 6 modulator inputs + 4 UI Knobs
 
+use crate::feedback::FB_SIG_CNT;
+
 use std::collections::HashMap;
 
 use ringbuf::{RingBuffer, Producer, Consumer};
-use crate::dsp::{node_factory, NodeInfo, Node, NodeId, SAtom, ProcBuf};
+use crate::dsp::{
+    node_factory, NodeInfo, Node,
+    NodeId, SAtom, ProcBuf,
+};
 use crate::util::Smoother;
 
 /// A node graph execution program. It comes with buffers
@@ -207,7 +212,11 @@ pub enum GraphMessage {
 pub enum QuickMessage {
     AtomUpdate  { at_idx: usize, value: SAtom },
     ParamUpdate { input_idx: usize, value: f32 },
+    /// Sets the buffer indices to monitor with the FeedbackProcessor.
+    SetMonitor  { bufs: [usize; FB_SIG_CNT], },
 }
+
+pub const UNUSED_MONITOR_IDX : usize = 99999;
 
 /// For receiving deleted/overwritten nodes from the backend
 /// thread and dropping them.
@@ -270,7 +279,7 @@ pub struct NodeConfigurator {
     graph_update_prod:  Producer<GraphMessage>,
     /// For quick updates like UI paramter changes.
     quick_update_prod:  Producer<QuickMessage>,
-    // /// For receiving feedback from the backend thread.
+    /// For receiving feedback from the backend thread.
     // feedback_con:       Consumer<QuickMessage>,
     /// Handles deallocation
     #[allow(dead_code)]
@@ -392,12 +401,10 @@ pub fn new_node_engine() -> (NodeConfigurator, NodeExecutor) {
     let rb_graph     = RingBuffer::new(MAX_ALLOCATED_NODES * 2);
     let rb_quick     = RingBuffer::new(MAX_ALLOCATED_NODES * 8);
     let rb_drop      = RingBuffer::new(MAX_ALLOCATED_NODES * 2);
-    // let rb_feedback  = RingBuffer::new(MAX_ALLOCATED_NODES);
 
     let (rb_graph_prod, rb_graph_con) = rb_graph.split();
     let (rb_quick_prod, rb_quick_con) = rb_quick.split();
     let (rb_drop_prod,  rb_drop_con)  = rb_drop.split();
-    // let (rb_fb_prod,    rb_fb_con)    = rb_feedback.split();
 
     let drop_thread = DropThread::new(rb_drop_con);
 
@@ -430,10 +437,11 @@ pub fn new_node_engine() -> (NodeConfigurator, NodeExecutor) {
         graph_update_con:  rb_graph_con,
         quick_update_con:  rb_quick_con,
         graph_drop_prod:   rb_drop_prod,
+        monitor_signal_cur_inp_indices: [UNUSED_MONITOR_IDX; FB_SIG_CNT],
         // feedback_prod:     rb_fb_prod,
     };
 
-    // XXX: This is one of the earliest and most consistent point
+    // XXX: This is one of the earliest and most consistent points
     //      in runtime to do this kind of initialization:
     crate::dsp::helpers::init_cos_tab();
 
@@ -548,8 +556,10 @@ pub struct NodeExecutor {
     quick_update_con:  Consumer<QuickMessage>,
     /// For receiving deleted/overwritten nodes from the backend thread.
     graph_drop_prod:   Producer<DropMsg>,
-    // /// For receiving feedback from the backend thread.
+    /// For sending feedback to the frontend thread.
     // feedback_prod:     Producer<QuickMessage>,
+
+    monitor_signal_cur_inp_indices: [usize; FB_SIG_CNT],
 
     /// The sample rate
     sample_rate: f32,
@@ -737,6 +747,9 @@ impl NodeExecutor {
                 QuickMessage::ParamUpdate { input_idx, value } => {
                     self.set_param(input_idx, value);
                 },
+                QuickMessage::SetMonitor { bufs } => {
+                    self.monitor_signal_cur_inp_indices = bufs;
+                },
             }
         }
 
@@ -764,7 +777,14 @@ impl NodeExecutor {
                     &mut prog.out[out.0..out.1]);
         }
 
-        // TODO:
-        // write outputs to feedback tripple buffer!
+        // TODO: draw new feedback buffer
+        for idx in self.monitor_signal_cur_inp_indices.iter() {
+            if *idx == UNUSED_MONITOR_IDX {
+                continue;
+            }
+
+            // TODO: feed prog.cur_inp[idx] into the new feedback buffer
+        }
+        // TODO: send feedback buffer
     }
 }
