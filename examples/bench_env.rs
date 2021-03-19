@@ -1,7 +1,6 @@
 use core::arch::x86_64::{
     _MM_FLUSH_ZERO_ON,
     _MM_SET_FLUSH_ZERO_MODE,
-    _MM_GET_FLUSH_ZERO_MODE
 };
 
 #[inline]
@@ -124,8 +123,6 @@ fn main() {
     let ta = std::time::Instant::now();
     let mut res : f32 = 0.0;
     for _i in 0..1000000 {
-        let mut x = 1.0_f32;
-        let mut xd = 0.0;
         for i in 0..1000 {
             let y = i as f32 / 1000.0;
             res += y.powf(0.1);
@@ -139,7 +136,6 @@ fn main() {
     let ta = std::time::Instant::now();
     let mut res : f32 = 0.0;
     for _i in 0..1000000 {
-        let mut x = 1.0_f32;
         for i in 0..1000 {
             let y = i as f32 / 1000.0;
             let y = y.sqrt().sqrt();

@@ -1,4 +1,3 @@
-use hexosynth::dsp::ProcBuf;
 use hexosynth::nodes::NodeProg;
 
 fn main() {

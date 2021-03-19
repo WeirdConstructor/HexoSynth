@@ -93,8 +93,6 @@ impl FeedbackMinMax {
     }
 
     pub fn process(&mut self, fb_buf: &mut FeedbackBufPtr) {
-        println!("XXX {}", self.sig_idx);
-
         while let Some(sample) =
             fb_buf.next_sample_for_signal(self.sig_idx)
         {
@@ -302,16 +300,57 @@ mod tests {
         let count1 = FEEDBACK_INPUT_LEN_PER_SAMPLE / MAX_BLOCK_SIZE;
 
         send_n_feedback_bufs(&mut backend, -0.9, 0.8, count1);
+        frontend.process();
 
-//        send_n_feedback_bufs(&mut backend, -0.7, 0.6, count2);
+        let sl = frontend.minmax_slice_for_signal(0);
+        assert_eq!(sl[0], (0.0, 0.0));
+
+        send_n_feedback_bufs(&mut backend, -0.9, 0.8, 1);
+        frontend.process();
+
+        let sl = frontend.minmax_slice_for_signal(0);
+        assert_eq!(sl[0], (-0.9, 0.8));
+    }
+
+    #[test]
+    fn check_feedback_fragment() {
+        let (mut backend, mut frontend) = new_feedback_processor();
+
+        let count1 = FEEDBACK_INPUT_LEN_PER_SAMPLE / MAX_BLOCK_SIZE;
+
+        let rest = FEEDBACK_INPUT_LEN_PER_SAMPLE - count1 * MAX_BLOCK_SIZE;
+
+        send_n_feedback_bufs(&mut backend, -0.9, 0.8, count1);
+        frontend.process();
+
+        let sl = frontend.minmax_slice_for_signal(0);
+        assert_eq!(sl[0], (0.0, 0.0));
+
+        let mut fb = backend.get_unused_fb_buf().unwrap();
+
+        let mut samples : Vec<f32> = vec![];
+        let part1_len = rest - 1;
+        for _ in 0..part1_len {
+            samples.push(0.0);
+        }
+        samples[0]             = -0.9;
+        samples[part1_len - 1] = -0.95;
+
+        fb.feed(0, part1_len, &samples[..]);
+        backend.send_fb_buf(fb);
 
         frontend.process();
 
         let sl = frontend.minmax_slice_for_signal(0);
-        println!("{:?}", sl);
         assert_eq!(sl[0], (0.0, 0.0));
 
-        send_n_feedback_bufs(&mut backend, -0.9, 0.8, count1);
+        let mut fb = backend.get_unused_fb_buf().unwrap();
+        fb.feed(0, 1, &[0.86]);
+        backend.send_fb_buf(fb);
+
+        frontend.process();
+        let sl = frontend.minmax_slice_for_signal(0);
+        assert_eq!(sl[0], (-0.95, 0.86));
     }
 
     // TODO: Testcase for two incomplete buffers 32/32
