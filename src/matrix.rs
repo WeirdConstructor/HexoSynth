@@ -290,6 +290,26 @@ impl Matrix {
 
     pub fn get_generation(&self) -> usize { self.gen_counter }
 
+    pub fn process(&mut self) {
+        self.config.handle_monitors();
+    }
+
+    pub fn get_monitor_minmax_buffer(&self, idx: usize) -> &[(f32, f32)] {
+        self.config.get_monitor_minmax_buffer(idx)
+    }
+
+    pub fn monitor_cell(&mut self, _cell: Cell) {
+        // get the input indices for the `cur_inp` vector of the cell.in1-in3
+        // use:
+        //      let ni = instances.get(&cell.node_id).unwrap();
+        //      ni.in_local2global(cell_in_i)
+
+        // get the out indices for the cell.out1-out3
+        // use:
+        //      let ni = instances.get(&cell.node_id).unwrap();
+        //      ni.out_local2global(cell_out_i)
+    }
+
     pub fn set_param(&mut self, param: ParamId, at: SAtom) {
         // XXX: The atoms and params maps are created when
         //      the matrix is sync()'ed. Only call this function

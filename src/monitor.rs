@@ -30,7 +30,7 @@ const MONITOR_BUF_COUNT  : usize =
 //  2 for safety margin
     2 * (IMAGINARY_MAX_SAMPLE_RATE / MAX_BLOCK_SIZE);
 
-pub struct BackendMonitorProvider {
+pub struct MonitorBackend {
     rb_mon_prod:              Producer<MonitorBufPtr>,
     rb_recycle_con:          Consumer<MonitorBufPtr>,
 
@@ -42,7 +42,7 @@ pub struct BackendMonitorProvider {
     unused_monitor_buffers: Vec<MonitorBufPtr>,
 }
 
-impl BackendMonitorProvider {
+impl MonitorBackend {
     /// Checks if there are any used monitor buffers to be
     /// collected.
     pub fn check_recycle(&mut self) {
@@ -163,7 +163,7 @@ impl MonitorProcessor {
     }
 
     /// Processes all queued [MonitorBuf] instances and sends
-    /// then back to the [BackendMonitorProvider] thread after
+    /// then back to the [MonitorBackend] thread after
     /// used for recycling.
     pub fn process(&mut self) {
         while let Some(mut buf) = self.rb_mon_con.pop() {
@@ -174,9 +174,9 @@ impl MonitorProcessor {
     }
 }
 
-/// Creates a pair of interconnected BackendMonitorProvider and MonitorProcessor
+/// Creates a pair of interconnected MonitorBackend and MonitorProcessor
 /// instances, to be sent to different threads.
-pub fn new_monitor_processor() -> (BackendMonitorProvider, MonitorProcessor) {
+pub fn new_monitor_processor() -> (MonitorBackend, MonitorProcessor) {
     let rb_monitor  = RingBuffer::new(MONITOR_BUF_COUNT);
     let rb_recycle   = RingBuffer::new(MONITOR_BUF_COUNT);
 
@@ -189,7 +189,7 @@ pub fn new_monitor_processor() -> (BackendMonitorProvider, MonitorProcessor) {
         unused_monitor_buffers.push(MonitorBuf::alloc());
     }
 
-    let backend = BackendMonitorProvider {
+    let backend = MonitorBackend {
         rb_mon_prod,
         rb_recycle_con,
         unused_monitor_buffers,
@@ -213,6 +213,16 @@ pub struct MonitorBuf {
 
     /// Holds the lengths of the individual signal data blocks in `sig_blocks`.
     read_idx:   [usize; FB_SIG_CNT],
+}
+
+pub trait MonitorSource {
+    fn copy_to(&self, len: usize, slice: &mut [f32]);
+}
+
+impl MonitorSource for &[f32] {
+    fn copy_to(&self, len: usize, slice: &mut [f32]) {
+        slice.copy_from_slice(&self[0..len])
+    }
 }
 
 impl MonitorBuf {
@@ -242,10 +252,11 @@ impl MonitorBuf {
         Some(self.sig_blocks[sb_idx + rd_idx])
     }
 
-    pub fn feed(&mut self, idx: usize, len: usize, slice: &[f32]) {
+    pub fn feed<T>(&mut self, idx: usize, len: usize, data: T)
+        where T: MonitorSource
+    {
         let sb_idx = idx * MAX_BLOCK_SIZE;
-        self.sig_blocks[sb_idx..(sb_idx + len)]
-            .copy_from_slice(slice);
+        data.copy_to(len, &mut self.sig_blocks[sb_idx..(sb_idx + len)]);
 
         self.len[idx] = len;
     }
@@ -258,7 +269,7 @@ pub type MonitorBufPtr = Box<MonitorBuf>;
 mod tests {
     use super::*;
 
-    fn send_n_monitor_bufs(backend: &mut BackendMonitorProvider,
+    fn send_n_monitor_bufs(backend: &mut MonitorBackend,
                             first: f32, last: f32, count: usize)
     {
         for _ in 0..count {
@@ -362,7 +373,7 @@ mod tests {
         assert_eq!(sl[0], (0.0, 0.0));
 
         let mut mon = backend.get_unused_mon_buf().unwrap();
-        mon.feed(0, 1, &[0.86]);
+        mon.feed(0, 1, &[0.86][..]);
         backend.send_mon_buf(mon);
 
         frontend.process();

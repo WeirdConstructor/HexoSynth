@@ -1,7 +1,10 @@
 const MAX_ALLOCATED_NODES : usize = 256;
 const MAX_SMOOTHERS       : usize = 36 + 4; // 6 * 6 modulator inputs + 4 UI Knobs
 
-use crate::monitor::FB_SIG_CNT;
+use crate::monitor::{
+    FB_SIG_CNT, new_monitor_processor,
+    MonitorBackend, MonitorProcessor
+};
 
 use std::collections::HashMap;
 
@@ -279,8 +282,8 @@ pub struct NodeConfigurator {
     graph_update_prod:  Producer<GraphMessage>,
     /// For quick updates like UI paramter changes.
     quick_update_prod:  Producer<QuickMessage>,
-    /// For receiving feedback from the backend thread.
-    // feedback_con:       Consumer<QuickMessage>,
+    /// For receiving monitor data from the backend thread.
+    monitor:            MonitorProcessor,
     /// Handles deallocation
     #[allow(dead_code)]
     drop_thread:        DropThread,
@@ -393,6 +396,14 @@ impl NodeConfigurator {
             self.graph_update_prod.push(
                 GraphMessage::NewProg { prog, copy_old_out });
     }
+
+    pub fn handle_monitors(&mut self) {
+        self.monitor.process();
+    }
+
+    pub fn get_monitor_minmax_buffer(&self, idx: usize) -> &[(f32, f32)] {
+        self.monitor.minmax_slice_for_signal(idx)
+    }
 }
 
 /// Creates a NodeConfigurator and a NodeExecutor which are interconnected
@@ -406,6 +417,8 @@ pub fn new_node_engine() -> (NodeConfigurator, NodeExecutor) {
     let (rb_quick_prod, rb_quick_con) = rb_quick.split();
     let (rb_drop_prod,  rb_drop_con)  = rb_drop.split();
 
+    let (monitor_backend, monitor) = new_monitor_processor();
+
     let drop_thread = DropThread::new(rb_drop_con);
 
     let mut nodes = Vec::new();
@@ -416,7 +429,7 @@ pub fn new_node_engine() -> (NodeConfigurator, NodeExecutor) {
         graph_update_prod: rb_graph_prod,
         quick_update_prod: rb_quick_prod,
         node2idx:          HashMap::new(),
-        // feedback_con:      rb_fb_con,
+        monitor,
         drop_thread,
     };
 
@@ -437,8 +450,8 @@ pub fn new_node_engine() -> (NodeConfigurator, NodeExecutor) {
         graph_update_con:  rb_graph_con,
         quick_update_con:  rb_quick_con,
         graph_drop_prod:   rb_drop_prod,
+        monitor_backend,
         monitor_signal_cur_inp_indices: [UNUSED_MONITOR_IDX; FB_SIG_CNT],
-        // feedback_prod:     rb_fb_prod,
     };
 
     // XXX: This is one of the earliest and most consistent points
@@ -557,7 +570,7 @@ pub struct NodeExecutor {
     /// For receiving deleted/overwritten nodes from the backend thread.
     graph_drop_prod:   Producer<DropMsg>,
     /// For sending feedback to the frontend thread.
-    // feedback_prod:     Producer<QuickMessage>,
+    monitor_backend:   MonitorBackend,
 
     monitor_signal_cur_inp_indices: [usize; FB_SIG_CNT],
 
@@ -777,14 +790,22 @@ impl NodeExecutor {
                     &mut prog.out[out.0..out.1]);
         }
 
-        // TODO: draw new feedback buffer
-        for idx in self.monitor_signal_cur_inp_indices.iter() {
+        self.monitor_backend.check_recycle();
+
+        for (i, idx) in self.monitor_signal_cur_inp_indices.iter().enumerate() {
             if *idx == UNUSED_MONITOR_IDX {
                 continue;
             }
 
-            // TODO: feed prog.cur_inp[idx] into the new feedback buffer
+            if let Some(mut mon) = self.monitor_backend.get_unused_mon_buf() {
+                if i > 2 {
+                    mon.feed(i, ctx.nframes(), &prog.cur_inp[*idx]);
+                } else {
+                    mon.feed(i, ctx.nframes(), &prog.out[*idx]);
+                }
+
+                self.monitor_backend.send_mon_buf(mon);
+            }
         }
-        // TODO: send feedback buffer
     }
 }

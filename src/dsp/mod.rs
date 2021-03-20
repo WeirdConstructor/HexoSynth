@@ -47,6 +47,12 @@ impl ProcBuf {
     }
 }
 
+impl crate::monitor::MonitorSource for &ProcBuf {
+    fn copy_to(&self, len: usize, slice: &mut [f32]) {
+        unsafe { slice.copy_from_slice(&(*self.0)[0..len]) }
+    }
+}
+
 unsafe impl Send for ProcBuf {}
 //unsafe impl Sync for HexoSynthShared {}
 
