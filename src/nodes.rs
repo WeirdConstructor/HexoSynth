@@ -785,8 +785,6 @@ impl NodeExecutor {
             let inp = op.in_idxlen;
             let at  = op.at_idxlen;
 
-            println!("OP: {:?}", op);
-
             nodes[op.idx as usize]
                 .process(
                     ctx,
@@ -798,6 +796,8 @@ impl NodeExecutor {
 
         self.monitor_backend.check_recycle();
 
+//        let tb = std::time::Instant::now();
+//        let ta = std::time::Instant::now();
         for (i, idx) in self.monitor_signal_cur_inp_indices.iter().enumerate() {
             if *idx == UNUSED_MONITOR_IDX {
                 continue;
@@ -813,5 +813,9 @@ impl NodeExecutor {
                 self.monitor_backend.send_mon_buf(mon);
             }
         }
+//        let ta = std::time::Instant::now().duration_since(ta);
+//        let tb = std::time::Instant::now().duration_since(tb);
+//        println!("ta Elapsed: {:?}", ta);
+//        println!("tb Elapsed: {:?}", tb);
     }
 }

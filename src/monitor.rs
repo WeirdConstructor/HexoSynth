@@ -121,11 +121,6 @@ impl MonitorMinMax {
             self.cur_min_max.2 += 1;
 
             if self.cur_min_max.2 >= MONITOR_INPUT_LEN_PER_SAMPLE {
-                println!("SIG: {} => {}/{}",
-                    self.sig_idx,
-                    self.cur_min_max.0,
-                    self.cur_min_max.1);
-
                 self.buf[self.buf_write_ptr] = (
                     self.cur_min_max.0,
                     self.cur_min_max.1
@@ -229,6 +224,7 @@ impl Monitor {
                     return;
                 }
 
+                //d// let ta = std::time::Instant::now();
                 proc.process();
 
                 if proc.check_new_data() {
@@ -240,7 +236,11 @@ impl Monitor {
                     }
 
                     th_new_data.store(true, std::sync::atomic::Ordering::Relaxed);
+
+                    //d// let ta = std::time::Instant::now().duration_since(ta);
+                    //d// println!("txx Elapsed: {:?}", ta);
                 }
+
 
                 std::thread::sleep(
                     std::time::Duration::from_millis(
