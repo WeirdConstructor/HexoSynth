@@ -1,6 +1,7 @@
 use crate::nodes::{NodeOp, NodeConfigurator, NodeProg};
 use crate::dsp::{NodeInfo, NodeId, ParamId, SAtom};
 pub use crate::CellDir;
+pub use crate::nodes::MinMaxMonitorSamples;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Cell {
@@ -290,12 +291,12 @@ impl Matrix {
 
     pub fn get_generation(&self) -> usize { self.gen_counter }
 
-    pub fn process(&mut self) {
-        self.config.handle_monitors();
-    }
-
-    pub fn get_monitor_minmax_buffer(&self, idx: usize) -> &[(f32, f32)] {
-        self.config.get_monitor_minmax_buffer(idx)
+    /// Receives the most recent data for the monitored signal at index `idx`.
+    /// Might introduce a short wait, because internally a mutex is still locked.
+    /// If this leads to stuttering in the UI, we need to change the internal
+    /// handling to a triple buffer.
+    pub fn get_minmax_monitor_samples(&mut self, idx: usize) -> &MinMaxMonitorSamples {
+        self.config.get_minmax_monitor_samples(idx)
     }
 
     pub fn monitor_cell(&mut self, _cell: Cell) {

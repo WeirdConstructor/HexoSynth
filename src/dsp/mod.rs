@@ -21,7 +21,7 @@ use node_test::Test;
 
 pub const MIDI_MAX_FREQ : f32 = 13289.75;
 
-pub const MAX_BLOCK_SIZE : usize = 64;
+pub const MAX_BLOCK_SIZE : usize = 128;
 
 /// This trait is an interface between the graph functions
 /// and the AtomDataModel of the UI.

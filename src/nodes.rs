@@ -2,9 +2,11 @@ const MAX_ALLOCATED_NODES : usize = 256;
 const MAX_SMOOTHERS       : usize = 36 + 4; // 6 * 6 modulator inputs + 4 UI Knobs
 
 use crate::monitor::{
-    FB_SIG_CNT, new_monitor_processor,
-    MonitorBackend, MonitorProcessor
+    MON_SIG_CNT, new_monitor_processor,
+    MonitorBackend, Monitor
 };
+
+pub use crate::monitor::MinMaxMonitorSamples;
 
 use std::collections::HashMap;
 
@@ -216,7 +218,7 @@ pub enum QuickMessage {
     AtomUpdate  { at_idx: usize, value: SAtom },
     ParamUpdate { input_idx: usize, value: f32 },
     /// Sets the buffer indices to monitor with the FeedbackProcessor.
-    SetMonitor  { bufs: [usize; FB_SIG_CNT], },
+    SetMonitor  { bufs: [usize; MON_SIG_CNT], },
 }
 
 pub const UNUSED_MONITOR_IDX : usize = 99999;
@@ -283,7 +285,7 @@ pub struct NodeConfigurator {
     /// For quick updates like UI paramter changes.
     quick_update_prod:  Producer<QuickMessage>,
     /// For receiving monitor data from the backend thread.
-    monitor:            MonitorProcessor,
+    monitor:            Monitor,
     /// Handles deallocation
     #[allow(dead_code)]
     drop_thread:        DropThread,
@@ -397,12 +399,8 @@ impl NodeConfigurator {
                 GraphMessage::NewProg { prog, copy_old_out });
     }
 
-    pub fn handle_monitors(&mut self) {
-        self.monitor.process();
-    }
-
-    pub fn get_monitor_minmax_buffer(&self, idx: usize) -> &[(f32, f32)] {
-        self.monitor.minmax_slice_for_signal(idx)
+    pub fn get_minmax_monitor_samples(&mut self, idx: usize) -> &MinMaxMonitorSamples {
+        self.monitor.get_minmax_monitor_samples(idx)
     }
 }
 
@@ -451,7 +449,7 @@ pub fn new_node_engine() -> (NodeConfigurator, NodeExecutor) {
         quick_update_con:  rb_quick_con,
         graph_drop_prod:   rb_drop_prod,
         monitor_backend,
-        monitor_signal_cur_inp_indices: [UNUSED_MONITOR_IDX; FB_SIG_CNT],
+        monitor_signal_cur_inp_indices: [UNUSED_MONITOR_IDX; MON_SIG_CNT],
     };
 
     // XXX: This is one of the earliest and most consistent points
@@ -572,7 +570,7 @@ pub struct NodeExecutor {
     /// For sending feedback to the frontend thread.
     monitor_backend:   MonitorBackend,
 
-    monitor_signal_cur_inp_indices: [usize; FB_SIG_CNT],
+    monitor_signal_cur_inp_indices: [usize; MON_SIG_CNT],
 
     /// The sample rate
     sample_rate: f32,
