@@ -262,7 +262,7 @@ mod tests {
                             first: f32, last: f32, count: usize)
     {
         for _ in 0..count {
-            let mut fb = backend.get_unused_mon_buf().unwrap();
+            let mut mon = backend.get_unused_mon_buf().unwrap();
 
             let mut samples : Vec<f32> = vec![];
             for _ in 0..MAX_BLOCK_SIZE {
@@ -271,9 +271,9 @@ mod tests {
             samples[0] = first;
             samples[MAX_BLOCK_SIZE - 1] = last;
 
-            fb.feed(0, MAX_BLOCK_SIZE, &samples[..]);
+            mon.feed(0, MAX_BLOCK_SIZE, &samples[..]);
 
-            backend.send_mon_buf(fb);
+            backend.send_mon_buf(mon);
         }
     }
 
@@ -343,7 +343,7 @@ mod tests {
         let sl = frontend.minmax_slice_for_signal(0);
         assert_eq!(sl[0], (0.0, 0.0));
 
-        let mut fb = backend.get_unused_mon_buf().unwrap();
+        let mut mon = backend.get_unused_mon_buf().unwrap();
 
         let mut samples : Vec<f32> = vec![];
         let part1_len = rest - 1;
@@ -353,17 +353,17 @@ mod tests {
         samples[0]             = -0.9;
         samples[part1_len - 1] = -0.95;
 
-        fb.feed(0, part1_len, &samples[..]);
-        backend.send_mon_buf(fb);
+        mon.feed(0, part1_len, &samples[..]);
+        backend.send_mon_buf(mon);
 
         frontend.process();
 
         let sl = frontend.minmax_slice_for_signal(0);
         assert_eq!(sl[0], (0.0, 0.0));
 
-        let mut fb = backend.get_unused_mon_buf().unwrap();
-        fb.feed(0, 1, &[0.86]);
-        backend.send_mon_buf(fb);
+        let mut mon = backend.get_unused_mon_buf().unwrap();
+        mon.feed(0, 1, &[0.86]);
+        backend.send_mon_buf(mon);
 
         frontend.process();
         let sl = frontend.minmax_slice_for_signal(0);
