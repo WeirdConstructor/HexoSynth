@@ -2,6 +2,7 @@ use crate::nodes::{NodeOp, NodeConfigurator, NodeProg};
 use crate::dsp::{NodeInfo, NodeId, ParamId, SAtom};
 pub use crate::CellDir;
 pub use crate::nodes::MinMaxMonitorSamples;
+pub use crate::monitor::MON_SIG_CNT;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Cell {
@@ -299,16 +300,46 @@ impl Matrix {
         self.config.get_minmax_monitor_samples(idx)
     }
 
-    pub fn monitor_cell(&mut self, _cell: Cell) {
-        // get the input indices for the `cur_inp` vector of the cell.in1-in3
-        // use:
-        //      let ni = instances.get(&cell.node_id).unwrap();
-        //      ni.in_local2global(cell_in_i)
+    pub fn monitor_cell(&mut self, cell: Cell) {
+        use crate::nodes::UNUSED_MONITOR_IDX;
+        let mut mon_idxes = [UNUSED_MONITOR_IDX; MON_SIG_CNT];
 
-        // get the out indices for the cell.out1-out3
-        // use:
-        //      let ni = instances.get(&cell.node_id).unwrap();
-        //      ni.out_local2global(cell_out_i)
+        let instances = self.instances.borrow();
+        if let Some(ni) = instances.get(&cell.node_id) {
+            if let Some(in1) = cell.in1 {
+                mon_idxes[0] =
+                    ni.in_local2global(in1)
+                    .unwrap_or(UNUSED_MONITOR_IDX);
+            }
+            if let Some(in2) = cell.in2 {
+                mon_idxes[1] =
+                    ni.in_local2global(in2)
+                    .unwrap_or(UNUSED_MONITOR_IDX);
+            }
+            if let Some(in3) = cell.in3 {
+                mon_idxes[2] =
+                    ni.in_local2global(in3)
+                    .unwrap_or(UNUSED_MONITOR_IDX);
+            }
+
+            if let Some(out1) = cell.out1 {
+                mon_idxes[3] =
+                    ni.out_local2global(out1)
+                    .unwrap_or(UNUSED_MONITOR_IDX);
+            }
+            if let Some(out2) = cell.out2 {
+                mon_idxes[4] =
+                    ni.out_local2global(out2)
+                    .unwrap_or(UNUSED_MONITOR_IDX);
+            }
+            if let Some(out3) = cell.out3 {
+                mon_idxes[5] =
+                    ni.out_local2global(out3)
+                    .unwrap_or(UNUSED_MONITOR_IDX);
+            }
+        }
+
+        self.config.monitor(&mon_idxes);
     }
 
     pub fn set_param(&mut self, param: ParamId, at: SAtom) {

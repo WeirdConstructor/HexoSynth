@@ -344,6 +344,12 @@ impl NodeConfigurator {
                 QuickMessage::ParamUpdate { input_idx, value });
     }
 
+    pub fn monitor(&mut self, in_bufs: &[usize]) {
+        let mut bufs = [0; MON_SIG_CNT];
+        bufs.copy_from_slice(&in_bufs);
+        let _ = self.quick_update_prod.push(QuickMessage::SetMonitor { bufs });
+    }
+
     pub fn create_node(&mut self, ni: NodeId) -> Option<(&NodeInfo, u8)> {
         println!("create_node: {}", ni);
 
@@ -779,6 +785,8 @@ impl NodeExecutor {
             let inp = op.in_idxlen;
             let at  = op.at_idxlen;
 
+            println!("OP: {:?}", op);
+
             nodes[op.idx as usize]
                 .process(
                     ctx,
@@ -797,9 +805,9 @@ impl NodeExecutor {
 
             if let Some(mut mon) = self.monitor_backend.get_unused_mon_buf() {
                 if i > 2 {
-                    mon.feed(i, ctx.nframes(), &prog.cur_inp[*idx]);
-                } else {
                     mon.feed(i, ctx.nframes(), &prog.out[*idx]);
+                } else {
+                    mon.feed(i, ctx.nframes(), &prog.cur_inp[*idx]);
                 }
 
                 self.monitor_backend.send_mon_buf(mon);

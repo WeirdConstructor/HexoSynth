@@ -121,6 +121,11 @@ impl MonitorMinMax {
             self.cur_min_max.2 += 1;
 
             if self.cur_min_max.2 >= MONITOR_INPUT_LEN_PER_SAMPLE {
+                println!("SIG: {} => {}/{}",
+                    self.sig_idx,
+                    self.cur_min_max.0,
+                    self.cur_min_max.1);
+
                 self.buf[self.buf_write_ptr] = (
                     self.cur_min_max.0,
                     self.cur_min_max.1
@@ -171,6 +176,8 @@ impl MinMaxMonitorSamples {
         let idx = (self.buf_ptr + offs) % self.samples.len();
         &self.samples[idx]
     }
+
+    pub fn len(&self) -> usize { MONITOR_MINMAX_SAMPLES }
 }
 
 impl std::ops::Index<usize> for MinMaxMonitorSamples {
@@ -577,7 +584,7 @@ mod tests {
             let v = i as f32 / MONITOR_MINMAX_SAMPLES as f32;
             send_n_monitor_bufs(&mut backend, -0.9, v, count1);
 
-            /// Give the MonitorProcessor some time to work on the buffers.
+            // Give the MonitorProcessor some time to work on the buffers.
             std::thread::sleep(
                 std::time::Duration::from_millis(5));
             backend.check_recycle();
