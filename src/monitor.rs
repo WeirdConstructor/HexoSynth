@@ -224,8 +224,9 @@ impl Monitor {
                     return;
                 }
 
-                //d// let ta = std::time::Instant::now();
+                // let ta = std::time::Instant::now();
                 proc.process();
+                // let t0 = std::time::Instant::now().duration_since(ta);
 
                 if proc.check_new_data() {
                     let mut ms =
@@ -236,11 +237,10 @@ impl Monitor {
                     }
 
                     th_new_data.store(true, std::sync::atomic::Ordering::Relaxed);
-
-                    //d// let ta = std::time::Instant::now().duration_since(ta);
-                    //d// println!("txx Elapsed: {:?}", ta);
                 }
 
+                // let ta = std::time::Instant::now().duration_since(ta);
+                // println!("txx Elapsed: {:?} | {:?}", t0, ta);
 
                 std::thread::sleep(
                     std::time::Duration::from_millis(
@@ -419,6 +419,7 @@ impl MonitorBuf {
         self.read_idx = [0; MON_SIG_CNT];
     }
 
+    #[inline(always)]
     pub fn next_sample_for_signal(&mut self, idx: usize) -> Option<f32> {
         let rd_idx = self.read_idx[idx];
         if rd_idx >= self.len[idx] {

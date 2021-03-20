@@ -338,10 +338,11 @@ fn check_matrix_monitor() {
     // Give the MonitorProcessor some time to work on the buffers.
     std::thread::sleep(std::time::Duration::from_millis(100));
 
+//assert!(false);
     for i in 0..3 {
         let sl = matrix.get_minmax_monitor_samples(i);
-        println!("SL={:?}", sl);
-        println!("=> {}", i);
+        //d// println!("SL={:?}", sl);
+        //d// println!("=> {}", i);
 
         assert_eq!((sl[sl.len() - 1].0  * 10000.0) as i64, -1000);
         assert_eq!((sl[sl.len() - 1].1  * 10000.0) as i64, -1000);
@@ -355,7 +356,7 @@ fn check_matrix_monitor() {
     for i in 3..6 {
         let sl = matrix.get_minmax_monitor_samples(i);
         //d// println!("SL={:?}", sl);
-        println!("=> {}", i);
+        //d// println!("=> {}", i);
 
         assert_eq!((sl[sl.len() - 1].0  * 10000.0) as i64, -9999);
         assert_eq!((sl[sl.len() - 1].1  * 10000.0) as i64,  9999);
@@ -368,8 +369,15 @@ fn check_matrix_monitor() {
     let rms_mimax = calc_rms_mimax_each_ms(&out_l[..], 50.0);
     assert_float_eq!(rms_mimax[0].0, 0.5013241);
 
+    // let ta = std::time::Instant::now();
+
     // Test the freq after the slope in high res (closer to 4400 Hz):
     let fft_res = fft_thres_at_ms(&mut out_l[..], FFT::F1024, 200, 50.0);
+
+    // let ta = std::time::Instant::now().duration_since(ta);
+    // println!("ta Elapsed: {:?}", ta);
+    // assert!(false);
+
     // 220Hz is one Octave below 440Hz
     assert_eq!(fft_res[0], (215, 253));
 

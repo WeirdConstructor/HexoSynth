@@ -775,6 +775,8 @@ impl NodeExecutor {
 
     #[inline]
     pub fn process<T: NodeAudioContext>(&mut self, ctx: &mut T) {
+        // let tb = std::time::Instant::now();
+
         self.process_param_updates(ctx.nframes());
 
         let nodes = &mut self.nodes;
@@ -796,8 +798,8 @@ impl NodeExecutor {
 
         self.monitor_backend.check_recycle();
 
-//        let tb = std::time::Instant::now();
-//        let ta = std::time::Instant::now();
+        // let ta = std::time::Instant::now();
+
         for (i, idx) in self.monitor_signal_cur_inp_indices.iter().enumerate() {
             if *idx == UNUSED_MONITOR_IDX {
                 continue;
@@ -813,9 +815,10 @@ impl NodeExecutor {
                 self.monitor_backend.send_mon_buf(mon);
             }
         }
-//        let ta = std::time::Instant::now().duration_since(ta);
-//        let tb = std::time::Instant::now().duration_since(tb);
-//        println!("ta Elapsed: {:?}", ta);
-//        println!("tb Elapsed: {:?}", tb);
+
+        // let ta = std::time::Instant::now().duration_since(ta);
+        // let tb = std::time::Instant::now().duration_since(tb);
+        // println!("ta Elapsed: {:?}", ta);
+        // println!("tb Elapsed: {:?}", tb);
     }
 }
