@@ -168,6 +168,7 @@ impl FeedbackProcessor {
     pub fn process(&mut self) {
         while let Some(mut buf) = self.rb_fb_con.pop() {
             self.process_fb_buf(&mut buf);
+            buf.reset();
             let _ = self.rb_recycle_prod.push(buf);
         }
     }
@@ -367,5 +368,28 @@ mod tests {
         frontend.process();
         let sl = frontend.minmax_slice_for_signal(0);
         assert_eq!(sl[0], (-0.95, 0.86));
+    }
+
+    #[test]
+    fn check_feedback_wrap_buf() {
+        let (mut backend, mut frontend) = new_feedback_processor();
+
+        let count1 =
+            (FEEDBACK_INPUT_LEN_PER_SAMPLE / MAX_BLOCK_SIZE) + 1;
+
+        for i in 0..FEEDBACK_MINMAX_SAMPLES {
+            let v = i as f32 / FEEDBACK_MINMAX_SAMPLES as f32;
+            send_n_feedback_bufs(&mut backend, -0.9, v, count1);
+            frontend.process();
+            backend.check_recycle();
+        }
+
+        let sl = frontend.minmax_slice_for_signal(0);
+
+        assert_eq!((sl[0].1 * 10000.0).floor() as u32, 9765);
+
+        assert_eq!(
+            backend.count_unused_fb_bufs(),
+            FEEDBACK_BUF_COUNT);
     }
 }
