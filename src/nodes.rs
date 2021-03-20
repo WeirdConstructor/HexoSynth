@@ -1,7 +1,7 @@
 const MAX_ALLOCATED_NODES : usize = 256;
 const MAX_SMOOTHERS       : usize = 36 + 4; // 6 * 6 modulator inputs + 4 UI Knobs
 
-use crate::feedback::FB_SIG_CNT;
+use crate::monitor::FB_SIG_CNT;
 
 use std::collections::HashMap;
 

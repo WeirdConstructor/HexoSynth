@@ -12,7 +12,7 @@ pub mod nodes;
 pub mod dsp;
 pub mod matrix;
 pub mod cell_dir;
-pub mod feedback;
+pub mod monitor;
 
 pub mod ui;
 mod util;
