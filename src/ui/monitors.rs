@@ -23,6 +23,7 @@ use crate::dsp::NodeId;
 struct MonitorsSource {
     matrix:     Arc<Mutex<Matrix>>,
     idx:        usize,
+    cnt:        usize,
 }
 
 use crate::CellDir;
@@ -55,7 +56,13 @@ impl GraphMinMaxSource for MonitorsSource {
         for i in 0..buf.len() {
             let mm = mimbuf.at(i);
             buf[i] = (mm.0 as f64, mm.1 as f64);
+
+            //d// if self.cnt % 1000 == 0 {
+            //d//     println!("[{}] => {:?}", i, buf[i]);
+            //d// }
         }
+
+        //d// self.cnt += 1;
     }
 }
 
@@ -84,6 +91,7 @@ impl MonitorsData {
                 Box::new(MonitorsSource {
                     matrix: matrix.clone(),
                     idx,
+                    cnt: 0,
                 }))
         };
 
