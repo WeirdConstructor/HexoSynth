@@ -48,7 +48,7 @@ To run the example:
 
 You might need following dependencies (Ubuntu Linux):
 
-    sudo apt install libjack0 libjack-dev libx11-xcb-dev libxcb-icccm4-dev libxcb-dri3-dev
+    sudo apt install libjack0 libjack-dev libx11-xcb-dev libxcb-icccm4-dev libxcb-dri3-dev libxcb-dri2-dev
 
 ## Running the Automated Testsuite:
 

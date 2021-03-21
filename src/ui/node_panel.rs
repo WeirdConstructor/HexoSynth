@@ -14,11 +14,13 @@ use std::cell::RefCell;
 use std::sync::Arc;
 use std::sync::Mutex;
 
-use crate::matrix::Matrix;
+use crate::matrix::{Matrix, Cell};
 
 use crate::ui::matrix::MatrixEditorRef;
 
 use crate::dsp::{NodeId, NodeInfo, SAtom, GraphAtomData};
+
+use crate::ui::monitors::{Monitors, MonitorsData};
 
 const PANEL_HELP_TEXT_ID      : u32 = 1;
 const PANEL_HELP_TEXT_CONT_ID : u32 = 2;
@@ -213,40 +215,52 @@ pub struct NodePanelData {
 
     node_ui: Rc<RefCell<GenericNodeUI>>,
 
-    prev_focus: NodeId,
+    monitors: WidgetData,
+
+    prev_focus: Cell,
 
     editor: MatrixEditorRef,
 }
 
 impl NodePanelData {
-    pub fn new(_node_id: u32, matrix: Arc<Mutex<Matrix>>, editor: MatrixEditorRef) -> Box<dyn std::any::Any> {
+    pub fn new(node_id: u32, matrix: Arc<Mutex<Matrix>>, editor: MatrixEditorRef) -> Box<dyn std::any::Any> {
         let node_ui = Rc::new(RefCell::new(GenericNodeUI::new()));
         node_ui.borrow_mut().set_target(NodeId::Sin(0), 1);
+
+        let wt_monitors = Rc::new(Monitors::new());
+        let monitors =
+            wbox!(
+                wt_monitors,
+                AtomId::new(node_id, 100),
+                center(12, 12),
+                Box::new(MonitorsData::new(
+                    AtomId::new(node_id, 101),
+                    matrix.clone())));
+
         Box::new(Self {
             matrix,
             node_ui,
             editor,
-            prev_focus: NodeId::Nop,
+            monitors,
+            prev_focus: Cell::empty(NodeId::Nop),
         })
     }
 
     fn check_focus_change(&mut self) {
         let cur_focus = self.editor.get_recent_focus();
+
         if cur_focus != self.prev_focus {
             self.prev_focus = cur_focus;
 
-            if cur_focus != NodeId::Nop {
+            if cur_focus.node_id() != NodeId::Nop {
                 self.node_ui.borrow_mut().set_target(
-                    cur_focus,
+                    cur_focus.node_id(),
                     self.matrix.lock().unwrap()
-                        .unique_index_for(&cur_focus)
+                        .unique_index_for(&cur_focus.node_id())
                         .unwrap_or(0)
                         as u32);
             }
         }
-//        if prev_focus != cur_focus {
-//            self.node_ui.set_target(
-//        }
     }
 }
 
@@ -278,9 +292,14 @@ impl WidgetType for NodePanel {
                 node_ui.check_hover_text_for(at_id);
             }
 
+            let cont_pos = pos.crop_bottom(300.0);
+
             if let Some(cont) = &mut node_ui.cont {
-                cont.draw(ui, p, pos);
+                cont.draw(ui, p, cont_pos);
             }
+
+            let monitor_pos = pos.crop_top(pos.h - 300.0);
+            data.monitors.draw(ui, p, monitor_pos);
         });
     }
 

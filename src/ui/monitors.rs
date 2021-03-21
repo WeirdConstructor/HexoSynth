@@ -3,15 +3,15 @@ use hexotk::{Rect, WidgetUI, Painter, WidgetData, WidgetType, UIEvent};
 use hexotk::constants::*;
 use hexotk::widgets::{
     Container, ContainerData,
-    Knob, KnobData,
-    Button, ButtonData,
-    Text, TextSourceRef, TextData,
-    Graph, GraphData,
+//    Knob, KnobData,
+//    Button, ButtonData,
+//    Text, TextData,
+    TextSourceRef,
+//    Graph, GraphData,
     GraphMinMax, GraphMinMaxData,
 };
 
 use std::rc::Rc;
-use std::cell::RefCell;
 use std::sync::Arc;
 use std::sync::Mutex;
 
@@ -65,7 +65,7 @@ pub struct Monitors {
 }
 
 impl Monitors {
-    pub fn new(matrix: Arc<Mutex<Matrix>>) -> Self {
+    pub fn new() -> Self {
         Monitors { }
     }
 }

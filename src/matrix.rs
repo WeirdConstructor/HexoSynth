@@ -38,6 +38,13 @@ impl Cell {
         }
     }
 
+    pub fn with_pos_of(&self, other: Cell) -> Self {
+       let mut new = *self;
+       new.x = other.x;
+       new.y = other.y;
+       new
+    }
+
     pub fn is_empty(&self) -> bool { self.node_id == NodeId::Nop }
 
     pub fn node_id(&self) -> NodeId { self.node_id }
