@@ -137,7 +137,7 @@ pub fn note_to_freq(note: f32) -> f32 {
 // * Copyright (c) 2006-2014 Tobias Doerffel <tobydox/at/users.sourceforge.net>
 //
 /// Signal distortion
-/// ```ignore
+/// ```text
 /// gain:        0.1 - 5.0       default = 1.0
 /// threshold:   0.0 - 100.0     default = 0.8
 /// i:           signal
@@ -153,7 +153,7 @@ pub fn f_distort(gain: f32, threshold: f32, i: f32) -> f32 {
 // * Copyright (c) 2006-2014 Tobias Doerffel <tobydox/at/users.sourceforge.net>
 //
 /// Foldback Signal distortion
-/// ```ignore
+/// ```text
 /// gain:        0.1 - 5.0       default = 1.0
 /// threshold:   0.0 - 100.0     default = 0.8
 /// i:           signal
@@ -205,7 +205,7 @@ pub fn range2p_exp4(v: f32, a: f32, b: f32) -> f32 {
     (((v - a) / (b - a)).abs()).sqrt().sqrt()
 }
 
-/// ```ignore
+/// ```text
 /// gain: 24.0 - -90.0   default = 0.0
 /// ```
 pub fn gain2coef(gain: f32) -> f32 {

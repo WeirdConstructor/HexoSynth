@@ -1,5 +1,5 @@
 use crate::nodes::NodeAudioContext;
-use crate::dsp::{SAtom, ProcBuf, GraphFun, DspNode};
+use crate::dsp::{SAtom, ProcBuf, DspNode};
 
 /// A simple amplifier
 #[derive(Debug, Clone)]
@@ -41,6 +41,4 @@ impl DspNode for Amp {
             out.write(frame, inp.read(frame) * denorm::Amp::gain(gain, frame));
         }
     }
-
-    pub fn graph_fun() -> Option<GraphFun> { None }
 }

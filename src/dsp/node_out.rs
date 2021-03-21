@@ -1,5 +1,5 @@
 use crate::nodes::NodeAudioContext;
-use crate::dsp::{SAtom, ProcBuf, inp, at, GraphFun, DspNode};
+use crate::dsp::{SAtom, ProcBuf, inp, at, DspNode};
 
 /// The (stereo) output port of the plugin
 #[derive(Debug, Clone)]
@@ -66,6 +66,4 @@ impl DspNode for Out {
             }
         }
     }
-  
-    pub fn graph_fun() -> Option<GraphFun> { None }
 }

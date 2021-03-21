@@ -33,17 +33,32 @@ pub trait GraphAtomData {
 
 pub type GraphFun = Box<dyn FnMut(&dyn GraphAtomData, bool, f32) -> f32>;
 
+/// This trait represents a DspNode for the [hexosynth::Matrix]
 pub trait DspNode {
-    /// number of outputs this node supports
+    /// Number of outputs this node has.
     fn outputs() -> usize;
 
+    /// Updates the sample rate for the node.
     fn set_sample_rate(&mut self, _srate: f32);
 
+    /// Reset any internal state of the node.
     fn reset(&mut self);
 
+    /// The code DSP function.
+    ///
+    /// * `atoms` are un-smoothed parameters. they can hold integer settings,
+    /// samples or even strings.
+    /// * `params` are smoother paramters, those who usually have a knob
+    /// associated with them.
+    /// * `inputs` contain all the possible inputs. In contrast to `params`
+    /// these inputs might be overwritten by outputs of other nodes.
+    /// * `outputs` are the output buffers of this node.
     fn process<T: NodeAudioContext>(
-        &mut self, ctx: &mut T, _atoms: &[SAtom], _params: &[ProcBuf],
+        &mut self, ctx: &mut T, atoms: &[SAtom], params: &[ProcBuf],
         inputs: &[ProcBuf], outputs: &mut [ProcBuf]);
+
+    /// A function factory for generating a graph for the generic node UI.
+    fn graph_fun() -> Option<GraphFun> { None }
 }
 
 /// A processing buffer with the exact right maximum size.

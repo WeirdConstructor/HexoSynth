@@ -25,7 +25,7 @@ use crate::dsp::NodeId;
 struct MonitorsSource {
     matrix:     Arc<Mutex<Matrix>>,
     idx:        usize,
-    cnt:        usize,
+    //d// cnt:        usize,
 }
 
 use crate::CellDir;
@@ -106,7 +106,7 @@ impl MonitorsData {
                 Box::new(MonitorsSource {
                     matrix: matrix.clone(),
                     idx,
-                    cnt: 0,
+                    //d// cnt: 0,
                 }))
         };
 
