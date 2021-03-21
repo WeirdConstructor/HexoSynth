@@ -38,7 +38,13 @@ with new modules.
 
 ## Running the Standalone Example:
 
-    cargo run --release --example standalone
+You need nightly rust:
+
+    rustup toolchain install nightly
+
+To run the example:
+
+    cargo +nightly run --release --example standalone
 
 You might need following dependencies (Ubuntu Linux):
 

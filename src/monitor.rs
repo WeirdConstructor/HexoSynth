@@ -12,7 +12,7 @@ pub const MON_SIG_CNT : usize = 6;
 const IMAGINARY_MAX_SAMPLE_RATE : usize = 48000;
 
 /// The number of minmax samples to hold.
-const MONITOR_MINMAX_SAMPLES : usize = 128;
+pub const MONITOR_MINMAX_SAMPLES : usize = 128;
 
 /// The length in seconds of the MONITOR_MINMAX_SAMPLES
 const MONITOR_MINMAX_LEN_S   : usize = 2;

@@ -209,6 +209,9 @@ pub struct Matrix {
     w:           usize,
     h:           usize,
 
+    /// Holds the currently monitored cell.
+    monitored_cell: Cell,
+
     /// A counter that increases for each sync(), it can be used
     /// by other components of the application to detect changes in
     /// the matrix to resync their own data.
@@ -243,6 +246,7 @@ impl Matrix {
             params_old:  Rc::new(RefCell::new(std::collections::HashMap::new())),
             atoms:       Rc::new(RefCell::new(std::collections::HashMap::new())),
             atoms_old:   Rc::new(RefCell::new(std::collections::HashMap::new())),
+            monitored_cell: Cell::empty(NodeId::Nop),
             gen_counter: 0,
             config,
             w,
@@ -252,10 +256,6 @@ impl Matrix {
     }
 
     pub fn size(&self) -> (usize, usize) { (self.w, self.h) }
-
-    pub fn into_conf(self) -> NodeConfigurator {
-        self.config
-    }
 
     pub fn unique_index_for(&self, node_id: &NodeId) -> Option<usize> {
         self.config.unique_index_for(*node_id)
@@ -300,9 +300,18 @@ impl Matrix {
         self.config.get_minmax_monitor_samples(idx)
     }
 
+    /// Returns the currently monitored cell.
+    pub fn monitored_cell(&self) -> &Cell { &self.monitored_cell }
+
+    /// Sets the cell to monitor next. Please bear in mind, that you need to
+    /// call `sync` before retrieving the cell from the matrix, otherwise
+    /// the node instance might not have been created in the backend yet and
+    /// we can not start monitoring the cell.
     pub fn monitor_cell(&mut self, cell: Cell) {
         use crate::nodes::UNUSED_MONITOR_IDX;
         let mut mon_idxes = [UNUSED_MONITOR_IDX; MON_SIG_CNT];
+
+        self.monitored_cell = cell;
 
         let instances = self.instances.borrow();
         if let Some(ni) = instances.get(&cell.node_id) {
@@ -340,6 +349,19 @@ impl Matrix {
         }
 
         self.config.monitor(&mon_idxes);
+    }
+
+    /// Is called by [Matrix::sync] to refresh the monitored cell.
+    /// In case the matrix has changed (inputs/outputs of a cell)
+    /// we show the current state.
+    ///
+    /// Note, that if the UI actually moved a cell, it needs to
+    /// monitor the newly moved cell anyways.
+    fn remonitor_cell(&mut self) {
+        let m = self.monitored_cell();
+        if let Some(cell) = self.get(m.x as usize, m.y as usize).copied() {
+            self.monitor_cell(cell);
+        }
     }
 
     pub fn set_param(&mut self, param: ParamId, at: SAtom) {
@@ -757,19 +779,8 @@ impl Matrix {
 
         self.gen_counter += 1;
 
-        // - after each node has been created, use the node ordering
-        //   in NodeConfigurator to create an output vector.
-        //      - When a new output vector is received in the backend,
-        //        the backend needs to copy over the previous data.
-        //        XXX: This works, because we don't delete nodes.
-        //             If we do garbage collection, we can risk a short click
-        //             Maybe ramp up the volume after a GC!
-        //      - Store all nodes and their output vector offset and length
-        //        in a list for reference.
-        // - iterate through the matrix, column by column:
-        //      - create program vector
-        //          - If NodeId is not found, create a new NodeOp at the end
-        //          - Append all inputs of the current Cell to the NodeOp
+        // Refresh the input/outputs of the monitored cell, just in case.
+        self.remonitor_cell();
     }
 }
 
