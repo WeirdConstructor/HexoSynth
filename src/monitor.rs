@@ -5,6 +5,8 @@ use std::sync::{Arc, Mutex};
 use std::sync::atomic::AtomicBool;
 use std::thread::JoinHandle;
 
+use crate::util::PerfTimer;
+
 /// 3 inputs, 3 outputs of signal monitors.
 pub const MON_SIG_CNT : usize = 6;
 
@@ -263,10 +265,13 @@ impl Monitor {
         // too lazy and think we can bear with a slightly sluggish
         // UI. Anyways, if we get a sluggish UI, we have to look here.
 
+        let mut pt = PerfTimer::new("MMMSamp").off();
         if self.new_data.load(std::sync::atomic::Ordering::Relaxed) {
             let ms =
                 self.monitor_samples.lock()
                    .expect("Unpoisoned Lock for monitor_samples");
+
+            pt.print("XXX");
 
             for i in 0..MON_SIG_CNT {
                 ms[i].copy_to(
@@ -274,6 +279,7 @@ impl Monitor {
             }
 
             self.new_data.store(false, std::sync::atomic::Ordering::Relaxed);
+            pt.print("YYY");
         }
 
         &self.monitor_samples_copy[idx]

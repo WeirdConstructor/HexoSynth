@@ -63,9 +63,9 @@ pub struct GenericNodeUI {
 impl GenericNodeUI {
     pub fn new() -> Self {
         let wt_knob_01 =
-            Rc::new(Knob::new(30.0, 12.0, 9.0));
+            Rc::new(Knob::new(25.0, 12.0, 9.0));
         let wt_knob_11 =
-            Rc::new(Knob::new(30.0, 12.0, 9.0).range_signed());
+            Rc::new(Knob::new(25.0, 12.0, 9.0).range_signed());
         let wt_btn   = Rc::new(Button::new(50.0, 12.0));
         let wt_text  = Rc::new(Text::new(10.0));
         let wt_graph = Rc::new(Graph::new(240.0, 100.0));
@@ -142,13 +142,10 @@ impl GenericNodeUI {
 
         let mut cd = ContainerData::new();
 
-        println!("REBUILD NODE UI: {} {}",
-                 self.dsp_node_id,
-                 self.model_node_id);
         cd.contrast_border().new_row();
 
         for idx in 0..4 {
-            if let Some(wd) = self.build_atom_input((4, 6), idx) {
+            if let Some(wd) = self.build_atom_input((3, 3), idx) {
                 cd.add(wd);
             }
         }
@@ -176,14 +173,14 @@ impl GenericNodeUI {
             cd.new_row()
               .add(wbox!(self.wt_graph,
                    AtomId::new(crate::NODE_PANEL_ID, PANEL_GRAPH_ID),
-                   center(12, 2),
+                   center(12, 3),
                    GraphData::new(30, graph_fun)));
         }
 
         cd.new_row()
           .add(wbox!(wt_cont,
                AtomId::new(crate::NODE_PANEL_ID, PANEL_HELP_TEXT_CONT_ID),
-               center(12, 2),
+               center(12, 3),
                txt_cd));
 
         // TODO:
@@ -293,13 +290,15 @@ impl WidgetType for NodePanel {
                 node_ui.check_hover_text_for(at_id);
             }
 
-            let cont_pos = pos.crop_bottom(300.0);
+            let monitor_height = 260.0;
+
+            let cont_pos = pos.crop_bottom(monitor_height);
 
             if let Some(cont) = &mut node_ui.cont {
                 cont.draw(ui, p, cont_pos);
             }
 
-            let monitor_pos = pos.crop_top(pos.h - 300.0);
+            let monitor_pos = pos.crop_top(pos.h - monitor_height);
             data.monitors.draw(ui, p, monitor_pos);
         });
     }

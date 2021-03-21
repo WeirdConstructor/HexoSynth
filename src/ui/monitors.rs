@@ -11,6 +11,8 @@ use hexotk::widgets::{
     GraphMinMax, GraphMinMaxData, GraphMinMaxSource
 };
 
+use crate::util::PerfTimer;
+
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -42,13 +44,18 @@ fn sigidx2celldir(idx: usize) -> CellDir {
 
 impl GraphMinMaxSource for MonitorsSource {
     fn read(&mut self, buf: &mut [(f64, f64)]) {
+        let mut pt = PerfTimer::new("MonSrc").off();
+
         let mut m = self.matrix.lock().expect("matrix lockable");
+
+        pt.print("1");
 
         let cell = m.monitored_cell();
         if !cell.has_dir_set(sigidx2celldir(self.idx)) {
             for i in 0..buf.len() {
                 buf[i] = (0.0, 0.0);
             }
+            pt.print("2");
             return;
         }
 
@@ -61,6 +68,7 @@ impl GraphMinMaxSource for MonitorsSource {
             //d//     println!("[{}] => {:?}", i, buf[i]);
             //d// }
         }
+        pt.print("3");
 
         //d// self.cnt += 1;
     }
@@ -71,6 +79,7 @@ pub struct MonitorsData {
     cont:           WidgetData,
 //    cur_cell:       Rc<RefCell<Cell>>,
     last_cell:      Cell,
+    sig_labels:     [Rc<TextSourceRef>; 6],
 }
 
 impl MonitorsData {
@@ -80,13 +89,19 @@ impl MonitorsData {
 
         let mut cd = ContainerData::new();
 
-        let txtsrc2 = Rc::new(TextSourceRef::new(100));
-        txtsrc2.set("sig");
+        let sig_labels = [
+            Rc::new(TextSourceRef::new(100)),
+            Rc::new(TextSourceRef::new(100)),
+            Rc::new(TextSourceRef::new(100)),
+            Rc::new(TextSourceRef::new(100)),
+            Rc::new(TextSourceRef::new(100)),
+            Rc::new(TextSourceRef::new(100)),
+        ];
 
         let build_minmaxdata = |idx: usize| -> Box<dyn std::any::Any> {
             GraphMinMaxData::new(
                 9.0,
-                txtsrc2.clone(),
+                sig_labels[idx].clone(),
                 crate::monitor::MONITOR_MINMAX_SAMPLES,
                 Box::new(MonitorsSource {
                     matrix: matrix.clone(),
@@ -122,6 +137,53 @@ impl MonitorsData {
             matrix,
             cont: wbox!(wt_cont, id, center(12, 12), cd),
             last_cell: Cell::empty(NodeId::Nop),
+            sig_labels,
+        }
+    }
+
+    fn check_labels(&mut self) {
+        let m = self.matrix.lock().expect("matrix lock");
+        let c = m.monitored_cell();
+        if self.last_cell != *c {
+            self.last_cell = *c;
+
+            let mut buf : [u8; 30] = [0; 30];
+
+            if let Some((lbl, _)) = m.edge_label(&c, CellDir::T, &mut buf[..]) {
+                self.sig_labels[0].set(lbl);
+            } else {
+                self.sig_labels[0].set("-");
+            }
+
+            if let Some((lbl, _)) = m.edge_label(&c, CellDir::TL, &mut buf[..]) {
+                self.sig_labels[1].set(lbl);
+            } else {
+                self.sig_labels[1].set("-");
+            }
+
+            if let Some((lbl, _)) = m.edge_label(&c, CellDir::BL, &mut buf[..]) {
+                self.sig_labels[2].set(lbl);
+            } else {
+                self.sig_labels[2].set("-");
+            }
+
+            if let Some((lbl, _)) = m.edge_label(&c, CellDir::TR, &mut buf[..]) {
+                self.sig_labels[3].set(lbl);
+            } else {
+                self.sig_labels[3].set("-");
+            }
+
+            if let Some((lbl, _)) = m.edge_label(&c, CellDir::BR, &mut buf[..]) {
+                self.sig_labels[4].set(lbl);
+            } else {
+                self.sig_labels[4].set("-");
+            }
+
+            if let Some((lbl, _)) = m.edge_label(&c, CellDir::B, &mut buf[..]) {
+                self.sig_labels[5].set(lbl);
+            } else {
+                self.sig_labels[5].set("-");
+            }
         }
     }
 }
@@ -141,6 +203,8 @@ impl WidgetType for Monitors {
         let pos = pos.shrink(UI_PADDING, UI_PADDING);
 
         data.with(|data: &mut MonitorsData| {
+            data.check_labels();
+
             data.cont.draw(ui, p, pos);
         });
     }
