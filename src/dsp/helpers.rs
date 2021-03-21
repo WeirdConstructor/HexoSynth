@@ -1,5 +1,6 @@
-// Copyright (c) 2020-2021 Weird Constructor <weirdconstructor@gmail.com>
-// This is a part of Kickmess. See README.md and COPYING for details.
+// Copyright (c) 2021 Weird Constructor <weirdconstructor@gmail.com>
+// This is a part of HexoSynth. Released under (A)GPLv3 or any later.
+// See README.md and COPYING for details.
 
 static FAST_COS_TAB_LOG2_SIZE : usize = 9;
 static FAST_COS_TAB_SIZE : usize      = 1 << FAST_COS_TAB_LOG2_SIZE; // =512

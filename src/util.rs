@@ -1,3 +1,7 @@
+// Copyright (c) 2021 Weird Constructor <weirdconstructor@gmail.com>
+// This is a part of HexoSynth. Released under (A)GPLv3 or any later.
+// See README.md and COPYING for details.
+
 const SMOOTHING_TIME_MS : f32 = 10.0;
 
 pub struct Smoother {

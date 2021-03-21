@@ -1,3 +1,7 @@
+// Copyright (c) 2021 Weird Constructor <weirdconstructor@gmail.com>
+// This is a part of HexoSynth. Released under (A)GPLv3 or any later.
+// See README.md and COPYING for details.
+
 const MAX_ALLOCATED_NODES : usize = 256;
 const MAX_SMOOTHERS       : usize = 36 + 4; // 6 * 6 modulator inputs + 4 UI Knobs
 

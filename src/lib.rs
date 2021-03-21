@@ -1,3 +1,7 @@
+// Copyright (c) 2021 Weird Constructor <weirdconstructor@gmail.com>
+// This is a part of HexoSynth. Released under (A)GPLv3 or any later.
+// See README.md and COPYING for details.
+
 #![allow(incomplete_features)]
 #![feature(generic_associated_types)]
 
