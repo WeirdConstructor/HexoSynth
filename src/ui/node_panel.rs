@@ -253,12 +253,14 @@ impl NodePanelData {
             self.prev_focus = cur_focus;
 
             if cur_focus.node_id() != NodeId::Nop {
+                let mut m = self.matrix.lock().expect("matrix lock");
+
                 self.node_ui.borrow_mut().set_target(
                     cur_focus.node_id(),
-                    self.matrix.lock().unwrap()
-                        .unique_index_for(&cur_focus.node_id())
-                        .unwrap_or(0)
-                        as u32);
+                    m.unique_index_for(&cur_focus.node_id())
+                     .unwrap_or(0) as u32);
+
+                m.monitor_cell(cur_focus);
             }
         }
     }
@@ -285,7 +287,6 @@ impl WidgetType for NodePanel {
             p.rect_fill(UI_BG_CLR, pos.x, pos.y, pos.w, pos.h);
 
             let pos = pos.shrink(10.0, 10.0);
-            p.rect_fill(UI_PRIM_CLR, pos.x, pos.y, pos.w, pos.h);
 
             let mut node_ui = data.node_ui.borrow_mut();
             if let Some(at_id) = ui.hover_atom_id() {

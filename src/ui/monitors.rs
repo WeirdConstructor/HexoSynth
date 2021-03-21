@@ -8,7 +8,7 @@ use hexotk::widgets::{
 //    Text, TextData,
     TextSourceRef,
 //    Graph, GraphData,
-    GraphMinMax, GraphMinMaxData,
+    GraphMinMax, GraphMinMaxData, GraphMinMaxSource
 };
 
 use std::rc::Rc;
@@ -19,10 +19,51 @@ use crate::matrix::{Matrix, Cell};
 
 use crate::dsp::NodeId;
 
+
+struct MonitorsSource {
+    matrix:     Arc<Mutex<Matrix>>,
+    idx:        usize,
+}
+
+use crate::CellDir;
+
+fn sigidx2celldir(idx: usize) -> CellDir {
+    match idx {
+        0 => CellDir::T,
+        1 => CellDir::TL,
+        2 => CellDir::BL,
+        3 => CellDir::TR,
+        4 => CellDir::BR,
+        5 => CellDir::B,
+        _ => CellDir::C,
+    }
+}
+
+impl GraphMinMaxSource for MonitorsSource {
+    fn read(&mut self, buf: &mut [(f64, f64)]) {
+        let mut m = self.matrix.lock().expect("matrix lockable");
+
+        let cell = m.monitored_cell();
+        if !cell.has_dir_set(sigidx2celldir(self.idx)) {
+            for i in 0..buf.len() {
+                buf[i] = (0.0, 0.0);
+            }
+            return;
+        }
+
+        let mimbuf = m.get_minmax_monitor_samples(self.idx);
+        for i in 0..buf.len() {
+            let mm = mimbuf.at(i);
+            buf[i] = (mm.0 as f64, mm.1 as f64);
+        }
+    }
+}
+
 pub struct MonitorsData {
-    matrix: Arc<Mutex<Matrix>>,
-    cont:   WidgetData,
-    last_cell: Cell,
+    matrix:         Arc<Mutex<Matrix>>,
+    cont:           WidgetData,
+//    cur_cell:       Rc<RefCell<Cell>>,
+    last_cell:      Cell,
 }
 
 impl MonitorsData {
@@ -35,22 +76,39 @@ impl MonitorsData {
         let txtsrc2 = Rc::new(TextSourceRef::new(100));
         txtsrc2.set("sig");
 
-        let fun1 =
-            Box::new(move |ui: &dyn WidgetUI, idx: usize| -> (f64, f64) {
-                (-1.0, 1.0)
-            });
+        let build_minmaxdata = |idx: usize| -> Box<dyn std::any::Any> {
+            GraphMinMaxData::new(
+                9.0,
+                txtsrc2.clone(),
+                crate::monitor::MONITOR_MINMAX_SAMPLES,
+                Box::new(MonitorsSource {
+                    matrix: matrix.clone(),
+                    idx,
+                }))
+        };
 
         cd.contrast_border()
             .new_row()
             .add(wbox!(
-                wt_gmm,
-                AtomId::new(id.node_id(), id.atom_id() + 1),
-                center(12, 3),
-                GraphMinMaxData::new(
-                    9.0,
-                    txtsrc2,
-                    crate::monitor::MONITOR_MINMAX_SAMPLES,
-                    fun1)));
+                wt_gmm, AtomId::new(id.node_id(), id.atom_id() + 1),
+                center(6, 4), build_minmaxdata(0)))
+            .add(wbox!(
+                wt_gmm, AtomId::new(id.node_id(), id.atom_id() + 2),
+                center(6, 4), build_minmaxdata(3)))
+            .new_row()
+            .add(wbox!(
+                wt_gmm, AtomId::new(id.node_id(), id.atom_id() + 3),
+                center(6, 4), build_minmaxdata(1)))
+            .add(wbox!(
+                wt_gmm, AtomId::new(id.node_id(), id.atom_id() + 4),
+                center(6, 4), build_minmaxdata(4)))
+            .new_row()
+            .add(wbox!(
+                wt_gmm, AtomId::new(id.node_id(), id.atom_id() + 5),
+                center(6, 4), build_minmaxdata(2)))
+            .add(wbox!(
+                wt_gmm, AtomId::new(id.node_id(), id.atom_id() + 6),
+                center(6, 4), build_minmaxdata(5)));
 
         Self {
             matrix,

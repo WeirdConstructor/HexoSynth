@@ -78,6 +78,18 @@ impl Cell {
         (self.x as usize, self.y as usize)
     }
 
+    pub fn has_dir_set(&self, dir: CellDir) -> bool {
+        match dir {
+            CellDir::TR => self.out1.is_some(),
+            CellDir::BR => self.out2.is_some(),
+            CellDir::B  => self.out3.is_some(),
+            CellDir::BL => self.in3.is_some(),
+            CellDir::TL => self.in2.is_some(),
+            CellDir::T  => self.in1.is_some(),
+            CellDir::C  => false,
+        }
+    }
+
     pub fn clear_io_dir(&mut self, dir: CellDir) {
         match dir {
             CellDir::TR => { self.out1 = None; },
