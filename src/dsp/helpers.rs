@@ -266,6 +266,33 @@ pub fn quick_tanh(v: f32) -> f32 {
     num / den
 }
 
+/// A helper function for exponential envelopes:
+#[inline]
+pub fn sqrt4_to_pow4(x: f32, v: f32) -> f32 {
+    if v > 0.75 {
+        let xsq1 = x.sqrt();
+        let xsq = xsq1.sqrt();
+        let v = (v - 0.75) * 4.0;
+        xsq1 * (1.0 - v) + xsq * v
+
+    } else if v > 0.5 {
+        let xsq = x.sqrt();
+        let v = (v - 0.5) * 4.0;
+        x * (1.0 - v) + xsq * v
+
+    } else if v > 0.25 {
+        let xx = x * x;
+        let v = (v - 0.25) * 4.0;
+        x * v + xx * (1.0 - v)
+
+    } else {
+        let xx = x * x;
+        let xxxx = xx * xx;
+        let v = v * 4.0;
+        xx * v + xxxx * (1.0 - v)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

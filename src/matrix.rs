@@ -1,6 +1,8 @@
 use crate::nodes::{NodeOp, NodeConfigurator, NodeProg};
 use crate::dsp::{NodeInfo, NodeId, ParamId, SAtom};
 pub use crate::CellDir;
+pub use crate::nodes::MinMaxMonitorSamples;
+pub use crate::monitor::MON_SIG_CNT;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Cell {
@@ -36,6 +38,13 @@ impl Cell {
         }
     }
 
+    pub fn with_pos_of(&self, other: Cell) -> Self {
+       let mut new = *self;
+       new.x = other.x;
+       new.y = other.y;
+       new
+    }
+
     pub fn is_empty(&self) -> bool { self.node_id == NodeId::Nop }
 
     pub fn node_id(&self) -> NodeId { self.node_id }
@@ -67,6 +76,18 @@ impl Cell {
 
     pub fn pos(&self) -> (usize, usize) {
         (self.x as usize, self.y as usize)
+    }
+
+    pub fn has_dir_set(&self, dir: CellDir) -> bool {
+        match dir {
+            CellDir::TR => self.out1.is_some(),
+            CellDir::BR => self.out2.is_some(),
+            CellDir::B  => self.out3.is_some(),
+            CellDir::BL => self.in3.is_some(),
+            CellDir::TL => self.in2.is_some(),
+            CellDir::T  => self.in1.is_some(),
+            CellDir::C  => false,
+        }
     }
 
     pub fn clear_io_dir(&mut self, dir: CellDir) {
@@ -207,6 +228,9 @@ pub struct Matrix {
     w:           usize,
     h:           usize,
 
+    /// Holds the currently monitored cell.
+    monitored_cell: Cell,
+
     /// A counter that increases for each sync(), it can be used
     /// by other components of the application to detect changes in
     /// the matrix to resync their own data.
@@ -241,6 +265,7 @@ impl Matrix {
             params_old:  Rc::new(RefCell::new(std::collections::HashMap::new())),
             atoms:       Rc::new(RefCell::new(std::collections::HashMap::new())),
             atoms_old:   Rc::new(RefCell::new(std::collections::HashMap::new())),
+            monitored_cell: Cell::empty(NodeId::Nop),
             gen_counter: 0,
             config,
             w,
@@ -250,10 +275,6 @@ impl Matrix {
     }
 
     pub fn size(&self) -> (usize, usize) { (self.w, self.h) }
-
-    pub fn into_conf(self) -> NodeConfigurator {
-        self.config
-    }
 
     pub fn unique_index_for(&self, node_id: &NodeId) -> Option<usize> {
         self.config.unique_index_for(*node_id)
@@ -289,6 +310,78 @@ impl Matrix {
     }
 
     pub fn get_generation(&self) -> usize { self.gen_counter }
+
+    /// Receives the most recent data for the monitored signal at index `idx`.
+    /// Might introduce a short wait, because internally a mutex is still locked.
+    /// If this leads to stuttering in the UI, we need to change the internal
+    /// handling to a triple buffer.
+    pub fn get_minmax_monitor_samples(&mut self, idx: usize) -> &MinMaxMonitorSamples {
+        self.config.get_minmax_monitor_samples(idx)
+    }
+
+    /// Returns the currently monitored cell.
+    pub fn monitored_cell(&self) -> &Cell { &self.monitored_cell }
+
+    /// Sets the cell to monitor next. Please bear in mind, that you need to
+    /// call `sync` before retrieving the cell from the matrix, otherwise
+    /// the node instance might not have been created in the backend yet and
+    /// we can not start monitoring the cell.
+    pub fn monitor_cell(&mut self, cell: Cell) {
+        use crate::nodes::UNUSED_MONITOR_IDX;
+        let mut mon_idxes = [UNUSED_MONITOR_IDX; MON_SIG_CNT];
+
+        self.monitored_cell = cell;
+
+        let instances = self.instances.borrow();
+        if let Some(ni) = instances.get(&cell.node_id) {
+            if let Some(in1) = cell.in1 {
+                mon_idxes[0] =
+                    ni.in_local2global(in1)
+                    .unwrap_or(UNUSED_MONITOR_IDX);
+            }
+            if let Some(in2) = cell.in2 {
+                mon_idxes[1] =
+                    ni.in_local2global(in2)
+                    .unwrap_or(UNUSED_MONITOR_IDX);
+            }
+            if let Some(in3) = cell.in3 {
+                mon_idxes[2] =
+                    ni.in_local2global(in3)
+                    .unwrap_or(UNUSED_MONITOR_IDX);
+            }
+
+            if let Some(out1) = cell.out1 {
+                mon_idxes[3] =
+                    ni.out_local2global(out1)
+                    .unwrap_or(UNUSED_MONITOR_IDX);
+            }
+            if let Some(out2) = cell.out2 {
+                mon_idxes[4] =
+                    ni.out_local2global(out2)
+                    .unwrap_or(UNUSED_MONITOR_IDX);
+            }
+            if let Some(out3) = cell.out3 {
+                mon_idxes[5] =
+                    ni.out_local2global(out3)
+                    .unwrap_or(UNUSED_MONITOR_IDX);
+            }
+        }
+
+        self.config.monitor(&mon_idxes);
+    }
+
+    /// Is called by [Matrix::sync] to refresh the monitored cell.
+    /// In case the matrix has changed (inputs/outputs of a cell)
+    /// we show the current state.
+    ///
+    /// Note, that if the UI actually moved a cell, it needs to
+    /// monitor the newly moved cell anyways.
+    fn remonitor_cell(&mut self) {
+        let m = self.monitored_cell();
+        if let Some(cell) = self.get(m.x as usize, m.y as usize).copied() {
+            self.monitor_cell(cell);
+        }
+    }
 
     pub fn set_param(&mut self, param: ParamId, at: SAtom) {
         // XXX: The atoms and params maps are created when
@@ -702,21 +795,11 @@ impl Matrix {
         }
 
         self.config.upload_prog(prog, true); // true => copy_old_out
+
         self.gen_counter += 1;
 
-        // - after each node has been created, use the node ordering
-        //   in NodeConfigurator to create an output vector.
-        //      - When a new output vector is received in the backend,
-        //        the backend needs to copy over the previous data.
-        //        XXX: This works, because we don't delete nodes.
-        //             If we do garbage collection, we can risk a short click
-        //             Maybe ramp up the volume after a GC!
-        //      - Store all nodes and their output vector offset and length
-        //        in a list for reference.
-        // - iterate through the matrix, column by column:
-        //      - create program vector
-        //          - If NodeId is not found, create a new NodeOp at the end
-        //          - Append all inputs of the current Cell to the NodeOp
+        // Refresh the input/outputs of the monitored cell, just in case.
+        self.remonitor_cell();
     }
 }
 

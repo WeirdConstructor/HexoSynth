@@ -38,11 +38,21 @@ with new modules.
 
 ## Running the Standalone Example:
 
-    cargo run --release --example standalone
+You need nightly rust:
+
+    rustup toolchain install nightly
+
+To run the example:
+
+    cargo +nightly run --release --example standalone
 
 You might need following dependencies (Ubuntu Linux):
 
     sudo apt install libjack0 libjack-jackd2-dev qjackctl libx11-xcb-dev libxcb-icccm4-dev libxcb-dri3-dev
+
+These might work on Debian too:
+
+    sudo apt install libjack0 libjack-dev libx11-xcb-dev libxcb-icccm4-dev libxcb-dri2-dev
 
 ## Running the Automated Testsuite:
 

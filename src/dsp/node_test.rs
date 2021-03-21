@@ -1,5 +1,5 @@
 use crate::nodes::NodeAudioContext;
-use crate::dsp::{SAtom, ProcBuf, DspNode};
+use crate::dsp::{SAtom, ProcBuf, GraphFun, GraphAtomData, DspNode};
 
 /// A simple amplifier
 #[derive(Debug, Clone)]
@@ -26,9 +26,9 @@ impl DspNode for Test {
     fn reset(&mut self) { }
 
     #[inline]
-    fn process<T: NodeAudioContext>(
-        &mut self, ctx: &mut T, _atoms: &[SAtom], _params: &[ProcBuf],
-        inputs: &[ProcBuf], outputs: &mut [ProcBuf])
+    pub fn process<T: NodeAudioContext>(
+        &mut self, _ctx: &mut T, _atoms: &[SAtom], _params: &[ProcBuf],
+        _inputs: &[ProcBuf], _outputs: &mut [ProcBuf])
     {
 //        use crate::dsp::out;
 //        use crate::dsp::inp;
@@ -42,4 +42,9 @@ impl DspNode for Test {
 //        }
     }
 
+    pub fn graph_fun() -> Option<GraphFun> {
+        Some(Box::new(|_gd: &dyn GraphAtomData, _init: bool, x: f32| -> f32 {
+            x
+        }))
+    }
 }

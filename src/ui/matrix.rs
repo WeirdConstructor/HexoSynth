@@ -180,15 +180,13 @@ impl HexGridModel for MatrixUIMenu {
 
 #[derive(Debug)]
 pub struct MatrixEditor {
-    grid_focus_pos: Option<(usize, usize)>,
-    focus_node_id:  NodeId,
+    focus_cell: Cell,
 }
 
 impl MatrixEditor {
     pub fn new() -> Self {
         Self {
-            grid_focus_pos: None,
-            focus_node_id:  NodeId::Nop,
+            focus_cell: Cell::empty(NodeId::Nop),
         }
     }
 }
@@ -207,25 +205,27 @@ impl MatrixEditorRef {
         Self(Rc::new(RefCell::new(MatrixEditor::new())))
     }
 
-    pub fn get_recent_focus(&self) -> NodeId {
-        self.0.borrow().focus_node_id
+    pub fn get_recent_focus(&self) -> Cell {
+        self.0.borrow().focus_cell
     }
 
     pub fn is_cell_focussed(&self, x: usize, y: usize) -> bool {
-        if let Some((mx, my)) = self.0.borrow().grid_focus_pos {
-            mx == x && my == y
-        } else {
-            false
+        let cell = self.0.borrow().focus_cell;
+
+        if cell.node_id() == NodeId::Nop {
+            return false;
         }
+
+        let (cx, cy) = cell.pos();
+        cx == x && cy == y
     }
 
-    pub fn clear_focus_pos(&self) {
-        self.0.borrow_mut().grid_focus_pos = None;
+    pub fn clear_focus(&self) {
+        self.0.borrow_mut().focus_cell = Cell::empty(NodeId::Nop);
     }
 
-    pub fn set_focus_pos(&self, x: usize, y: usize, node_id: NodeId) {
-        self.0.borrow_mut().focus_node_id = node_id;
-        self.0.borrow_mut().grid_focus_pos = Some((x, y));
+    pub fn set_focus(&self, cell: Cell) {
+        self.0.borrow_mut().focus_cell = cell;
     }
 }
 
@@ -268,12 +268,12 @@ impl HexGridModel for MatrixUIModel {
                     let m = self.matrix.lock().unwrap();
                     if let Some(cell) = m.get_copy(x, y) {
                         if cell.node_id() == NodeId::Nop {
-                            self.editor.clear_focus_pos();
+                            self.editor.clear_focus();
                         } else {
-                            self.editor.set_focus_pos(x, y, cell.node_id());
+                            self.editor.set_focus(cell);
                         }
                     } else {
-                        self.editor.clear_focus_pos();
+                        self.editor.clear_focus();
                     }
                 },
                 _ => {
@@ -495,32 +495,34 @@ impl WidgetType for NodeMatrix {
                     ui.queue_redraw();
                 });
             },
-            UIEvent::FieldDrag { button, src, dst, .. } => {
+            UIEvent::FieldDrag { id, button, src, dst, .. } => {
                 data.with(|data: &mut NodeMatrixData| {
-                    let mut m = data.matrix_model.matrix.lock().unwrap();
-                    if let Some(mut src_cell) = m.get(src.0, src.1).copied() {
-                        if let Some(dst_cell) = m.get(dst.0, dst.1).copied() {
-                            if data.matrix_model.editor.is_cell_focussed(src.0, src.1) {
-                                data.matrix_model.editor.set_focus_pos(
-                                    dst.0, dst.1, src_cell.node_id());
-                            }
+                    if *id == data.hex_grid.id() {
+                        let mut m = data.matrix_model.matrix.lock().unwrap();
+                        if let Some(mut src_cell) = m.get(src.0, src.1).copied() {
+                            if let Some(dst_cell) = m.get(dst.0, dst.1).copied() {
+                                if data.matrix_model.editor.is_cell_focussed(src.0, src.1) {
+                                    data.matrix_model.editor.set_focus(
+                                        src_cell.with_pos_of(dst_cell));
+                                }
 
-                            match button {
-                                MButton::Left => {
-                                    m.place(dst.0, dst.1, src_cell);
-                                    m.place(src.0, src.1, dst_cell);
-                                    m.sync();
-                                },
-                                MButton::Right => {
-                                    m.place(dst.0, dst.1, src_cell);
-                                    m.sync();
-                                },
-                                MButton::Middle => {
-                                    let unused_id = m.get_unused_instance_node_id(src_cell.node_id());
-                                    src_cell.set_node_id(unused_id);
-                                    m.place(dst.0, dst.1, src_cell);
-                                    m.sync();
-                                },
+                                match button {
+                                    MButton::Left => {
+                                        m.place(dst.0, dst.1, src_cell);
+                                        m.place(src.0, src.1, dst_cell);
+                                        m.sync();
+                                    },
+                                    MButton::Right => {
+                                        m.place(dst.0, dst.1, src_cell);
+                                        m.sync();
+                                    },
+                                    MButton::Middle => {
+                                        let unused_id = m.get_unused_instance_node_id(src_cell.node_id());
+                                        src_cell.set_node_id(unused_id);
+                                        m.place(dst.0, dst.1, src_cell);
+                                        m.sync();
+                                    },
+                                }
                             }
                         }
                     }

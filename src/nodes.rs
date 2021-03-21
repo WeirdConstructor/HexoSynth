@@ -1,10 +1,20 @@
 const MAX_ALLOCATED_NODES : usize = 256;
 const MAX_SMOOTHERS       : usize = 36 + 4; // 6 * 6 modulator inputs + 4 UI Knobs
 
+use crate::monitor::{
+    MON_SIG_CNT, new_monitor_processor,
+    MonitorBackend, Monitor
+};
+
+pub use crate::monitor::MinMaxMonitorSamples;
+
 use std::collections::HashMap;
 
 use ringbuf::{RingBuffer, Producer, Consumer};
-use crate::dsp::{node_factory, NodeInfo, Node, NodeId, SAtom, ProcBuf};
+use crate::dsp::{
+    node_factory, NodeInfo, Node,
+    NodeId, SAtom, ProcBuf,
+};
 use crate::util::Smoother;
 
 /// A node graph execution program. It comes with buffers
@@ -207,8 +217,11 @@ pub enum GraphMessage {
 pub enum QuickMessage {
     AtomUpdate  { at_idx: usize, value: SAtom },
     ParamUpdate { input_idx: usize, value: f32 },
-    Feedback    { node_id: u8, feedback_id: u8, value: f32 },
+    /// Sets the buffer indices to monitor with the FeedbackProcessor.
+    SetMonitor  { bufs: [usize; MON_SIG_CNT], },
 }
+
+pub const UNUSED_MONITOR_IDX : usize = 99999;
 
 /// For receiving deleted/overwritten nodes from the backend
 /// thread and dropping them.
@@ -271,8 +284,8 @@ pub struct NodeConfigurator {
     graph_update_prod:  Producer<GraphMessage>,
     /// For quick updates like UI paramter changes.
     quick_update_prod:  Producer<QuickMessage>,
-    // /// For receiving feedback from the backend thread.
-    // feedback_con:       Consumer<QuickMessage>,
+    /// For receiving monitor data from the backend thread.
+    monitor:            Monitor,
     /// Handles deallocation
     #[allow(dead_code)]
     drop_thread:        DropThread,
@@ -331,6 +344,12 @@ impl NodeConfigurator {
                 QuickMessage::ParamUpdate { input_idx, value });
     }
 
+    pub fn monitor(&mut self, in_bufs: &[usize]) {
+        let mut bufs = [0; MON_SIG_CNT];
+        bufs.copy_from_slice(&in_bufs);
+        let _ = self.quick_update_prod.push(QuickMessage::SetMonitor { bufs });
+    }
+
     pub fn create_node(&mut self, ni: NodeId) -> Option<(&NodeInfo, u8)> {
         println!("create_node: {}", ni);
 
@@ -385,6 +404,10 @@ impl NodeConfigurator {
             self.graph_update_prod.push(
                 GraphMessage::NewProg { prog, copy_old_out });
     }
+
+    pub fn get_minmax_monitor_samples(&mut self, idx: usize) -> &MinMaxMonitorSamples {
+        self.monitor.get_minmax_monitor_samples(idx)
+    }
 }
 
 /// Creates a NodeConfigurator and a NodeExecutor which are interconnected
@@ -393,12 +416,12 @@ pub fn new_node_engine() -> (NodeConfigurator, NodeExecutor) {
     let rb_graph     = RingBuffer::new(MAX_ALLOCATED_NODES * 2);
     let rb_quick     = RingBuffer::new(MAX_ALLOCATED_NODES * 8);
     let rb_drop      = RingBuffer::new(MAX_ALLOCATED_NODES * 2);
-    // let rb_feedback  = RingBuffer::new(MAX_ALLOCATED_NODES);
 
     let (rb_graph_prod, rb_graph_con) = rb_graph.split();
     let (rb_quick_prod, rb_quick_con) = rb_quick.split();
     let (rb_drop_prod,  rb_drop_con)  = rb_drop.split();
-    // let (rb_fb_prod,    rb_fb_con)    = rb_feedback.split();
+
+    let (monitor_backend, monitor) = new_monitor_processor();
 
     let drop_thread = DropThread::new(rb_drop_con);
 
@@ -410,7 +433,7 @@ pub fn new_node_engine() -> (NodeConfigurator, NodeExecutor) {
         graph_update_prod: rb_graph_prod,
         quick_update_prod: rb_quick_prod,
         node2idx:          HashMap::new(),
-        // feedback_con:      rb_fb_con,
+        monitor,
         drop_thread,
     };
 
@@ -431,10 +454,11 @@ pub fn new_node_engine() -> (NodeConfigurator, NodeExecutor) {
         graph_update_con:  rb_graph_con,
         quick_update_con:  rb_quick_con,
         graph_drop_prod:   rb_drop_prod,
-        // feedback_prod:     rb_fb_prod,
+        monitor_backend,
+        monitor_signal_cur_inp_indices: [UNUSED_MONITOR_IDX; MON_SIG_CNT],
     };
 
-    // XXX: This is one of the earliest and most consistent point
+    // XXX: This is one of the earliest and most consistent points
     //      in runtime to do this kind of initialization:
     crate::dsp::helpers::init_cos_tab();
 
@@ -549,8 +573,10 @@ pub struct NodeExecutor {
     quick_update_con:  Consumer<QuickMessage>,
     /// For receiving deleted/overwritten nodes from the backend thread.
     graph_drop_prod:   Producer<DropMsg>,
-    // /// For receiving feedback from the backend thread.
-    // feedback_prod:     Producer<QuickMessage>,
+    /// For sending feedback to the frontend thread.
+    monitor_backend:   MonitorBackend,
+
+    monitor_signal_cur_inp_indices: [usize; MON_SIG_CNT],
 
     /// The sample rate
     sample_rate: f32,
@@ -738,7 +764,9 @@ impl NodeExecutor {
                 QuickMessage::ParamUpdate { input_idx, value } => {
                     self.set_param(input_idx, value);
                 },
-                _ => {},
+                QuickMessage::SetMonitor { bufs } => {
+                    self.monitor_signal_cur_inp_indices = bufs;
+                },
             }
         }
 
@@ -747,6 +775,8 @@ impl NodeExecutor {
 
     #[inline]
     pub fn process<T: NodeAudioContext>(&mut self, ctx: &mut T) {
+        // let tb = std::time::Instant::now();
+
         self.process_param_updates(ctx.nframes());
 
         let nodes = &mut self.nodes;
@@ -766,7 +796,29 @@ impl NodeExecutor {
                     &mut prog.out[out.0..out.1]);
         }
 
-        // TODO:
-        // write outputs to feedback tripple buffer!
+        self.monitor_backend.check_recycle();
+
+        // let ta = std::time::Instant::now();
+
+        for (i, idx) in self.monitor_signal_cur_inp_indices.iter().enumerate() {
+            if *idx == UNUSED_MONITOR_IDX {
+                continue;
+            }
+
+            if let Some(mut mon) = self.monitor_backend.get_unused_mon_buf() {
+                if i > 2 {
+                    mon.feed(i, ctx.nframes(), &prog.out[*idx]);
+                } else {
+                    mon.feed(i, ctx.nframes(), &prog.cur_inp[*idx]);
+                }
+
+                self.monitor_backend.send_mon_buf(mon);
+            }
+        }
+
+        // let ta = std::time::Instant::now().duration_since(ta);
+        // let tb = std::time::Instant::now().duration_since(tb);
+        // println!("ta Elapsed: {:?}", ta);
+        // println!("tb Elapsed: {:?}", tb);
     }
 }

@@ -21,7 +21,17 @@ use node_test::Test;
 
 pub const MIDI_MAX_FREQ : f32 = 13289.75;
 
-pub const MAX_BLOCK_SIZE : usize = 64;
+pub const MAX_BLOCK_SIZE : usize = 128;
+
+/// This trait is an interface between the graph functions
+/// and the AtomDataModel of the UI.
+pub trait GraphAtomData {
+    fn get(&self, node_id: usize, param_idx: u32) -> Option<SAtom>;
+    fn get_denorm(&self, node_id: usize, param_idx: u32) -> f32;
+}
+
+
+pub type GraphFun = Box<dyn FnMut(&dyn GraphAtomData, bool, f32) -> f32>;
 
 pub trait DspNode {
     /// number of outputs this node supports
@@ -47,6 +57,12 @@ impl ProcBuf {
 
     pub fn null() -> Self {
         ProcBuf(std::ptr::null_mut())
+    }
+}
+
+impl crate::monitor::MonitorSource for &ProcBuf {
+    fn copy_to(&self, len: usize, slice: &mut [f32]) {
+        unsafe { slice.copy_from_slice(&(*self.0)[0..len]) }
     }
 }
 
@@ -94,11 +110,11 @@ impl std::fmt::Display for ProcBuf {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-enum UIParamDesc {
-    Knob    { width: usize, prec: usize, unit: &'static str },
-    Setting { labels: &'static [&'static str], unit: &'static str },
-}
+//#[derive(Debug, Clone, Copy)]
+//enum UIParamDesc {
+//    Knob    { width: usize, prec: usize, unit: &'static str },
+//    Setting { labels: &'static [&'static str], unit: &'static str },
+//}
 
 
 #[derive(Debug, Clone, Copy, PartialOrd, PartialEq)]
@@ -195,15 +211,15 @@ macro_rules! node_list {
              // node_param_idx
              //   name            denorm_fun norm norm denorm
              //        norm_fun              min  max  default
-               (0 inp  n_id       d_id       0.0, 1.0, 0.0)
+               (0 inp  n_id       d_id      -1.0, 1.0, 0.0)
                (1 gain n_gain     d_gain     0.0, 1.0, 1.0)
                [0 sig],
             sin => Sin UIType::Generic UICategory::Osc
                (0 freq n_pit      d_pit     -1.0, 1.0, 440.0)
                [0 sig],
             out => Out UIType::Generic UICategory::IOUtil
-               (0  ch1  n_id      d_id       0.0, 1.0, 0.0)
-               (1  ch2  n_id      d_id       0.0, 1.0, 0.0)
+               (0  ch1  n_id      d_id      -1.0, 1.0, 0.0)
+               (1  ch2  n_id      d_id      -1.0, 1.0, 0.0)
              // node_param_idx
              // | atom_idx
              // | | name            constructor min max
@@ -217,6 +233,8 @@ macro_rules! node_list {
     }
 }
 
+#[allow(non_snake_case)]
+#[allow(non_upper_case_globals)]
 pub mod labels {
     pub mod Test {
         pub const s : [&'static str; 11] = [
@@ -430,6 +448,13 @@ macro_rules! make_node_info_enum {
                 match self {
                     NodeId::$v1           => NodeId::$v1,
                     $(NodeId::$variant(_) => NodeId::$variant(instance as u8)),+
+                }
+            }
+
+            pub fn graph_fun(&self) -> Option<GraphFun> {
+                match self {
+                    NodeId::$v1           => None,
+                    $(NodeId::$variant(_) => crate::dsp::$variant::graph_fun()),+
                 }
             }
 
@@ -707,7 +732,7 @@ macro_rules! make_node_info_enum {
                     }
 
                     pub fn in_help(&self, in_idx: usize) -> Option<&'static str> {
-                        if let Some(s) = self.inputs.get(in_idx) {
+                        if let Some(s) = self.input_help.get(in_idx) {
                             Some(*s)
                         } else {
                             Some(*(self.atom_help.get(in_idx)?))
@@ -940,19 +965,19 @@ mod tests {
 
     #[test]
     fn check_pitch() {
-        assert_eq!(d_pit!(-0.2, 0.001, 1.0).round() as i32, 110_i32);
-        assert_eq!((n_pit!(110.0, 0.001, 1.0) * 100.0).round() as i32, -20_i32);
-        assert_eq!(d_pit!(0.0, 0.001, 1.0).round() as i32, 440_i32);
-        assert_eq!((n_pit!(440.0, 0.001, 1.0) * 100.0).round() as i32, 0_i32);
-        assert_eq!(d_pit!(0.3, 0.001, 1.0).round() as i32, 3520_i32);
-        assert_eq!((n_pit!(3520.0, 0.001, 1.0) * 100.0).round() as i32, 30_i32);
+        assert_eq!(d_pit!(-0.2).round() as i32, 110_i32);
+        assert_eq!((n_pit!(110.0) * 100.0).round() as i32, -20_i32);
+        assert_eq!(d_pit!(0.0).round() as i32, 440_i32);
+        assert_eq!((n_pit!(440.0) * 100.0).round() as i32, 0_i32);
+        assert_eq!(d_pit!(0.3).round() as i32, 3520_i32);
+        assert_eq!((n_pit!(3520.0) * 100.0).round() as i32, 30_i32);
 
         for i in 1..999 {
             let x = (((i as f32) / 1000.0) - 0.5) * 2.0;
-            let r = d_pit!(x, 0.001, 1.0);
+            let r = d_pit!(x);
             println!("x={:8.5} => {:8.5}", x, r);
             assert_eq!(
-                (n_pit!(r, 0.001, 1.0) * 10000.0).round() as i32,
+                (n_pit!(r) * 10000.0).round() as i32,
                 (x * 10000.0).round() as i32);
         }
     }

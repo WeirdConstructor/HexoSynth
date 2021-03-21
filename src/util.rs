@@ -58,3 +58,40 @@ impl Smoother {
         }
     }
 }
+
+pub struct PerfTimer {
+    lbl:    &'static str,
+    i:      std::time::Instant,
+    off:    bool,
+        // let tb = std::time::Instant::now();
+        // let ta = std::time::Instant::now().duration_since(ta);
+        // let tb = std::time::Instant::now().duration_since(tb);
+        // println!("ta Elapsed: {:?}", ta);
+}
+
+impl PerfTimer {
+    #[inline]
+    pub fn off(mut self) -> Self {
+        self.off = true;
+        self
+    }
+
+
+    #[inline]
+    pub fn new(lbl: &'static str) -> Self {
+        Self {
+            lbl,
+            i: std::time::Instant::now(),
+            off: false,
+        }
+    }
+
+    #[inline]
+    pub fn print(&mut self, lbl2: &str) {
+        if self.off { return; }
+
+        let t = std::time::Instant::now().duration_since(self.i);
+        println!("*** PERF[{}/{}] {:?}", self.lbl, lbl2, t);
+        self.i = std::time::Instant::now();
+    }
+}

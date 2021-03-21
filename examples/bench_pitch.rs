@@ -15,22 +15,22 @@ fn denorm_pow32(x: f32) -> f32 {
 fn build_table() -> Vec<f32> {
     let mut v = vec![];
     v.push(denorm_pow32(0.001)); // for the 0
-    for x in 1..101 {
-        v.push(denorm_pow32((x as f32) / 100.0));
+    for x in 1..51 {
+        v.push(denorm_pow32((x as f32) / 50.0));
     }
     v
 }
 
 #[inline]
 fn denorm_interp(tbl: &[f32], x: f32) -> f32 {
-    let i     = x * 100.0;
-//    let fract = i.fract();
+    let i     = x * 50.0;
+    let fract = i.fract();
     let idx   = i.floor() as usize;
 //    println!("XX: {} => {} / {}", x, idx, fract);
     let f1 = tbl[idx];
-    f1
-//    let f2 = tbl[idx + 1];
-//    f1 * (1.0 - fract) + f2 * fract
+//    f1
+    let f2 = tbl[idx + 1];
+    f1 * (1.0 - fract) + f2 * fract
 }
 
 // no fract interpolation:

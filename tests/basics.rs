@@ -34,6 +34,10 @@ fn save_wav(name: &str, buf: &[f32]) {
 }
 
 fn run_no_input(node_exec: &mut hexosynth::nodes::NodeExecutor, seconds: f32) -> (Vec<f32>, Vec<f32>) {
+    run_realtime_no_input(node_exec, seconds, false)
+}
+
+fn run_realtime_no_input(node_exec: &mut hexosynth::nodes::NodeExecutor, seconds: f32, sleep_a_bit: bool) -> (Vec<f32>, Vec<f32>) {
     node_exec.set_sample_rate(SAMPLE_RATE);
     node_exec.process_graph_updates();
 
@@ -47,7 +51,6 @@ fn run_no_input(node_exec: &mut hexosynth::nodes::NodeExecutor, seconds: f32) ->
         output_l[i] = 0.0;
         output_r[i] = 0.0;
     }
-
     let mut offs = 0;
     while nframes > 0 {
         let cur_nframes =
@@ -66,6 +69,13 @@ fn run_no_input(node_exec: &mut hexosynth::nodes::NodeExecutor, seconds: f32) ->
         };
 
         node_exec.process(&mut context);
+
+        if sleep_a_bit {
+            let micros =
+                ((hexosynth::dsp::MAX_BLOCK_SIZE as u64) * 1000000)
+                / (SAMPLE_RATE as u64);
+            std::thread::sleep(std::time::Duration::from_micros(micros));
+        }
 
         offs += cur_nframes;
     }
@@ -300,6 +310,77 @@ fn check_sine_pitch_change() {
     // Test the freq after the slope in high res (closer to 4400 Hz):
     let fft_res = fft_thres_at_ms(&mut out_l[..], FFT::F1024, 200, 400.0);
     assert_eq!(fft_res[0], (4393, 251));
+}
+
+#[test]
+fn check_matrix_monitor() {
+    let (node_conf, mut node_exec) = new_node_engine();
+    let mut matrix = Matrix::new(node_conf, 3, 3);
+
+    let sin = NodeId::Sin(2);
+    let out = NodeId::Out(0);
+    matrix.place(0, 0, Cell::empty(sin)
+                       .input(sin.inp("freq"), sin.inp("freq"), sin.inp("freq"))
+                       .out(sin.out("sig"), sin.out("sig"), sin.out("sig")));
+    matrix.place(1, 0, Cell::empty(out)
+                       .input(None, out.inp("ch1"), None));
+    matrix.sync();
+
+    // Go to 220Hz
+    let freq_param = sin.inp_param("freq").unwrap();
+    matrix.set_param(freq_param, SAtom::param(-0.1));
+
+    matrix.monitor_cell(*matrix.get(0, 0).unwrap());
+
+    let (mut out_l, _out_r) =
+        run_realtime_no_input(&mut node_exec, 0.2, true);
+
+    // Give the MonitorProcessor some time to work on the buffers.
+    std::thread::sleep(std::time::Duration::from_millis(100));
+
+//assert!(false);
+    for i in 0..3 {
+        let sl = matrix.get_minmax_monitor_samples(i);
+        //d// println!("SL={:?}", sl);
+        //d// println!("=> {}", i);
+
+        assert_eq!((sl[sl.len() - 1].0  * 10000.0) as i64, -1000);
+        assert_eq!((sl[sl.len() - 1].1  * 10000.0) as i64, -1000);
+        assert_eq!((sl[sl.len() - 11].0 * 10000.0) as i64, -1000);
+        // Here we see that the paramter is smoothed in:
+        assert_eq!((sl[sl.len() - 11].1 * 10000.0) as i64,    -2);
+        assert_eq!((sl[sl.len() - 12].0 * 10000.0) as i64,     0);
+        assert_eq!((sl[sl.len() - 12].1 * 10000.0) as i64,     0);
+    }
+
+    for i in 3..6 {
+        let sl = matrix.get_minmax_monitor_samples(i);
+        //d// println!("SL={:?}", sl);
+        //d// println!("=> {}", i);
+
+        assert_eq!((sl[sl.len() - 1].0  * 10000.0) as i64, -9999);
+        assert_eq!((sl[sl.len() - 1].1  * 10000.0) as i64,  9999);
+        assert_eq!((sl[sl.len() - 11].0 * 10000.0) as i64, -9999);
+        assert_eq!((sl[sl.len() - 11].1 * 10000.0) as i64,  9999);
+        assert_eq!((sl[sl.len() - 12].0 * 10000.0) as i64,     0);
+        assert_eq!((sl[sl.len() - 12].1 * 10000.0) as i64,     0);
+    }
+
+    let rms_mimax = calc_rms_mimax_each_ms(&out_l[..], 50.0);
+    assert_float_eq!(rms_mimax[0].0, 0.5013241);
+
+    // let ta = std::time::Instant::now();
+
+    // Test the freq after the slope in high res (closer to 4400 Hz):
+    let fft_res = fft_thres_at_ms(&mut out_l[..], FFT::F1024, 200, 50.0);
+
+    // let ta = std::time::Instant::now().duration_since(ta);
+    // println!("ta Elapsed: {:?}", ta);
+    // assert!(false);
+
+    // 220Hz is one Octave below 440Hz
+    assert_eq!(fft_res[0], (215, 253));
+
 }
 
 #[test]

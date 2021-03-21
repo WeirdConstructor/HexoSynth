@@ -1,5 +1,5 @@
 use crate::nodes::NodeAudioContext;
-use crate::dsp::{SAtom, ProcBuf, DspNode, inp, at};
+use crate::dsp::{SAtom, ProcBuf, inp, at, GraphFun, DspNode};
 
 /// The (stereo) output port of the plugin
 #[derive(Debug, Clone)]
@@ -8,15 +8,16 @@ pub struct Out {
     /// - 1: signal channel 2
     input:  [f32; 2],
 }
+
 impl Out {
     pub fn new() -> Self {
         Self {
             input:  [0.0; 2],
         }
     }
+
     pub const mono : &'static str =
         "Out mono\nIf enabled, ch1 will be sent to both output channels\n(UI only)";
-
     pub const ch1 : &'static str =
         "Out ch1\nAudio channel 1 (left)\nRange: (-1..1)";
     pub const ch2 : &'static str =
@@ -65,4 +66,6 @@ impl DspNode for Out {
             }
         }
     }
+  
+    pub fn graph_fun() -> Option<GraphFun> { None }
 }

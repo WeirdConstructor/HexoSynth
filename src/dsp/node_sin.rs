@@ -1,5 +1,5 @@
 use crate::nodes::NodeAudioContext;
-use crate::dsp::{SAtom, ProcBuf, DspNode, denorm, out, inp};
+use crate::dsp::{SAtom, ProcBuf, denorm, out, inp, GraphFun, DspNode};
 use crate::dsp::helpers::fast_sin;
 
 
@@ -57,5 +57,5 @@ impl DspNode for Sin {
         }
     }
 
-    
+    pub fn graph_fun() -> Option<GraphFun> { None }
 }
