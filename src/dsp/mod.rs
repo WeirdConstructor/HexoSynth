@@ -33,6 +33,19 @@ pub trait GraphAtomData {
 
 pub type GraphFun = Box<dyn FnMut(&dyn GraphAtomData, bool, f32) -> f32>;
 
+pub trait DspNode {
+    /// number of outputs this node supports
+    fn outputs() -> usize;
+
+    fn set_sample_rate(&mut self, _srate: f32);
+
+    fn reset(&mut self);
+
+    fn process<T: NodeAudioContext>(
+        &mut self, ctx: &mut T, _atoms: &[SAtom], _params: &[ProcBuf],
+        inputs: &[ProcBuf], outputs: &mut [ProcBuf]);
+}
+
 /// A processing buffer with the exact right maximum size.
 #[derive(Clone, Copy)]
 pub struct ProcBuf(*mut [f32; MAX_BLOCK_SIZE]);

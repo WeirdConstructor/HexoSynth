@@ -1,5 +1,5 @@
 use crate::nodes::NodeAudioContext;
-use crate::dsp::{SAtom, ProcBuf, denorm, out, inp, GraphFun};
+use crate::dsp::{SAtom, ProcBuf, denorm, out, inp, GraphFun, DspNode};
 use crate::dsp::helpers::fast_sin;
 
 
@@ -15,25 +15,31 @@ pub struct Sin {
 const TWOPI : f32 = 2.0 * std::f32::consts::PI;
 
 impl Sin {
-    pub fn outputs() -> usize { 1 }
-
     pub fn new() -> Self {
         Self {
             srate: 44100.0,
             phase: 0.0,
         }
     }
+    pub const freq : &'static str =
+        "Sin freq\nFrequency of the oscillator.\n\nRange: (-1..1)\n";
+    pub const sig : &'static str =
+        "Sin sig\nOscillator signal output.\n\nRange: (-1..1)\n";
+}
 
-    pub fn set_sample_rate(&mut self, srate: f32) {
+impl DspNode for Sin {
+    fn outputs() -> usize { 1 }
+
+    fn set_sample_rate(&mut self, srate: f32) {
         self.srate = srate;
     }
 
-    pub fn reset(&mut self) {
+    fn reset(&mut self) {
         self.phase = 0.0;
     }
 
     #[inline]
-    pub fn process<T: NodeAudioContext>(
+    fn process<T: NodeAudioContext>(
         &mut self, ctx: &mut T, _atoms: &[SAtom], _params: &[ProcBuf],
         inputs: &[ProcBuf], outputs: &mut [ProcBuf])
     {
@@ -52,9 +58,4 @@ impl Sin {
     }
 
     pub fn graph_fun() -> Option<GraphFun> { None }
-
-    pub const freq : &'static str =
-        "Sin freq\nFrequency of the oscillator.\n\nRange: (-1..1)\n";
-    pub const sig : &'static str =
-        "Sin sig\nOscillator signal output.\n\nRange: (-1..1)\n";
 }

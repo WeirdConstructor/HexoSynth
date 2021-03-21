@@ -1,5 +1,5 @@
 use crate::nodes::NodeAudioContext;
-use crate::dsp::{SAtom, ProcBuf, GraphFun, GraphAtomData};
+use crate::dsp::{SAtom, ProcBuf, GraphFun, GraphAtomData, DspNode};
 
 /// A simple amplifier
 #[derive(Debug, Clone)]
@@ -7,15 +7,23 @@ pub struct Test {
 }
 
 impl Test {
-    pub fn outputs() -> usize { 1 }
-
     pub fn new() -> Self {
         Self {
         }
     }
+    pub const f : &'static str = "F Test";
+    pub const s : &'static str = "S Test";
+//  pub const gain : &'static str =
+//      "Amp gain\nGain input\nRange: (0..1)\n";
+//  pub const sig : &'static str =
+//      "Amp sig\nAmplified signal output\nRange: (-1..1)\n";
+}
 
-    pub fn set_sample_rate(&mut self, _srate: f32) { }
-    pub fn reset(&mut self) { }
+impl DspNode for Test {
+    fn outputs() -> usize { 1 }
+
+    fn set_sample_rate(&mut self, _srate: f32) { }
+    fn reset(&mut self) { }
 
     #[inline]
     pub fn process<T: NodeAudioContext>(
@@ -39,12 +47,4 @@ impl Test {
             x
         }))
     }
-
-    pub const f : &'static str = "F Test";
-    pub const s : &'static str = "S Test";
-
-//    pub const gain : &'static str =
-//        "Amp gain\nGain input\nRange: (0..1)\n";
-//    pub const sig : &'static str =
-//        "Amp sig\nAmplified signal output\nRange: (-1..1)\n";
 }
