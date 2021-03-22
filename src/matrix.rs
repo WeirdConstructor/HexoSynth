@@ -369,7 +369,10 @@ impl Matrix {
                 .collect();
 
         let mut cells : Vec<CellRepr> = vec![];
-        self.for_each(|_x, _y, cell| cells.push(cell.to_repr()));
+        self.for_each(|_x, _y, cell|
+            if cell.node_id() != NodeId::Nop {
+                cells.push(cell.to_repr())
+            });
 
         MatrixRepr {
             cells,

@@ -1,5 +1,6 @@
 use crate::dsp::{NodeId, ParamId, SAtom};
 use serde_json::{Value, json};
+use crate::matrix::{Matrix, Cell};
 
 #[derive(Debug, Clone, Copy)]
 pub struct CellRepr {
@@ -58,10 +59,27 @@ impl MatrixRepr {
         Ok(m)
     }
 
-    pub fn serialize(&self) -> String {
-        let v = json!({
+    pub fn serialize(&mut self) -> String {
+        let mut v = json!({
             "VERSION": 1,
         });
+
+        self.params.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+
+        let mut params = json!([]);
+        if let serde_json::Value::Array(params) = &mut params {
+            for (p, v) in self.params.iter() {
+                params.push(
+                    json!([
+                        p.node_id().name(),
+                        p.node_id().instance(),
+                        p.name(),
+                        v
+                    ]));
+            }
+        }
+
+        v["params"] = params;
 
         v.to_string()
     }
@@ -73,11 +91,46 @@ mod tests {
 
     #[test]
     fn check_empty_repr_serialization() {
-        let matrix_repr = MatrixRepr::empty();
+        let mut matrix_repr = MatrixRepr::empty();
 
         let s = matrix_repr.serialize();
 
         assert_eq!(s, "{\"VERSION\":1}");
         assert!(MatrixRepr::deserialize(&s).is_ok());
     }
+
+
+    #[test]
+    fn check_repr_serialization() {
+        use crate::nodes::new_node_engine;
+
+        let (node_conf, mut node_exec) = new_node_engine();
+        let mut matrix = Matrix::new(node_conf, 3, 3);
+
+        let sin = NodeId::Sin(2);
+
+        matrix.place(0, 0,
+            Cell::empty(sin)
+            .out(None, Some(0), None));
+        matrix.place(1, 0,
+            Cell::empty(NodeId::Out(0))
+            .input(None, Some(0), None)
+            .out(None, None, Some(0)));
+        matrix.sync();
+
+        let freq_param = sin.inp_param("freq").unwrap();
+        matrix.set_param(freq_param, SAtom::param(-0.1));
+
+        let mut mr = matrix.to_repr();
+
+        let s = mr.serialize();
+
+        println!("FFF {:?}", mr);
+
+        assert_eq!(s, "{ \"VERSION\":1}");
+
+        assert!(MatrixRepr::deserialize(&s).is_ok());
+    }
+
+
 }
