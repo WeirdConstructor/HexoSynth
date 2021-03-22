@@ -22,6 +22,8 @@ impl Amp {
          Use this for envelope input.\nRange: (0..1)\n";
     pub const gain : &'static str =
         "Amp gain\nGain input. This control can actually amplify the signal.\nRange: (0..1)\n";
+    pub const neg_att : &'static str =
+        "Amp neg\nIf this is set to 'Clip', only positive inputs to 'att' are used.\nRange: (0..1)\n";
     pub const sig : &'static str =
         "Amp sig\nAmplified signal output\nRange: (-1..1)\n";
 }
@@ -34,22 +36,35 @@ impl DspNode for Amp {
 
     #[inline]
     fn process<T: NodeAudioContext>(
-        &mut self, ctx: &mut T, _atoms: &[SAtom], _params: &[ProcBuf],
+        &mut self, ctx: &mut T, atoms: &[SAtom], _params: &[ProcBuf],
         inputs: &[ProcBuf], outputs: &mut [ProcBuf])
     {
-        use crate::dsp::out;
-        use crate::dsp::inp;
-        use crate::dsp::denorm;
+        use crate::dsp::{out, inp, denorm, denorm_v, inp_dir, at};
 
         let gain = inp::Amp::gain(inputs);
         let att  = inp::Amp::att(inputs);
         let inp  = inp::Amp::inp(inputs);
         let out  = out::Amp::sig(outputs);
-        for frame in 0..ctx.nframes() {
-            out.write(frame,
-                inp.read(frame)
-                * denorm::Amp::att(att, frame)
-                * denorm::Amp::gain(gain, frame));
+        let neg  = at::Amp::neg_att(atoms);
+
+        if neg.i() > 0 {
+            for frame in 0..ctx.nframes() {
+                out.write(frame,
+                    inp.read(frame)
+                    * denorm_v::Amp::att(
+                        inp_dir::Amp::att(att, frame)
+                        .max(0.0))
+                    * denorm::Amp::gain(gain, frame));
+            }
+
+        } else {
+            for frame in 0..ctx.nframes() {
+                out.write(frame,
+                    inp.read(frame)
+                    * denorm_v::Amp::att(
+                        inp_dir::Amp::att(att, frame).abs())
+                    * denorm::Amp::gain(gain, frame));
+            }
         }
     }
 }

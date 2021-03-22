@@ -234,6 +234,7 @@ macro_rules! node_list {
                (0 inp  n_id       d_id      -1.0, 1.0, 0.0)
                (1 gain n_gain     d_gain     0.0, 1.0, 1.0)
                (2 att  n_att      d_att      0.0, 1.0, 1.0)
+               {3 0 neg_att setting(1) 0  1}
                [0 sig],
             sin => Sin UIType::Generic UICategory::Osc
                (0 freq n_pit      d_pit     -1.0, 1.0, 440.0)
@@ -243,13 +244,13 @@ macro_rules! node_list {
                (1  ch2  n_id      d_id      -1.0, 1.0, 0.0)
              // node_param_idx
              // | atom_idx
-             // | | name            constructor min max
-             // | | |    SAtom_Type |       defa|lt_|value
-             // | | |    |          |       |   |   |
-               {2 0 mono Setting => setting(0)  0   1},
+             // | | name constructor min max
+             // | | |    |       defa/lt_/value
+             // | | |    |       |  |   /
+               {2 0 mono setting(0) 0  1},
             test => Test UIType::Generic UICategory::IOUtil
                (0 f     n_id      d_id       0.0, 1.0, 0.5)
-               {1 0 s    Setting => setting(0)  0   10},
+               {1 0 s    setting(0) 0  10},
         }
     }
 }
@@ -267,6 +268,10 @@ pub mod labels {
     pub mod Out {
         pub const mono : [&'static str; 2] = ["Mono", "Stereo"];
     }
+
+    pub mod Amp {
+        pub const neg_att : [&'static str; 2] = ["Allow", "Clip"];
+    }
 }
 
 impl UICategory {
@@ -281,7 +286,7 @@ impl UICategory {
                        $n_fun: ident $d_fun: ident
                        $min: expr, $max: expr, $def: expr))*
                     $({$in_at_idx: literal $at_idx: literal $atom: ident
-                       $at_type: ident => $at_fun: ident ($at_init: tt)
+                       $at_fun: ident ($at_init: tt)
                        $amin: literal $amax: literal})*
                     $([$out_idx: literal $out: ident])*
                     ,)+
@@ -309,7 +314,7 @@ macro_rules! make_node_info_enum {
                $n_fun: ident $d_fun: ident
                $min: expr, $max: expr, $def: expr))*
             $({$in_at_idx: literal $at_idx: literal $atom: ident
-               $at_type: ident => $at_fun: ident ($at_init: expr)
+               $at_fun: ident ($at_init: expr)
                $amin: literal $amax: literal})*
             $([$out_idx: literal $out: ident])*
             ,)+
@@ -669,8 +674,8 @@ macro_rules! make_node_info_enum {
         #[allow(non_snake_case)]
         pub mod inp_dir {
             $(pub mod $variant {
-                $(#[inline] pub fn $para(inputs: &[crate::dsp::ProcBuf], frame: usize) -> f32 {
-                    inputs[$in_idx].read(frame)
+                $(#[inline] pub fn $para(buf: &crate::dsp::ProcBuf, frame: usize) -> f32 {
+                    buf.read(frame)
                 })*
             })+
         }
@@ -865,7 +870,7 @@ macro_rules! make_node_enum {
                $n_fun: ident $d_fun: ident
                $min: expr, $max: expr, $def: expr))*
             $({$in_at_idx: literal $at_idx: literal $atom: ident
-               $at_type: ident => $at_fun: ident ($at_init: expr)
+               $at_fun: ident ($at_init: expr)
                $amin: literal $amax: literal})*
             $([$out_idx: literal $out: ident])*
             ,)+
@@ -924,7 +929,7 @@ pub fn node_factory(node_id: NodeId) -> Option<(Node, NodeInfo)> {
                    $n_fun: ident $d_fun: ident
                    $min: expr, $max: expr, $def: expr))*
                 $({$in_at_idx: literal $at_idx: literal $atom: ident
-                   $at_type: ident => $at_fun: ident ($at_init: expr)
+                   $at_fun: ident ($at_init: expr)
                    $amin: literal $amax: literal})*
                 $([$out_idx: literal $out: ident])*
             ,)+
@@ -956,7 +961,7 @@ impl Node {
                        $n_fun: ident $d_fun: ident
                        $min: expr, $max: expr, $def: expr))*
                     $({$in_at_idx: literal $at_idx: literal $atom: ident
-                       $at_type: ident => $at_fun: ident ($at_init: expr)
+                       $at_fun: ident ($at_init: expr)
                        $amin: literal $amax: literal})*
                     $([$out_idx: literal $out: ident])*
                 ,)+
