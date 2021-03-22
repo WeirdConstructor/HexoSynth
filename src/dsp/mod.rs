@@ -724,19 +724,21 @@ macro_rules! make_node_info_enum {
                     atoms:          Vec<&'static str>,
                     outputs:        Vec<&'static str>,
                     input_help:     Vec<&'static str>,
-                    atom_help:      Vec<&'static str>,
                     output_help:    Vec<&'static str>,
                 }
 
                 impl $variant {
+                    #[allow(unused_mut)]
                     pub fn new() -> Self {
+                        let mut input_help = vec![$(crate::dsp::$variant::$para,)*];
+                        $(input_help.push(crate::dsp::$variant::$atom);)*
+
                         Self {
                             inputs:  vec![$(stringify!($para),)*],
                             atoms:   vec![$(stringify!($atom),)*],
                             outputs: vec![$(stringify!($out),)*],
 
-                            input_help:  vec![$(crate::dsp::$variant::$para,)*],
-                            atom_help:   vec![$(crate::dsp::$variant::$atom,)*],
+                            input_help,
                             output_help: vec![$(crate::dsp::$variant::$out,)*],
                         }
                     }
@@ -758,11 +760,7 @@ macro_rules! make_node_info_enum {
                     }
 
                     pub fn in_help(&self, in_idx: usize) -> Option<&'static str> {
-                        if let Some(s) = self.input_help.get(in_idx) {
-                            Some(*s)
-                        } else {
-                            Some(*(self.atom_help.get(in_idx)?))
-                        }
+                        Some(*self.input_help.get(in_idx)?)
                     }
 
                     pub fn out_help(&self, out_idx: usize) -> Option<&'static str> {
