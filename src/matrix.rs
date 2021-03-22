@@ -7,6 +7,7 @@ use crate::dsp::{NodeInfo, NodeId, ParamId, SAtom};
 pub use crate::CellDir;
 pub use crate::nodes::MinMaxMonitorSamples;
 pub use crate::monitor::MON_SIG_CNT;
+use crate::matrix_repr::*;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Cell {
@@ -39,6 +40,44 @@ impl Cell {
             in1: None,
             in2: None,
             in3: None,
+        }
+    }
+
+    pub fn to_repr(&self) -> CellRepr {
+        CellRepr {
+            node_id: self.node_id,
+            x: self.x as usize,
+            y: self.y as usize,
+            out: [
+                self.out1.map(|v| v as i16).unwrap_or(-1),
+                self.out2.map(|v| v as i16).unwrap_or(-1),
+                self.out3.map(|v| v as i16).unwrap_or(-1)
+            ],
+            inp: [
+                self.in1.map(|v| v as i16).unwrap_or(-1),
+                self.in2.map(|v| v as i16).unwrap_or(-1),
+                self.in3.map(|v| v as i16).unwrap_or(-1)
+            ],
+        }
+    }
+
+    pub fn from_repr(repr: &CellRepr) -> Self {
+        Self {
+            node_id: repr.node_id,
+            x:       repr.x as u8,
+            y:       repr.y as u8,
+            out1:    if repr.out[0] < 0 { None }
+                     else { Some(repr.out[0] as u8) },
+            out2:    if repr.out[1] < 0 { None }
+                     else { Some(repr.out[1] as u8) },
+            out3:    if repr.out[2] < 0 { None }
+                     else { Some(repr.out[2] as u8) },
+            in1:     if repr.inp[0] < 0 { None }
+                     else { Some(repr.inp[0] as u8) },
+            in2:     if repr.inp[1] < 0 { None }
+                     else { Some(repr.inp[1] as u8) },
+            in3:     if repr.inp[2] < 0 { None }
+                     else { Some(repr.inp[2] as u8) },
         }
     }
 
@@ -315,6 +354,30 @@ impl Matrix {
 
     pub fn get_generation(&self) -> usize { self.gen_counter }
 
+    pub fn to_repr(&self) -> MatrixRepr {
+        let params : Vec<(ParamId, f32)> =
+            self.params.borrow()
+                .iter()
+                .map(|(_, node_param)|
+                    (node_param.param_id, node_param.value))
+                .collect();
+        let atoms : Vec<(ParamId, SAtom)> =
+            self.atoms.borrow()
+                .iter()
+                .map(|(_, node_param)|
+                    (node_param.param_id, node_param.value.clone()))
+                .collect();
+
+        let mut cells : Vec<CellRepr> = vec![];
+        self.for_each(|_x, _y, cell| cells.push(cell.to_repr()));
+
+        MatrixRepr {
+            cells,
+            params,
+            atoms,
+        }
+    }
+
     /// Receives the most recent data for the monitored signal at index `idx`.
     /// Might introduce a short wait, because internally a mutex is still locked.
     /// If this leads to stuttering in the UI, we need to change the internal
@@ -485,7 +548,7 @@ impl Matrix {
         }
     }
 
-    pub fn for_each<F: Fn(usize, usize, &Cell)>(&self, f: F) {
+    pub fn for_each<F: FnMut(usize, usize, &Cell)>(&self, mut f: F) {
         for x in 0..self.w {
             for y in 0..self.h {
                 let cell = &self.matrix[x * self.h + y];

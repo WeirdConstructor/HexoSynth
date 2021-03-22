@@ -17,6 +17,7 @@ pub mod dsp;
 pub mod matrix;
 pub mod cell_dir;
 pub mod monitor;
+pub mod matrix_repr;
 
 pub mod ui;
 mod util;
