@@ -207,6 +207,7 @@ macro_rules! d_pit { ($x: expr) => {
 //          norm-fun      denorm-min
 //                 denorm-fun  denorm-max
 define_exp!{n_gain d_gain 0.0, 2.0}
+define_exp!{n_att  d_att  0.0, 1.0}
 
 // A note about the input-indicies:
 //
@@ -232,6 +233,7 @@ macro_rules! node_list {
              //        norm_fun              min  max  default
                (0 inp  n_id       d_id      -1.0, 1.0, 0.0)
                (1 gain n_gain     d_gain     0.0, 1.0, 1.0)
+               (2 att  n_att      d_att      0.0, 1.0, 1.0)
                [0 sig],
             sin => Sin UIType::Generic UICategory::Osc
                (0 freq n_pit      d_pit     -1.0, 1.0, 440.0)
