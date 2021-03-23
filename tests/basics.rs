@@ -115,6 +115,15 @@ fn calc_rms_mimax_each_ms(buf: &[f32], ms: f32) -> Vec<(f32, f32, f32)> {
     res
 }
 
+fn run_and_get_l_rms_mimax(
+    node_exec: &mut hexosynth::nodes::NodeExecutor,
+    len_ms: f32) -> (f32, f32, f32)
+{
+    let (mut out_l, out_r) = run_no_input(node_exec, (len_ms * 3.0) / 1000.0);
+    let rms_mimax = calc_rms_mimax_each_ms(&out_l[..], len_ms);
+    rms_mimax[1]
+}
+
 #[allow(unused)]
 enum FFT {
     F16,
@@ -222,6 +231,12 @@ fn check_matrix_sine() {
     let fft_res = fft_thres_at_ms(&mut out_l[..], FFT::F1024, 100, 1500.0);
     assert_eq!(fft_res[0], (431, 248));
     assert_eq!(fft_res[1], (474, 169));
+
+    let sin_led_val = matrix.led_value_for(&sin);
+    let out_led_val = matrix.led_value_for(&out);
+
+    assert_float_eq!(sin_led_val, -0.057622954);
+    assert_float_eq!(out_led_val, -0.057622954);
 }
 
 #[test]
@@ -687,4 +702,45 @@ fn check_matrix_out_twice_assignment() {
 
     let (_out_l, _out_r) = run_no_input(&mut node_exec, 0.2);
 
+}
+
+#[test]
+fn check_matrix_amp() {
+    let (node_conf, mut node_exec) = new_node_engine();
+    let mut matrix = Matrix::new(node_conf, 3, 3);
+
+    let sin = NodeId::Sin(0);
+    let amp = NodeId::Amp(0);
+    let out = NodeId::Out(0);
+    matrix.place(0, 0, Cell::empty(sin)
+                       .out(None, None, sin.out("sig")));
+    matrix.place(0, 1, Cell::empty(amp)
+                       .input(out.inp("ch1"), None, None)
+                       .out(None, None, sin.out("sig")));
+    matrix.place(0, 2, Cell::empty(out)
+                       .input(out.inp("ch1"), None, None));
+    matrix.sync();
+
+    let att_param  = amp.inp_param("att").unwrap();
+    matrix.set_param(att_param, SAtom::param(0.5));
+
+    let (rms, _, _) = run_and_get_l_rms_mimax(&mut node_exec, 50.0);
+    assert_float_eq!(rms, 0.031249225);
+
+    matrix.set_param(att_param, SAtom::param(1.0));
+    let (rms, _, _) = run_and_get_l_rms_mimax(&mut node_exec, 50.0);
+    assert_float_eq!(rms, 0.49998704);
+
+    matrix.set_param(att_param, SAtom::param(0.0));
+    let (rms, _, _) = run_and_get_l_rms_mimax(&mut node_exec, 50.0);
+    assert_float_eq!(rms, 0.0);
+
+    let gain_param = amp.inp_param("gain").unwrap();
+
+    matrix.set_param(att_param, SAtom::param(1.0));
+    matrix.set_param(gain_param, SAtom::param(0.5));
+    let (rms, min, max) = run_and_get_l_rms_mimax(&mut node_exec, 50.0);
+    assert_float_eq!(rms, 0.12499);
+    assert_float_eq!(min, -0.5);
+    assert_float_eq!(max, 0.5);
 }
