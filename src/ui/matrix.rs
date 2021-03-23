@@ -23,6 +23,8 @@ use crate::dsp::NodeId;
 use crate::ui::menu::{Menu, MenuControl, MenuActionHandler};
 use crate::ui::node_panel::{NodePanel, NodePanelData};
 
+const LED_AVERAGE_SAMPLES : usize = 4;
+
 pub struct MatrixActionHandler {
     matrix:   Arc<Mutex<Matrix>>,
     help_txt: Rc<TextSourceRef>,
@@ -158,7 +160,7 @@ impl HexGridModel for MatrixUIMenu {
         true
     }
 
-    fn cell_label<'a>(&self, x: usize, y: usize, buf: &'a mut [u8]) -> Option<(&'a str, HexCell)> {
+    fn cell_label<'a>(&self, x: usize, y: usize, buf: &'a mut [u8]) -> Option<(&'a str, HexCell, Option<(f32, f32)>)> {
         if x >= 3 || y >= 3 { return None; }
         let mut len = 0;
 
@@ -171,7 +173,7 @@ impl HexGridModel for MatrixUIMenu {
         }
 
         if let Ok(s) = std::str::from_utf8(&buf[0..len]) {
-            Some((s, HexCell::Plain))
+            Some((s, HexCell::Plain, None))
         } else {
             None
         }
@@ -185,12 +187,75 @@ impl HexGridModel for MatrixUIMenu {
 #[derive(Debug)]
 pub struct MatrixEditor {
     focus_cell: Cell,
+
+    /// Holds the filter state of the NodeId LED values.
+    /// Two values are sampled, that means if we run at 60fps, the
+    /// LEDs are visibly only updated every 30fps.
+    /// The new LED values are only displayed when the `led_filter_recalc´
+    /// value is true. The first `f32` is the filter state, the
+    /// second `f32` is the currently (at 30fps updated) value of the LED.
+    ///
+    /// The extra bool flag is for identify whether this
+    /// filter value has already been calculated, because
+    /// a node can be visible multiple times on the HexGrid.
+    led_filter: Vec<(bool, usize, [f32; LED_AVERAGE_SAMPLES])>,
+    /// Holds the filter flag for the current frame.
+    /// It's flipped each frame and if the value in `led_filter`
+    /// for the corresponding NodeId is not matching this flag,
+    /// a new filter state will be calculated.
+    led_filter_recalc: bool,
 }
 
 impl MatrixEditor {
     pub fn new() -> Self {
+        let mut led_filter = vec![];
+        led_filter.resize(
+            crate::nodes::MAX_ALLOCATED_NODES,
+            (false, 0, [0.0; LED_AVERAGE_SAMPLES]));
+
         Self {
             focus_cell: Cell::empty(NodeId::Nop),
+            led_filter,
+            led_filter_recalc: true,
+        }
+    }
+
+    pub fn new_filter_frame(&mut self) {
+        self.led_filter_recalc = !self.led_filter_recalc;
+    }
+
+    pub fn get_led_value(
+        &mut self, matrix: &std::sync::MutexGuard<'_, Matrix>,
+        node_id: &NodeId) -> (f32, f32)
+    {
+        let idx = matrix.unique_index_for(node_id);
+        if let Some(idx) = idx {
+            let state = &mut self.led_filter[idx];
+
+            if state.0 != self.led_filter_recalc {
+                state.0 = self.led_filter_recalc;
+
+                let write_ptr = (state.1 + 1) % state.2.len();
+                state.1 = write_ptr;
+
+                let v = matrix.led_value_for(node_id);
+                state.2[write_ptr] = v;
+            }
+
+            let mut neg_rms_max : f32 = 0.0;
+            let mut pos_rms_max : f32 = 0.0;
+
+            for v in state.2.iter() {
+                if *v >= 0.0 {
+                    pos_rms_max = pos_rms_max.max((*v).abs());
+                } else {
+                    neg_rms_max = neg_rms_max.max((*v).abs());
+                }
+            }
+
+            (neg_rms_max, pos_rms_max)
+        } else {
+            (0.0, 0.0)
         }
     }
 }
@@ -207,6 +272,17 @@ impl std::fmt::Debug for MatrixEditorRef {
 impl MatrixEditorRef {
     pub fn new() -> Self {
         Self(Rc::new(RefCell::new(MatrixEditor::new())))
+    }
+
+    pub fn new_filter_frame(&self) {
+        self.0.borrow_mut().new_filter_frame()
+    }
+
+    pub fn get_led_value(
+        &self, matrix: &std::sync::MutexGuard<'_, Matrix>,
+        node_id: &NodeId) -> (f32, f32)
+    {
+        self.0.borrow_mut().get_led_value(matrix, node_id)
     }
 
     pub fn get_recent_focus(&self) -> Cell {
@@ -298,7 +374,7 @@ impl HexGridModel for MatrixUIModel {
         true
     }
 
-    fn cell_label<'a>(&self, x: usize, y: usize, buf: &'a mut [u8]) -> Option<(&'a str, HexCell)> {
+    fn cell_label<'a>(&self, x: usize, y: usize, buf: &'a mut [u8]) -> Option<(&'a str, HexCell, Option<(f32, f32)>)> {
         if x >= self.w || y >= self.h { return None; }
         let m = self.matrix.lock().unwrap();
 
@@ -310,7 +386,8 @@ impl HexGridModel for MatrixUIModel {
             };
 
         if let Some(cell) = m.get(x, y) {
-            Some((cell.label(buf)?, hl))
+            let v = self.editor.get_led_value(&m, &cell.node_id());
+            Some((cell.label(buf)?, hl, Some(v)))
         } else {
             None
         }
@@ -436,6 +513,8 @@ impl NodeMatrix {
 impl WidgetType for NodeMatrix {
     fn draw(&self, ui: &mut dyn WidgetUI, data: &mut WidgetData, p: &mut dyn Painter, pos: Rect) {
         data.with(|data: &mut NodeMatrixData| {
+
+            data.matrix_model.editor.new_filter_frame();
 
             let panel_pos = pos.resize(360.0, pos.h);
 

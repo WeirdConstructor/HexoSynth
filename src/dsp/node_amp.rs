@@ -3,7 +3,7 @@
 // See README.md and COPYING for details.
 
 use crate::nodes::NodeAudioContext;
-use crate::dsp::{SAtom, ProcBuf, DspNode};
+use crate::dsp::{SAtom, ProcBuf, DspNode, LedValue};
 
 /// A simple amplifier
 #[derive(Debug, Clone)]
@@ -37,7 +37,7 @@ impl DspNode for Amp {
     #[inline]
     fn process<T: NodeAudioContext>(
         &mut self, ctx: &mut T, atoms: &[SAtom], _params: &[ProcBuf],
-        inputs: &[ProcBuf], outputs: &mut [ProcBuf])
+        inputs: &[ProcBuf], outputs: &mut [ProcBuf], led: &LedValue)
     {
         use crate::dsp::{out, inp, denorm, denorm_v, inp_dir, at};
 
@@ -47,24 +47,40 @@ impl DspNode for Amp {
         let out  = out::Amp::sig(outputs);
         let neg  = at::Amp::neg_att(atoms);
 
-        if neg.i() > 0 {
-            for frame in 0..ctx.nframes() {
-                out.write(frame,
-                    inp.read(frame)
-                    * denorm_v::Amp::att(
-                        inp_dir::Amp::att(att, frame)
-                        .max(0.0))
-                    * denorm::Amp::gain(gain, frame));
-            }
+        let last_frame   = ctx.nframes() - 1;
 
-        } else {
-            for frame in 0..ctx.nframes() {
-                out.write(frame,
-                    inp.read(frame)
-                    * denorm_v::Amp::att(
-                        inp_dir::Amp::att(att, frame).abs())
-                    * denorm::Amp::gain(gain, frame));
-            }
-        }
+        let last_val =
+            if neg.i() > 0 {
+                for frame in 0..ctx.nframes() {
+                    out.write(frame,
+                        inp.read(frame)
+                        * denorm_v::Amp::att(
+                            inp_dir::Amp::att(att, frame)
+                            .max(0.0))
+                        * denorm::Amp::gain(gain, frame));
+                }
+
+                inp.read(last_frame)
+                * denorm_v::Amp::att(
+                    inp_dir::Amp::att(att, last_frame)
+                    .max(0.0))
+                * denorm::Amp::gain(gain, last_frame)
+
+            } else {
+                for frame in 0..ctx.nframes() {
+                    out.write(frame,
+                        inp.read(frame)
+                        * denorm_v::Amp::att(
+                            inp_dir::Amp::att(att, frame).abs())
+                        * denorm::Amp::gain(gain, frame));
+                }
+
+                inp.read(last_frame)
+                * denorm_v::Amp::att(
+                    inp_dir::Amp::att(att, last_frame).abs())
+                * denorm::Amp::gain(gain, last_frame)
+            };
+
+        led.set(last_val);
     }
 }

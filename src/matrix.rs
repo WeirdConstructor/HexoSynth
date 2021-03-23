@@ -320,11 +320,15 @@ impl Matrix {
     pub fn size(&self) -> (usize, usize) { (self.w, self.h) }
 
     pub fn unique_index_for(&self, node_id: &NodeId) -> Option<usize> {
-        self.config.unique_index_for(*node_id)
+        self.config.unique_index_for(node_id)
     }
 
     pub fn info_for(&self, node_id: &NodeId) -> Option<NodeInfo> {
         self.infos.borrow().get(&node_id).cloned()
+    }
+
+    pub fn led_value_for(&self, node_id: &NodeId) -> f32 {
+        self.config.led_value_for(node_id)
     }
 
     pub fn place(&mut self, x: usize, y: usize, mut cell: Cell) {
@@ -336,7 +340,7 @@ impl Matrix {
     pub fn for_each_atom<F: FnMut(usize, ParamId, &SAtom)>(&self, mut f: F) {
         for (_, matrix_param) in self.atoms.borrow().iter() {
             if let Some(unique_idx) =
-                self.config.unique_index_for(matrix_param.param_id.node_id())
+                self.config.unique_index_for(&matrix_param.param_id.node_id())
             {
                 f(unique_idx, matrix_param.param_id, &matrix_param.value);
             }
@@ -344,7 +348,7 @@ impl Matrix {
 
         for (_, matrix_param) in self.params.borrow().iter() {
             if let Some(unique_idx) =
-                self.config.unique_index_for(matrix_param.param_id.node_id())
+                self.config.unique_index_for(&matrix_param.param_id.node_id())
             {
                 f(unique_idx, matrix_param.param_id,
                   &SAtom::param(matrix_param.value));

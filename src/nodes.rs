@@ -2,8 +2,8 @@
 // This is a part of HexoSynth. Released under (A)GPLv3 or any later.
 // See README.md and COPYING for details.
 
-const MAX_ALLOCATED_NODES : usize = 256;
-const MAX_SMOOTHERS       : usize = 36 + 4; // 6 * 6 modulator inputs + 4 UI Knobs
+pub const MAX_ALLOCATED_NODES : usize = 256;
+pub const MAX_SMOOTHERS       : usize = 36 + 4; // 6 * 6 modulator inputs + 4 UI Knobs
 
 use crate::monitor::{
     MON_SIG_CNT, new_monitor_processor,
@@ -13,13 +13,14 @@ use crate::monitor::{
 pub use crate::monitor::MinMaxMonitorSamples;
 
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use ringbuf::{RingBuffer, Producer, Consumer};
 use crate::dsp::{
     node_factory, NodeInfo, Node,
     NodeId, SAtom, ProcBuf,
 };
-use crate::util::Smoother;
+use crate::util::{Smoother, AtomicFloat};
 
 /// A node graph execution program. It comes with buffers
 /// for the inputs, outputs and node parameters (knob values).
@@ -278,6 +279,8 @@ impl Drop for DropThread {
 pub struct NodeConfigurator {
     /// Holds all the nodes, their parameters and type.
     nodes:              Vec<NodeInfo>,
+    /// Holds the LED values of the nodes
+    node_leds:          Vec<Arc<AtomicFloat>>,
     /// An index of all nodes ever instanciated.
     /// Be aware, that currently there is no cleanup implemented.
     /// That means, any instanciated NodeId will persist throughout
@@ -332,7 +335,7 @@ impl NodeConfigurator {
         }
     }
 
-    pub fn unique_index_for(&self, ni: NodeId) -> Option<usize> {
+    pub fn unique_index_for(&self, ni: &NodeId) -> Option<usize> {
         self.node2idx.get(&ni).copied()
     }
 
@@ -346,6 +349,14 @@ impl NodeConfigurator {
         let _ =
             self.quick_update_prod.push(
                 QuickMessage::ParamUpdate { input_idx, value });
+    }
+
+    pub fn led_value_for(&self, ni: &NodeId) -> f32 {
+        if let Some(idx) = self.unique_index_for(ni) {
+            self.node_leds[idx].get()
+        } else {
+            0.0
+        }
     }
 
     pub fn monitor(&mut self, in_bufs: &[usize]) {
@@ -374,9 +385,14 @@ impl NodeConfigurator {
                 self.node2idx.insert(ni, index);
 
                 self.nodes[index] = info;
+
                 let _ =
                     self.graph_update_prod.push(
-                        GraphMessage::NewNode { index: index as u8, node });
+                        GraphMessage::NewNode {
+                           index: index as u8,
+                           node,
+                        });
+
                 Some((&self.nodes[index], index as u8))
 
             } else {
@@ -385,9 +401,14 @@ impl NodeConfigurator {
 
                 self.nodes.resize_with((self.nodes.len() + 1) * 2, || NodeInfo::Nop);
                 self.nodes[index] = info;
+
                 let _ =
                     self.graph_update_prod.push(
-                        GraphMessage::NewNode { index: index as u8, node });
+                        GraphMessage::NewNode {
+                            index: index as u8,
+                            node,
+                        });
+
                 Some((&self.nodes[index], index as u8))
             }
         } else {
@@ -431,9 +452,17 @@ pub fn new_node_engine() -> (NodeConfigurator, NodeExecutor) {
 
     let mut nodes = Vec::new();
     nodes.resize_with(MAX_ALLOCATED_NODES, || NodeInfo::Nop);
+    let mut node_leds = Vec::new();
+    node_leds.resize_with(MAX_ALLOCATED_NODES, || Arc::new(AtomicFloat::new(0.0)));
+
+    let mut exec_node_leds = Vec::new();
+    for led in node_leds.iter() {
+        exec_node_leds.push(led.clone());
+    }
 
     let nc = NodeConfigurator {
         nodes,
+        node_leds,
         graph_update_prod: rb_graph_prod,
         quick_update_prod: rb_quick_prod,
         node2idx:          HashMap::new(),
@@ -452,6 +481,7 @@ pub fn new_node_engine() -> (NodeConfigurator, NodeExecutor) {
     let ne = NodeExecutor {
         sample_rate:       44100.0,
         nodes,
+        node_leds: exec_node_leds,
         smoothers,
         target_refresh,
         prog:              NodeProg::empty(),
@@ -558,6 +588,10 @@ pub struct NodeExecutor {
     /// deallocation, the nodes are replaced and the contents
     /// is sent back using the free-ringbuffer.
     nodes: Vec<Node>,
+
+    /// Holds the node LEDs, display feedback values of some internal value
+    /// of the nodes.
+    node_leds: Vec<Arc<AtomicFloat>>,
 
     /// Contains the stand-by smoothing operators for incoming parameter changes.
     smoothers: Vec<(usize, Smoother)>,
@@ -784,6 +818,7 @@ impl NodeExecutor {
         self.process_param_updates(ctx.nframes());
 
         let nodes = &mut self.nodes;
+        let leds  = &mut self.node_leds;
         let prog  = &mut self.prog;
 
         for op in prog.prog.iter() {
@@ -797,7 +832,8 @@ impl NodeExecutor {
                     &prog.atoms[at.0..at.1],
                     &prog.inp[inp.0..inp.1],
                     &prog.cur_inp[inp.0..inp.1],
-                    &mut prog.out[out.0..out.1]);
+                    &mut prog.out[out.0..out.1],
+                    &leds[op.idx as usize]);
         }
 
         self.monitor_backend.check_recycle();

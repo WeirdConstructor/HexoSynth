@@ -16,6 +16,11 @@ pub mod helpers;
 
 use crate::nodes::NodeAudioContext;
 
+use crate::util::AtomicFloat;
+use std::sync::Arc;
+
+pub type LedValue = Arc<AtomicFloat>;
+
 pub use satom::*;
 
 use node_amp::Amp;
@@ -59,7 +64,8 @@ pub trait DspNode {
     /// * `outputs` are the output buffers of this node.
     fn process<T: NodeAudioContext>(
         &mut self, ctx: &mut T, atoms: &[SAtom], params: &[ProcBuf],
-        inputs: &[ProcBuf], outputs: &mut [ProcBuf]);
+        inputs: &[ProcBuf], outputs: &mut [ProcBuf],
+        led: &LedValue);
 
     /// A function factory for generating a graph for the generic node UI.
     fn graph_fun() -> Option<GraphFun> { None }
@@ -948,7 +954,7 @@ pub fn node_factory(node_id: NodeId) -> Option<(Node, NodeInfo)> {
 impl Node {
     #[inline]
     pub fn process<T: NodeAudioContext>(
-        &mut self, ctx: &mut T, atoms: &[SAtom], params: &[ProcBuf], inputs: &[ProcBuf], outputs: &mut [ProcBuf])
+        &mut self, ctx: &mut T, atoms: &[SAtom], params: &[ProcBuf], inputs: &[ProcBuf], outputs: &mut [ProcBuf], led: &LedValue)
     {
         macro_rules! make_node_process {
             ($s1: ident => $v1: ident,
@@ -966,7 +972,7 @@ impl Node {
             ) => {
                 match self {
                     Node::$v1 => {},
-                    $(Node::$variant { node } => node.process(ctx, atoms, params, inputs, outputs),)+
+                    $(Node::$variant { node } => node.process(ctx, atoms, params, inputs, outputs, led),)+
                 }
             }
         }

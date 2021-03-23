@@ -2,6 +2,8 @@
 // This is a part of HexoSynth. Released under (A)GPLv3 or any later.
 // See README.md and COPYING for details.
 
+use std::sync::atomic::{AtomicU32, Ordering};
+
 const SMOOTHING_TIME_MS : f32 = 10.0;
 
 pub struct Smoother {
@@ -97,5 +99,64 @@ impl PerfTimer {
         let t = std::time::Instant::now().duration_since(self.i);
         println!("*** PERF[{}/{}] {:?}", self.lbl, lbl2, t);
         self.i = std::time::Instant::now();
+    }
+}
+
+// Implementation from vst-rs 
+// https://github.com/RustAudio/vst-rs/blob/master/src/util/atomic_float.rs
+// Under MIT License
+// Copyright (c) 2015 Marko Mijalkovic
+pub struct AtomicFloat {
+    atomic: AtomicU32,
+}
+
+impl AtomicFloat {
+    /// New atomic float with initial value `value`.
+    pub fn new(value: f32) -> AtomicFloat {
+        AtomicFloat {
+            atomic: AtomicU32::new(value.to_bits()),
+        }
+    }
+
+    /// Get the current value of the atomic float.
+    #[inline]
+    pub fn get(&self) -> f32 {
+        f32::from_bits(self.atomic.load(Ordering::Relaxed))
+    }
+
+    /// Set the value of the atomic float to `value`.
+    #[inline]
+    pub fn set(&self, value: f32) {
+        self.atomic.store(value.to_bits(), Ordering::Relaxed)
+    }
+}
+
+impl Default for AtomicFloat {
+    fn default() -> Self {
+        AtomicFloat::new(0.0)
+    }
+}
+
+impl std::fmt::Debug for AtomicFloat {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Debug::fmt(&self.get(), f)
+    }
+}
+
+impl std::fmt::Display for AtomicFloat {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(&self.get(), f)
+    }
+}
+
+impl From<f32> for AtomicFloat {
+    fn from(value: f32) -> Self {
+        AtomicFloat::new(value)
+    }
+}
+
+impl From<AtomicFloat> for f32 {
+    fn from(value: AtomicFloat) -> Self {
+        value.get()
     }
 }

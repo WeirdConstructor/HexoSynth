@@ -3,7 +3,7 @@
 // See README.md and COPYING for details.
 
 use crate::nodes::NodeAudioContext;
-use crate::dsp::{SAtom, ProcBuf, inp, at, DspNode};
+use crate::dsp::{SAtom, ProcBuf, inp, at, DspNode, LedValue};
 
 /// The (stereo) output port of the plugin
 #[derive(Debug, Clone)]
@@ -53,21 +53,25 @@ impl DspNode for Out {
     #[inline]
     fn process<T: NodeAudioContext>(
         &mut self, ctx: &mut T, atoms: &[SAtom], _params: &[ProcBuf],
-        inputs: &[ProcBuf], _outputs: &mut [ProcBuf])
+        inputs: &[ProcBuf], _outputs: &mut [ProcBuf], led: &LedValue)
     {
+        let in1 = inp::Out::ch1(inputs);
+
         if at::Out::mono(atoms).i() > 0 {
-            let in1 = inp::Out::ch1(inputs);
             for frame in 0..ctx.nframes() {
                 ctx.output(0, frame, in1.read(frame));
                 ctx.output(1, frame, in1.read(frame));
             }
         } else {
-            let in1 = inp::Out::ch1(inputs);
             let in2 = inp::Out::ch2(inputs);
+
             for frame in 0..ctx.nframes() {
                 ctx.output(0, frame, in1.read(frame));
                 ctx.output(1, frame, in2.read(frame));
             }
         }
+
+        let last_val = in1.read(ctx.nframes() - 1);
+        led.set(last_val);
     }
 }
