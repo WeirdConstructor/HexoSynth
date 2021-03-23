@@ -23,7 +23,7 @@ use crate::dsp::NodeId;
 use crate::ui::menu::{Menu, MenuControl, MenuActionHandler};
 use crate::ui::node_panel::{NodePanel, NodePanelData};
 
-const LED_AVERAGE_SAMPLES : usize = 4;
+const LED_SAMPLES : usize = 10;
 
 pub struct MatrixActionHandler {
     matrix:   Arc<Mutex<Matrix>>,
@@ -189,16 +189,10 @@ pub struct MatrixEditor {
     focus_cell: Cell,
 
     /// Holds the filter state of the NodeId LED values.
-    /// Two values are sampled, that means if we run at 60fps, the
-    /// LEDs are visibly only updated every 30fps.
-    /// The new LED values are only displayed when the `led_filter_recalc´
-    /// value is true. The first `f32` is the filter state, the
-    /// second `f32` is the currently (at 30fps updated) value of the LED.
-    ///
-    /// The extra bool flag is for identify whether this
-    /// filter value has already been calculated, because
-    /// a node can be visible multiple times on the HexGrid.
-    led_filter: Vec<(bool, usize, [f32; LED_AVERAGE_SAMPLES])>,
+    /// The `usize` is a write pointer into the `LED_SAMPLES`
+    /// buffer. The LED values are calculated from the most recent
+    /// `LED_SAMPLES`.
+    led_filter: Vec<(bool, usize, [f32; LED_SAMPLES])>,
     /// Holds the filter flag for the current frame.
     /// It's flipped each frame and if the value in `led_filter`
     /// for the corresponding NodeId is not matching this flag,
@@ -211,7 +205,7 @@ impl MatrixEditor {
         let mut led_filter = vec![];
         led_filter.resize(
             crate::nodes::MAX_ALLOCATED_NODES,
-            (false, 0, [0.0; LED_AVERAGE_SAMPLES]));
+            (false, 0, [0.0; LED_SAMPLES]));
 
         Self {
             focus_cell: Cell::empty(NodeId::Nop),
