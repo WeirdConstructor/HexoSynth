@@ -327,6 +327,10 @@ impl Matrix {
         self.infos.borrow().get(&node_id).cloned()
     }
 
+    pub fn phase_value_for(&self, node_id: &NodeId) -> f32 {
+        self.config.phase_value_for(node_id)
+    }
+
     pub fn led_value_for(&self, node_id: &NodeId) -> f32 {
         self.config.led_value_for(node_id)
     }

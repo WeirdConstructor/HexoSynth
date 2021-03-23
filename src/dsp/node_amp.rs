@@ -3,7 +3,7 @@
 // See README.md and COPYING for details.
 
 use crate::nodes::NodeAudioContext;
-use crate::dsp::{SAtom, ProcBuf, DspNode, LedValue};
+use crate::dsp::{SAtom, ProcBuf, DspNode, LedPhaseVals};
 
 /// A simple amplifier
 #[derive(Debug, Clone)]
@@ -37,7 +37,7 @@ impl DspNode for Amp {
     #[inline]
     fn process<T: NodeAudioContext>(
         &mut self, ctx: &mut T, atoms: &[SAtom], _params: &[ProcBuf],
-        inputs: &[ProcBuf], outputs: &mut [ProcBuf], led: &LedValue)
+        inputs: &[ProcBuf], outputs: &mut [ProcBuf], ctx_vals: LedPhaseVals)
     {
         use crate::dsp::{out, inp, denorm, denorm_v, inp_dir, at};
 
@@ -81,6 +81,6 @@ impl DspNode for Amp {
                 * denorm::Amp::gain(gain, last_frame)
             };
 
-        led.set(last_val);
+        ctx_vals[0].set(last_val);
     }
 }

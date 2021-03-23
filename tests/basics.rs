@@ -119,7 +119,7 @@ fn run_and_get_l_rms_mimax(
     node_exec: &mut hexosynth::nodes::NodeExecutor,
     len_ms: f32) -> (f32, f32, f32)
 {
-    let (mut out_l, out_r) = run_no_input(node_exec, (len_ms * 3.0) / 1000.0);
+    let (out_l, _out_r) = run_no_input(node_exec, (len_ms * 3.0) / 1000.0);
     let rms_mimax = calc_rms_mimax_each_ms(&out_l[..], len_ms);
     rms_mimax[1]
 }

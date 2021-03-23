@@ -19,7 +19,7 @@ use crate::nodes::NodeAudioContext;
 use crate::util::AtomicFloat;
 use std::sync::Arc;
 
-pub type LedValue = Arc<AtomicFloat>;
+pub type LedPhaseVals<'a> = &'a [Arc<AtomicFloat>];
 
 pub use satom::*;
 
@@ -65,7 +65,7 @@ pub trait DspNode {
     fn process<T: NodeAudioContext>(
         &mut self, ctx: &mut T, atoms: &[SAtom], params: &[ProcBuf],
         inputs: &[ProcBuf], outputs: &mut [ProcBuf],
-        led: &LedValue);
+        led: LedPhaseVals);
 
     /// A function factory for generating a graph for the generic node UI.
     fn graph_fun() -> Option<GraphFun> { None }
@@ -954,7 +954,7 @@ pub fn node_factory(node_id: NodeId) -> Option<(Node, NodeInfo)> {
 impl Node {
     #[inline]
     pub fn process<T: NodeAudioContext>(
-        &mut self, ctx: &mut T, atoms: &[SAtom], params: &[ProcBuf], inputs: &[ProcBuf], outputs: &mut [ProcBuf], led: &LedValue)
+        &mut self, ctx: &mut T, atoms: &[SAtom], params: &[ProcBuf], inputs: &[ProcBuf], outputs: &mut [ProcBuf], led: LedPhaseVals)
     {
         macro_rules! make_node_process {
             ($s1: ident => $v1: ident,

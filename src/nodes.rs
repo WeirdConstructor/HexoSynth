@@ -280,7 +280,7 @@ pub struct NodeConfigurator {
     /// Holds all the nodes, their parameters and type.
     nodes:              Vec<NodeInfo>,
     /// Holds the LED values of the nodes
-    node_leds:          Vec<Arc<AtomicFloat>>,
+    node_ctx_values:    Vec<Arc<AtomicFloat>>,
     /// An index of all nodes ever instanciated.
     /// Be aware, that currently there is no cleanup implemented.
     /// That means, any instanciated NodeId will persist throughout
@@ -351,9 +351,17 @@ impl NodeConfigurator {
                 QuickMessage::ParamUpdate { input_idx, value });
     }
 
+    pub fn phase_value_for(&self, ni: &NodeId) -> f32 {
+        if let Some(idx) = self.unique_index_for(ni) {
+            self.node_ctx_values[(idx * 2) + 1].get()
+        } else {
+            0.0
+        }
+    }
+
     pub fn led_value_for(&self, ni: &NodeId) -> f32 {
         if let Some(idx) = self.unique_index_for(ni) {
-            self.node_leds[idx].get()
+            self.node_ctx_values[idx * 2].get()
         } else {
             0.0
         }
@@ -452,17 +460,17 @@ pub fn new_node_engine() -> (NodeConfigurator, NodeExecutor) {
 
     let mut nodes = Vec::new();
     nodes.resize_with(MAX_ALLOCATED_NODES, || NodeInfo::Nop);
-    let mut node_leds = Vec::new();
-    node_leds.resize_with(MAX_ALLOCATED_NODES, || Arc::new(AtomicFloat::new(0.0)));
+    let mut node_ctx_values = Vec::new();
+    node_ctx_values.resize_with(2 * MAX_ALLOCATED_NODES, || Arc::new(AtomicFloat::new(0.0)));
 
-    let mut exec_node_leds = Vec::new();
-    for led in node_leds.iter() {
-        exec_node_leds.push(led.clone());
+    let mut exec_node_ctx_vals = Vec::new();
+    for ctx_val in node_ctx_values.iter() {
+        exec_node_ctx_vals.push(ctx_val.clone());
     }
 
     let nc = NodeConfigurator {
         nodes,
-        node_leds,
+        node_ctx_values,
         graph_update_prod: rb_graph_prod,
         quick_update_prod: rb_quick_prod,
         node2idx:          HashMap::new(),
@@ -481,7 +489,7 @@ pub fn new_node_engine() -> (NodeConfigurator, NodeExecutor) {
     let ne = NodeExecutor {
         sample_rate:       44100.0,
         nodes,
-        node_leds: exec_node_leds,
+        node_ctx_values: exec_node_ctx_vals,
         smoothers,
         target_refresh,
         prog:              NodeProg::empty(),
@@ -589,9 +597,11 @@ pub struct NodeExecutor {
     /// is sent back using the free-ringbuffer.
     nodes: Vec<Node>,
 
-    /// Holds the node LEDs, display feedback values of some internal value
-    /// of the nodes.
-    node_leds: Vec<Arc<AtomicFloat>>,
+    /// Holds two context values interleaved.
+    /// The first for each node is the LED value and the second is a
+    /// phase value. The LED will be displayed in the hex matrix, while the
+    /// phase might be used to display an envelope's play position.
+    node_ctx_values: Vec<Arc<AtomicFloat>>,
 
     /// Contains the stand-by smoothing operators for incoming parameter changes.
     smoothers: Vec<(usize, Smoother)>,
@@ -817,14 +827,16 @@ impl NodeExecutor {
 
         self.process_param_updates(ctx.nframes());
 
-        let nodes = &mut self.nodes;
-        let leds  = &mut self.node_leds;
-        let prog  = &mut self.prog;
+        let nodes    = &mut self.nodes;
+        let ctx_vals = &mut self.node_ctx_values;
+        let prog     = &mut self.prog;
 
         for op in prog.prog.iter() {
             let out = op.out_idxlen;
             let inp = op.in_idxlen;
             let at  = op.at_idxlen;
+
+            let ctx_idx = op.idx as usize * 2;
 
             nodes[op.idx as usize]
                 .process(
@@ -833,7 +845,7 @@ impl NodeExecutor {
                     &prog.inp[inp.0..inp.1],
                     &prog.cur_inp[inp.0..inp.1],
                     &mut prog.out[out.0..out.1],
-                    &leds[op.idx as usize]);
+                    &ctx_vals[ctx_idx..ctx_idx + 2]);
         }
 
         self.monitor_backend.check_recycle();
