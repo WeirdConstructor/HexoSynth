@@ -25,6 +25,10 @@ const MONITOR_MINMAX_LEN_S   : usize = 2;
 
 /// The sleep time of the thread that receives monitoring data
 /// from the backend/audio thread.
+/// It should be within the time of a frame of the UI thread for
+/// smooth updates. The maximum is thus about 16ms.
+/// The processing of the audio buffer is somewhere in the us
+/// area.
 const MONITOR_PROC_THREAD_INTERVAL_MS : u64 = 10;
 
 // TODO / FIXME: We should recalculate this on the basis of the
