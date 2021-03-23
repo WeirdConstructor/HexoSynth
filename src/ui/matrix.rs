@@ -236,18 +236,18 @@ impl MatrixEditor {
                 state.2[write_ptr] = v;
             }
 
-            let mut neg_rms_max : f32 = 0.0;
-            let mut pos_rms_max : f32 = 0.0;
+            let mut neg_max : f32 = 0.0;
+            let mut pos_max : f32 = 0.0;
 
             for v in state.2.iter() {
                 if *v >= 0.0 {
-                    pos_rms_max = pos_rms_max.max((*v).abs());
+                    pos_max = pos_max.max((*v).abs());
                 } else {
-                    neg_rms_max = neg_rms_max.max((*v).abs());
+                    neg_max = neg_max.max((*v).abs());
                 }
             }
 
-            (neg_rms_max, pos_rms_max)
+            (neg_max, pos_max)
         } else {
             (0.0, 0.0)
         }
