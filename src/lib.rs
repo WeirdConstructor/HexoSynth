@@ -121,7 +121,7 @@ impl PluginContext<HexoSynth> for HexoSynthShared {
     fn new() -> Self {
 
         let (node_conf, node_exec) = nodes::new_node_engine();
-        let (w, h) = (8, 7);
+        let (w, h) = (16, 16);
 //        let (w, h) = (15, 15);
         let mut matrix = Matrix::new(node_conf, w, h);
 

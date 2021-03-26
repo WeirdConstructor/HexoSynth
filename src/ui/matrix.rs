@@ -142,7 +142,7 @@ impl HexGridModel for MatrixUIMenu {
         self.menu.borrow_mut().update();
     }
 
-    fn cell_click(&self, x: usize, y: usize, _btn: MButton, _shift: bool) {
+    fn cell_click(&self, x: usize, y: usize, _btn: MButton, _modkey: bool) {
         if let Some(idx) = self.grid2index(x, y) {
             self.menu.borrow_mut().select(idx);
         }
@@ -318,7 +318,7 @@ impl HexGridModel for MatrixUIModel {
     fn width(&self) -> usize { self.w }
     fn height(&self) -> usize { self.h }
 
-    fn cell_click(&self, x: usize, y: usize, btn: MButton, shift: bool) {
+    fn cell_click(&self, x: usize, y: usize, btn: MButton, modkey: bool) {
 
         println!("MATRIX CLICK CELL: {},{}: {:?}", x, y, btn);
         let mut menu = self.menu.menu.borrow_mut();
@@ -332,7 +332,7 @@ impl HexGridModel for MatrixUIModel {
                     let m = self.matrix.lock().unwrap();
                     if let Some(cell) = m.get_copy(x, y) {
                         if let Some(node_info) = m.info_for(&cell.node_id()) {
-                            if shift {
+                            if modkey {
                                 menu.open_select_cell_dir(cell, node_info);
                             } else {
                             }
@@ -450,7 +450,7 @@ impl NodeMatrixData {
         let wt_hexgrid =
             Rc::new(HexGrid::new(14.0, 10.0, 54.0));
         let wt_hexgrid_menu =
-            Rc::new(HexGrid::new_y_offs(12.0, 10.0, 45.0).bg_color(UI_GRID_BG2_CLR));
+            Rc::new(HexGrid::new_y_offs_pinned(12.0, 10.0, 45.0).bg_color(UI_GRID_BG2_CLR));
         let wt_cont = Rc::new(Container::new());
         let wt_text = Rc::new(Text::new(12.0));
 
