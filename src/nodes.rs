@@ -507,15 +507,6 @@ pub fn new_node_engine() -> (NodeConfigurator, NodeExecutor) {
     (nc, ne)
 }
 
-/// Operator for transmitting the output of a node
-/// to the input of another node.
-#[derive(Debug, Clone, Copy)]
-pub struct OutOp {
-    pub out_port_idx:  u8,
-    pub node_idx:      u8,
-    pub dst_param_idx: u8
-}
-
 /// Step in a `NodeProg` that stores the to be
 /// executed node and output operations.
 #[derive(Debug, Clone)]
