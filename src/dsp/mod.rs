@@ -356,6 +356,9 @@ macro_rules! make_node_info_enum {
             pub fn inp(&self)     -> u8           { self.idx }
             pub fn name(&self)    -> &'static str { self.name }
 
+            /// Returns true if the [ParamId] has been associated with
+            /// the atoms of a Node, and not the paramters. Even if the
+            /// Atom is a `param()`.
             pub fn is_atom(&self) -> bool {
                 match self.node {
                     NodeId::$v1           => false,
