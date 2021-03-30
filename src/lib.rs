@@ -342,18 +342,17 @@ impl HexoSynthUIParams {
     }
 }
 
-// TODO: Connect the AtomDataModel with the Matrix:
-//      - Filter out NODE_MATRIX_ID requests.
-//      - Map AtomId to ParamId
-//      - Upon creation, read out all paramters from the Matrix
-//        - Make sure the matrix is properly initialized/synced on startup.
-//          So that the paramter defaults exists.
-//        - retain the paramters in HexoSynthUIParams for the UI
-//      - Make sure the NodeId defaults are properly loaded from dsp/mod.rs
-//      - writing paramters is translated to SAtom
 impl AtomDataModel for HexoSynthUIParams {
-    fn len(&self) -> usize {
-        self.params.len()
+    fn get_phase_value(&self, id: AtomId) -> Option<f32> {
+        let (pid, _atom) = self.get_param(id)?;
+        let m = self.matrix.lock().unwrap();
+        Some(m.phase_value_for(&pid.node_id()))
+    }
+
+    fn get_led_value(&self, id: AtomId) -> Option<f32> {
+        let (pid, _atom) = self.get_param(id)?;
+        let m = self.matrix.lock().unwrap();
+        Some(m.led_value_for(&pid.node_id()))
     }
 
     fn check_sync(&mut self) {
