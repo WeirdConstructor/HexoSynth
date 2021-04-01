@@ -48,18 +48,13 @@ fn sigidx2celldir(idx: usize) -> CellDir {
 
 impl GraphMinMaxSource for MonitorsSource {
     fn read(&mut self, buf: &mut [(f64, f64)]) {
-        let mut pt = PerfTimer::new("MonSrc").off();
-
         let mut m = self.matrix.lock().expect("matrix lockable");
-
-        pt.print("1");
 
         let cell = m.monitored_cell();
         if !cell.has_dir_set(sigidx2celldir(self.idx)) {
             for i in 0..buf.len() {
                 buf[i] = (0.0, 0.0);
             }
-            pt.print("2");
             return;
         }
 
@@ -72,8 +67,6 @@ impl GraphMinMaxSource for MonitorsSource {
             //d//     println!("[{}] => {:?}", i, buf[i]);
             //d// }
         }
-        pt.print("3");
-
         //d// self.cnt += 1;
     }
 }

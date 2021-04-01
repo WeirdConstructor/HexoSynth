@@ -287,8 +287,6 @@ impl WidgetType for NodePanel {
 
             p.rect_fill(UI_BG_CLR, pos.x, pos.y, pos.w, pos.h);
 
-            let pos = pos.shrink(10.0, 10.0);
-
             let mut node_ui = data.node_ui.borrow_mut();
             if let Some(at_id) = ui.hover_atom_id() {
                 node_ui.check_hover_text_for(at_id);
