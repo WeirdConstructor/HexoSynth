@@ -389,6 +389,23 @@ impl Matrix {
         }
     }
 
+    pub fn from_repr(&mut self, repr: &MatrixRepr) {
+        /*
+            - Clear matrix
+                - write clear() function, that
+                    - removes all nodes from the matrix
+                    - and saved parameters/atoms.
+                - write a new message for the backend GraphMessage::Clear { node_prog }
+                    - factor out what happens for the GraphMessage::NewProg message!
+                    - replaces the nodes with the Nop node
+                    - replaces the node prog without carrying over the old
+                      buffers.
+            - for all cells place the cells from the representation
+            - set the params and atoms from the representation
+            - leave calling sync() to the caller.
+        */
+    }
+
     /// Receives the most recent data for the monitored signal at index `idx`.
     /// Might introduce a short wait, because internally a mutex is still locked.
     /// If this leads to stuttering in the UI, we need to change the internal

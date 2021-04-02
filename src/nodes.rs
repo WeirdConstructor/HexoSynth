@@ -144,7 +144,7 @@ impl NodeProg {
         }
     }
 
-    pub fn assign_previous_outputs(&mut self, prev_prog: &mut NodeProg) {
+    pub fn swap_previous_outputs(&mut self, prev_prog: &mut NodeProg) {
         if self.locked_buffers {
             self.unlock_buffers();
         }
@@ -659,6 +659,16 @@ impl NodeExecutor {
                     //         be up to date, even if we have a slight possible race
                     //         condition between GraphMessage::NewProg
                     //         and QuickMessage::AtomUpdate.
+
+                    // First overwrite by the current input parameters,
+                    // to make sure _all_ inputs have a proper value
+                    // (not just those that existed before).
+                    //
+                    // We preserve the modulation history in the next step.
+                    // This is also to make sure that new input ports
+                    // have a proper value too.
+                    self.prog.initialize_input_buffers();
+
                     if copy_old_out {
                         // XXX: The following is commented out, because presisting
                         //      the output proc buffers does not make sense anymore.
@@ -677,22 +687,13 @@ impl NodeExecutor {
                         //     std::mem::swap(old_pb, new_pb);
                         // }
 
-                        // First overwrite by the current input parameters,
-                        // to make sure _all_ inputs have a proper value
-                        // (not just those that existed before).
-                        //
-                        // We preserve the modulation history in the next step.
-                        // This is also to make sure that new input ports
-                        // have a proper value too.
-                        self.prog.initialize_input_buffers();
-
                         // Then overwrite the inputs by the more current previous
                         // input processing buffers, so we keep any modulation
                         // (smoothed) history of the block too.
-                        self.prog.assign_previous_outputs(&mut prev_prog);
-
-                        self.prog.assign_outputs();
+                        self.prog.swap_previous_outputs(&mut prev_prog);
                     }
+
+                    self.prog.assign_outputs();
 
                     let _ =
                         self.graph_drop_prod.push(
