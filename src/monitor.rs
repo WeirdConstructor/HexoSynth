@@ -49,7 +49,7 @@ const MONITOR_BUF_COUNT  : usize =
     2 * (IMAGINARY_MAX_SAMPLE_RATE / MAX_BLOCK_SIZE);
 
 pub struct MonitorBackend {
-    rb_mon_prod:              Producer<MonitorBufPtr>,
+    rb_mon_prod:             Producer<MonitorBufPtr>,
     rb_recycle_con:          Consumer<MonitorBufPtr>,
 
     /// Holds enough monitor buffers to hold about 1-2 seconds
@@ -176,7 +176,7 @@ impl MinMaxMonitorSamples {
         sms.samples.copy_from_slice(&self.samples[..]);
     }
 
-    /// Gets the sample at the offset relative to the
+    /// Gets the sample at the offset relative to the start of the min_max_slice.
     pub fn at(&self, offs: usize) -> &(f32, f32) {
         let idx = (self.buf_ptr + offs) % self.samples.len();
         &self.samples[idx]

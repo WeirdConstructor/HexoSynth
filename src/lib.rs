@@ -274,17 +274,19 @@ impl Plugin for HexoSynth {
 }
 
 use hexotk::*;
+use hexotk::widgets::DialogModel;
 use dsp::ParamId;
 
 pub struct HexoSynthUIParams {
-    params:     HashMap<AtomId, (ParamId, Atom)>,
-    matrix:     Arc<Mutex<Matrix>>,
+    params:         HashMap<AtomId, (ParamId, Atom)>,
+    matrix:         Arc<Mutex<Matrix>>,
     /// Generation counter, to check for matrix updates.
-    matrix_gen: RefCell<usize>,
+    matrix_gen:     RefCell<usize>,
+    dialog_model:   Rc<RefCell<DialogModel>>,
 }
 
 impl HexoSynthUIParams {
-    pub fn new(matrix: Arc<Mutex<Matrix>>) -> Self {
+    pub fn new(matrix: Arc<Mutex<Matrix>>, dialog_model: Rc<RefCell<DialogModel>>) -> Self {
         let params = HashMap::new();
 
         let matrix_gen = matrix.lock().unwrap().get_generation();
@@ -293,6 +295,7 @@ impl HexoSynthUIParams {
             HexoSynthUIParams {
                 params,
                 matrix_gen: RefCell::new(matrix_gen),
+                dialog_model,
                 matrix
             };
 
@@ -483,14 +486,25 @@ impl PluginUI for HexoSynth {
     }
 
     fn ui_open(parent: &impl HasRawWindowHandle, ctx: &HexoSynthShared) -> WindowOpenResult<Self::Handle> {
+        use hexotk::widgets::{Dialog, DialogData};
         use crate::ui::matrix::NodeMatrixData;
 
         let matrix = ctx.matrix.clone();
 
         open_window("HexoSynth", 1400, 700, Some(parent.raw_window_handle()), Box::new(|| {
+            let dialog_model = Rc::new(RefCell::new(DialogModel::new()));
+            let wt_diag      = Rc::new(Dialog::new());
+
             Box::new(UI::new(
-                Box::new(NodeMatrixData::new(matrix.clone(), UIPos::center(12, 12), NODE_MATRIX_ID)),
-                Box::new(HexoSynthUIParams::new(matrix)),
+                Box::new(NodeMatrixData::new(
+                    matrix.clone(),
+                    dialog_model.clone(),
+                    UIPos::center(12, 12),
+                    NODE_MATRIX_ID)),
+                Box::new(wbox!(
+                    wt_diag, 90000.into(), center(12, 12),
+                    DialogData::new(90001, 45.into(), dialog_model.clone()))),
+                Box::new(HexoSynthUIParams::new(matrix, dialog_model.clone())),
                 (1400 as f64, 700 as f64),
             ))
         }));

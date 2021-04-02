@@ -10,6 +10,8 @@ use hexosynth::nodes::NodeExecutor;
 
 use std::sync::Arc;
 use std::sync::Mutex;
+use std::rc::Rc;
+use std::cell::RefCell;
 
 struct Notifications {
     node_exec: Arc<Mutex<NodeExecutor>>,
@@ -237,15 +239,27 @@ fn start_backend<F: FnMut()>(shared: Arc<HexoSynthShared>, mut f: F) {
 }
 
 fn main() {
+    use hexotk::widgets::{Dialog, DialogData, DialogModel};
+
     let shared = Arc::new(HexoSynthShared::new());
 
     start_backend(shared.clone(), move || {
         let matrix = shared.matrix.clone();
 
         open_window("HexoTK Standalone", 1400, 700, None, Box::new(|| {
+            let dialog_model = Rc::new(RefCell::new(DialogModel::new()));
+            let wt_diag      = Rc::new(Dialog::new());
+
             Box::new(UI::new(
-                Box::new(NodeMatrixData::new(matrix.clone(), UIPos::center(12, 12), 11)),
-                Box::new(HexoSynthUIParams::new(matrix)),
+                Box::new(NodeMatrixData::new(
+                    matrix.clone(),
+                    dialog_model.clone(),
+                    UIPos::center(12, 12),
+                    11)),
+                Box::new(wbox!(
+                    wt_diag, 90000.into(), center(12, 12),
+                    DialogData::new(90001, 45.into(), dialog_model.clone()))),
+                Box::new(HexoSynthUIParams::new(matrix, dialog_model.clone())),
                 (1400 as f64, 700 as f64),
             ))
         }));

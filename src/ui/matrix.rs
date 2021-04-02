@@ -10,6 +10,7 @@ use hexotk::widgets::{
     HexGrid, HexGridData, HexCell, HexEdge, HexDir,
     Container, ContainerData,
     Text, TextSourceRef, TextData,
+    DialogModel,
 };
 
 use std::rc::Rc;
@@ -310,6 +311,8 @@ pub struct MatrixUIModel {
 
     editor: MatrixEditorRef,
 
+    dialog_model: Rc<RefCell<DialogModel>>,
+
     w:      usize,
     h:      usize,
 }
@@ -425,7 +428,13 @@ const HEX_MENU_ID           : u32 = 5;
 const NODE_PANEL_ID         : u32 = 11;
 
 impl NodeMatrixData {
-    pub fn new(matrix: Arc<Mutex<Matrix>>, pos: UIPos, node_id: u32) -> WidgetData {
+    pub fn new(
+        matrix: Arc<Mutex<Matrix>>,
+        dialog_model: Rc<RefCell<DialogModel>>,
+        pos: UIPos,
+        node_id: u32)
+    -> WidgetData
+    {
         let wt_nmatrix  = Rc::new(NodeMatrix::new());
 
         let size = {
@@ -437,9 +446,12 @@ impl NodeMatrixData {
 
         let editor = MatrixEditorRef::new();
 
-        let menu_model   = Rc::new(MatrixUIMenu::new(matrix.clone(), txtsrc.clone()));
+        let menu_model =
+            Rc::new(MatrixUIMenu::new(matrix.clone(), txtsrc.clone()));
+
         let matrix_model = Rc::new(MatrixUIModel {
             matrix:         matrix.clone(),
+            dialog_model,
             menu:           menu_model.clone(),
             editor:         editor.clone(),
             w:              size.0,
@@ -450,7 +462,8 @@ impl NodeMatrixData {
         let wt_hexgrid =
             Rc::new(HexGrid::new(14.0, 10.0, 54.0));
         let wt_hexgrid_menu =
-            Rc::new(HexGrid::new_y_offs_pinned(12.0, 10.0, 45.0).bg_color(UI_GRID_BG2_CLR));
+            Rc::new(HexGrid::new_y_offs_pinned(12.0, 10.0, 45.0)
+                    .bg_color(UI_GRID_BG2_CLR));
         let wt_cont = Rc::new(Container::new());
         let wt_text = Rc::new(Text::new(12.0));
 
