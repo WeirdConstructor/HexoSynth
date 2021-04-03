@@ -285,13 +285,13 @@ pub struct Matrix {
     infos:       Rc<RefCell<std::collections::HashMap<NodeId, NodeInfo>>>,
     /// Contains automateable parameters after the matrix was sync()'ed
     params:      Rc<RefCell<std::collections::HashMap<ParamId, MatrixNodeParam>>>,
-    /// Stores an old set of the values of automateable paramters.
-    params_old:  Rc<RefCell<std::collections::HashMap<ParamId, MatrixNodeParam>>>,
+    /// Stores the most recently set parameter values
+    param_values:Rc<RefCell<std::collections::HashMap<ParamId, f32>>>,
     /// Contains non automateable atom data for the nodes after the matrix was
     /// sync()'ed.
     atoms:       Rc<RefCell<std::collections::HashMap<ParamId, MatrixNodeAtom>>>,
-    /// Stores an old set of atom data.
-    atoms_old:   Rc<RefCell<std::collections::HashMap<ParamId, MatrixNodeAtom>>>,
+    /// Stores the most recently set atoms
+    atom_values: Rc<RefCell<std::collections::HashMap<ParamId, SAtom>>>,
 }
 
 unsafe impl Send for Matrix {}
@@ -305,9 +305,9 @@ impl Matrix {
             instances:   Rc::new(RefCell::new(std::collections::HashMap::new())),
             infos:       Rc::new(RefCell::new(std::collections::HashMap::new())),
             params:      Rc::new(RefCell::new(std::collections::HashMap::new())),
-            params_old:  Rc::new(RefCell::new(std::collections::HashMap::new())),
+            param_values:Rc::new(RefCell::new(std::collections::HashMap::new())),
             atoms:       Rc::new(RefCell::new(std::collections::HashMap::new())),
-            atoms_old:   Rc::new(RefCell::new(std::collections::HashMap::new())),
+            atom_values: Rc::new(RefCell::new(std::collections::HashMap::new())),
             monitored_cell: Cell::empty(NodeId::Nop),
             gen_counter: 0,
             config,
@@ -341,6 +341,23 @@ impl Matrix {
         self.matrix[x * self.h + y] = cell;
     }
 
+    pub fn clear(&mut self) {
+        for cell in self.matrix.iter_mut() {
+            *cell = Cell::empty(NodeId::Nop);
+        }
+
+        self.params      .borrow_mut().clear();
+        self.param_values.borrow_mut().clear();
+        self.atoms       .borrow_mut().clear();
+        self.atom_values .borrow_mut().clear();
+        self.instances   .borrow_mut().clear();
+        self.infos       .borrow_mut().clear();
+
+        self.config.delete_nodes();
+        self.monitor_cell(Cell::empty(NodeId::Nop));
+        self.sync();
+    }
+
     pub fn for_each_atom<F: FnMut(usize, ParamId, &SAtom)>(&self, mut f: F) {
         for (_, matrix_param) in self.atoms.borrow().iter() {
             if let Some(unique_idx) =
@@ -364,16 +381,14 @@ impl Matrix {
 
     pub fn to_repr(&self) -> MatrixRepr {
         let params : Vec<(ParamId, f32)> =
-            self.params.borrow()
+            self.param_values.borrow()
                 .iter()
-                .map(|(_, node_param)|
-                    (node_param.param_id, node_param.value))
+                .map(|(param_id, value)| (*param_id, *value))
                 .collect();
         let atoms : Vec<(ParamId, SAtom)> =
-            self.atoms.borrow()
+            self.atom_values.borrow()
                 .iter()
-                .map(|(_, node_param)|
-                    (node_param.param_id, node_param.value.clone()))
+                .map(|(param_id, value)| (*param_id, value.clone()))
                 .collect();
 
         let mut cells : Vec<CellRepr> = vec![];
@@ -390,20 +405,22 @@ impl Matrix {
     }
 
     pub fn from_repr(&mut self, repr: &MatrixRepr) {
-        /*
-            - Clear matrix
-                - write clear() function, that
-                    - removes all nodes from the matrix
-                    - and saved parameters/atoms.
-                - write a new message for the backend GraphMessage::Clear { node_prog }
-                    - factor out what happens for the GraphMessage::NewProg message!
-                    - replaces the nodes with the Nop node
-                    - replaces the node prog without carrying over the old
-                      buffers.
-            - for all cells place the cells from the representation
-            - set the params and atoms from the representation
-            - leave calling sync() to the caller.
-        */
+        self.clear();
+
+        for (param_id, val) in repr.params.iter() {
+            self.param_values.borrow_mut().insert(*param_id, *val);
+        }
+
+        for (param_id, val) in repr.atoms.iter() {
+            self.atom_values.borrow_mut().insert(*param_id, val.clone());
+        }
+
+        for cell_repr in repr.cells.iter() {
+            let cell = Cell::from_repr(cell_repr);
+            self.place(cell.x as usize, cell.y as usize, cell);
+        }
+
+        self.sync();
     }
 
     /// Receives the most recent data for the monitored signal at index `idx`.
@@ -483,11 +500,15 @@ impl Matrix {
         //      the matrix is sync()'ed. Only call this function
         //      if it was actually synced before!
         if param.is_atom() {
+            self.atom_values.borrow_mut().insert(param, at.clone());
+
             if let Some(nparam) = self.atoms.borrow_mut().get_mut(&param) {
                 nparam.value = at.clone();
                 self.config.set_atom(nparam.at_idx, at);
             }
         } else {
+            self.param_values.borrow_mut().insert(param, at.f());
+
             if let Some(nparam) = self.params.borrow_mut().get_mut(&param) {
                 let value = at.f();
                 nparam.value = value;
@@ -744,7 +765,6 @@ impl Matrix {
 
         // Swap old and current parameter. Keep the old ones
         // as reference.
-        std::mem::swap(&mut self.params_old, &mut self.params);
         self.params.borrow_mut().clear();
 
         let mut out_len = 0;
@@ -769,16 +789,19 @@ impl Matrix {
             // already exist from a previous matrix instance.
             for param_idx in in_idx..in_len {
                 if let Some(param_id) = id.inp_param_by_idx(param_idx - in_idx) {
-                    if let Some(old_param) = self.params_old.borrow().get(&param_id) {
-                        self.params.borrow_mut().insert(param_id, *old_param);
+                    let value =
+                        if let Some(value) = self.param_values.borrow().get(&param_id) {
+                            *value
+                        } else {
+                            param_id.norm_def()
+                        };
 
-                    } else {
-                        self.params.borrow_mut().insert(param_id, MatrixNodeParam {
-                            param_id,
-                            input_idx:  param_idx,
-                            value:      param_id.norm_def(),
-                        });
-                    }
+                    self.param_values.borrow_mut().insert(param_id, value);
+                    self.params.borrow_mut().insert(param_id, MatrixNodeParam {
+                        param_id,
+                        value,
+                        input_idx: param_idx,
+                    });
                 }
             }
 
@@ -788,16 +811,21 @@ impl Matrix {
                 // XXX: See also the documentation of atom_param_by_idx about the
                 // little param_id for an Atom weirdness here.
                 if let Some(param_id) = id.atom_param_by_idx(atom_idx - at_idx) {
-                    if let Some(old_atom) = self.atoms_old.borrow().get(&param_id) {
-                        self.atoms.borrow_mut().insert(param_id, old_atom.clone());
+                    let value =
+                        if let Some(atom) =
+                            self.atom_values.borrow().get(&param_id)
+                        {
+                            atom.clone()
+                        } else {
+                            param_id.as_atom_def()
+                        };
 
-                    } else {
-                        self.atoms.borrow_mut().insert(param_id, MatrixNodeAtom {
-                            param_id,
-                            at_idx:  atom_idx,
-                            value:   param_id.as_atom_def(),
-                        });
-                    }
+                    self.atom_values.borrow_mut().insert(param_id, value.clone());
+                    self.atoms.borrow_mut().insert(param_id, MatrixNodeAtom {
+                        param_id,
+                        value,
+                        at_idx:  atom_idx,
+                    });
                 }
             }
 

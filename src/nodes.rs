@@ -214,6 +214,7 @@ impl NodeProg {
 pub enum GraphMessage {
     NewNode { index: u8, node: Node },
     NewProg { prog: NodeProg, copy_old_out: bool },
+    Clear   { prog: NodeProg },
 }
 
 /// Messages for small updates between the NodeExecutor thread
@@ -371,6 +372,15 @@ impl NodeConfigurator {
         let mut bufs = [0; MON_SIG_CNT];
         bufs.copy_from_slice(&in_bufs);
         let _ = self.quick_update_prod.push(QuickMessage::SetMonitor { bufs });
+    }
+
+    pub fn delete_nodes(&mut self) {
+        self.node2idx.clear();
+        self.nodes.fill_with(|| NodeInfo::Nop);
+
+        let _ =
+            self.graph_update_prod.push(
+                GraphMessage::Clear { prog: NodeProg::empty() });
     }
 
     pub fn create_node(&mut self, ni: NodeId) -> Option<(&NodeInfo, u8)> {
@@ -641,6 +651,18 @@ impl NodeExecutor {
                     let _ =
                         self.graph_drop_prod.push(
                             DropMsg::Node { node: prev_node });
+                },
+                GraphMessage::Clear { prog } => {
+                    let mut prev_prog = std::mem::replace(&mut self.prog, prog);
+                    for n in self.nodes.iter_mut() {
+                        let prev_node = std::mem::replace(n, Node::Nop);
+                        let _ =
+                            self.graph_drop_prod.push(
+                                DropMsg::Node { node: prev_node });
+                    }
+                    let _ =
+                        self.graph_drop_prod.push(
+                            DropMsg::Prog { prog: prev_prog });
                 },
                 GraphMessage::NewProg { prog, copy_old_out } => {
                     let mut prev_prog = std::mem::replace(&mut self.prog, prog);

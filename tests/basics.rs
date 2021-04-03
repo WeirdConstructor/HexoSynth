@@ -124,6 +124,22 @@ fn run_and_get_l_rms_mimax(
     rms_mimax[1]
 }
 
+fn run_and_get_fft4096(
+    node_exec: &mut hexosynth::nodes::NodeExecutor,
+    thres: u32,
+    offs_ms: f32) -> Vec<(u16, u32)>
+{
+    let min_samples_for_fft = 4096.0;
+    let offs_samples        = (offs_ms * (SAMPLE_RATE / 1000.0)).ceil();
+    let min_len_samples =
+        offs_samples
+        // 2.0 * for safety margin
+        + 2.0 * min_samples_for_fft;
+    let run_len_s = min_len_samples / SAMPLE_RATE;
+    let (mut out_l, _out_r) = run_no_input(node_exec, run_len_s);
+    fft_thres_at_ms(&mut out_l[..], FFT::F4096, thres, offs_ms)
+}
+
 #[allow(unused)]
 enum FFT {
     F16,
@@ -132,6 +148,8 @@ enum FFT {
     F128,
     F512,
     F1024,
+    F2048,
+    F4096,
 }
 
 fn fft_thres_at_ms(buf: &mut [f32], size: FFT, amp_thres: u32, ms_idx: f32) -> Vec<(u16, u32)> {
@@ -143,6 +161,8 @@ fn fft_thres_at_ms(buf: &mut [f32], size: FFT, amp_thres: u32, ms_idx: f32) -> V
         FFT::F128     => 128,
         FFT::F512     => 512,
         FFT::F1024    => 1024,
+        FFT::F2048    => 2048,
+        FFT::F4096    => 4096,
     };
     let len = fft_nbins;
 
@@ -178,6 +198,10 @@ fn fft_thres_at_ms(buf: &mut [f32], size: FFT, amp_thres: u32, ms_idx: f32) -> V
                 microfft::real::rfft_512(&mut buf[idx..(idx + len)]),
             FFT::F1024 =>
                 microfft::real::rfft_1024(&mut buf[idx..(idx + len)]),
+            FFT::F2048 =>
+                microfft::real::rfft_2048(&mut buf[idx..(idx + len)]),
+            FFT::F4096 =>
+                microfft::real::rfft_4096(&mut buf[idx..(idx + len)]),
         };
     let amplitudes: Vec<_> = spec.iter().map(|c| c.norm() as u32).collect();
 
@@ -743,4 +767,44 @@ fn check_matrix_amp() {
     assert_float_eq!(rms, 0.12499);
     assert_float_eq!(min, -0.5);
     assert_float_eq!(max, 0.5);
+}
+
+
+#[test]
+fn check_matrix_clear() {
+    let (node_conf, mut node_exec) = new_node_engine();
+    let mut matrix = Matrix::new(node_conf, 3, 3);
+
+    let sin = NodeId::Sin(0);
+    let out = NodeId::Out(0);
+    matrix.place(0, 0, Cell::empty(sin)
+                       .out(None, None, sin.out("sig")));
+    matrix.place(0, 1, Cell::empty(out)
+                       .input(out.inp("ch1"), None, None));
+    matrix.sync();
+
+    let freq_param = sin.inp_param("freq").unwrap();
+    matrix.set_param(freq_param, SAtom::param(-0.2));
+
+    let fft = run_and_get_fft4096(&mut node_exec, 800, 0.0);
+    // slightly lower counts than later, because we have a slight
+    // frequency slope after setting the frequency to 110Hz
+    assert_eq!(fft[0], (108, 989));
+
+    let fft = run_and_get_fft4096(&mut node_exec, 800, 10.0);
+    assert_eq!(fft[0], (108, 993));
+
+    matrix.clear();
+
+    let fft = run_and_get_fft4096(&mut node_exec, 1, 50.0);
+    assert_eq!(fft.len(), 0);
+
+    matrix.place(0, 0, Cell::empty(sin)
+                       .out(None, None, sin.out("sig")));
+    matrix.place(0, 1, Cell::empty(out)
+                       .input(out.inp("ch1"), None, None));
+    matrix.sync();
+
+    let fft = run_and_get_fft4096(&mut node_exec, 800, 50.0);
+    assert_eq!(fft[0], (441, 1012));
 }
