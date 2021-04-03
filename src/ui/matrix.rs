@@ -23,6 +23,7 @@ use std::sync::Mutex;
 use crate::dsp::NodeId;
 use crate::ui::menu::{Menu, MenuControl, MenuActionHandler};
 use crate::ui::node_panel::{NodePanel, NodePanelData};
+use crate::ui::util_panel::{UtilPanel, UtilPanelData};
 
 const LED_SAMPLES : usize = 10;
 
@@ -414,6 +415,7 @@ pub struct NodeMatrixData {
     hex_menu_id:  AtomId,
     #[allow(dead_code)]
     node_panel:   Box<WidgetData>,
+    util_panel:   Box<WidgetData>,
 
     matrix_model: Rc<MatrixUIModel>,
 
@@ -426,6 +428,7 @@ const HEX_MENU_CONT_ID      : u32 = 3;
 const HEX_MENU_HELP_TEXT_ID : u32 = 4;
 const HEX_MENU_ID           : u32 = 5;
 const NODE_PANEL_ID         : u32 = 11;
+const UTIL_PANEL_ID         : u32 = 12;
 
 impl NodeMatrixData {
     pub fn new(
@@ -499,7 +502,12 @@ impl NodeMatrixData {
                     wt_node_panel,
                     AtomId::new(node_id, NODE_PANEL_ID),
                     center(12, 12),
-                    NodePanelData::new(node_id, matrix.clone(), editor))),
+                    NodePanelData::new(node_id, matrix.clone(), editor.clone()))),
+                util_panel: Box::new(wbox!(
+                    UtilPanel::new_ref(),
+                    AtomId::new(node_id, UTIL_PANEL_ID),
+                    center(12, 12),
+                    UtilPanelData::new(matrix.clone(), editor))),
                 hex_menu_id,
                 matrix_model,
                 grid_click_pos: None,
@@ -524,10 +532,14 @@ impl WidgetType for NodeMatrix {
             data.matrix_model.editor.new_filter_frame();
 
             let panel_pos = pos.resize(360.0, pos.h);
+            let util_pos =
+                pos.resize(355.0, pos.h - 5.0)
+                   .offs(pos.w - 360.0, 0.0);
 
             let hex_pos = pos.shrink(365.0, 0.0);
             (*data.hex_grid).draw(ui, p, hex_pos);
             (*data.node_panel).draw(ui, p, panel_pos);
+            (*data.util_panel).draw(ui, p, util_pos);
 
             if let Some(mouse_pos) = data.grid_click_pos {
                 if data.matrix_model.menu.menu.borrow().is_open() {
@@ -572,6 +584,7 @@ impl WidgetType for NodeMatrix {
                                     data.matrix_model.menu.menu.borrow_mut().update();
                                 } else {
                                     data.node_panel.event(ui, ev);
+                                    data.util_panel.event(ui, ev);
                                 }
                             },
                             _ => {
@@ -579,6 +592,7 @@ impl WidgetType for NodeMatrix {
                                     data.hex_grid.event(ui, ev);
                                 } else {
                                     data.node_panel.event(ui, ev);
+                                    data.util_panel.event(ui, ev);
                                 }
                             },
                         }

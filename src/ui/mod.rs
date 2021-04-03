@@ -6,3 +6,4 @@ pub mod matrix;
 mod node_panel;
 mod menu;
 mod monitors;
+mod util_panel;

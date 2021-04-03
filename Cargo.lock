@@ -288,7 +288,7 @@ dependencies = [
 [[package]]
 name = "hexotk"
 version = "0.1.0"
-source = "git+https://github.com/WeirdConstructor/HexoTK.git#4cccff56d7450059a298160ff22fabf957baeba7"
+source = "git+https://github.com/WeirdConstructor/HexoTK.git#842e01a073beb16718f824582e0c574ffec07fef"
 dependencies = [
  "baseview",
  "femtovg",
