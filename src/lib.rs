@@ -26,6 +26,8 @@ use nodes::*;
 use matrix::*;
 
 pub use cell_dir::CellDir;
+pub use matrix_repr::load_patch_from_file;
+pub use matrix_repr::save_patch_to_file;
 
 use dsp::NodeId;
 use serde::{Serialize, Deserialize};

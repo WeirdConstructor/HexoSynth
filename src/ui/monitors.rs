@@ -15,8 +15,6 @@ use hexotk::widgets::{
     GraphMinMax, GraphMinMaxData, GraphMinMaxSource
 };
 
-use crate::util::PerfTimer;
-
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::Mutex;

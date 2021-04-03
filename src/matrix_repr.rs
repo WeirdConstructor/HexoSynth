@@ -67,12 +67,25 @@ pub enum MatrixDeserError {
     UnknownNode(String),
     UnknownParamId(String),
     Deserialization(String),
+    IO(String),
     InvalidAtom(String),
 }
 
 impl From<serde_json::Error> for MatrixDeserError {
     fn from(err: serde_json::Error) -> MatrixDeserError {
         MatrixDeserError::Deserialization(format!("{}", err))
+    }
+}
+
+impl From<std::str::Utf8Error> for MatrixDeserError {
+    fn from(err: std::str::Utf8Error) -> MatrixDeserError {
+        MatrixDeserError::Deserialization(format!("{}", err))
+    }
+}
+
+impl From<std::io::Error> for MatrixDeserError {
+    fn from(err: std::io::Error) -> MatrixDeserError {
+        MatrixDeserError::IO(format!("{}", err))
     }
 }
 
@@ -155,6 +168,25 @@ impl MatrixRepr {
             std::fs::rename(&tmp_filepath, &filepath)?;
 
             Ok(())
+    }
+
+    pub fn read_from_file(filepath: &str) -> Result<MatrixRepr, MatrixDeserError> {
+        use std::io::prelude::*;
+        use std::fs::OpenOptions;
+
+        let mut file =
+            OpenOptions::new()
+            .write(false)
+            .create(false)
+            .read(true)
+            .open(&filepath)?;
+
+        let mut contents : Vec<u8> = Vec::new();
+        file.read_to_end(&mut contents)?;
+
+        let s = std::str::from_utf8(&contents)?;
+
+        MatrixRepr::deserialize(s)
     }
 
     pub fn deserialize(s: &str) -> Result<MatrixRepr, MatrixDeserError> {
@@ -261,6 +293,21 @@ impl MatrixRepr {
 
         v.to_string()
     }
+}
+
+pub fn load_patch_from_file(matrix: &mut crate::matrix::Matrix, filepath: &str)
+    -> Result<(), MatrixDeserError>
+{
+    let mr = MatrixRepr::read_from_file(filepath)?;
+    matrix.from_repr(&mr);
+    Ok(())
+}
+
+pub fn save_patch_to_file(matrix: &mut crate::matrix::Matrix, filepath: &str)
+    -> std::io::Result<()>
+{
+    let mut mr = matrix.to_repr();
+    mr.write_to_file(filepath)
 }
 
 #[cfg(test)]
@@ -375,7 +422,7 @@ mod tests {
 
     #[test]
     fn check_file_repr() {
-        {
+        let orig_serial = {
             use crate::nodes::new_node_engine;
 
             let (node_conf, mut _node_exec) = new_node_engine();
@@ -396,28 +443,27 @@ mod tests {
             matrix.set_param(freq_param, SAtom::param(-0.1));
 
             let mut mr = matrix.to_repr();
+            let s2 = mr.serialize().to_string();
 
-            mr.write_to_file("hexosynth_test_patch.hxy").unwrap();
+            save_patch_to_file(
+                &mut matrix, "hexosynth_test_patch.hxy").unwrap();
+
+            s2
+        };
+
+        {
+            use crate::nodes::new_node_engine;
+
+            let (node_conf, mut _node_exec) = new_node_engine();
+            let mut matrix = Matrix::new(node_conf, 3, 3);
+
+            load_patch_from_file(
+                &mut matrix, "hexosynth_test_patch.hxy").unwrap();
+
+            let mut mr = matrix.to_repr();
+            let s = mr.serialize().to_string();
+
+            assert_eq!(s, orig_serial);
         }
-
-//        {
-//            use crate::nodes::new_node_engine;
-//
-//            let mut mr = MatrixRepr::empty();
-//
-//            mr.read_from_file("hexosynth_test_patch.hxy").unwrap();
-//
-//            let (node_conf, mut _node_exec) = new_node_engine();
-//            let mut matrix = Matrix::new(node_conf, 3, 3);
-//
-//            matrix.from_repr(mr);
-//            matrix.sync();
-//
-//            let mut mr = matrix.to_repr();
-//            let s = mr.serialize().to_string();
-//
-//            assert_eq!(s, "");
-//        }
-
     }
 }

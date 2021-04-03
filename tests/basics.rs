@@ -769,7 +769,6 @@ fn check_matrix_amp() {
     assert_float_eq!(max, 0.5);
 }
 
-
 #[test]
 fn check_matrix_clear() {
     let (node_conf, mut node_exec) = new_node_engine();
@@ -807,4 +806,41 @@ fn check_matrix_clear() {
 
     let fft = run_and_get_fft4096(&mut node_exec, 800, 50.0);
     assert_eq!(fft[0], (441, 1012));
+}
+
+
+#[test]
+fn check_matrix_serialize() {
+    {
+        let (node_conf, mut node_exec) = new_node_engine();
+        let mut matrix = Matrix::new(node_conf, 3, 3);
+
+        let sin = NodeId::Sin(0);
+        let out = NodeId::Out(0);
+        matrix.place(0, 0, Cell::empty(sin)
+                           .out(None, None, sin.out("sig")));
+        matrix.place(0, 1, Cell::empty(out)
+                           .input(out.inp("ch1"), None, None));
+        matrix.sync();
+
+        let freq_param = sin.inp_param("freq").unwrap();
+        matrix.set_param(freq_param, SAtom::param(-0.2));
+
+        let fft = run_and_get_fft4096(&mut node_exec, 800, 10.0);
+        assert_eq!(fft[0], (108, 993));
+
+        hexosynth::save_patch_to_file(&mut matrix, "check_matrix_serialize.hxy")
+            .unwrap();
+    }
+
+    {
+        let (node_conf, mut node_exec) = new_node_engine();
+        let mut matrix = Matrix::new(node_conf, 3, 3);
+
+        hexosynth::load_patch_from_file(
+            &mut matrix, "check_matrix_serialize.hxy").unwrap();
+
+        let fft = run_and_get_fft4096(&mut node_exec, 800, 10.0);
+        assert_eq!(fft[0], (108, 993));
+    }
 }

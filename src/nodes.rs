@@ -653,13 +653,16 @@ impl NodeExecutor {
                             DropMsg::Node { node: prev_node });
                 },
                 GraphMessage::Clear { prog } => {
-                    let mut prev_prog = std::mem::replace(&mut self.prog, prog);
                     for n in self.nodes.iter_mut() {
-                        let prev_node = std::mem::replace(n, Node::Nop);
-                        let _ =
-                            self.graph_drop_prod.push(
-                                DropMsg::Node { node: prev_node });
+                        if n.to_id(0) != NodeId::Nop {
+                            let prev_node = std::mem::replace(n, Node::Nop);
+                            let _ =
+                                self.graph_drop_prod.push(
+                                    DropMsg::Node { node: prev_node });
+                        }
                     }
+
+                    let prev_prog = std::mem::replace(&mut self.prog, prog);
                     let _ =
                         self.graph_drop_prod.push(
                             DropMsg::Prog { prog: prev_prog });
