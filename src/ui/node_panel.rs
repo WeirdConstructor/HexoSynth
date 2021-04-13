@@ -187,21 +187,6 @@ impl GenericNodeUI {
                center(12, 3),
                txt_cd));
 
-        // TODO:
-        // - detect all the inputs
-        // - detect which are atoms (or all atoms)
-        // - enumerate all for the AtomId below.
-        // - figure out their value ranges for the knobs.
-        //   => Maybe define an extra data type for this?
-        //      struct InputParamDesc { min, max, type }?
-        //      enum UIParamDesc { Knob { min: f32, max: f32 }, ... }
-        // - implement a transformation of UIParamDesc to WidgetData.
-        // - Implement a Settings input
-        // - Implement a sample input with string input.
-        // => Then dive off into preset serialization?!
-        // => Then dive off into sampler implementation
-        //    - With autom. Test!?
-
         self.cont =
             Some(Box::new(wbox!(
                 wt_cont,
