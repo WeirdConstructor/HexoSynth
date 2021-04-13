@@ -11,6 +11,7 @@ mod node_out;
 #[allow(non_upper_case_globals)]
 mod node_test;
 
+mod tracker;
 mod satom;
 pub mod helpers;
 

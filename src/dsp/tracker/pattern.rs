@@ -3,32 +3,38 @@
 // See README.md and COPYING for details.
 
 use hexotk::widgets::UIPatternModel;
+use super::PatternColType;
+use super::MAX_PATTERN_LEN;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-enum PatternColType {
-    Note,
-    Step,
-    Value,
+pub enum PatternUpdateMsg {
+    UpdateColumn {
+        col_type:    PatternColType,
+        pattern_len: usize,
+        data:        [f32; MAX_PATTERN_LEN]
+    },
 }
 
 #[derive(Debug)]
 pub struct PatternData {
     col_types:  [PatternColType; 6],
     data:       Vec<Vec<Option<u16>>>,
-    out_data:   Vec<f32>;
+    out_data:   Vec<[f32; MAX_PATTERN_LEN]>,
     strings:    Vec<Vec<Option<String>>>,
     cursor:     (usize, usize),
+    rows:       usize,
     edit_step:  usize,
 }
 
 impl PatternData {
-    pub fn new(len: usize) -> Self {
+    pub fn new(rows: usize) -> Self {
         Self {
             col_types:  [PatternColType::Value; 6],
-            data:       vec![vec![None; 6]; len],
-            strings:    vec![vec![None; 6]; len],
+            data:       vec![vec![None; 6]; MAX_PATTERN_LEN],
+            out_data:   vec![[0.0; MAX_PATTERN_LEN]; 6],
+            strings:    vec![vec![None; 6]; MAX_PATTERN_LEN],
             cursor:     (2, 2),
             edit_step:  4,
+            rows,
         }
     }
 }
@@ -40,7 +46,7 @@ impl PatternData {
 
         match self.col_types[col] {
             PatternColType::Note => {
-                for row in 0..self.data.len() {
+                for row in 0..self.rows {
                     let cell = self.data[row][col];
                     // - check if cell is empty
                     // - count the number of rows until:
