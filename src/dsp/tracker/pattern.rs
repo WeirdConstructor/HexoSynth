@@ -97,8 +97,27 @@ impl PatternData {
                 }
             },
             PatternColType::Note => {
+                let mut cur_value = 0.0;
+
+                for row in 0..self.rows {
+                    if let Some(new_value) = self.data[row][col] {
+                        cur_value =
+                            ((new_value as i32 - 69) as f32 * 0.1) / 12.0;
+                    }
+
+                    out_col[row] = cur_value;
+                }
             },
             PatternColType::Step => {
+                let mut cur_value = 0.0;
+
+                for row in 0..self.rows {
+                    if let Some(new_value) = self.data[row][col] {
+                        cur_value = (new_value as f32) / (0xFFF as f32);
+                    }
+
+                    out_col[row] = cur_value;
+                }
             },
         }
     }
@@ -396,6 +415,54 @@ mod tests {
                     out_data[col][i],
                     out_data[col][15 - i]);
             }
+        }
+    }
+
+    #[test]
+    fn check_pattern_step_out() {
+        let mut pats = PatternData::new(16);
+
+        for col in 0..6 {
+            pats.set_col_step_type(col);
+            pats.set_cell_value(4,  col, 0x450);
+            pats.set_cell_value(5,  col, 0x0);
+            pats.set_cell_value(7,  col, 0x7ff);
+            pats.set_cell_value(9,  col, 0x800);
+            pats.set_cell_value(10, col, 0xfff);
+            pats.sync_out_data(col);
+
+            let out_data = pats.get_out_data();
+            assert_float_eq!(out_data[col][0], 0.0);
+            assert_float_eq!(out_data[col][4], 0.26959708);
+            assert_float_eq!(out_data[col][5], 0.0);
+            assert_float_eq!(out_data[col][7], 0.4998779);
+            assert_float_eq!(out_data[col][8], 0.4998779);
+            assert_float_eq!(out_data[col][9], 0.50012213);
+            assert_float_eq!(out_data[col][10], 1.0);
+            assert_float_eq!(out_data[col][15], 1.0);
+        }
+    }
+
+    #[test]
+    fn check_pattern_note_out() {
+        let mut pats = PatternData::new(16);
+
+        for col in 0..6 {
+            pats.set_col_note_type(col);
+            pats.set_cell_value(4, col, 0x45);
+            pats.set_cell_value(5, col, 0x0);
+            pats.set_cell_value(7, col, 0x45 - 12);
+            pats.set_cell_value(10, col, 0x45 + 12);
+            pats.sync_out_data(col);
+
+            let out_data = pats.get_out_data();
+            assert_float_eq!(out_data[col][0], 0.0);
+            assert_float_eq!(out_data[col][4], 0.0);
+            assert_float_eq!(out_data[col][5], -0.575);
+            assert_float_eq!(out_data[col][7], -0.1);
+            assert_float_eq!(out_data[col][9], -0.1);
+            assert_float_eq!(out_data[col][10], 0.1);
+            assert_float_eq!(out_data[col][15], 0.1);
         }
     }
 }
