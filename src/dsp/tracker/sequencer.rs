@@ -30,3 +30,10 @@ impl PatternSequencer {
         }
     }
 }
+
+// TODO: If PatternColType::None, we don't have to play!
+
+
+
+
+

@@ -40,26 +40,65 @@ impl PatternData {
 }
 
 impl PatternData {
+    pub fn get_out_data(&self) -> &[[f32; MAX_PATTERN_LEN]] {
+        &self.out_data
+    }
+
     pub fn sync_out_data(&mut self, col: usize) {
-        // assume 0.0 as start value
-        let mut last_value = 0.0;
+        let mut out_col = &mut self.out_data[col];
 
         match self.col_types[col] {
-            PatternColType::Note => {
-                for row in 0..self.rows {
-                    let cell = self.data[row][col];
-                    // - check if cell is empty
-                    // - count the number of rows until:
-                    //   - we hit a value
-                    //   - or end of the pattern
-                    // - if the cell has a value:
-                    //    - convert cell u16 to note
-                    //    - write all prior empty rows with the value
+            PatternColType::Value => {
+                let mut start_value = 0.0;
+                let mut start_idx   = 0;
+                let mut end_idx     = 0;
+
+                while end_idx <= self.rows {
+                    let mut break_after_write = false;
+                    let cur_value =
+                        if end_idx == self.rows {
+                            end_idx -= 1;
+                            break_after_write = true;
+                            Some(self.data[end_idx][col]
+                                .map(|v| (v as f32) / (0xFFF as f32))
+                                .unwrap_or(0.0))
+                        } else {
+                            self.data[end_idx][col].map(|v|
+                                (v as f32) / (0xFFF as f32))
+                        };
+
+                    if let Some(end_value) = cur_value {
+                        out_col[start_idx] = start_value;
+                        out_col[end_idx]   = end_value;
+
+                        let delta_rows = end_idx - start_idx;
+
+                        if delta_rows > 1 {
+                            for idx in (start_idx + 1)..end_idx {
+                                let x =
+                                      (idx - start_idx) as f32
+                                    / (delta_rows as f32);
+                                out_col[idx] =
+                                    start_value * (1.0 - x) + end_value * x;
+                            }
+                        }
+
+                        start_value = end_value;
+                        start_idx   = end_idx;
+                        end_idx     = end_idx + 1;
+
+                        if break_after_write {
+                            break;
+                        }
+
+                    } else {
+                        end_idx += 1;
+                    }
                 }
             },
-            PatternColType::Step => {
+            PatternColType::Note => {
             },
-            PatternColType::Value => {
+            PatternColType::Step => {
             },
         }
     }
@@ -153,4 +192,210 @@ impl UIPatternModel for PatternData {
     fn get_cursor(&self) -> (usize, usize) { self.cursor }
     fn set_edit_step(&mut self, es: usize) { self.edit_step = es; }
     fn get_edit_step(&mut self) -> usize { self.edit_step }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    macro_rules! assert_float_eq {
+        ($a:expr, $b:expr) => {
+            if ($a - $b).abs() > 0.0001 {
+                panic!(r#"assertion failed: `(left == right)`
+      left: `{:?}`,
+     right: `{:?}`"#, $a, $b)
+            }
+        }
+    }
+
+    #[test]
+    fn check_linear_value_corner_case1_0_to_1() {
+        let mut pats = PatternData::new(3);
+
+        for col in 0..6 {
+            pats.set_col_value_type(col);
+            pats.set_cell_value(0, col, 0);
+            pats.set_cell_value(2, col, 0xFFF);
+            pats.sync_out_data(col);
+
+            let out_data = pats.get_out_data();
+
+            let inc = 1.0 / 2.0;
+            for i in 1..2 {
+                let delta =
+                    out_data[col][i]
+                    - out_data[col][i - 1];
+                assert_float_eq!(delta, inc);
+            }
+        }
+    }
+
+    #[test]
+    fn check_linear_value_corner_case2_0_to_1() {
+        let mut pats = PatternData::new(4);
+
+        for col in 0..6 {
+            pats.set_col_value_type(col);
+            pats.set_cell_value(0, col, 0);
+            pats.set_cell_value(3, col, 0xFFF);
+            pats.sync_out_data(col);
+
+            let out_data = pats.get_out_data();
+
+            let inc = 1.0 / 3.0;
+            for i in 1..3 {
+                let delta =
+                    out_data[col][i]
+                    - out_data[col][i - 1];
+                assert_float_eq!(delta, inc);
+            }
+        }
+    }
+
+    #[test]
+    fn check_linear_value_out_0_to_1() {
+        let mut pats = PatternData::new(16);
+
+        for col in 0..6 {
+            pats.set_col_value_type(col);
+            pats.set_cell_value(0,  col, 0);
+            pats.set_cell_value(15, col, 0xFFF);
+            pats.sync_out_data(col);
+
+            let out_data = pats.get_out_data();
+
+            let inc = 1.0 / 15.0;
+
+            //d// println!("out: {:?}", &out_data[col][0..16]);
+            for i in 1..16 {
+                let delta =
+                    out_data[col][i]
+                    - out_data[col][i - 1];
+                assert_float_eq!(delta, inc);
+            }
+        }
+    }
+
+    #[test]
+    fn check_linear_value_out_1_to_0() {
+        let mut pats = PatternData::new(16);
+
+        for col in 0..6 {
+            pats.set_col_value_type(col);
+            pats.set_cell_value(0, col, 0xFFF);
+            pats.sync_out_data(col);
+
+            let out_data = pats.get_out_data();
+
+            let inc = 1.0 / 15.0;
+
+            for i in 1..16 {
+                let delta =
+                    out_data[col][i]
+                    - out_data[col][i - 1];
+                assert_float_eq!(delta.abs(), inc);
+            }
+        }
+    }
+
+    #[test]
+    fn check_linear_value_out_cast1_1_to_1() {
+        let mut pats = PatternData::new(16);
+
+        for col in 0..6 {
+            pats.set_col_value_type(col);
+            pats.set_cell_value(7, col, 0xFFF);
+            pats.set_cell_value(8, col, 0xFFF);
+            pats.sync_out_data(col);
+
+            let out_data = pats.get_out_data();
+
+            let inc = 1.0 / 15.0;
+
+            //d// println!("out: {:?}", &out_data[col][0..16]);
+            for i in 0..8 {
+                assert_float_eq!(
+                    out_data[col][i],
+                    out_data[col][15 - i]);
+            }
+        }
+    }
+
+    #[test]
+    fn check_linear_value_out_case2_1_to_1() {
+        let mut pats = PatternData::new(16);
+
+        for col in 0..6 {
+            pats.set_col_value_type(col);
+            pats.set_cell_value(6, col, 0xFFF);
+            pats.set_cell_value(9, col, 0xFFF);
+            pats.sync_out_data(col);
+
+            let out_data = pats.get_out_data();
+
+            let inc = 1.0 / 15.0;
+
+            //d// println!("out: {:?}", &out_data[col][0..16]);
+            for i in 0..8 {
+                assert_float_eq!(
+                    out_data[col][i],
+                    out_data[col][15 - i]);
+            }
+        }
+    }
+
+    #[test]
+    fn check_linear_value_out_case3_1_to_1() {
+        let mut pats = PatternData::new(16);
+
+        for col in 0..6 {
+            pats.set_col_value_type(col);
+            pats.set_cell_value(6, col, 0xFFF);
+            pats.set_cell_value(7, col, 0x0);
+            pats.set_cell_value(8, col, 0x0);
+            pats.set_cell_value(9, col, 0xFFF);
+            pats.sync_out_data(col);
+
+            let out_data = pats.get_out_data();
+
+            let inc = 1.0 / 15.0;
+
+            //d// println!("out: {:?}", &out_data[col][0..16]);
+            for i in 0..8 {
+                assert_float_eq!(
+                    out_data[col][i],
+                    out_data[col][15 - i]);
+            }
+        }
+    }
+
+    #[test]
+    fn check_linear_value_out_case4_1_to_1() {
+        let mut pats = PatternData::new(16);
+
+        for col in 0..6 {
+            pats.set_col_value_type(col);
+            pats.set_cell_value(5, col, 0xFFF);
+            pats.set_cell_value(7, col, 0x0);
+            pats.set_cell_value(8, col, 0x0);
+            pats.set_cell_value(10, col, 0xFFF);
+            pats.sync_out_data(col);
+
+            let out_data = pats.get_out_data();
+
+            let inc = 1.0 / 15.0;
+
+            //d// println!("out: {:?}", &out_data[col][0..16]);
+
+            assert_float_eq!(0.5, out_data[col][6]);
+            assert_float_eq!(0.5, out_data[col][9]);
+
+            for i in 0..8 {
+                assert_float_eq!(
+                    out_data[col][i],
+                    out_data[col][15 - i]);
+            }
+        }
+    }
 }
