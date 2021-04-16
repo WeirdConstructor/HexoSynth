@@ -8,6 +8,7 @@ pub enum PatternColType {
     Note,
     Step,
     Value,
+    Gate,
 }
 
 pub use pattern::PatternData;
