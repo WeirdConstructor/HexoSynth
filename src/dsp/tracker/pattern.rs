@@ -123,9 +123,9 @@ impl PatternData {
                 for row in 0..self.rows {
                     out_col[row] =
                         if let Some(new_value) = self.data[row][col] {
-                            std::f32::from_bits(new_value as u32)
+                            f32::from_bits(new_value as u32)
                         } else {
-                            std::f32::from_bits(0xF000 as u32)
+                            f32::from_bits(0xF000 as u32)
                         };
                 }
             },
