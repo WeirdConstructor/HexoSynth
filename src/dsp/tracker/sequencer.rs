@@ -77,10 +77,15 @@ impl PatternSequencer {
 
             let gate : u32 = col[line].to_bits();
 
+            if (gate & 0xF000) > 0 {
+                *out = 0.0;
+                continue;
+            }
+
             // pulse_width:
             //      0xF  - Gate is on for full row
             //      0x0  - Gate is on for a very short burst
-            let pulse_width : u8 =  (gate & 0x00F) as u8;
+            let pulse_width : f32 = ((gate & 0x00F) + 1) as f32;
             // row_div:
             //      0xF  - Row has 1  Gate
             //      0x0  - Row is divided up into 16 Gates
@@ -90,6 +95,12 @@ impl PatternSequencer {
             //      0x7  - Gate fires only in 50% of the cases
             //      0x0  - Gate fires only in 1% of the cases
             let probability : u8 = ((gate & 0xF00) >> 8) as u8;
+
+            let pulse_width = pulse_width / 16.0;
+
+            println!("PW@[{:9.7}] = {:9.7}", phase, pulse_width);
+
+            *out = if phase_frac <= pulse_width { 1.0 } else { 0.0 };
 
             // Ideas:
             // compute probability:
@@ -107,8 +118,6 @@ impl PatternSequencer {
             //    - sub-phase =
             //          (fract / sub-div) - (fract / sub-div).floor()
             //    - check if sub-phase is inside the % of the pulsewidth
-
-            *out = 0.0;
         }
     }
 }
@@ -135,11 +144,12 @@ mod tests {
         let mut ps = PatternSequencer::new(2);
         ps.set_col(0, &[0.0, 1.0]);
 
-        let mut out = [0.0; 3];
-        ps.col_interpolate_at_phase(0, &[0.1, 0.5, 0.9], &mut out[..]);
+        let mut out = [0.0; 4];
+        ps.col_interpolate_at_phase(0, &[0.1, 0.50, 0.51, 0.9], &mut out[..]);
         assert_float_eq!(out[0], 0.9);
         assert_float_eq!(out[1], 0.5);
-        assert_float_eq!(out[2], 0.1);
+        assert_float_eq!(out[2], 0.5);
+        assert_float_eq!(out[3], 0.1);
     }
 
     #[test]
@@ -165,5 +175,59 @@ mod tests {
         assert_float_eq!(out[1], 0.0);
         assert_float_eq!(out[2], 0.3);
         assert_float_eq!(out[3], 1.0);
+    }
+
+    #[test]
+    fn check_seq_gate_1() {
+        let mut ps = PatternSequencer::new(2);
+        ps.set_col(0, &[
+            f32::from_bits(0x0FFF),
+            f32::from_bits(0xF000),
+        ]);
+
+        let mut out = [0.0; 6];
+        ps.col_gate_at_phase(0, &[0.1, 0.5, 0.500001, 0.6, 0.9, 0.99], &mut out[..]);
+        //d// println!("out: {:?}", out);
+
+        assert_float_eq!(out[0], 1.0);
+        assert_float_eq!(out[1], 1.0);
+        assert_float_eq!(out[2], 0.0);
+        assert_float_eq!(out[3], 0.0);
+        assert_float_eq!(out[4], 0.0);
+        assert_float_eq!(out[5], 0.0);
+    }
+
+    fn count_gates(slice: &[f32]) -> usize {
+        let mut sum = 0;
+        for p in slice.iter() {
+            if *p > 0.5 { sum += 1; }
+        }
+        sum
+    }
+
+    #[test]
+    fn check_seq_gate_2() {
+        let mut ps = PatternSequencer::new(2);
+        ps.set_col(0, &[
+            f32::from_bits(0x0000),
+            f32::from_bits(0x0007),
+        ]);
+
+        let mut phase = vec![0.0; 64];
+        let inc = 1.0 / 63.0;
+        let mut phase_run = 0.0;
+        for p in phase.iter_mut() {
+            *p = phase_run;
+            phase_run += inc;
+        }
+
+        //d// println!("PHASE: {:?}", phase);
+
+        let mut out = [0.0; 64];
+        ps.col_gate_at_phase(0, &phase[..], &mut out[..]);
+        //d// println!("out: {:?}", out);
+
+        assert_eq!(count_gates(&out[0..32]),  2);
+        assert_eq!(count_gates(&out[32..64]), 16);
     }
 }
