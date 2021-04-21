@@ -40,9 +40,13 @@ impl PatternSequencer {
             let line       = row_phase.floor() as usize;
             let prev_line  = if line == 0 { self.rows - 1 } else { line - 1 };
 
-
             let prev = col[prev_line];
             let next = col[line];
+
+            // println!("INTERP: {}={:9.7}, {}={:9.7} | {:9.7}",
+            //          prev_line, prev,
+            //          line, next,
+            //          phase_frac);
 
             *out = prev * (1.0 - phase_frac) + next * phase_frac;
         }
@@ -144,12 +148,14 @@ mod tests {
         let mut ps = PatternSequencer::new(2);
         ps.set_col(0, &[0.0, 1.0]);
 
-        let mut out = [0.0; 4];
-        ps.col_interpolate_at_phase(0, &[0.1, 0.50, 0.51, 0.9], &mut out[..]);
-        assert_float_eq!(out[0], 0.9);
-        assert_float_eq!(out[1], 0.5);
-        assert_float_eq!(out[2], 0.5);
-        assert_float_eq!(out[3], 0.1);
+        let mut out = [0.0; 6];
+        ps.col_interpolate_at_phase(0, &[0.0, 0.1, 0.50, 0.51, 0.9, 0.99999], &mut out[..]);
+        assert_float_eq!(out[0], 1.0);
+        assert_float_eq!(out[1], 0.8);
+        assert_float_eq!(out[2], 0.0);
+        assert_float_eq!(out[3], 0.02);
+        assert_float_eq!(out[4], 0.8);
+        assert_float_eq!(out[5], 0.99999);
     }
 
     #[test]
@@ -175,6 +181,7 @@ mod tests {
         assert_float_eq!(out[1], 0.0);
         assert_float_eq!(out[2], 0.3);
         assert_float_eq!(out[3], 1.0);
+        assert_float_eq!(out[4], 1.0);
     }
 
     #[test]
