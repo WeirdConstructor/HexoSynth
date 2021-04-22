@@ -107,6 +107,58 @@ impl RandGen {
     }
 }
 
+
+//- splitmix64 (http://xoroshiro.di.unimi.it/splitmix64.c) 
+//"""
+//  Written in 2015 by Sebastiano Vigna (vigna@acm.org)
+//
+//  To the extent possible under law, the author has dedicated all copyright
+//  and related and neighboring rights to this software to the public domain
+//  worldwide. This software is distributed without any warranty.
+//
+//  See <http://creativecommons.org/publicdomain/zero/1.0/>. 
+//"""
+//
+// Written by Alexander Stocko <as@coder.gg>
+//
+// To the extent possible under law, the author has dedicated all copyright
+// and related and neighboring rights to this software to the public domain
+// worldwide. This software is distributed without any warranty.
+//
+// See <LICENSE or http://creativecommons.org/publicdomain/zero/1.0/>
+use std::num::Wrapping as w;
+
+/// The `SplitMix64` random number generator.
+#[derive(Copy, Clone)]
+pub struct SplitMix64(pub u64);
+
+impl SplitMix64 {
+    pub fn new(seed: u64) -> Self { Self(seed) }
+    pub fn new_from_i64(seed: i64) -> Self {
+        Self::new(u64::from_be_bytes(seed.to_be_bytes()))
+    }
+
+    #[inline]
+    pub fn next_u64(&mut self) -> u64 {
+        let mut z = w(self.0) + w(0x9E37_79B9_7F4A_7C15_u64);
+        self.0 = z.0;
+        z = (z ^ (z >> 30)) * w(0xBF58_476D_1CE4_E5B9_u64);
+        z = (z ^ (z >> 27)) * w(0x94D0_49BB_1331_11EB_u64);
+        (z ^ (z >> 31)).0
+    }
+
+    #[inline]
+    pub fn next_i64(&mut self) -> i64 {
+        i64::from_be_bytes(
+            self.next_u64().to_be_bytes())
+    }
+
+    #[inline]
+    pub fn next_open01(&mut self) -> f64 {
+        u64_to_open01(self.next_u64())
+    }
+}
+
 pub fn mix(v1: f32, v2: f32, mix: f32) -> f32 {
     v1 * (1.0 - mix) + v2 * mix
 }
