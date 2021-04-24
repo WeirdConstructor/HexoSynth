@@ -144,12 +144,6 @@ impl PatternSequencer {
 
             let sub_frac = (phase_frac * row_div).fract();
 
-            // println!(
-            //     "phase_frac={:9.7}, sub_frac={:9.7}, pw={:9.7}",
-            //     phase_frac, sub_frac, pulse_width);
-
-            // TODO: FIXME: We need to calculate the random value
-            //              once per row!
             if probability < 0xF {
                 let rand_val =
                     if self.rand_vals[col_idx].0 != line {
@@ -167,29 +161,9 @@ impl PatternSequencer {
             }
 
             *out = if sub_frac <= pulse_width { 1.0 } else { 0.0 };
-
-            // Ideas:
-            // compute probability:
-            //    if self.cur_row_not_played or a new row
-            //       with a gate is encountered, draw one
-            //       random number.
-            //       set self.cur_row_not_played = is_played;
-            //       if not is_played { skip ...}
-            //       else { play .. }
-            // pulse_width:
-            //    - get the length of the row (or it's divided form)
-            //    - calculate the length of the pulse width (0xF is
-            //      the complete length, 0x0 is 1/16th?)
-            //    - sub-div = 1 / 4 (0xB)
-            //    - sub-phase =
-            //          (fract / sub-div) - (fract / sub-div).floor()
-            //    - check if sub-phase is inside the % of the pulsewidth
         }
     }
 }
-
-// TODO: If PatternColType::None, we don't have to play!
-
 
 #[cfg(test)]
 mod tests {
@@ -433,8 +407,6 @@ mod tests {
             *p = phase_run;
             phase_run += inc;
         }
-
-        //d// println!("PHASE: {:?}", phase);
 
         let mut out = vec![0.0; samples];
         ps.col_gate_at_phase(0, &phase[..], &mut out[..]);
