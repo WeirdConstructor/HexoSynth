@@ -4,14 +4,15 @@
 
 use super::PatternColType;
 use super::MAX_PATTERN_LEN;
+use super::MAX_COLS;
 use crate::dsp::helpers::SplitMix64;
 
 pub struct PatternSequencer {
     rows:       usize,
-    col_types:  [PatternColType; 6],
+    col_types:  [PatternColType; MAX_COLS],
     data:       Vec<Vec<f32>>,
     rng:        SplitMix64,
-    rand_vals:  [(usize, f64); 6],
+    rand_vals:  [(usize, f64); MAX_COLS],
 }
 
 const FRACT_16THS : [f32; 16] = [
@@ -37,10 +38,10 @@ impl PatternSequencer {
     pub fn new_default_seed(rows: usize) -> Self {
         Self {
             rows,
-            col_types: [PatternColType::Value; 6],
-            data:      vec![vec![0.0; MAX_PATTERN_LEN]; 6],
+            col_types: [PatternColType::Value; MAX_COLS],
+            data:      vec![vec![0.0; MAX_PATTERN_LEN]; MAX_COLS],
             rng:       SplitMix64::new(0x91234),
-            rand_vals: [(99999, 0.0); 6],
+            rand_vals: [(99999, 0.0); MAX_COLS],
         }
     }
 
@@ -55,10 +56,10 @@ impl PatternSequencer {
             };
         Self {
             rows,
-            col_types: [PatternColType::Value; 6],
-            data:      vec![vec![0.0; MAX_PATTERN_LEN]; 6],
+            col_types: [PatternColType::Value; MAX_COLS],
+            data:      vec![vec![0.0; MAX_PATTERN_LEN]; MAX_COLS],
             rng:       SplitMix64::new_from_i64(seed),
-            rand_vals: [(99999, 0.0); 6],
+            rand_vals: [(99999, 0.0); MAX_COLS],
         }
     }
 

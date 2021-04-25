@@ -5,35 +5,30 @@
 use hexotk::widgets::UIPatternModel;
 use super::PatternColType;
 use super::MAX_PATTERN_LEN;
-
-pub enum PatternUpdateMsg {
-    UpdateColumn {
-        col_type:    PatternColType,
-        pattern_len: usize,
-        data:        [f32; MAX_PATTERN_LEN]
-    },
-}
+use super::MAX_COLS;
 
 #[derive(Debug)]
 pub struct PatternData {
-    col_types:  [PatternColType; 6],
+    col_types:  [PatternColType; MAX_COLS],
     data:       Vec<Vec<Option<u16>>>,
     out_data:   Vec<[f32; MAX_PATTERN_LEN]>,
     strings:    Vec<Vec<Option<String>>>,
     cursor:     (usize, usize),
     rows:       usize,
     edit_step:  usize,
+    dirty_col:  [bool; MAX_COLS],
 }
 
 impl PatternData {
     pub fn new(rows: usize) -> Self {
         Self {
-            col_types:  [PatternColType::Value; 6],
-            data:       vec![vec![None; 6]; MAX_PATTERN_LEN],
-            out_data:   vec![[0.0; MAX_PATTERN_LEN]; 6],
-            strings:    vec![vec![None; 6]; MAX_PATTERN_LEN],
+            col_types:  [PatternColType::Value; MAX_COLS],
+            data:       vec![vec![None; MAX_COLS]; MAX_PATTERN_LEN],
+            out_data:   vec![[0.0; MAX_PATTERN_LEN]; MAX_COLS],
+            strings:    vec![vec![None; MAX_COLS]; MAX_PATTERN_LEN],
             cursor:     (2, 2),
             edit_step:  4,
+            dirty_col:  [true; MAX_COLS],
             rows,
         }
     }
@@ -42,6 +37,16 @@ impl PatternData {
 impl PatternData {
     pub fn get_out_data(&self) -> &[[f32; MAX_PATTERN_LEN]] {
         &self.out_data
+    }
+
+    fn modified_col(&mut self, col: usize) {
+        if let Some(bit) = self.dirty_col.get_mut(col) {
+            *bit = true;
+        }
+    }
+
+    pub fn col_type(&self, col: usize) -> PatternColType {
+        self.col_types.get(col).copied().unwrap_or(PatternColType::Step)
     }
 
     pub fn sync_out_data(&mut self, col: usize) {
@@ -155,6 +160,7 @@ impl UIPatternModel for PatternData {
 
         self.data[row][col]    = None;
         self.strings[row][col] = None;
+        self.modified_col(col);
     }
 
     fn set_cell_note(&mut self, row: usize, col: usize, _note: &str) {
@@ -163,6 +169,7 @@ impl UIPatternModel for PatternData {
 
         self.data[row][col]    = Some(0x0);
         self.strings[row][col] = None;
+        self.modified_col(col);
     }
 
     fn get_cell_value(&mut self, row: usize, col: usize) -> u16 {
@@ -178,6 +185,7 @@ impl UIPatternModel for PatternData {
 
         self.data[row][col]    = Some(val);
         self.strings[row][col] = None;
+        self.modified_col(col);
     }
 
     fn is_col_note(&self, col: usize) -> bool {
@@ -211,21 +219,25 @@ impl UIPatternModel for PatternData {
     fn set_col_note_type(&mut self, col: usize) {
         if col >= self.col_types.len() { return; }
         self.col_types[col] = PatternColType::Note;
+        self.modified_col(col);
     }
 
     fn set_col_step_type(&mut self, col: usize) {
         if col >= self.col_types.len() { return; }
         self.col_types[col] = PatternColType::Step;
+        self.modified_col(col);
     }
 
     fn set_col_value_type(&mut self, col: usize) {
         if col >= self.col_types.len() { return; }
         self.col_types[col] = PatternColType::Value;
+        self.modified_col(col);
     }
 
     fn set_col_gate_type(&mut self, col: usize) {
         if col >= self.col_types.len() { return; }
         self.col_types[col] = PatternColType::Gate;
+        self.modified_col(col);
     }
 
     fn set_cursor(&mut self, row: usize, col: usize) {
@@ -255,7 +267,7 @@ mod tests {
     fn check_linear_value_corner_case1_0_to_1() {
         let mut pats = PatternData::new(3);
 
-        for col in 0..6 {
+        for col in 0..MAX_COLS {
             pats.set_col_value_type(col);
             pats.set_cell_value(0, col, 0);
             pats.set_cell_value(2, col, 0xFFF);
@@ -277,7 +289,7 @@ mod tests {
     fn check_linear_value_corner_case2_0_to_1() {
         let mut pats = PatternData::new(4);
 
-        for col in 0..6 {
+        for col in 0..MAX_COLS {
             pats.set_col_value_type(col);
             pats.set_cell_value(0, col, 0);
             pats.set_cell_value(3, col, 0xFFF);
@@ -299,7 +311,7 @@ mod tests {
     fn check_linear_value_out_0_to_1() {
         let mut pats = PatternData::new(16);
 
-        for col in 0..6 {
+        for col in 0..MAX_COLS {
             pats.set_col_value_type(col);
             pats.set_cell_value(0,  col, 0);
             pats.set_cell_value(15, col, 0xFFF);
@@ -323,7 +335,7 @@ mod tests {
     fn check_linear_value_out_1_to_0() {
         let mut pats = PatternData::new(16);
 
-        for col in 0..6 {
+        for col in 0..MAX_COLS {
             pats.set_col_value_type(col);
             pats.set_cell_value(0, col, 0xFFF);
             pats.sync_out_data(col);
@@ -345,7 +357,7 @@ mod tests {
     fn check_linear_value_out_cast1_1_to_1() {
         let mut pats = PatternData::new(16);
 
-        for col in 0..6 {
+        for col in 0..MAX_COLS {
             pats.set_col_value_type(col);
             pats.set_cell_value(7, col, 0xFFF);
             pats.set_cell_value(8, col, 0xFFF);
@@ -368,7 +380,7 @@ mod tests {
     fn check_linear_value_out_case2_1_to_1() {
         let mut pats = PatternData::new(16);
 
-        for col in 0..6 {
+        for col in 0..MAX_COLS {
             pats.set_col_value_type(col);
             pats.set_cell_value(6, col, 0xFFF);
             pats.set_cell_value(9, col, 0xFFF);
@@ -391,7 +403,7 @@ mod tests {
     fn check_linear_value_out_case3_1_to_1() {
         let mut pats = PatternData::new(16);
 
-        for col in 0..6 {
+        for col in 0..MAX_COLS {
             pats.set_col_value_type(col);
             pats.set_cell_value(6, col, 0xFFF);
             pats.set_cell_value(7, col, 0x0);
@@ -416,7 +428,7 @@ mod tests {
     fn check_linear_value_out_case4_1_to_1() {
         let mut pats = PatternData::new(16);
 
-        for col in 0..6 {
+        for col in 0..MAX_COLS {
             pats.set_col_value_type(col);
             pats.set_cell_value(5, col, 0xFFF);
             pats.set_cell_value(7, col, 0x0);
@@ -445,7 +457,7 @@ mod tests {
     fn check_pattern_step_out() {
         let mut pats = PatternData::new(16);
 
-        for col in 0..6 {
+        for col in 0..MAX_COLS {
             pats.set_col_step_type(col);
             pats.set_cell_value(4,  col, 0x450);
             pats.set_cell_value(5,  col, 0x0);
@@ -470,7 +482,7 @@ mod tests {
     fn check_pattern_note_out() {
         let mut pats = PatternData::new(16);
 
-        for col in 0..6 {
+        for col in 0..MAX_COLS {
             pats.set_col_note_type(col);
             pats.set_cell_value(4, col, 0x45);
             pats.set_cell_value(5, col, 0x0);
