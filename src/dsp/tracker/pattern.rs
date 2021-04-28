@@ -45,6 +45,18 @@ impl PatternData {
         }
     }
 
+    pub fn col_is_modified_reset(&mut self, col: usize) -> bool {
+        if self.dirty_col.get(col).copied().unwrap_or(false) {
+            self.dirty_col[col] = false;
+
+            true
+        } else {
+            false
+        }
+    }
+
+
+
     pub fn col_type(&self, col: usize) -> PatternColType {
         self.col_types.get(col).copied().unwrap_or(PatternColType::Step)
     }
@@ -163,15 +175,6 @@ impl UIPatternModel for PatternData {
         self.modified_col(col);
     }
 
-    fn set_cell_note(&mut self, row: usize, col: usize, _note: &str) {
-        if row >= self.data.len()    { return; }
-        if col >= self.data[0].len() { return; }
-
-        self.data[row][col]    = Some(0x0);
-        self.strings[row][col] = None;
-        self.modified_col(col);
-    }
-
     fn get_cell_value(&mut self, row: usize, col: usize) -> u16 {
         if row >= self.data.len()    { return 0; }
         if col >= self.data[0].len() { return 0; }
@@ -214,7 +217,12 @@ impl UIPatternModel for PatternData {
 
     fn cols(&self) -> usize { self.data[0].len() }
 
-    fn rows(&self) -> usize { self.data.len() }
+    fn rows(&self) -> usize { self.rows }
+
+    fn set_rows(&mut self, rows: usize) {
+        self.rows = rows.min(self.data.len());
+        self.modified_col(0); // modify any col, so we send an update.
+    }
 
     fn set_col_note_type(&mut self, col: usize) {
         if col >= self.col_types.len() { return; }

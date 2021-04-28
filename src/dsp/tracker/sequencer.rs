@@ -63,6 +63,10 @@ impl PatternSequencer {
         }
     }
 
+    pub fn set_rows(&mut self, rows: usize) {
+        self.rows = rows;
+    }
+
     pub fn set_col(&mut self, col: usize, col_data: &[f32])
     {
         for (out_cell, in_cell) in self.data[col].iter_mut().zip(col_data.iter()) {
@@ -136,7 +140,7 @@ impl PatternSequencer {
             // row_div:
             //      0xF  - Row has 1  Gate
             //      0x0  - Row is divided up into 16 Gates
-            let row_div     : f32 = (((gate & 0x0F0) >> 4) + 1) as f32;
+            let row_div     : f32 = (16 - ((gate & 0x0F0) >> 4)) as f32;
             // probability:
             //      0xF  - Row is always triggered
             //      0x7  - Row fires only in 50% of the cases
@@ -144,6 +148,9 @@ impl PatternSequencer {
             let probability : u8 = ((gate & 0xF00) >> 8) as u8;
 
             let sub_frac = (phase_frac * row_div).fract();
+            //d// println!(
+            //d//     "row_div={}, pw={}, phase={} / {}",
+            //d//     row_div, pulse_width, sub_frac, phase_frac);
 
             if probability < 0xF {
                 let rand_val =
@@ -266,9 +273,9 @@ mod tests {
     fn check_seq_gate_2() {
         let mut ps = PatternSequencer::new(3);
         ps.set_col(0, &[
-            f32::from_bits(0x0F00),
-            f32::from_bits(0x0F07),
-            f32::from_bits(0x0F0F),
+            f32::from_bits(0x0FF0),
+            f32::from_bits(0x0FF7),
+            f32::from_bits(0x0FFF),
         ]);
 
         let mut phase = vec![0.0; 96];
@@ -298,9 +305,9 @@ mod tests {
     fn check_seq_gate_div_1() {
         let mut ps = PatternSequencer::new(3);
         ps.set_col(0, &[
-            f32::from_bits(0x0F70),
-            f32::from_bits(0x0F77),
-            f32::from_bits(0x0F7F),
+            f32::from_bits(0x0F80),
+            f32::from_bits(0x0F87),
+            f32::from_bits(0x0F8F),
         ]);
 
         let mut phase = vec![0.0; 3 * 64];
@@ -330,9 +337,9 @@ mod tests {
     fn check_seq_gate_div_2() {
         let mut ps = PatternSequencer::new(3);
         ps.set_col(0, &[
-            f32::from_bits(0x0FF0),
-            f32::from_bits(0x0FF7),
-            f32::from_bits(0x0FFF),
+            f32::from_bits(0x0F00),
+            f32::from_bits(0x0F07),
+            f32::from_bits(0x0F0F),
         ]);
 
         let mut phase = vec![0.0; 6 * 64];
@@ -362,9 +369,9 @@ mod tests {
     fn check_seq_gate_div_3() {
         let mut ps = PatternSequencer::new(3);
         ps.set_col(0, &[
-            f32::from_bits(0x0F10),
-            f32::from_bits(0x0F17),
-            f32::from_bits(0x0F1F),
+            f32::from_bits(0x0FE0),
+            f32::from_bits(0x0FE7),
+            f32::from_bits(0x0FEF),
         ]);
 
         let mut phase = vec![0.0; 6 * 64];
