@@ -703,7 +703,7 @@ impl Matrix {
     pub fn sync(&mut self) {
         self.instances.borrow_mut().clear();
 
-        // Build instance map, to find new nodes in the matrix.
+        // Build instance map, to find new nodes in the matrix later.
         self.config.for_each(|node_info, mut id, _i| {
             while let Some(_) = self.instances.borrow().get(&id) {
                 id = id.to_instance(id.instance() + 1);
@@ -713,7 +713,7 @@ impl Matrix {
             self.infos.borrow_mut().insert(id, node_info.clone());
         });
 
-        // Scan thought the matrix and check if (backend) nodes need to be created
+        // Scan through the matrix and check if (backend) nodes need to be created
         // for new unknown nodes:
         for x in 0..self.w {
             for y in 0..self.h {

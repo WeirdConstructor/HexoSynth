@@ -10,6 +10,8 @@ mod node_sin;
 mod node_out;
 #[allow(non_upper_case_globals)]
 mod node_test;
+#[allow(non_upper_case_globals)]
+mod node_tseq;
 
 mod tracker;
 mod satom;
@@ -28,6 +30,7 @@ use node_amp::Amp;
 use node_sin::Sin;
 use node_out::Out;
 use node_test::Test;
+use node_tseq::TSeq;
 
 pub const MIDI_MAX_FREQ : f32 = 13289.75;
 
@@ -236,19 +239,28 @@ macro_rules! node_list {
             nop => Nop,
             amp => Amp UIType::Generic UICategory::Signal
              // node_param_idx
-             //   name            denorm_fun norm norm denorm
-             //        norm_fun              min  max  default
-               (0 inp  n_id       d_id      -1.0, 1.0, 0.0)
-               (1 gain n_gain     d_gain     0.0, 1.0, 1.0)
-               (2 att  n_att      d_att      0.0, 1.0, 1.0)
+             //   name             denorm_fun norm norm denorm
+             //         norm_fun              min  max  default
+               (0 inp   n_id       d_id      -1.0, 1.0, 0.0)
+               (1 gain  n_gain     d_gain     0.0, 1.0, 1.0)
+               (2 att   n_att      d_att      0.0, 1.0, 1.0)
                {3 0 neg_att setting(1) 0  1}
                [0 sig],
+            tseq => TSeq UIType::Generic UICategory::CV
+               (0 clock n_id       d_id       0.0, 1.0, 0.0)
+               {1 0 clock_mode setting(1) 0  1}
+               [0 trk1]
+               [1 trk2]
+               [2 trk3]
+               [3 trk4]
+               [4 trk5]
+               [5 trk6],
             sin => Sin UIType::Generic UICategory::Osc
-               (0 freq n_pit      d_pit     -1.0, 1.0, 440.0)
+               (0 freq  n_pit      d_pit     -1.0, 1.0, 440.0)
                [0 sig],
             out => Out UIType::Generic UICategory::IOUtil
-               (0  ch1  n_id      d_id      -1.0, 1.0, 0.0)
-               (1  ch2  n_id      d_id      -1.0, 1.0, 0.0)
+               (0  ch1   n_id      d_id      -1.0, 1.0, 0.0)
+               (1  ch2   n_id      d_id      -1.0, 1.0, 0.0)
              // node_param_idx
              // | atom_idx
              // | | name constructor min max
@@ -278,6 +290,11 @@ pub mod labels {
 
     pub mod Amp {
         pub const neg_att : [&'static str; 2] = ["Allow", "Clip"];
+    }
+
+    pub mod TSeq {
+        pub const clock_mode : [&'static str; 4] =
+            ["RowTrig", "PatTrig", "PatPhase", "RowPhase"];
     }
 }
 
@@ -992,7 +1009,7 @@ mod tests {
 
     #[test]
     fn check_node_size_staying_small() {
-        assert_eq!(std::mem::size_of::<Node>(),     12);
+        assert_eq!(std::mem::size_of::<Node>(),     16);
         assert_eq!(std::mem::size_of::<NodeId>(),   2);
         assert_eq!(std::mem::size_of::<ParamId>(),  24);
     }

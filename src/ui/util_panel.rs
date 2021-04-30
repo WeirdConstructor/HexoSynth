@@ -1,4 +1,3 @@
-use hexotk::widgets::hexgrid::HexGridModel;
 use hexotk::{MButton, UIPos, AtomId};
 use hexotk::{
     Rect, WidgetUI, Painter, WidgetData, WidgetType,
@@ -8,8 +7,8 @@ use hexotk::{
 };
 use hexotk::constants::*;
 use hexotk::widgets::{
-    Container, ContainerData,
-    Text, TextSourceRef, TextData,
+//    Container, ContainerData,
+//    Text, TextSourceRef, TextData,
     Tabs, TabsData,
 };
 use crate::matrix::Matrix;

@@ -19,6 +19,7 @@ pub use pattern::PatternData;
 pub use sequencer::PatternSequencer;
 use hexotk::widgets::UIPatternModel;
 
+#[derive(Debug, Clone, Copy)]
 pub enum PatternUpdateMsg {
     UpdateColumn {
         col:         usize,
@@ -28,17 +29,27 @@ pub enum PatternUpdateMsg {
     },
 }
 
-struct Tracker {
+pub struct Tracker {
     data:      PatternData,
     data_prod: Producer<PatternUpdateMsg>,
     seq:       Option<PatternSequencer>,
     seq_cons:  Option<Consumer<PatternUpdateMsg>>,
 }
 
-struct TrackerBackend {
+pub struct TrackerBackend {
     seq:        PatternSequencer,
     seq_cons:   Consumer<PatternUpdateMsg>,
     col_types:  [PatternColType; MAX_COLS],
+}
+
+impl std::fmt::Debug for TrackerBackend {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Tracker")
+         .field("col_types", &self.col_types)
+         .field("seq",       &"PatternSequencer")
+         .field("seq_cons",  &"RingbufConsumer")
+         .finish()
+    }
 }
 
 impl Tracker {
