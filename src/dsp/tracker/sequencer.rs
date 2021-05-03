@@ -67,6 +67,8 @@ impl PatternSequencer {
         self.rows = rows;
     }
 
+    pub fn rows(&self) -> usize { self.rows }
+
     pub fn set_col(&mut self, col: usize, col_data: &[f32])
     {
         for (out_cell, in_cell) in self.data[col].iter_mut().zip(col_data.iter()) {

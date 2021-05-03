@@ -6,16 +6,27 @@ use crate::nodes::NodeAudioContext;
 use crate::dsp::{SAtom, ProcBuf, DspNode, LedPhaseVals};
 use crate::dsp::tracker::TrackerBackend;
 
+use crate::dsp::MAX_BLOCK_SIZE;
+use crate::dsp::tracker::MAX_COLS;
+
 /// A tracker based sequencer
 #[derive(Debug)]
 pub struct TSeq {
-    backend:    Option<Box<TrackerBackend>>,
+    backend:       Option<Box<TrackerBackend>>,
+    clock_samples: usize,
+    clock_phase:   f64,
+    clock_inc:     f64,
+    srate:         f64,
 }
 
 impl Clone for TSeq {
     fn clone(&self) -> Self {
         Self {
-            backend: None
+            backend:       None,
+            clock_samples: 0,
+            clock_phase:   0.0,
+            clock_inc:     0.0,
+            srate:         48000.0,
         }
     }
 }
@@ -23,7 +34,11 @@ impl Clone for TSeq {
 impl TSeq {
     pub fn new() -> Self {
         Self {
-            backend: None
+            backend:       None,
+            clock_samples: 0,
+            clock_phase:   0.0,
+            clock_inc:     0.0,
+            srate:         48000.0,
         }
     }
 
@@ -33,8 +48,8 @@ impl TSeq {
 
     pub const clock : &'static str =
         "TSeq clock\nClock input\nRange: (0..1)\n";
-    pub const clock_mode : &'static str =
-        "TSeq clock_mode\nDefines the interepreation of the signal on the 'clock' input.\n\
+    pub const cmode : &'static str =
+        "TSeq cmode\nDefines the interepreation of the signal on the 'clock' input.\n\
          \n";
     pub const trk1 : &'static str =
         "TSeq trk1\nTrack 1 signal output\nRange: (-1..1)\n";
@@ -53,57 +68,117 @@ impl TSeq {
 impl DspNode for TSeq {
     fn outputs() -> usize { 1 }
 
-    fn set_sample_rate(&mut self, _srate: f32) { }
-    fn reset(&mut self) { }
+    fn set_sample_rate(&mut self, srate: f32) {
+        self.srate = srate as f64;
+    }
+
+    fn reset(&mut self) {
+        self.backend        = None;
+        self.clock_inc      = 0.0;
+        self.clock_phase    = 0.0;
+        self.clock_samples  = 0;
+    }
 
     #[inline]
     fn process<T: NodeAudioContext>(
         &mut self, ctx: &mut T, atoms: &[SAtom], _params: &[ProcBuf],
         inputs: &[ProcBuf], outputs: &mut [ProcBuf], ctx_vals: LedPhaseVals)
     {
-//        use crate::dsp::{out, inp, denorm, denorm_v, inp_dir, at};
+        use crate::dsp::{out, inp, denorm, denorm_v, inp_dir, at};
+        let clock = inp::TSeq::clock(inputs);
+        let cmode = at::TSeq::cmode(atoms);
 
-//        let gain = inp::TSeq::gain(inputs);
-//        let att  = inp::TSeq::att(inputs);
-//        let inp  = inp::TSeq::inp(inputs);
-//        let out  = out::TSeq::sig(outputs);
-//        let neg  = at::TSeq::neg_att(atoms);
-//
-//        let last_frame   = ctx.nframes() - 1;
-//
-//        let last_val =
-//            if neg.i() > 0 {
-//                for frame in 0..ctx.nframes() {
-//                    out.write(frame,
-//                        inp.read(frame)
-//                        * denorm_v::Amp::att(
-//                            inp_dir::Amp::att(att, frame)
-//                            .max(0.0))
-//                        * denorm::Amp::gain(gain, frame));
-//                }
-//
-//                inp.read(last_frame)
-//                * denorm_v::Amp::att(
-//                    inp_dir::Amp::att(att, last_frame)
-//                    .max(0.0))
-//                * denorm::Amp::gain(gain, last_frame)
-//
-//            } else {
-//                for frame in 0..ctx.nframes() {
-//                    out.write(frame,
-//                        inp.read(frame)
-//                        * denorm_v::Amp::att(
-//                            inp_dir::Amp::att(att, frame).abs())
-//                        * denorm::Amp::gain(gain, frame));
-//                }
-//
-//                inp.read(last_frame)
-//                * denorm_v::Amp::att(
-//                    inp_dir::Amp::att(att, last_frame).abs())
-//                * denorm::Amp::gain(gain, last_frame)
-//            };
+        let mut backend =
+            if let Some(backend) = &mut self.backend {
+                backend
+            } else { return; };
 
-        let last_val = 0.0;
-        ctx_vals[0].set(last_val);
+        let mut clock_phase = self.clock_phase;
+        let mut clock_inc   = self.clock_inc;
+
+        let mut phase_out : [f32; MAX_BLOCK_SIZE] =
+            [0.0; MAX_BLOCK_SIZE];
+
+        for frame in 0..ctx.nframes() {
+            let clock_in = clock.read(frame);
+
+            if clock_in > 0.75 {
+                if self.clock_samples > 0 {
+                    clock_inc =
+                        self.clock_samples as f64 / self.srate;
+                }
+
+                self.clock_samples = 0;
+            }
+
+            clock_phase += clock_inc;
+
+            let phase =
+                match cmode.i() {
+                    // RowTrig
+                    0 => {
+                        let plen = backend.pattern_len() as f64;
+                        while clock_phase >= plen {
+                            clock_phase -= plen;
+                        }
+
+                        clock_phase / plen
+                    },
+                    // PatTrig
+                    1 => {
+                        clock_phase = clock_phase.fract();
+                        clock_phase
+                    },
+                    _ => {
+                        clock_phase = clock_phase.fract();
+                        clock_phase
+                    },
+                };
+
+            phase_out[frame] = phase as f32;
+        }
+
+        let mut col_out : [f32; MAX_BLOCK_SIZE] =
+            [0.0; MAX_BLOCK_SIZE];
+        let mut col_out_slice   = &mut col_out[0..ctx.nframes()];
+        let mut phase_out_slice = &phase_out[0..ctx.nframes()];
+
+
+        let out_t1     = out::TSeq::trk1(outputs);
+        backend.get_col_at_phase(
+            0, phase_out_slice, col_out_slice);
+        out_t1.write_from(col_out_slice);
+
+        ctx_vals[0].set(col_out_slice[col_out_slice.len() - 1]);
+
+        let out_t2     = out::TSeq::trk2(outputs);
+        backend.get_col_at_phase(
+            1, phase_out_slice, col_out_slice);
+        out_t2.write_from(col_out_slice);
+
+        let out_t3     = out::TSeq::trk3(outputs);
+        backend.get_col_at_phase(
+            2, phase_out_slice, col_out_slice);
+        out_t3.write_from(col_out_slice);
+
+        let out_t4     = out::TSeq::trk4(outputs);
+        backend.get_col_at_phase(
+            3, phase_out_slice, col_out_slice);
+        out_t4.write_from(col_out_slice);
+
+        let out_t5     = out::TSeq::trk5(outputs);
+        backend.get_col_at_phase(
+            4, phase_out_slice, col_out_slice);
+        out_t5.write_from(col_out_slice);
+
+        let out_t6     = out::TSeq::trk6(outputs);
+        backend.get_col_at_phase(
+            5, phase_out_slice, col_out_slice);
+        out_t6.write_from(col_out_slice);
+
+        self.clock_phase = clock_phase;
+        self.clock_inc   = clock_inc;
+
+        ctx_vals[1].set(phase_out_slice[phase_out_slice.len() - 1]);
     }
 }
