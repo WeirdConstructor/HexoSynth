@@ -4,6 +4,7 @@
 
 pub const MAX_ALLOCATED_NODES : usize = 256;
 pub const MAX_SMOOTHERS       : usize = 36 + 4; // 6 * 6 modulator inputs + 4 UI Knobs
+pub const MAX_AVAIL_TRACKERS  : usize = 128;
 
 use crate::monitor::{
     MON_SIG_CNT, new_monitor_processor,
@@ -20,6 +21,7 @@ use crate::dsp::{
     node_factory, NodeInfo, Node,
     NodeId, SAtom, ProcBuf,
 };
+use crate::dsp::tracker::Tracker;
 use crate::util::{Smoother, AtomicFloat};
 
 /// A node graph execution program. It comes with buffers
@@ -294,6 +296,8 @@ pub struct NodeConfigurator {
     quick_update_prod:  Producer<QuickMessage>,
     /// For receiving monitor data from the backend thread.
     monitor:            Monitor,
+    /// Holding the tracker sequencers
+    trackers:           Vec<Tracker>,
     /// Handles deallocation
     #[allow(dead_code)]
     drop_thread:        DropThread,
@@ -386,8 +390,15 @@ impl NodeConfigurator {
     pub fn create_node(&mut self, ni: NodeId) -> Option<(&NodeInfo, u8)> {
         println!("create_node: {}", ni);
 
-        if let Some((node, info)) = node_factory(ni) {
+        if let Some((mut node, info)) = node_factory(ni) {
             let mut index : Option<usize> = None;
+
+            if let Node::TSeq { node } = &mut node {
+                let tracker_idx = ni.instance();
+                if let Some(trk) = self.trackers.get_mut(tracker_idx) {
+                    node.set_backend(trk.get_backend());
+                }
+            }
 
             for i in 0..self.nodes.len() {
                 if let NodeInfo::Nop = self.nodes[i] {
@@ -484,6 +495,7 @@ pub fn new_node_engine() -> (NodeConfigurator, NodeExecutor) {
         graph_update_prod: rb_graph_prod,
         quick_update_prod: rb_quick_prod,
         node2idx:          HashMap::new(),
+        trackers:          vec![Tracker::new(); MAX_AVAIL_TRACKERS],
         monitor,
         drop_thread,
     };

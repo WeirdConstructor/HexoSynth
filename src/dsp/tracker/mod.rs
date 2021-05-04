@@ -36,6 +36,11 @@ pub struct Tracker {
     seq_cons:  Option<Consumer<PatternUpdateMsg>>,
 }
 
+impl Clone for Tracker {
+    fn clone(&self) -> Self { Tracker::new() }
+}
+
+
 pub struct TrackerBackend {
     seq:        PatternSequencer,
     seq_cons:   Consumer<PatternUpdateMsg>,

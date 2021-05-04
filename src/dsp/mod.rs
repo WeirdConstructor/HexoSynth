@@ -13,7 +13,7 @@ mod node_test;
 #[allow(non_upper_case_globals)]
 mod node_tseq;
 
-mod tracker;
+pub mod tracker;
 mod satom;
 pub mod helpers;
 

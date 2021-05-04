@@ -43,6 +43,7 @@ impl TSeq {
     }
 
     pub fn set_backend(&mut self, backend: TrackerBackend) {
+        println!("GOT A TSEQ BACKEDN!");
         self.backend = Some(Box::new(backend));
     }
 
