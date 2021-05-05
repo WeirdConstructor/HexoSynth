@@ -54,6 +54,17 @@ impl CellRepr {
     }
 }
 
+use crate::dsp::tracker::{MAX_PATTERN_LEN, MAX_COLS};
+
+#[derive(Debug, Clone)]
+pub struct PatternRepr {
+    pub col_types: [u8; MAX_COLS],
+    pub data:      Vec<Vec<i32>>,
+    pub rows:      usize,
+    pub edit_step: usize,
+    pub cursor:    (usize, usize),
+}
+
 #[derive(Debug, Clone)]
 pub struct MatrixRepr {
     pub cells:   Vec<CellRepr>,

@@ -6,6 +6,7 @@ use hexotk::widgets::UIPatternModel;
 use super::PatternColType;
 use super::MAX_PATTERN_LEN;
 use super::MAX_COLS;
+use crate::matrix_repr::PatternRepr;
 
 #[derive(Debug)]
 pub struct PatternData {
@@ -35,6 +36,77 @@ impl PatternData {
 }
 
 impl PatternData {
+    pub fn is_unset(&self) -> bool {
+        for ct in self.col_types.iter() {
+            if *ct != PatternColType::Value { return false; }
+        }
+
+        for rows in self.data.iter() {
+            for col in rows.iter() {
+                if col.is_some() { return false; }
+            }
+        }
+
+        true
+    }
+
+    pub fn to_repr(&self) -> PatternRepr {
+        let mut col_types = [0; MAX_COLS];
+        for (i, ct) in self.col_types.iter().enumerate() {
+            col_types[i] =
+                match ct {
+                    PatternColType::Value => 0,
+                    PatternColType::Note  => 1,
+                    PatternColType::Step  => 2,
+                    PatternColType::Gate  => 3,
+                };
+        }
+
+        let mut data = vec![vec![-1; MAX_COLS]; MAX_PATTERN_LEN];
+        for (row_idx, row) in self.data.iter().enumerate() {
+            for (col_idx, cell) in row.iter().enumerate() {
+                data[row_idx][col_idx] =
+                    if let Some(c) = cell { *c as i32 }
+                    else                  { -1 };
+            }
+        }
+
+        PatternRepr {
+            col_types,
+            data,
+            rows:      self.rows,
+            edit_step: self.edit_step,
+            cursor:    self.cursor,
+        }
+    }
+
+    pub fn from_repr(&mut self, repr: &PatternRepr) {
+        for (i, ct) in repr.col_types.iter().enumerate() {
+            self.col_types[i] =
+                match *ct {
+                    0 => PatternColType::Value,
+                    1 => PatternColType::Note,
+                    2 => PatternColType::Step,
+                    3 => PatternColType::Gate,
+                    _ => PatternColType::Value,
+                };
+
+            self.modified_col(i);
+        }
+
+        for (row_idx, row) in repr.data.iter().enumerate() {
+            for (col_idx, cell) in row.iter().enumerate() {
+                self.data[row_idx][col_idx] =
+                    if *cell < 0 { None }
+                    else         { Some(*cell as u16) };
+            }
+        }
+
+        self.rows      = repr.rows;
+        self.edit_step = repr.edit_step;
+        self.cursor    = repr.cursor;
+    }
+
     pub fn get_out_data(&self) -> &[[f32; MAX_PATTERN_LEN]] {
         &self.out_data
     }
@@ -510,6 +582,38 @@ mod tests {
             assert_float_eq!(out_data[col][9], -0.1);
             assert_float_eq!(out_data[col][10], 0.1);
             assert_float_eq!(out_data[col][15], 0.1);
+        }
+    }
+
+    #[test]
+    fn check_pattern_repr() {
+        let mut pat = PatternData::new(MAX_PATTERN_LEN);
+
+        for col in 0..MAX_COLS {
+            pat.set_col_note_type(col);
+            for v in 1..(MAX_PATTERN_LEN + 1) {
+                pat.set_cell_value(v - 1, col, v as u16);
+            }
+
+            pat.set_cursor(16, 3);
+            pat.set_edit_step(5);
+            pat.set_rows(133);
+        }
+
+        let repr = pat.to_repr();
+
+        let mut pat2 = PatternData::new(MAX_PATTERN_LEN);
+        pat2.from_repr(&repr);
+
+        for col in 0..MAX_COLS {
+            assert!(pat.is_col_note(col));
+            for v in 1..(MAX_PATTERN_LEN + 1) {
+                assert_eq!(pat.get_cell_value(v - 1, col), v as u16);
+            }
+
+            assert_eq!(pat.get_cursor(), (16, 3));
+            assert_eq!(pat.get_edit_step(), 5);
+            assert_eq!(pat.rows(), 133);
         }
     }
 }
