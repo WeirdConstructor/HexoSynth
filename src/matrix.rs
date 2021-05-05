@@ -408,10 +408,21 @@ impl Matrix {
                 cells.push(cell.to_repr())
             });
 
+        let mut patterns : Vec<Option<PatternRepr>> = vec![];
+        let mut tracker_id = 0;
+        while let Some(pdata) = self.get_pattern_data(tracker_id) {
+            patterns.push(
+                if pdata.borrow().is_unset() { None }
+                else { Some(pdata.borrow().to_repr()) });
+
+            tracker_id += 1;
+        }
+
         MatrixRepr {
             cells,
             params,
             atoms,
+            patterns,
         }
     }
 
@@ -429,6 +440,14 @@ impl Matrix {
         for cell_repr in repr.cells.iter() {
             let cell = Cell::from_repr(cell_repr);
             self.place(cell.x as usize, cell.y as usize, cell);
+        }
+
+        for (tracker_id, pat) in repr.patterns.iter().enumerate() {
+            if let Some(pat) = pat {
+                if let Some(pd) = self.get_pattern_data(tracker_id) {
+                    pd.borrow_mut().from_repr(pat);
+                }
+            }
         }
 
         self.sync();

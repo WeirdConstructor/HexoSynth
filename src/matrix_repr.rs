@@ -65,11 +65,82 @@ pub struct PatternRepr {
     pub cursor:    (usize, usize),
 }
 
+impl PatternRepr {
+    fn serialize(&self) -> Value {
+        let mut ret = json!({
+            "rows":       self.rows,
+            "edit_step":  self.edit_step,
+            "cursor_row": self.cursor.0,
+            "cursor_col": self.cursor.1,
+        });
+
+        let mut cts = json!([]);
+        if let Value::Array(cts) = &mut cts {
+            for ct in self.col_types.iter() {
+                cts.push(json!(*ct as i64));
+            }
+        }
+        ret["col_types"] = cts;
+
+        let mut data = json!([]);
+        if let Value::Array(data) = &mut data {
+            for row in self.data.iter() {
+                let mut out_col = json!([]);
+                if let Value::Array(out_col) = &mut out_col {
+                    for col in row.iter() {
+                        out_col.push(json!(*col as i64));
+                    }
+                }
+                data.push(out_col);
+            }
+        }
+        ret["data"] = data;
+
+        ret
+    }
+
+    fn deserialize(v: &Value) -> Result<Self, MatrixDeserError> {
+        let mut col_types = [0; MAX_COLS];
+
+        let cts = &v["col_types"];
+        if let Value::Array(cts) = cts {
+            for (i, ct) in cts.iter().enumerate() {
+                col_types[i] = ct.as_i64().unwrap_or(0) as u8;
+            }
+        }
+
+        let mut data = vec![vec![-1; MAX_COLS]; MAX_PATTERN_LEN];
+        let dt = &v["data"];
+        if let Value::Array(dt) = dt {
+            for (row_idx, row) in dt.iter().enumerate() {
+                if let Value::Array(row) = row {
+                    for (col_idx, c) in row.iter().enumerate() {
+                        data[row_idx][col_idx] = c.as_i64().unwrap_or(-1) as i32;
+                    }
+                }
+            }
+        }
+
+        Ok(Self {
+            col_types,
+            data,
+            rows:       v["rows"]     .as_i64().unwrap_or(0) as usize,
+            edit_step:  v["edit_step"].as_i64().unwrap_or(0) as usize,
+            cursor: (
+                v["cursor_row"].as_i64().unwrap_or(0) as usize,
+                v["cursor_col"].as_i64().unwrap_or(0) as usize
+            ),
+        })
+    }
+}
+
+
 #[derive(Debug, Clone)]
 pub struct MatrixRepr {
-    pub cells:   Vec<CellRepr>,
-    pub params:  Vec<(ParamId, f32)>,
-    pub atoms:   Vec<(ParamId, SAtom)>,
+    pub cells:      Vec<CellRepr>,
+    pub params:     Vec<(ParamId, f32)>,
+    pub atoms:      Vec<(ParamId, SAtom)>,
+    pub patterns:   Vec<Option<PatternRepr>>,
 }
 
 #[derive(Debug, Clone)]
@@ -149,14 +220,16 @@ fn serialize_atom(atom: &SAtom) -> Value {
 
 impl MatrixRepr {
     pub fn empty() -> Self {
-        let cells  = vec![];
-        let params = vec![];
-        let atoms  = vec![];
+        let cells    = vec![];
+        let params   = vec![];
+        let atoms    = vec![];
+        let patterns = vec![];
 
         Self {
             cells,
             params,
             atoms,
+            patterns,
         }
     }
 
@@ -251,6 +324,15 @@ impl MatrixRepr {
             }
         }
 
+        let patterns = &v["patterns"];
+        if let Value::Array(patterns) = patterns {
+            for p in patterns.iter() {
+                m.patterns.push(
+                    if p.is_object() {
+                        Some(PatternRepr::deserialize(&p)?)
+                    } else { None });
+            }
+        }
 
         Ok(m)
     }
@@ -302,6 +384,17 @@ impl MatrixRepr {
 
         v["cells"] = cells;
 
+        let mut patterns = json!([]);
+        if let Value::Array(patterns) = &mut patterns {
+            for p in self.patterns.iter() {
+                patterns.push(
+                    if let Some(p) = p { p.serialize() }
+                    else { Value::Null });
+            }
+        }
+
+        v["patterns"] = patterns;
+
         v.to_string()
     }
 }
@@ -334,7 +427,7 @@ mod tests {
         let s = matrix_repr.serialize();
 
         assert_eq!(s,
-            "{\"VERSION\":1,\"atoms\":[],\"cells\":[],\"params\":[]}");
+            "{\"VERSION\":1,\"atoms\":[],\"cells\":[],\"params\":[],\"patterns\":[]}");
         assert!(MatrixRepr::deserialize(&s).is_ok());
     }
 
@@ -365,13 +458,7 @@ mod tests {
         let s = mr.serialize();
 
         assert_eq!(s,
-          "{\"VERSION\":1,\"atoms\":[[\"out\",0,\"mono\",[\"i\",0]]]\
-          ,\"cells\":[[\"sin\",2,0,0,[-1,-1,-1],[-1,0,-1]],\
-          [\"out\",0,1,0,[-1,0,-1],[-1,-1,0]]],\
-          \"params\":[\
-          [\"out\",0,\"ch1\",0.0],[\"out\",0,\"ch2\",0.0],\
-          [\"sin\",0,\"freq\",0.0],[\"sin\",1,\"freq\",0.0],\
-          [\"sin\",2,\"freq\",-0.10000000149011612]]}");
+          "{\"VERSION\":1,\"atoms\":[[\"out\",0,\"mono\",[\"i\",0]]],\"cells\":[[\"sin\",2,0,0,[-1,-1,-1],[-1,0,-1]],[\"out\",0,1,0,[-1,0,-1],[-1,-1,0]]],\"params\":[[\"out\",0,\"ch1\",0.0],[\"out\",0,\"ch2\",0.0],[\"sin\",0,\"freq\",0.0],[\"sin\",1,\"freq\",0.0],[\"sin\",2,\"freq\",-0.10000000149011612]],\"patterns\":[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null]}");
 
         let mut mr2 = MatrixRepr::deserialize(&s).unwrap();
 
@@ -475,6 +562,78 @@ mod tests {
             let s = mr.serialize().to_string();
 
             assert_eq!(s, orig_serial);
+        }
+    }
+
+    #[test]
+    fn check_matrix_track_repr() {
+        use hexotk::widgets::UIPatternModel;
+
+        let orig_serial = {
+            use crate::nodes::new_node_engine;
+
+            let (node_conf, mut _node_exec) = new_node_engine();
+            let mut matrix = Matrix::new(node_conf, 3, 3);
+
+            let ts = NodeId::TSeq(0);
+
+            matrix.place(0, 0,
+                Cell::empty(ts)
+                .out(None, Some(0), None));
+            matrix.sync();
+
+            {
+                let pat_ref = matrix.get_pattern_data(0).unwrap();
+                let mut pat = pat_ref.borrow_mut();
+
+                for col in 0..MAX_COLS {
+                    pat.set_col_note_type(col);
+                    for v in 1..(MAX_PATTERN_LEN + 1) {
+                        pat.set_cell_value(v - 1, col, v as u16);
+                    }
+
+                    pat.set_cursor(16, 3);
+                    pat.set_edit_step(5);
+                    pat.set_rows(133);
+                }
+            }
+
+            let mut mr = matrix.to_repr();
+            let s2 = mr.serialize().to_string();
+
+            save_patch_to_file(
+                &mut matrix, "hexosynth_test_patch_2.hxy").unwrap();
+
+            s2
+        };
+
+        {
+            use crate::nodes::new_node_engine;
+
+            let (node_conf, mut _node_exec) = new_node_engine();
+            let mut matrix = Matrix::new(node_conf, 3, 3);
+
+            load_patch_from_file(
+                &mut matrix, "hexosynth_test_patch_2.hxy").unwrap();
+
+            let mut mr = matrix.to_repr();
+            let s = mr.serialize().to_string();
+
+            assert_eq!(s, orig_serial);
+
+            let pat_ref = matrix.get_pattern_data(0).unwrap();
+            let mut pat = pat_ref.borrow_mut();
+
+            for col in 0..MAX_COLS {
+                assert!(pat.is_col_note(col));
+                for v in 1..(MAX_PATTERN_LEN + 1) {
+                    assert_eq!(pat.get_cell_value(v - 1, col), v as u16);
+                }
+
+                assert_eq!(pat.get_cursor(), (16, 3));
+                assert_eq!(pat.get_edit_step(), 5);
+                assert_eq!(pat.rows(), 133);
+            }
         }
     }
 }
