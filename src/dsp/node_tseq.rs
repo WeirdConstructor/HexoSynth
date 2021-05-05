@@ -94,6 +94,8 @@ impl DspNode for TSeq {
                 backend
             } else { return; };
 
+        backend.check_updates();
+
         let mut clock_phase = self.clock_phase;
         let mut clock_inc   = self.clock_inc;
 
@@ -111,6 +113,8 @@ impl DspNode for TSeq {
 
                 self.clock_samples = 0;
             }
+
+            self.clock_samples += 1;
 
             clock_phase += clock_inc;
 
@@ -138,6 +142,9 @@ impl DspNode for TSeq {
 
             phase_out[frame] = phase as f32;
         }
+
+        println!("PHASE {}", phase_out[0]);
+
 
         let mut col_out : [f32; MAX_BLOCK_SIZE] =
             [0.0; MAX_BLOCK_SIZE];

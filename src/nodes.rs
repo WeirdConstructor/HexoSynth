@@ -21,8 +21,11 @@ use crate::dsp::{
     node_factory, NodeInfo, Node,
     NodeId, SAtom, ProcBuf,
 };
-use crate::dsp::tracker::Tracker;
+use crate::dsp::tracker::{Tracker, PatternData};
 use crate::util::{Smoother, AtomicFloat};
+
+use std::rc::Rc;
+use std::cell::RefCell;
 
 /// A node graph execution program. It comes with buffers
 /// for the inputs, outputs and node parameters (knob values).
@@ -376,6 +379,24 @@ impl NodeConfigurator {
         let mut bufs = [0; MON_SIG_CNT];
         bufs.copy_from_slice(&in_bufs);
         let _ = self.quick_update_prod.push(QuickMessage::SetMonitor { bufs });
+    }
+
+    pub fn get_pattern_data(&self, tracker_id: usize)
+        -> Option<Rc<RefCell<PatternData>>>
+    {
+        if tracker_id >= self.trackers.len() {
+            return None;
+        }
+
+        Some(self.trackers[tracker_id].data())
+    }
+
+    pub fn check_pattern_data(&mut self, tracker_id: usize) {
+        if tracker_id >= self.trackers.len() {
+            return;
+        }
+
+        self.trackers[tracker_id].send_one_update();
     }
 
     pub fn delete_nodes(&mut self) {

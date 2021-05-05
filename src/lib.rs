@@ -477,9 +477,11 @@ impl AtomDataModel for HexoSynthUIParams {
     }
 }
 
-pub const NODE_MATRIX_ID : u32   = 9999;
-pub const NODE_PANEL_ID  : u32   = 9998;
-pub const UTIL_PANEL_ID  : usize = 9997;
+pub const NODE_MATRIX_ID  : u32   = 9999;
+pub const NODE_PANEL_ID   : u32   = 9998;
+pub const UTIL_PANEL_ID   : usize = 9997;
+pub const PATTERN_PANEL_ID: usize = 9996;
+pub const PATTERN_VIEW_ID : usize = 9995;
 
 impl PluginUI for HexoSynth {
     type Handle = u32;

@@ -8,6 +8,7 @@ pub use crate::CellDir;
 pub use crate::nodes::MinMaxMonitorSamples;
 pub use crate::monitor::MON_SIG_CNT;
 use crate::matrix_repr::*;
+use crate::dsp::tracker::PatternData;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Cell {
@@ -333,6 +334,16 @@ impl Matrix {
 
     pub fn led_value_for(&self, node_id: &NodeId) -> f32 {
         self.config.led_value_for(node_id)
+    }
+
+    pub fn get_pattern_data(&self, tracker_id: usize)
+        -> Option<Rc<RefCell<PatternData>>>
+    {
+        self.config.get_pattern_data(tracker_id)
+    }
+
+    pub fn check_pattern_data(&mut self, tracker_id: usize) {
+        self.config.check_pattern_data(tracker_id)
     }
 
     pub fn place(&mut self, x: usize, y: usize, mut cell: Cell) {

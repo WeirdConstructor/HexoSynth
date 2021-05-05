@@ -3,6 +3,9 @@ mod sequencer;
 
 use ringbuf::{RingBuffer, Producer, Consumer};
 
+use std::rc::Rc;
+use std::cell::RefCell;
+
 pub const MAX_COLS         : usize = 6;
 pub const MAX_PATTERN_LEN  : usize = 256;
 pub const MAX_RINGBUF_SIZE : usize = 64;
@@ -30,7 +33,7 @@ pub enum PatternUpdateMsg {
 }
 
 pub struct Tracker {
-    data:      PatternData,
+    data:      Rc<RefCell<PatternData>>,
     data_prod: Producer<PatternUpdateMsg>,
     seq:       Option<PatternSequencer>,
     seq_cons:  Option<Consumer<PatternUpdateMsg>>,
@@ -63,25 +66,27 @@ impl Tracker {
         let (prod, con) = rb.split();
 
         Self {
-            data:      PatternData::new(MAX_PATTERN_LEN),
+            data:      Rc::new(RefCell::new(PatternData::new(MAX_PATTERN_LEN))),
             data_prod: prod,
             seq:       Some(PatternSequencer::new(MAX_PATTERN_LEN)),
             seq_cons:  Some(con),
         }
     }
 
-    pub fn data(&mut self) -> &mut PatternData { &mut self.data }
+    pub fn data(&self) -> Rc<RefCell<PatternData>> { self.data.clone() }
 
     pub fn send_one_update(&mut self) -> bool {
+        let mut data = self.data.borrow_mut();
+
         for col in 0..MAX_COLS {
-            if self.data.col_is_modified_reset(col) {
-                self.data.sync_out_data(col);
-                let data = self.data.get_out_data();
+            if data.col_is_modified_reset(col) {
+                data.sync_out_data(col);
+                let out_data = data.get_out_data();
                 let msg =
                     PatternUpdateMsg::UpdateColumn {
-                        col_type:    self.data.col_type(col),
-                        pattern_len: self.data.rows(),
-                        data:        data[col],
+                        col_type:    data.col_type(col),
+                        pattern_len: data.rows(),
+                        data:        out_data[col],
                         col,
                     };
 
@@ -165,11 +170,11 @@ mod tests {
         let mut t = Tracker::new();
         let mut backend = t.get_backend();
 
-        t.data().set_rows(16);
-        t.data().set_col_step_type(0);
-        t.data().set_cell_value(0,  0, 0xFFF);
-        t.data().set_cell_value(7,  0, 0x777);
-        t.data().set_cell_value(15, 0, 0x000);
+        t.data().borrow_mut().set_rows(16);
+        t.data().borrow_mut().set_col_step_type(0);
+        t.data().borrow_mut().set_cell_value(0,  0, 0xFFF);
+        t.data().borrow_mut().set_cell_value(7,  0, 0x777);
+        t.data().borrow_mut().set_cell_value(15, 0, 0x000);
 
         while t.send_one_update() { }
         while backend.check_updates() { }
@@ -187,11 +192,11 @@ mod tests {
         let mut t = Tracker::new();
         let mut backend = t.get_backend();
 
-        t.data().set_rows(16);
-        t.data().set_col_value_type(0);
-        t.data().set_cell_value(0,  0, 0xFFF);
-        t.data().set_cell_value(7,  0, 0x777);
-        t.data().set_cell_value(15, 0, 0x000);
+        t.data().borrow_mut().set_rows(16);
+        t.data().borrow_mut().set_col_value_type(0);
+        t.data().borrow_mut().set_cell_value(0,  0, 0xFFF);
+        t.data().borrow_mut().set_cell_value(7,  0, 0x777);
+        t.data().borrow_mut().set_cell_value(15, 0, 0x000);
 
         while t.send_one_update() { }
         while backend.check_updates() { }
@@ -209,12 +214,12 @@ mod tests {
         let mut t = Tracker::new();
         let mut backend = t.get_backend();
 
-        t.data().set_rows(4);
-        t.data().set_col_gate_type(0);
-        t.data().set_cell_value(0,  0, 0xFF7);
-        t.data().clear_cell(1, 0);
-        t.data().set_cell_value(2,  0, 0xFF0);
-        t.data().set_cell_value(3,  0, 0xFFF);
+        t.data().borrow_mut().set_rows(4);
+        t.data().borrow_mut().set_col_gate_type(0);
+        t.data().borrow_mut().set_cell_value(0,  0, 0xFF7);
+        t.data().borrow_mut().clear_cell(1, 0);
+        t.data().borrow_mut().set_cell_value(2,  0, 0xFF0);
+        t.data().borrow_mut().set_cell_value(3,  0, 0xFFF);
 
         while t.send_one_update() { }
         while backend.check_updates() { }

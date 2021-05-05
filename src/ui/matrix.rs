@@ -636,7 +636,9 @@ impl WidgetType for NodeMatrix {
                 ui.queue_redraw();
             },
             _ => {
-                println!("EV: {:?}", ev);
+                data.with(|data: &mut NodeMatrixData| {
+                    data.util_panel.event(ui, ev);
+                });
             },
         }
     }

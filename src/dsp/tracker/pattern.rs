@@ -64,6 +64,10 @@ impl PatternData {
     pub fn sync_out_data(&mut self, col: usize) {
         let mut out_col = &mut self.out_data[col];
 
+        if self.rows == 0 {
+            return;
+        }
+
         match self.col_types[col] {
             PatternColType::Value => {
                 let mut start_value = 0.0;

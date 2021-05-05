@@ -72,6 +72,9 @@ impl PatternSequencer {
     pub fn set_col(&mut self, col: usize, col_data: &[f32])
     {
         for (out_cell, in_cell) in self.data[col].iter_mut().zip(col_data.iter()) {
+            if *in_cell > 0.0 {
+                println!("YOOOO UPDATE SETCOL {}", *in_cell);
+            }
             *out_cell = *in_cell;
         }
     }
