@@ -124,19 +124,7 @@ impl PluginContext<HexoSynth> for HexoSynthShared {
 
         let (node_conf, node_exec) = nodes::new_node_engine();
         let (w, h) = (16, 16);
-//        let (w, h) = (15, 15);
         let mut matrix = Matrix::new(node_conf, w, h);
-
-//        let mut i = 2;
-//        for x in 0..w {
-//            for y in 0..h {
-//                matrix.place(x, y,
-//                    Cell::empty(NodeId::Sin(i))
-//                    .out(Some(0), Some(0), Some(0))
-//                    .input(Some(0), Some(0), Some(0)));
-//                i += 1;
-//            }
-//        }
 
         matrix.place(0, 1, Cell::empty(NodeId::Sin(0))
                            .out(Some(0), None, None));
@@ -147,8 +135,15 @@ impl PluginContext<HexoSynth> for HexoSynthShared {
                            .input(None, None, Some(0)));
         matrix.place(4, 4, Cell::empty(NodeId::Test(0))
                            .input(None, None, None));
-        matrix.sync();
 
+        if let Err(e) =
+            load_patch_from_file(
+                &mut matrix, "init.hxy")
+        {
+            println!("Error loading init.hxy: {:?}", e);
+        }
+
+        matrix.sync();
 
         Self {
             matrix:    Arc::new(Mutex::new(matrix)),
@@ -318,7 +313,10 @@ impl HexoSynthUIParams {
         let mut new_hm = HashMap::new();
 
         m.for_each_atom(|unique_idx, param_id, satom| {
-            println!("NODEID: {} => idx={}", param_id.node_id(), unique_idx);
+            println!(
+                "NODEID: {} => idx={}",
+                param_id.node_id(),
+                unique_idx);
 
             new_hm.insert(
                 AtomId::new(unique_idx as u32, param_id.inp() as u32),

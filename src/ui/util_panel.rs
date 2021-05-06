@@ -14,6 +14,7 @@ use hexotk::widgets::{
 };
 use crate::matrix::Matrix;
 use crate::ui::matrix::MatrixEditorRef;
+use crate::dsp::NodeId;
 
 use std::sync::{Arc, Mutex};
 use std::rc::Rc;
@@ -23,21 +24,21 @@ pub struct PatternViewData {
     cont:   WidgetData,
 }
 
-fn create_pattern_edit(matrix: Arc<Mutex<Matrix>>) -> WidgetData {
+fn create_pattern_edit(id: AtomId, matrix: Arc<Mutex<Matrix>>) -> WidgetData {
     let m = matrix.lock().unwrap();
     let data = m.get_pattern_data(0).unwrap();
     wbox!(
         PatternEditor::new_ref(6, 32),
-        crate::PATTERN_VIEW_ID.into(),
+        id,
         center(12, 12),
         PatternEditorData::new(data))
 }
 
 impl PatternViewData {
-    pub fn new(matrix: Arc<Mutex<Matrix>>)
+    pub fn new(id: AtomId, matrix: Arc<Mutex<Matrix>>)
         -> Box<dyn std::any::Any>
     {
-        let cont = create_pattern_edit(matrix.clone());
+        let cont = create_pattern_edit(id, matrix.clone());
 
         Box::new(Self {
             matrix,
@@ -65,13 +66,21 @@ impl UtilPanelData {
     {
         let mut tdata = TabsData::new();
 
+        let id = {
+            let m = matrix.lock().unwrap();
+            m.unique_index_for(&NodeId::TSeq(0))
+             .unwrap_or(crate::PATTERN_VIEW_ID)
+        };
+
+        let id = AtomId::new(id as u32, 0);
+
         tdata.add(
             "Tracker",
             wbox!(
                 PatternView::new_ref(),
-                crate::PATTERN_PANEL_ID.into(),
+                crate::PATTERN_VIEW_ID.into(),
                 center(12, 12),
-                PatternViewData::new(matrix.clone())));
+                PatternViewData::new(id, matrix.clone())));
 
         Box::new(Self {
             cont: wbox!(

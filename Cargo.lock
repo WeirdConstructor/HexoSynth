@@ -277,6 +277,7 @@ dependencies = [
  "hexotk",
  "hound",
  "jack",
+ "keyboard-types",
  "microfft",
  "num-complex",
  "raw-window-handle",
@@ -288,7 +289,7 @@ dependencies = [
 [[package]]
 name = "hexotk"
 version = "0.1.0"
-source = "git+https://github.com/WeirdConstructor/HexoTK.git#e65ec74fd6d38a678d8ebcddb6fd2ac7bdd8779d"
+source = "git+https://github.com/WeirdConstructor/HexoTK.git#aea50c36a82f71dac7c7100565957afb3990eb03"
 dependencies = [
  "baseview",
  "femtovg",

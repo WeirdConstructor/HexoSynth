@@ -635,7 +635,35 @@ impl WidgetType for NodeMatrix {
                 });
                 ui.queue_redraw();
             },
+            UIEvent::Key { key, .. } => {
+                use keyboard_types::Key;
+
+                println!("KEY!");
+
+                match key {
+                    Key::F4 => {
+                        data.with(|data: &mut NodeMatrixData| {
+                            use crate::matrix_repr::save_patch_to_file;
+
+                            let mut m =
+                                data.matrix_model.matrix.lock().unwrap();
+
+                            println!("SAVE!");
+                            save_patch_to_file(
+                                &mut m,
+                                "init.hxy").unwrap();
+                        });
+                    },
+                    _ => {
+                        data.with(|data: &mut NodeMatrixData| {
+                            data.util_panel.event(ui, ev);
+                        });
+                    },
+                }
+
+            },
             _ => {
+            println!("FOOEFO");
                 data.with(|data: &mut NodeMatrixData| {
                     data.util_panel.event(ui, ev);
                 });
