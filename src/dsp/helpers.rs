@@ -346,6 +346,58 @@ pub fn sqrt4_to_pow4(x: f32, v: f32) -> f32 {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct TriggerClock {
+    clock_phase:    f64,
+    clock_inc:      f64,
+    prev_trigger:   bool,
+    clock_samples:  u32,
+}
+
+impl TriggerClock {
+    pub fn new() -> Self {
+        Self {
+            clock_phase:    0.0,
+            clock_inc:      0.0,
+            prev_trigger:   true,
+            clock_samples:  0,
+        }
+    }
+
+    #[inline]
+    pub fn reset(&mut self) {
+        self.clock_samples = 0;
+        self.clock_inc     = 0.0;
+        self.prev_trigger  = true;
+        self.clock_samples = 0;
+    }
+
+    #[inline]
+    pub fn next_phase(&mut self, trigger_in: f32) -> f64 {
+        if self.prev_trigger {
+            if trigger_in <= 0.25 {
+                self.prev_trigger = false;
+            }
+
+        } else if trigger_in > 0.75 {
+            self.prev_trigger = true;
+
+            if self.clock_samples > 0 {
+                self.clock_inc =
+                    1.0 / (self.clock_samples as f64);
+            }
+
+            self.clock_samples = 0;
+        }
+
+        self.clock_samples += 1;
+
+        self.clock_phase += self.clock_inc;
+
+        self.clock_phase
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

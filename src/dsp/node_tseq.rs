@@ -3,6 +3,7 @@
 // See README.md and COPYING for details.
 
 use crate::nodes::NodeAudioContext;
+use crate::dsp::helpers::TriggerClock;
 use crate::dsp::{SAtom, ProcBuf, DspNode, LedPhaseVals};
 use crate::dsp::tracker::TrackerBackend;
 
@@ -13,44 +14,34 @@ use crate::dsp::tracker::MAX_COLS;
 #[derive(Debug)]
 pub struct TSeq {
     backend:       Option<Box<TrackerBackend>>,
-    clock_samples: usize,
-    clock_phase:   f64,
-    clock_inc:     f64,
+    clock:         TriggerClock,
     srate:         f64,
 }
 
 impl Clone for TSeq {
-    fn clone(&self) -> Self {
-        Self {
-            backend:       None,
-            clock_samples: 0,
-            clock_phase:   0.0,
-            clock_inc:     0.0,
-            srate:         48000.0,
-        }
-    }
+    fn clone(&self) -> Self { Self::new() }
 }
 
 impl TSeq {
     pub fn new() -> Self {
         Self {
             backend:       None,
-            clock_samples: 0,
-            clock_phase:   0.0,
-            clock_inc:     0.0,
             srate:         48000.0,
+            clock:         TriggerClock::new(),
         }
     }
 
     pub fn set_backend(&mut self, backend: TrackerBackend) {
-        println!("GOT A TSEQ BACKEDN!");
         self.backend = Some(Box::new(backend));
     }
 
     pub const clock : &'static str =
         "TSeq clock\nClock input\nRange: (0..1)\n";
     pub const cmode : &'static str =
-        "TSeq cmode\nDefines the interepreation of the signal on the 'clock' input.\n\
+        "TSeq cmode\n'clock' input signal mode:\n\
+             - RowT: Trigger = advance row\n\
+             - PatT: Trigger = pattern rate\n\
+             - Phase: Phase to pattern index\n\
          \n";
     pub const trk1 : &'static str =
         "TSeq trk1\nTrack 1 signal output\nRange: (-1..1)\n";
@@ -75,9 +66,7 @@ impl DspNode for TSeq {
 
     fn reset(&mut self) {
         self.backend        = None;
-        self.clock_inc      = 0.0;
-        self.clock_phase    = 0.0;
-        self.clock_samples  = 0;
+        self.clock.reset();
     }
 
     #[inline]
@@ -96,31 +85,22 @@ impl DspNode for TSeq {
 
         backend.check_updates();
 
-        let mut clock_phase = self.clock_phase;
-        let mut clock_inc   = self.clock_inc;
-
         let mut phase_out : [f32; MAX_BLOCK_SIZE] =
             [0.0; MAX_BLOCK_SIZE];
 
+        let cmode = cmode.i();
+
         for frame in 0..ctx.nframes() {
-            let clock_in = clock.read(frame);
-
-            if clock_in > 0.75 {
-                if self.clock_samples > 0 {
-                    clock_inc =
-                        self.clock_samples as f64 / self.srate;
-                }
-
-                self.clock_samples = 0;
-            }
-
-            self.clock_samples += 1;
-
-            clock_phase += clock_inc;
+            let mut clock_phase =
+                if cmode < 2 {
+                    self.clock.next_phase(clock.read(frame))
+                } else {
+                    clock.read(frame).abs() as f64
+                };
 
             let phase =
-                match cmode.i() {
-                    // RowTrig
+                match cmode {
+                    // RowT
                     0 => {
                         let plen = backend.pattern_len() as f64;
                         while clock_phase >= plen {
@@ -129,11 +109,7 @@ impl DspNode for TSeq {
 
                         clock_phase / plen
                     },
-                    // PatTrig
-                    1 => {
-                        clock_phase = clock_phase.fract();
-                        clock_phase
-                    },
+                    // 1 | 2 PatT, Phase
                     _ => {
                         clock_phase = clock_phase.fract();
                         clock_phase
@@ -149,7 +125,6 @@ impl DspNode for TSeq {
             [0.0; MAX_BLOCK_SIZE];
         let mut col_out_slice   = &mut col_out[0..ctx.nframes()];
         let mut phase_out_slice = &phase_out[0..ctx.nframes()];
-
 
         let out_t1     = out::TSeq::trk1(outputs);
         backend.get_col_at_phase(
@@ -182,9 +157,6 @@ impl DspNode for TSeq {
         backend.get_col_at_phase(
             5, phase_out_slice, col_out_slice);
         out_t6.write_from(col_out_slice);
-
-        self.clock_phase = clock_phase;
-        self.clock_inc   = clock_inc;
 
         ctx_vals[1].set(phase_out_slice[phase_out_slice.len() - 1]);
     }

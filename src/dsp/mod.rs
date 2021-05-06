@@ -255,7 +255,7 @@ macro_rules! node_list {
                [0 sig],
             tseq => TSeq UIType::Generic UICategory::CV
                (0 clock n_id       d_id       0.0, 1.0, 0.0)
-               {1 0 cmode setting(1) 0  1}
+               {1 0 cmode setting(1) 0  2}
                [0 trk1]
                [1 trk2]
                [2 trk3]
@@ -300,8 +300,7 @@ pub mod labels {
     }
 
     pub mod TSeq {
-        pub const cmode : [&'static str; 4] =
-            ["RowTrig", "PatTrig", "PatPhase", "RowPhase"];
+        pub const cmode : [&'static str; 3] = ["RowT", "PatT", "Phase"];
     }
 }
 
