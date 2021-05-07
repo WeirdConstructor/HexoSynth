@@ -133,11 +133,6 @@ impl PatternSequencer {
 
             let gate : u32 = col[line].to_bits();
 
-            if (gate & 0xF000) > 0 {
-                *out = 0.0;
-                continue;
-            }
-
             // pulse_width:
             //      0xF  - Gate is on for full row
             //      0x0  - Gate is on for a very short burst
@@ -169,11 +164,16 @@ impl PatternSequencer {
                 //d// println!("RANDVAL: {:?} | {:9.7}", self.rand_vals[col_idx], FRACT_16THS[probability as usize]);
 
                 if rand_val > (FRACT_16THS[probability as usize] as f64) {
+                    *out = 0.0;
                     continue;
                 }
             }
 
-            *out = if sub_frac <= pulse_width { 1.0 } else { 0.0 };
+            if (gate & 0xF000) > 0 {
+                *out = 0.0;
+            } else {
+                *out = if sub_frac <= pulse_width { 1.0 } else { 0.0 };
+            }
         }
     }
 }

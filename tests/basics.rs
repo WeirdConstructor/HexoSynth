@@ -1026,13 +1026,14 @@ fn check_matrix_tseq_2col_gate_bug() {
                        .out(None, None, sin.out("sig")));
     matrix.place(0, 1, Cell::empty(tsq)
                        .input(tsq.inp("clock"), None, None)
-                       .out(None, None, tsq.out("trk1")));
+                       .out(None, None, tsq.out("trk2")));
     matrix.place(0, 2, Cell::empty(out)
                        .input(out.inp("ch1"), None, None));
     matrix.sync();
 
     let freq_param = sin.inp_param("freq").unwrap();
-    matrix.set_param(freq_param, SAtom::param(-0.978));
+    matrix.set_param(freq_param, SAtom::param(0.0));
+
     let cmode_param = tsq.inp_param("cmode").unwrap();
     matrix.set_param(cmode_param, SAtom::setting(1));
 
@@ -1042,6 +1043,7 @@ fn check_matrix_tseq_2col_gate_bug() {
         pr.set_rows(2);
         pr.set_col_value_type(0);
         pr.set_col_gate_type(1);
+
         // pulse_width:
         //      0xF  - Gate is on for full row
         //      0x0  - Gate is on for a very short burst
@@ -1063,13 +1065,14 @@ fn check_matrix_tseq_2col_gate_bug() {
         matrix.check_pattern_data(0);
     }
 
-    // We let the clock mode tune in:
-    run_and_undersample(&mut node_exec, 11100.0, 1);
+    let samples = run_and_undersample(&mut node_exec, 10000.0, 100000);
 
-    // Take some real samples:
-    let samples = run_and_undersample(&mut node_exec, 2000.0, 2);
+    let mut any_non_zero = false;
+    for (i, s) in samples.iter().enumerate() {
+        if *s > 0.0 { any_non_zero = true; }
+    }
 
     println!("FO {:?}", samples);
-    assert_float_eq!(samples[0], 0.0);
-    assert_float_eq!(samples[1], 0.0);
+    assert!(any_non_zero);
+//    assert!(false);
 }

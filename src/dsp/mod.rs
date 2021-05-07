@@ -133,7 +133,11 @@ impl ProcBuf {
 impl std::fmt::Debug for ProcBuf {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         unsafe {
-            write!(f, "ProcBuf(0: {})", (*self.0)[0])
+            write!(f, "ProcBuf(")?;
+            for i in 0..MAX_BLOCK_SIZE {
+                write!(f, "{:5.4} ", (*self.0)[i])?;
+            }
+            write!(f, ")")
         }
     }
 }
