@@ -141,6 +141,10 @@ impl TrackerBackend {
     pub fn pattern_len(&self) -> usize { self.seq.rows() }
 
     pub fn get_col_at_phase(&mut self, col: usize, phase: &[f32], out: &mut [f32]) {
+        if self.seq.rows() == 0 {
+            return;
+        }
+
         match self.col_types[col] {
             PatternColType::Note | PatternColType::Step => {
                 self.seq.col_get_at_phase(col, phase, out)

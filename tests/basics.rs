@@ -115,6 +115,23 @@ fn calc_rms_mimax_each_ms(buf: &[f32], ms: f32) -> Vec<(f32, f32, f32)> {
     res
 }
 
+fn run_and_undersample(
+    node_exec: &mut hexosynth::nodes::NodeExecutor,
+    run_len_ms: f32, samples: usize) -> Vec<f32>
+{
+    let (out_l, _out_r) = run_no_input(node_exec, run_len_ms / 1000.0);
+
+    let sample_interval = out_l.len() / samples;
+    let mut out_samples = vec![];
+
+    for i in 0..samples {
+        let idx = i * sample_interval;
+        out_samples.push(out_l[idx]);
+    }
+
+    out_samples
+}
+
 fn run_and_get_l_rms_mimax(
     node_exec: &mut hexosynth::nodes::NodeExecutor,
     len_ms: f32) -> (f32, f32, f32)
@@ -843,4 +860,216 @@ fn check_matrix_serialize() {
         let fft = run_and_get_fft4096(&mut node_exec, 800, 10.0);
         assert_eq!(fft[0], (108, 993));
     }
+}
+
+#[test]
+fn check_matrix_tseq() {
+    use hexotk::widgets::UIPatternModel;
+
+    let (node_conf, mut node_exec) = new_node_engine();
+    let mut matrix = Matrix::new(node_conf, 3, 3);
+
+    let sin = NodeId::Sin(0);
+    let tsq = NodeId::TSeq(0);
+    let out = NodeId::Out(0);
+    matrix.place(0, 0, Cell::empty(sin)
+                       .out(None, None, sin.out("sig")));
+    matrix.place(0, 1, Cell::empty(tsq)
+                       .input(tsq.inp("clock"), None, None)
+                       .out(None, None, tsq.out("trk1")));
+    matrix.place(0, 2, Cell::empty(out)
+                       .input(out.inp("ch1"), None, None));
+    matrix.sync();
+
+    let freq_param = sin.inp_param("freq").unwrap();
+    matrix.set_param(freq_param, SAtom::param(-0.978));
+    let cmode_param = tsq.inp_param("cmode").unwrap();
+    matrix.set_param(cmode_param, SAtom::setting(1));
+
+    let pat = matrix.get_pattern_data(0).unwrap();
+    {
+        let mut pr = pat.borrow_mut();
+        pr.set_rows(16);
+        pr.set_cell_value(0,  0, 0xFFF);
+        pr.set_cell_value(15, 0, 0x000);
+    }
+
+    for _ in 0..10 {
+        matrix.check_pattern_data(0);
+    }
+
+    // We let the clock mode tune in:
+    run_and_undersample(&mut node_exec, 10000.0, 1);
+
+    // Take some real samples:
+    let samples = run_and_undersample(&mut node_exec, 2000.0, 10);
+
+    assert_float_eq!(samples[0], 0.3157);
+    assert_float_eq!(samples[1], 0.209);
+    assert_float_eq!(samples[2], 0.1024);
+    assert_float_eq!(samples[3], 0.0648);
+    assert_float_eq!(samples[4], 0.95566);
+    assert_float_eq!(samples[5], 0.84899);
+    assert_float_eq!(samples[6], 0.74231);
+    assert_float_eq!(samples[7], 0.6356);
+    assert_float_eq!(samples[8], 0.5289);
+    assert_float_eq!(samples[9], 0.42228);
+
+    // switch to row trigger:
+    matrix.set_param(cmode_param, SAtom::setting(0));
+    let samples = run_and_undersample(&mut node_exec, 2000.0, 5);
+
+    assert_float_eq!(samples[0], 0.4863);
+    assert_float_eq!(samples[1], 0.4731);
+    assert_float_eq!(samples[2], 0.4597);
+    assert_float_eq!(samples[3], 0.4463);
+    assert_float_eq!(samples[4], 0.4331);
+
+    // set to phase mode:
+    matrix.set_param(cmode_param, SAtom::setting(2));
+    let samples = run_and_undersample(&mut node_exec, 1000.0, 5);
+
+    assert_float_eq!(samples[0], 0.2491);
+    assert_float_eq!(samples[1], 0.0026);
+    assert_float_eq!(samples[2], 0.1616);
+    assert_float_eq!(samples[3], 0.6655);
+    assert_float_eq!(samples[4], 0.8104);
+}
+
+#[test]
+fn check_matrix_tseq_gate() {
+    use hexotk::widgets::UIPatternModel;
+
+    let (node_conf, mut node_exec) = new_node_engine();
+    let mut matrix = Matrix::new(node_conf, 3, 3);
+
+    let sin = NodeId::Sin(0);
+    let tsq = NodeId::TSeq(0);
+    let out = NodeId::Out(0);
+    matrix.place(0, 0, Cell::empty(sin)
+                       .out(None, None, sin.out("sig")));
+    matrix.place(0, 1, Cell::empty(tsq)
+                       .input(tsq.inp("clock"), None, None)
+                       .out(None, None, tsq.out("trk1")));
+    matrix.place(0, 2, Cell::empty(out)
+                       .input(out.inp("ch1"), None, None));
+    matrix.sync();
+
+    let freq_param = sin.inp_param("freq").unwrap();
+    matrix.set_param(freq_param, SAtom::param(-0.978));
+    let cmode_param = tsq.inp_param("cmode").unwrap();
+    matrix.set_param(cmode_param, SAtom::setting(1));
+
+    let pat = matrix.get_pattern_data(0).unwrap();
+    {
+        let mut pr = pat.borrow_mut();
+        pr.set_rows(16);
+        pr.set_col_gate_type(0);
+        // pulse_width:
+        //      0xF  - Gate is on for full row
+        //      0x0  - Gate is on for a very short burst
+        // row_div:
+        //      0xF  - Row has 1  Gate
+        //      0x0  - Row is divided up into 16 Gates
+        // probability:
+        //      0xF  - Row is always triggered
+        //      0x7  - Row fires only in 50% of the cases
+        //      0x0  - Row fires only in ~6% of the cases
+        pr.set_cell_value(5, 0, 0xFFF);
+        pr.set_cell_value(7, 0, 0xFF0);
+        pr.set_cell_value(9, 0, 0xF00);
+    }
+
+    for _ in 0..10 {
+        matrix.check_pattern_data(0);
+    }
+
+    // We let the clock mode tune in:
+    run_and_undersample(&mut node_exec, 11100.0, 1);
+
+    // Take some real samples:
+    let samples = run_and_undersample(&mut node_exec, 2000.0, 2000);
+
+    assert_float_eq!(samples[117], 0.0);
+    for i in 118..243 {
+        assert_float_eq!(samples[i], 1.0);
+    }
+    assert_float_eq!(samples[243], 0.0);
+
+    assert_float_eq!(samples[367], 0.0);
+    for i in 368..376 {
+        assert_float_eq!(samples[i], 1.0);
+    }
+    assert_float_eq!(samples[376], 0.0);
+
+    assert_float_eq!(samples[680], 0.0);
+    assert_float_eq!(samples[681], 1.0);
+    assert_float_eq!(samples[682], 0.0);
+
+    assert_float_eq!(samples[688], 0.0);
+    assert_float_eq!(samples[689], 1.0);
+    assert_float_eq!(samples[690], 0.0);
+}
+
+
+#[test]
+fn check_matrix_tseq_2col_gate_bug() {
+    use hexotk::widgets::UIPatternModel;
+
+    let (node_conf, mut node_exec) = new_node_engine();
+    let mut matrix = Matrix::new(node_conf, 3, 3);
+
+    let sin = NodeId::Sin(0);
+    let tsq = NodeId::TSeq(0);
+    let out = NodeId::Out(0);
+    matrix.place(0, 0, Cell::empty(sin)
+                       .out(None, None, sin.out("sig")));
+    matrix.place(0, 1, Cell::empty(tsq)
+                       .input(tsq.inp("clock"), None, None)
+                       .out(None, None, tsq.out("trk1")));
+    matrix.place(0, 2, Cell::empty(out)
+                       .input(out.inp("ch1"), None, None));
+    matrix.sync();
+
+    let freq_param = sin.inp_param("freq").unwrap();
+    matrix.set_param(freq_param, SAtom::param(-0.978));
+    let cmode_param = tsq.inp_param("cmode").unwrap();
+    matrix.set_param(cmode_param, SAtom::setting(1));
+
+    let pat = matrix.get_pattern_data(0).unwrap();
+    {
+        let mut pr = pat.borrow_mut();
+        pr.set_rows(2);
+        pr.set_col_value_type(0);
+        pr.set_col_gate_type(1);
+        // pulse_width:
+        //      0xF  - Gate is on for full row
+        //      0x0  - Gate is on for a very short burst
+        // row_div:
+        //      0xF  - Row has 1  Gate
+        //      0x0  - Row is divided up into 16 Gates
+        // probability:
+        //      0xF  - Row is always triggered
+        //      0x7  - Row fires only in 50% of the cases
+        //      0x0  - Row fires only in ~6% of the cases
+        pr.set_cell_value(0, 0, 0xFFF);
+        pr.set_cell_value(1, 0, 0x000);
+
+        pr.set_cell_value(0, 1, 0x0FF);
+        pr.set_cell_value(1, 1, 0x000);
+    }
+
+    for _ in 0..10 {
+        matrix.check_pattern_data(0);
+    }
+
+    // We let the clock mode tune in:
+    run_and_undersample(&mut node_exec, 11100.0, 1);
+
+    // Take some real samples:
+    let samples = run_and_undersample(&mut node_exec, 2000.0, 2);
+
+    println!("FO {:?}", samples);
+    assert_float_eq!(samples[0], 0.0);
+    assert_float_eq!(samples[1], 0.0);
 }

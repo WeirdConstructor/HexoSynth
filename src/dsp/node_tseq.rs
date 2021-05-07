@@ -65,7 +65,7 @@ impl DspNode for TSeq {
     }
 
     fn reset(&mut self) {
-        self.backend        = None;
+        self.backend = None;
         self.clock.reset();
     }
 
