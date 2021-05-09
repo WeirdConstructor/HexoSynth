@@ -8,7 +8,6 @@ use crate::dsp::{SAtom, ProcBuf, DspNode, LedPhaseVals};
 use crate::dsp::tracker::TrackerBackend;
 
 use crate::dsp::MAX_BLOCK_SIZE;
-use crate::dsp::tracker::MAX_COLS;
 
 /// A tracker based sequencer
 #[derive(Debug)]
@@ -74,11 +73,11 @@ impl DspNode for TSeq {
         &mut self, ctx: &mut T, atoms: &[SAtom], _params: &[ProcBuf],
         inputs: &[ProcBuf], outputs: &mut [ProcBuf], ctx_vals: LedPhaseVals)
     {
-        use crate::dsp::{out, inp, denorm, denorm_v, inp_dir, at};
+        use crate::dsp::{out, inp, at};
         let clock = inp::TSeq::clock(inputs);
         let cmode = at::TSeq::cmode(atoms);
 
-        let mut backend =
+        let backend =
             if let Some(backend) = &mut self.backend {
                 backend
             } else { return; };
@@ -123,8 +122,8 @@ impl DspNode for TSeq {
 
         let mut col_out : [f32; MAX_BLOCK_SIZE] =
             [0.0; MAX_BLOCK_SIZE];
-        let mut col_out_slice   = &mut col_out[0..ctx.nframes()];
-        let mut phase_out_slice = &phase_out[0..ctx.nframes()];
+        let col_out_slice   = &mut col_out[0..ctx.nframes()];
+        let phase_out_slice = &phase_out[0..ctx.nframes()];
 
         let out_t1     = out::TSeq::trk1(outputs);
         backend.get_col_at_phase(

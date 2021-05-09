@@ -90,7 +90,7 @@ impl Tracker {
                         col,
                     };
 
-                self.data_prod.push(msg);
+                let _ = self.data_prod.push(msg);
 
                 return true;
             }

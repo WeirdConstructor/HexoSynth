@@ -793,9 +793,9 @@ impl Matrix {
         // And this time calculate the output offsets.
         self.instances.borrow_mut().clear();
 
-        // Swap old and current parameter. Keep the old ones
-        // as reference.
+        // Regenerating the params and atoms in the next step:
         self.params.borrow_mut().clear();
+        self.atoms.borrow_mut().clear();
 
         let mut out_len = 0;
         let mut in_len  = 0;

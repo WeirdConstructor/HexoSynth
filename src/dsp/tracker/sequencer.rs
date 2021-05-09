@@ -2,14 +2,12 @@
 // This is a part of HexoSynth. Released under (A)GPLv3 or any later.
 // See README.md and COPYING for details.
 
-use super::PatternColType;
 use super::MAX_PATTERN_LEN;
 use super::MAX_COLS;
 use crate::dsp::helpers::SplitMix64;
 
 pub struct PatternSequencer {
     rows:       usize,
-    col_types:  [PatternColType; MAX_COLS],
     data:       Vec<Vec<f32>>,
     rng:        SplitMix64,
     rand_vals:  [(usize, f64); MAX_COLS],
@@ -38,7 +36,6 @@ impl PatternSequencer {
     pub fn new_default_seed(rows: usize) -> Self {
         Self {
             rows,
-            col_types: [PatternColType::Value; MAX_COLS],
             data:      vec![vec![0.0; MAX_PATTERN_LEN]; MAX_COLS],
             rng:       SplitMix64::new(0x91234),
             rand_vals: [(99999, 0.0); MAX_COLS],
@@ -56,7 +53,6 @@ impl PatternSequencer {
             };
         Self {
             rows,
-            col_types: [PatternColType::Value; MAX_COLS],
             data:      vec![vec![0.0; MAX_PATTERN_LEN]; MAX_COLS],
             rng:       SplitMix64::new_from_i64(seed),
             rand_vals: [(99999, 0.0); MAX_COLS],
@@ -412,7 +408,7 @@ mod tests {
         }
         ps.set_col(0, &coldata[..]);
 
-        let mut samples = rows;
+        let samples = rows;
         let mut phase = vec![0.0; samples];
         let inc = 1.0 / ((samples as f32) - 1.0);
         let mut phase_run = 0.0;

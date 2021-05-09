@@ -1068,7 +1068,7 @@ fn check_matrix_tseq_2col_gate_bug() {
     let samples = run_and_undersample(&mut node_exec, 10000.0, 100000);
 
     let mut any_non_zero = false;
-    for (i, s) in samples.iter().enumerate() {
+    for s in samples.iter() {
         if *s > 0.0 { any_non_zero = true; }
     }
 

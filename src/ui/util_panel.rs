@@ -1,11 +1,10 @@
-use hexotk::{MButton, UIPos, AtomId};
+use hexotk::{UIPos, AtomId};
 use hexotk::{
     Rect, WidgetUI, Painter, WidgetData, WidgetType,
     UIEvent,
     wbox,
     define_containing_widget
 };
-use hexotk::constants::*;
 use hexotk::widgets::{
 //    Container, ContainerData,
 //    Text, TextSourceRef, TextData,
@@ -46,7 +45,7 @@ impl PatternViewData {
         })
     }
 
-    pub fn check_cont_update(&mut self, ui: &mut dyn WidgetUI) {
+    pub fn check_cont_update(&mut self, _ui: &mut dyn WidgetUI) {
         let mut m = self.matrix.lock().unwrap();
         m.check_pattern_data(0);
     }
@@ -93,7 +92,7 @@ impl UtilPanelData {
         })
     }
 
-    pub fn check_cont_update(&mut self, ui: &mut dyn WidgetUI) {
+    pub fn check_cont_update(&mut self, _ui: &mut dyn WidgetUI) {
     }
 }
 

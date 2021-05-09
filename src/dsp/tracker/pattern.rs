@@ -134,7 +134,7 @@ impl PatternData {
     }
 
     pub fn sync_out_data(&mut self, col: usize) {
-        let mut out_col = &mut self.out_data[col];
+        let out_col = &mut self.out_data[col];
 
         if self.rows == 0 {
             return;
@@ -449,8 +449,6 @@ mod tests {
 
             let out_data = pats.get_out_data();
 
-            let inc = 1.0 / 15.0;
-
             //d// println!("out: {:?}", &out_data[col][0..16]);
             for i in 0..8 {
                 assert_float_eq!(
@@ -471,8 +469,6 @@ mod tests {
             pats.sync_out_data(col);
 
             let out_data = pats.get_out_data();
-
-            let inc = 1.0 / 15.0;
 
             //d// println!("out: {:?}", &out_data[col][0..16]);
             for i in 0..8 {
@@ -497,8 +493,6 @@ mod tests {
 
             let out_data = pats.get_out_data();
 
-            let inc = 1.0 / 15.0;
-
             //d// println!("out: {:?}", &out_data[col][0..16]);
             for i in 0..8 {
                 assert_float_eq!(
@@ -521,8 +515,6 @@ mod tests {
             pats.sync_out_data(col);
 
             let out_data = pats.get_out_data();
-
-            let inc = 1.0 / 15.0;
 
             //d// println!("out: {:?}", &out_data[col][0..16]);
 
