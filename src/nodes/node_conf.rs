@@ -270,6 +270,91 @@ impl NodeConfigurator {
         }
     }
 
+//    pub fn rebuild_node_ports() {
+//        // Rebuild the instances map, because new ones might have been created.
+//        // And this time calculate the output offsets.
+//        self.instances.borrow_mut().clear();
+//
+//        // Regenerating the params and atoms in the next step:
+//        self.params.borrow_mut().clear();
+//        self.atoms.borrow_mut().clear();
+//
+//        let mut out_len = 0;
+//        let mut in_len  = 0;
+//        let mut at_len  = 0;
+//        self.config.for_each(|node_info, id, i| {
+//            // - calculate size of output vector.
+//            let out_idx = out_len;
+//            out_len += node_info.out_count();
+//
+//            // - calculate size of input vector.
+//            let in_idx = in_len;
+//            in_len += node_info.in_count();
+//
+//            // - calculate size of atom vector.
+//            let at_idx = at_len;
+//            at_len += node_info.at_count();
+//
+//            println!("{} = {}", i, id);
+//
+//            // Create new parameters and initialize them if they did not
+//            // already exist from a previous matrix instance.
+//            for param_idx in in_idx..in_len {
+//                if let Some(param_id) = id.inp_param_by_idx(param_idx - in_idx) {
+//                    let value =
+//                        if let Some(value) = self.param_values.borrow().get(&param_id) {
+//                            *value
+//                        } else {
+//                            param_id.norm_def()
+//                        };
+//
+//                    self.param_values.borrow_mut().insert(param_id, value);
+//                    self.params.borrow_mut().insert(param_id, MatrixNodeParam {
+//                        param_id,
+//                        value,
+//                        input_idx: param_idx,
+//                    });
+//                }
+//            }
+//
+//            // Create new atom data and initialize it if it did not
+//            // already exist from a previous matrix instance.
+//            for atom_idx in at_idx..at_len {
+//                // XXX: See also the documentation of atom_param_by_idx about the
+//                // little param_id for an Atom weirdness here.
+//                if let Some(param_id) = id.atom_param_by_idx(atom_idx - at_idx) {
+//                    let value =
+//                        if let Some(atom) =
+//                            self.atom_values.borrow().get(&param_id)
+//                        {
+//                            atom.clone()
+//                        } else {
+//                            param_id.as_atom_def()
+//                        };
+//
+//                    self.atom_values.borrow_mut().insert(param_id, value.clone());
+//                    self.atoms.borrow_mut().insert(param_id, MatrixNodeAtom {
+//                        param_id,
+//                        value,
+//                        at_idx:  atom_idx,
+//                    });
+//                }
+//            }
+//
+//            println!("INSERT: {:?} outidx: {},{} inidx: {},{} atidx: {},{}",
+//                     id, out_idx, out_len, in_idx, in_len, at_idx, at_len);
+//
+//            // - save offset and length of each node's
+//            //   allocation in the output vector.
+//            self.instances.borrow_mut().insert(id,
+//                NodeInstance::new(id)
+//                .set_index(i)
+//                .set_output(out_idx, out_len)
+//                .set_input(in_idx, in_len)
+//                .set_atom(at_idx, at_len));
+//        });
+//    }
+
     /// Uploads a new NodeProg instance.
     ///
     /// The `copy_old_out` parameter should be set if there are only

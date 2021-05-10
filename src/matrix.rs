@@ -282,14 +282,16 @@ pub struct Matrix {
 
     /// Bookkeeping of [NodeInstance] in the [NodeConfigurator].
     instances:   Rc<RefCell<std::collections::HashMap<NodeId, NodeInstance>>>,
+    /// Bookkeeping for [Matrix::sync], to check if new instances appeared on the matrix.
+    inst_diff:   Rc<RefCell<std::collections::HashMap<NodeId, bool>>>,
     /// Storing some runtime information about the instanciated node 
     infos:       Rc<RefCell<std::collections::HashMap<NodeId, NodeInfo>>>,
-    /// Contains automateable parameters after the matrix was sync()'ed
+
+    /// Contains (automateable) parameters
     params:      Rc<RefCell<std::collections::HashMap<ParamId, MatrixNodeParam>>>,
     /// Stores the most recently set parameter values
     param_values:Rc<RefCell<std::collections::HashMap<ParamId, f32>>>,
-    /// Contains non automateable atom data for the nodes after the matrix was
-    /// sync()'ed.
+    /// Contains non automateable atom data for the nodes
     atoms:       Rc<RefCell<std::collections::HashMap<ParamId, MatrixNodeAtom>>>,
     /// Stores the most recently set atoms
     atom_values: Rc<RefCell<std::collections::HashMap<ParamId, SAtom>>>,
@@ -304,6 +306,7 @@ impl Matrix {
 
         Self {
             instances:   Rc::new(RefCell::new(std::collections::HashMap::new())),
+            inst_diff:   Rc::new(RefCell::new(std::collections::HashMap::new())),
             infos:       Rc::new(RefCell::new(std::collections::HashMap::new())),
             params:      Rc::new(RefCell::new(std::collections::HashMap::new())),
             param_values:Rc::new(RefCell::new(std::collections::HashMap::new())),
@@ -362,6 +365,7 @@ impl Matrix {
         self.atoms       .borrow_mut().clear();
         self.atom_values .borrow_mut().clear();
         self.instances   .borrow_mut().clear();
+        self.inst_diff   .borrow_mut().clear();
         self.infos       .borrow_mut().clear();
 
         self.config.delete_nodes();
@@ -731,15 +735,15 @@ impl Matrix {
     }
 
     pub fn sync(&mut self) {
-        self.instances.borrow_mut().clear();
+        self.inst_diff.borrow_mut().clear();
 
         // Build instance map, to find new nodes in the matrix later.
         self.config.for_each(|node_info, mut id, _i| {
-            while let Some(_) = self.instances.borrow().get(&id) {
+            while let Some(_) = self.inst_diff.borrow().get(&id) {
                 id = id.to_instance(id.instance() + 1);
             }
 
-            self.instances.borrow_mut().insert(id, NodeInstance::new(id));
+            self.inst_diff.borrow_mut().insert(id, true);
             self.infos.borrow_mut().insert(id, node_info.clone());
         });
 
@@ -755,14 +759,14 @@ impl Matrix {
 
                 // - check if each NodeId has a corresponding entry in NodeConfigurator
                 //   - if not, create a new one on the fly
-                if self.instances.borrow().get(&cell.node_id).is_none() {
-                    // - check if the previous node instances exist, if not,
+                if self.inst_diff.borrow().get(&cell.node_id).is_none() {
+                    // - check if the previous node inst_diff exist, if not,
                     //   create them on the fly now:
                     for inst in 0..cell.node_id.instance() {
                         let new_hole_filler_node_id =
                             cell.node_id.to_instance(inst);
 
-                        if self.instances.borrow()
+                        if self.inst_diff.borrow()
                             .get(&new_hole_filler_node_id)
                             .is_none()
                         {
@@ -771,9 +775,9 @@ impl Matrix {
                                     .expect("NodeInfo existent in Matrix");
                             self.infos.borrow_mut()
                                 .insert(new_hole_filler_node_id, info.clone());
-                            self.instances.borrow_mut().insert(
+                            self.inst_diff.borrow_mut().insert(
                                 new_hole_filler_node_id,
-                                NodeInstance::new(new_hole_filler_node_id));
+                                true);
                         }
                     }
 
