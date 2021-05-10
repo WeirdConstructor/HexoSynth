@@ -173,98 +173,8 @@ impl Cell {
     }
 }
 
-struct NodeInstance {
-    id:         NodeId,
-    in_use:     bool,
-    prog_idx:   usize,
-    out_start:  usize,
-    out_end:    usize,
-    in_start:   usize,
-    in_end:     usize,
-    at_start:   usize,
-    at_end:     usize,
-}
-
-impl NodeInstance {
-    pub fn new(id: NodeId) -> Self {
-        Self {
-            id,
-            in_use:    false,
-            prog_idx:  0,
-            out_start: 0,
-            out_end:   0,
-            in_start:  0,
-            in_end:    0,
-            at_start:  0,
-            at_end:    0,
-        }
-    }
-
-    pub fn mark_used(&mut self) { self.in_use = true; }
-    pub fn is_used(&self) -> bool { self.in_use }
-
-    pub fn to_op(&self) -> NodeOp {
-        NodeOp {
-            idx:        self.prog_idx as u8,
-            out_idxlen: (self.out_start, self.out_end),
-            in_idxlen:  (self.in_start, self.in_end),
-            at_idxlen:  (self.at_start, self.at_end),
-            inputs:     vec![],
-        }
-    }
-
-    pub fn in_local2global(&self, idx: u8) -> Option<usize> {
-        let idx = self.in_start + idx as usize;
-        if idx < self.in_end { Some(idx) }
-        else { None }
-    }
-
-    pub fn out_local2global(&self, idx: u8) -> Option<usize> {
-        let idx = self.out_start + idx as usize;
-        if idx < self.out_end { Some(idx) }
-        else { None }
-    }
-
-    pub fn set_index(mut self, idx: usize) -> Self {
-        self.prog_idx = idx;
-        self
-    }
-
-    pub fn set_output(mut self, s: usize, e: usize) -> Self {
-        self.out_start = s;
-        self.out_end   = e;
-        self
-    }
-
-    pub fn set_input(mut self, s: usize, e: usize) -> Self {
-        self.in_start = s;
-        self.in_end   = e;
-        self
-    }
-
-    pub fn set_atom(mut self, s: usize, e: usize) -> Self {
-        self.at_start = s;
-        self.at_end   = e;
-        self
-    }
-}
-
 use std::rc::Rc;
 use std::cell::RefCell;
-
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
-struct MatrixNodeParam {
-    param_id:   ParamId,
-    input_idx:  usize,
-    value:      f32,
-}
-
-#[derive(Debug, Clone)]
-struct MatrixNodeAtom {
-    param_id:   ParamId,
-    at_idx:     usize,
-    value:      SAtom,
-}
 
 pub struct Matrix {
     config:      NodeConfigurator,
@@ -286,15 +196,6 @@ pub struct Matrix {
     inst_diff:   Rc<RefCell<std::collections::HashMap<NodeId, bool>>>,
     /// Storing some runtime information about the instanciated node 
     infos:       Rc<RefCell<std::collections::HashMap<NodeId, NodeInfo>>>,
-
-    /// Contains (automateable) parameters
-    params:      Rc<RefCell<std::collections::HashMap<ParamId, MatrixNodeParam>>>,
-    /// Stores the most recently set parameter values
-    param_values:Rc<RefCell<std::collections::HashMap<ParamId, f32>>>,
-    /// Contains non automateable atom data for the nodes
-    atoms:       Rc<RefCell<std::collections::HashMap<ParamId, MatrixNodeAtom>>>,
-    /// Stores the most recently set atoms
-    atom_values: Rc<RefCell<std::collections::HashMap<ParamId, SAtom>>>,
 }
 
 unsafe impl Send for Matrix {}
@@ -308,10 +209,6 @@ impl Matrix {
             instances:   Rc::new(RefCell::new(std::collections::HashMap::new())),
             inst_diff:   Rc::new(RefCell::new(std::collections::HashMap::new())),
             infos:       Rc::new(RefCell::new(std::collections::HashMap::new())),
-            params:      Rc::new(RefCell::new(std::collections::HashMap::new())),
-            param_values:Rc::new(RefCell::new(std::collections::HashMap::new())),
-            atoms:       Rc::new(RefCell::new(std::collections::HashMap::new())),
-            atom_values: Rc::new(RefCell::new(std::collections::HashMap::new())),
             monitored_cell: Cell::empty(NodeId::Nop),
             gen_counter: 0,
             config,
@@ -360,10 +257,6 @@ impl Matrix {
             *cell = Cell::empty(NodeId::Nop);
         }
 
-        self.params      .borrow_mut().clear();
-        self.param_values.borrow_mut().clear();
-        self.atoms       .borrow_mut().clear();
-        self.atom_values .borrow_mut().clear();
         self.instances   .borrow_mut().clear();
         self.inst_diff   .borrow_mut().clear();
         self.infos       .borrow_mut().clear();
@@ -374,37 +267,13 @@ impl Matrix {
     }
 
     pub fn for_each_atom<F: FnMut(usize, ParamId, &SAtom)>(&self, mut f: F) {
-        for (_, matrix_param) in self.atoms.borrow().iter() {
-            if let Some(unique_idx) =
-                self.config.unique_index_for(&matrix_param.param_id.node_id())
-            {
-                f(unique_idx, matrix_param.param_id, &matrix_param.value);
-            }
-        }
-
-        for (_, matrix_param) in self.params.borrow().iter() {
-            if let Some(unique_idx) =
-                self.config.unique_index_for(&matrix_param.param_id.node_id())
-            {
-                f(unique_idx, matrix_param.param_id,
-                  &SAtom::param(matrix_param.value));
-            }
-        }
+        self.config.for_each_param(f);
     }
 
     pub fn get_generation(&self) -> usize { self.gen_counter }
 
     pub fn to_repr(&self) -> MatrixRepr {
-        let params : Vec<(ParamId, f32)> =
-            self.param_values.borrow()
-                .iter()
-                .map(|(param_id, value)| (*param_id, *value))
-                .collect();
-        let atoms : Vec<(ParamId, SAtom)> =
-            self.atom_values.borrow()
-                .iter()
-                .map(|(param_id, value)| (*param_id, value.clone()))
-                .collect();
+        let (params, atoms) = self.config.dump_param_values();
 
         let mut cells : Vec<CellRepr> = vec![];
         self.for_each(|_x, _y, cell|
@@ -433,13 +302,9 @@ impl Matrix {
     pub fn from_repr(&mut self, repr: &MatrixRepr) {
         self.clear();
 
-        for (param_id, val) in repr.params.iter() {
-            self.param_values.borrow_mut().insert(*param_id, *val);
-        }
-
-        for (param_id, val) in repr.atoms.iter() {
-            self.atom_values.borrow_mut().insert(*param_id, val.clone());
-        }
+        self.config.load_dumped_param_values(
+            &repr.params[..],
+            &repr.atoms[..]);
 
         for cell_repr in repr.cells.iter() {
             let cell = Cell::from_repr(cell_repr);
@@ -473,47 +338,20 @@ impl Matrix {
     /// the node instance might not have been created in the backend yet and
     /// we can not start monitoring the cell.
     pub fn monitor_cell(&mut self, cell: Cell) {
-        use crate::nodes::UNUSED_MONITOR_IDX;
-        let mut mon_idxes = [UNUSED_MONITOR_IDX; MON_SIG_CNT];
-
         self.monitored_cell = cell;
 
-        let instances = self.instances.borrow();
-        if let Some(ni) = instances.get(&cell.node_id) {
-            if let Some(in1) = cell.in1 {
-                mon_idxes[0] =
-                    ni.in_local2global(in1)
-                    .unwrap_or(UNUSED_MONITOR_IDX);
-            }
-            if let Some(in2) = cell.in2 {
-                mon_idxes[1] =
-                    ni.in_local2global(in2)
-                    .unwrap_or(UNUSED_MONITOR_IDX);
-            }
-            if let Some(in3) = cell.in3 {
-                mon_idxes[2] =
-                    ni.in_local2global(in3)
-                    .unwrap_or(UNUSED_MONITOR_IDX);
-            }
+        let inputs  = [
+            cell.in1,
+            cell.in2,
+            cell.in3,
+        ];
+        let outputs = [
+            cell.out1,
+            cell.out2,
+            cell.out3,
+        ];
 
-            if let Some(out1) = cell.out1 {
-                mon_idxes[3] =
-                    ni.out_local2global(out1)
-                    .unwrap_or(UNUSED_MONITOR_IDX);
-            }
-            if let Some(out2) = cell.out2 {
-                mon_idxes[4] =
-                    ni.out_local2global(out2)
-                    .unwrap_or(UNUSED_MONITOR_IDX);
-            }
-            if let Some(out3) = cell.out3 {
-                mon_idxes[5] =
-                    ni.out_local2global(out3)
-                    .unwrap_or(UNUSED_MONITOR_IDX);
-            }
-        }
-
-        self.config.monitor(&mon_idxes);
+        self.config.monitor(&cell.node_id, &inputs, &outputs);
     }
 
     /// Is called by [Matrix::sync] to refresh the monitored cell.
@@ -529,26 +367,9 @@ impl Matrix {
         }
     }
 
+    /// Assign [SAtom] values to input parameters and atoms.
     pub fn set_param(&mut self, param: ParamId, at: SAtom) {
-        // XXX: The atoms and params maps are created when
-        //      the matrix is sync()'ed. Only call this function
-        //      if it was actually synced before!
-        if param.is_atom() {
-            self.atom_values.borrow_mut().insert(param, at.clone());
-
-            if let Some(nparam) = self.atoms.borrow_mut().get_mut(&param) {
-                nparam.value = at.clone();
-                self.config.set_atom(nparam.at_idx, at);
-            }
-        } else {
-            self.param_values.borrow_mut().insert(param, at.f());
-
-            if let Some(nparam) = self.params.borrow_mut().get_mut(&param) {
-                let value = at.f();
-                nparam.value = value;
-                self.config.set_param(nparam.input_idx, value);
-            }
-        }
+        self.config.set_param(param, at);
     }
 
     pub fn get_adjacent_out_vec_index(&self, x: usize, y: usize, dir: CellDir)
@@ -793,88 +614,7 @@ impl Matrix {
             }
         }
 
-        // Rebuild the instances map, because new ones might have been created.
-        // And this time calculate the output offsets.
-        self.instances.borrow_mut().clear();
-
-        // Regenerating the params and atoms in the next step:
-        self.params.borrow_mut().clear();
-        self.atoms.borrow_mut().clear();
-
-        let mut out_len = 0;
-        let mut in_len  = 0;
-        let mut at_len  = 0;
-        self.config.for_each(|node_info, id, i| {
-            // - calculate size of output vector.
-            let out_idx = out_len;
-            out_len += node_info.out_count();
-
-            // - calculate size of input vector.
-            let in_idx = in_len;
-            in_len += node_info.in_count();
-
-            // - calculate size of atom vector.
-            let at_idx = at_len;
-            at_len += node_info.at_count();
-
-            println!("{} = {}", i, id);
-
-            // Create new parameters and initialize them if they did not
-            // already exist from a previous matrix instance.
-            for param_idx in in_idx..in_len {
-                if let Some(param_id) = id.inp_param_by_idx(param_idx - in_idx) {
-                    let value =
-                        if let Some(value) = self.param_values.borrow().get(&param_id) {
-                            *value
-                        } else {
-                            param_id.norm_def()
-                        };
-
-                    self.param_values.borrow_mut().insert(param_id, value);
-                    self.params.borrow_mut().insert(param_id, MatrixNodeParam {
-                        param_id,
-                        value,
-                        input_idx: param_idx,
-                    });
-                }
-            }
-
-            // Create new atom data and initialize it if it did not
-            // already exist from a previous matrix instance.
-            for atom_idx in at_idx..at_len {
-                // XXX: See also the documentation of atom_param_by_idx about the
-                // little param_id for an Atom weirdness here.
-                if let Some(param_id) = id.atom_param_by_idx(atom_idx - at_idx) {
-                    let value =
-                        if let Some(atom) =
-                            self.atom_values.borrow().get(&param_id)
-                        {
-                            atom.clone()
-                        } else {
-                            param_id.as_atom_def()
-                        };
-
-                    self.atom_values.borrow_mut().insert(param_id, value.clone());
-                    self.atoms.borrow_mut().insert(param_id, MatrixNodeAtom {
-                        param_id,
-                        value,
-                        at_idx:  atom_idx,
-                    });
-                }
-            }
-
-            println!("INSERT: {:?} outidx: {},{} inidx: {},{} atidx: {},{}",
-                     id, out_idx, out_len, in_idx, in_len, at_idx, at_len);
-
-            // - save offset and length of each node's
-            //   allocation in the output vector.
-            self.instances.borrow_mut().insert(id,
-                NodeInstance::new(id)
-                .set_index(i)
-                .set_output(out_idx, out_len)
-                .set_input(in_idx, in_len)
-                .set_atom(at_idx, at_len));
-        });
+        self.config.rebuild_node_ports();
 
         let mut prog = NodeProg::new(out_len, in_len, at_len);
 
@@ -937,18 +677,6 @@ impl Matrix {
 
                 prog.append_with_inputs(op, in_1, in_2, in_3);
             }
-        }
-
-        // Copy the parameter values and atom data into the program:
-        // They are extracted by process_graph_updates() later to
-        // reset the inp[] input value vector.
-        for (_param_id, param) in self.params.borrow().iter() {
-            prog.params_mut()[param.input_idx] = param.value;
-        }
-
-        // The atoms are referred to directly on process() call.
-        for (_param_id, param) in self.atoms.borrow().iter() {
-            prog.atoms_mut()[param.at_idx] = param.value.clone();
         }
 
         self.config.upload_prog(prog, true); // true => copy_old_out
