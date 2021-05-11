@@ -132,6 +132,23 @@ impl NodeProg {
         &mut self.atoms
     }
 
+    pub fn append(
+        &mut self,
+        mut node_op: NodeOp,
+        inp_index: usize,
+        out_index: usize)
+    {
+        for n_op in self.prog.iter_mut() {
+            if n_op.idx == node_op.idx {
+                n_op.inputs.push((out_index, inp_index));
+                return;
+            }
+        }
+
+        node_op.inputs.push((out_index, inp_index));
+        self.prog.push(node_op);
+    }
+
     pub fn append_with_inputs(
         &mut self,
         mut node_op: NodeOp,

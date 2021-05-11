@@ -262,6 +262,11 @@ impl NodeConfigurator {
         self.nodes.get(idx)?
     }
 
+    pub fn node_by_id_mut(&mut self, ni: &NodeId) -> Option<&mut (NodeInfo, Option<NodeInstance>)> {
+        let idx = self.unique_index_for(ni)?;
+        self.nodes.get_mut(idx)?
+    }
+
     /// Assign [SAtom] values to input parameters and atoms.
     ///
     /// Only updates the DSP backend of [rebuild_node_ports] was called
@@ -493,6 +498,31 @@ impl NodeConfigurator {
         }
     }
 
+    /// Returns the first instance of the given [NodeId] (starting with the
+    /// instance of the [NodeId]) that has not been used.
+    ///
+    /// Primarily used by the (G)UI when creating new nodes to be added to the
+    /// graph.
+    ///
+    /// Should be called after the [NodeProg] has been created
+    /// (and after [rebuild_node_ports] was called).
+    ///
+    /// If new nodes were created/deleted/reordered in between this function
+    /// might not work properly and assign already used instances.
+    pub fn unused_instance_node_id(&self, mut id: NodeId) -> NodeId {
+        let instances = self.instances.borrow();
+
+        while let Some((_, Some(ni))) = self.node_by_id(&id) {
+            if !ni.is_used() {
+                return ni.id;
+            }
+
+            id = id.to_instance(id.instance() + 1);
+        }
+
+        id
+    }
+
     /// Rebuilds Input/Output/Atom indices for the nodes, which is necessary
     /// if nodes were created/deleted or reordered. It also assigns
     /// input parameter and atom values for new nodes.
@@ -579,6 +609,41 @@ impl NodeConfigurator {
                 }
             }
         });
+    }
+
+    /// Adds an adjacent output connection to the given node input.
+    /// Will either create a new [NodeOp] in the [NodeProg] or append to an
+    /// existing one. This means the order you set the to be executed node
+    /// connections, is the order the [NodeProg] is going to be executed by the
+    /// DSP thread later.
+    ///
+    /// It will fail silently if the nodes have not been created yet or
+    /// [rebuild_node_ports] was not called before. So make sure this is the
+    /// case or don't expect the node and input to be executed.
+    pub fn set_prog_node_exec_connection(
+        &self, prog: &mut NodeProg, node_input: (NodeId, u8), adjacent_output: (NodeId, u8))
+    {
+        let output_index =
+            if let Some((_, Some(node_instance)))
+                = self.node_by_id(adjacent_output.0)
+            {
+                node_instance.out_local2global(adjacent_output.1)
+            }
+            else
+            {
+                return;
+            }
+
+        if let Some((node_info, Some(node_instance)))
+            = self.node_by_id_mut(node_input.0)
+        {
+            node_instance.mark_used();
+            let op = node_instance.to_op();
+
+            let input_index = node_instance.in_local2global(node_input.1);
+
+            prog.append(op, input_index, output_index);
+        }
     }
 
     /// Uploads a new NodeProg instance.

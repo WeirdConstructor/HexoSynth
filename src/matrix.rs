@@ -189,13 +189,6 @@ pub struct Matrix {
     /// by other components of the application to detect changes in
     /// the matrix to resync their own data.
     gen_counter: usize,
-
-    /// Bookkeeping of [NodeInstance] in the [NodeConfigurator].
-    instances:   Rc<RefCell<std::collections::HashMap<NodeId, NodeInstance>>>,
-    /// Bookkeeping for [Matrix::sync], to check if new instances appeared on the matrix.
-    inst_diff:   Rc<RefCell<std::collections::HashMap<NodeId, bool>>>,
-    /// Storing some runtime information about the instanciated node 
-    infos:       Rc<RefCell<std::collections::HashMap<NodeId, NodeInfo>>>,
 }
 
 unsafe impl Send for Matrix {}
@@ -206,9 +199,6 @@ impl Matrix {
         matrix.resize(w * h, Cell::empty(NodeId::Nop));
 
         Self {
-            instances:   Rc::new(RefCell::new(std::collections::HashMap::new())),
-            inst_diff:   Rc::new(RefCell::new(std::collections::HashMap::new())),
-            infos:       Rc::new(RefCell::new(std::collections::HashMap::new())),
             monitored_cell: Cell::empty(NodeId::Nop),
             gen_counter: 0,
             config,
@@ -225,7 +215,7 @@ impl Matrix {
     }
 
     pub fn info_for(&self, node_id: &NodeId) -> Option<NodeInfo> {
-        self.infos.borrow().get(&node_id).cloned()
+        self.config.node_by_id(&node_id)?.0.cloned()
     }
 
     pub fn phase_value_for(&self, node_id: &NodeId) -> f32 {
@@ -256,10 +246,6 @@ impl Matrix {
         for cell in self.matrix.iter_mut() {
             *cell = Cell::empty(NodeId::Nop);
         }
-
-        self.instances   .borrow_mut().clear();
-        self.inst_diff   .borrow_mut().clear();
-        self.infos       .borrow_mut().clear();
 
         self.config.delete_nodes();
         self.monitor_cell(Cell::empty(NodeId::Nop));
@@ -372,58 +358,28 @@ impl Matrix {
         self.config.set_param(param, at);
     }
 
-    pub fn get_adjacent_out_vec_index(&self, x: usize, y: usize, dir: CellDir)
-        -> Option<usize>
+    pub fn get_adjacent_output(&self, x: usize, y: usize, dir: CellDir)
+        -> Option<(NodeId, u8)>
     {
         if dir.is_output() {
             return None;
         }
 
-        if let Some(cell) = self.get_adjacent(x, y, dir) {
-            //d// println!("       ADJ CELL: {},{} ({})", x, y, cell.node_id());
+        let cell = self.get_adjacent(x, y, dir)?;
 
-            if cell.node_id != NodeId::Nop {
-                //d// println!("GETADJ {},{} @ {:?} => {:?}", x, y, dir, cell);
-                // check output 3
-                // - get the associated output index
-                // - get the NodeInstance of this cell
-                // - add the assoc output index to the output-index
-                //   of the node instance
-
-                let instances = self.instances.borrow();
-                match dir {
-                    CellDir::T => {
-                        if let Some(cell_out_i) = cell.out3 {
-                            let ni = instances.get(&cell.node_id).unwrap();
-                            ni.out_local2global(cell_out_i)
-                        } else {
-                            None
-                        }
-                    },
-                    CellDir::TL => {
-                        if let Some(cell_out_i) = cell.out2 {
-                            let ni = instances.get(&cell.node_id).unwrap();
-                            ni.out_local2global(cell_out_i)
-                        } else {
-                            None
-                        }
-                    },
-                    CellDir::BL => {
-                        if let Some(cell_out_i) = cell.out1 {
-                            let ni = instances.get(&cell.node_id).unwrap();
-                            ni.out_local2global(cell_out_i)
-                        } else {
-                            None
-                        }
-                    },
-                    _ => { None }
-                }
-            } else {
-                None
-            }
-        } else {
-            None
+        if cell.node_id == NodeId::Nop {
+            return None;
         }
+
+        let cell_out =
+            match dir {
+                CellDir::T  => cell.out3?,
+                CellDir::TL => cell.out2?,
+                CellDir::BL => cell.out1?,
+                _           => { return None; }
+            };
+
+        Some((cell.node_id, cell_out))
     }
 
     pub fn get_adjacent(&self, x: usize, y: usize, dir: CellDir) -> Option<&Cell> {
@@ -484,8 +440,7 @@ impl Matrix {
                 _ => None,
             };
 
-        let infos = self.infos.borrow();
-        let info = infos.get(&cell.node_id)?;
+        let info = self.info_for(&cell.node_id)?;
 
         let mut is_connected_edge = false;
 
@@ -538,36 +493,11 @@ impl Matrix {
         Some(&self.matrix[x * self.h + y])
     }
 
-    pub fn get_unused_instance_node_id(&self, mut id: NodeId) -> NodeId {
-        id = id.to_instance(id.instance());
-
-        let instances = self.instances.borrow();
-
-        while let Some(ni) = instances.get(&id) {
-            if !ni.is_used() {
-                return ni.id;
-            }
-
-            id = id.to_instance(id.instance() + 1);
-            //d// println!("NODECHECK {}", id);
-        }
-
-        id
+    pub fn get_unused_instance_node_id(&self, id: NodeId) -> NodeId {
+        self.config.unused_instance_node_id(id)
     }
 
     pub fn sync(&mut self) {
-        self.inst_diff.borrow_mut().clear();
-
-        // Build instance map, to find new nodes in the matrix later.
-        self.config.for_each(|node_info, mut id, _i| {
-            while let Some(_) = self.inst_diff.borrow().get(&id) {
-                id = id.to_instance(id.instance() + 1);
-            }
-
-            self.inst_diff.borrow_mut().insert(id, true);
-            self.infos.borrow_mut().insert(id, node_info.clone());
-        });
-
         // Scan through the matrix and check if (backend) nodes need to be created
         // for new unknown nodes:
         for x in 0..self.w {
@@ -580,42 +510,34 @@ impl Matrix {
 
                 // - check if each NodeId has a corresponding entry in NodeConfigurator
                 //   - if not, create a new one on the fly
-                if self.inst_diff.borrow().get(&cell.node_id).is_none() {
-                    // - check if the previous node inst_diff exist, if not,
+                if self.config.unique_index_for(&cell.node_id).is_none() {
+                    // - check if the previous node exist, if not,
                     //   create them on the fly now:
                     for inst in 0..cell.node_id.instance() {
                         let new_hole_filler_node_id =
                             cell.node_id.to_instance(inst);
 
-                        if self.inst_diff.borrow()
-                            .get(&new_hole_filler_node_id)
+                        if self.config
+                            .unique_index_for(&new_hole_filler_node_id)
                             .is_none()
                         {
                             let (info, _idx) =
                                 self.config.create_node(new_hole_filler_node_id)
                                     .expect("NodeInfo existent in Matrix");
-                            self.infos.borrow_mut()
-                                .insert(new_hole_filler_node_id, info.clone());
-                            self.inst_diff.borrow_mut().insert(
-                                new_hole_filler_node_id,
-                                true);
                         }
                     }
 
                     let (info, _idx) =
                         self.config.create_node(cell.node_id)
                             .expect("NodeInfo existent in Matrix");
-                    self.infos.borrow_mut()
-                        .insert(cell.node_id, info.clone());
-                    self.instances.borrow_mut().insert(
-                        cell.node_id,
-                        NodeInstance::new(cell.node_id));
                 }
             }
         }
 
         self.config.rebuild_node_ports();
 
+        // Create the node program and set the execution order of the
+        // nodes and their corresponding inputs/outputs.
         let mut prog = NodeProg::new(out_len, in_len, at_len);
 
         for x in 0..self.w {
@@ -625,57 +547,33 @@ impl Matrix {
                     continue;
                 }
 
-                println!("GET INPUT OUTIDXES for {} @ {},{}", cell.node_id, x, y);
+                let in1_output = self.get_adjacent_output(x, y, CellDir::T);
+                let in2_output = self.get_adjacent_output(x, y, CellDir::TL);
+                let in3_output = self.get_adjacent_output(x, y, CellDir::BL);
 
-                // Get the indices to the output vector for the
-                // corresponding input ports.
-                let in_1_out_idx = self.get_adjacent_out_vec_index(x, y, CellDir::T);
-                let in_2_out_idx = self.get_adjacent_out_vec_index(x, y, CellDir::TL);
-                let in_3_out_idx = self.get_adjacent_out_vec_index(x, y, CellDir::BL);
+                match (cell.in1, in1_output) {
+                    (Some(in1_idx), Some(in1_output)) => {
+                        self.config.set_prog_node_exec_connection(
+                            &mut prog, (cell.node_id, in1_idx), in1_output);
+                    },
+                    _ => {},
+                }
 
-                println!("*** In1 OIdx: ({}) {:?}", cell.node_id, in_1_out_idx);
-                println!("*** In2 OIdx: ({}) {:?}", cell.node_id, in_2_out_idx);
-                println!("*** In3 OIdx: ({}) {:?}", cell.node_id, in_3_out_idx);
+                match (cell.in2, in2_output) {
+                    (Some(in2_idx), Some(in2_output)) => {
+                        self.config.set_prog_node_exec_connection(
+                            &mut prog, (cell.node_id, in2_idx), in2_output);
+                    },
+                    _ => {},
+                }
 
-                let mut instances = self.instances.borrow_mut();
-                let ni = instances.get_mut(&cell.node_id).unwrap();
-                ni.mark_used();
-                let op = ni.to_op();
-
-                let in_1 =
-                    if let Some(in1_idx) = cell.in1 {
-                        if let Some(in1_out_idx) = in_1_out_idx {
-                            if let Some(in1_global_idx) =
-                                ni.in_local2global(in1_idx)
-                            {
-                                Some((in1_out_idx, in1_global_idx))
-                            } else { None }
-                        } else { None }
-                    } else { None };
-
-                let in_2 =
-                    if let Some(in2_idx) = cell.in2 {
-                        if let Some(in2_out_idx) = in_2_out_idx {
-                            if let Some(in2_global_idx) =
-                                ni.in_local2global(in2_idx)
-                            {
-                                Some((in2_out_idx, in2_global_idx))
-                            } else { None }
-                        } else { None }
-                    } else { None };
-
-                let in_3 =
-                    if let Some(in3_idx) = cell.in3 {
-                        if let Some(in3_out_idx) = in_3_out_idx {
-                            if let Some(in3_global_idx) =
-                                ni.in_local2global(in3_idx)
-                            {
-                                Some((in3_out_idx, in3_global_idx))
-                            } else { None }
-                        } else { None }
-                    } else { None };
-
-                prog.append_with_inputs(op, in_1, in_2, in_3);
+                match (cell.in3, in3_output) {
+                    (Some(in3_idx), Some(in3_output)) => {
+                        self.config.set_prog_node_exec_connection(
+                            &mut prog, (cell.node_id, in3_idx), in3_output);
+                    },
+                    _ => {},
+                }
             }
         }
 
@@ -687,72 +585,6 @@ impl Matrix {
         self.remonitor_cell();
     }
 }
-
-
-/*
-
-Design of the highlevel Matrix API:
-
-- NodeInfo (belongs to nothing, is the root of knowledge)
-  - name
-  - GUI type (Default, ModFunction, LFO+MF, 3xLFO+MF, ADSR+MF, ...)
-  - output ports: number and name
-  - input ports: number and name
-    - input parameter range
-    - input parameter normalization/denormalization
-    - input parameter formatting
-
-- NodeCollection (changes are transmitted to the backend!)
-    - List all possible node types (NodeInfo) "Sin", "Amp", "Out"
-    - List existing instances "Sin 1", "Sin 2", ... with their NodeInfo
-        => NodeInstance
-    - Instanciate new nodes (they get a global identifier)
-    - Update an input parameter by Instance ID and input index.
-
-- Matrix (has a NodeCollection)
-    (changes are transmitted to the backend)
-    - place instanciated nodes somewhere with an input/output configuration
-      (=> Define a Cell, which comes with 3 in and 3 out indices)
-    - clear a cell of the matrix
-    - get a cell of the matrix
-    - make a selection of cells
-    - copy that selection
-    - paste a selection to somewhere else
-
-- Query Node instance state InstanceState:
-    - frontend parameter values (knobs)
-    - output state
-      - the backend should just provide a triple buffer with this
-        and the NodeCollection somehow makes the output ports
-        accessible by instance
-
-- Cells (belong to Matrix)
-    - Come with an instance ID
-    - Get the instance name
-    - Get the name of the assigned output and input ports
-    - Flag if the cell is selected
-    - Assign new edge input/outputs
-
-
-What the GUI needs:
-
-- ?
-
-I still need to decide how to refer to node instances:
-
-- by global unique ID => how to recreate these IDs from a saved repr?
-- By NodeType + Index
-  - More generic in my gut feeling
-  - Problem: NodeCollection needs to be able to check
-             which internal index this node resides in.
-             For this a linear scan over all nodes is necessary.
-             But there are only ~100 nodes, so this should not
-             take too much time!
-  - Invariant: Don't delete nodes. Only delete them on a manual user
-               initiated "garbage collect" which renames the nodes in the matrix.
-
-
-*/
 
 #[cfg(test)]
 mod tests {
