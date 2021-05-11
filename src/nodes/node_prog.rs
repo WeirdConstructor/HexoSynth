@@ -133,6 +133,12 @@ impl NodeProg {
     }
 
     pub fn append_op(&mut self, node_op: NodeOp) {
+        for n_op in self.prog.iter_mut() {
+            if n_op.idx == node_op.idx {
+                return;
+            }
+        }
+
         self.prog.push(node_op);
     }
 

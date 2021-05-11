@@ -81,11 +81,12 @@ impl PatternSequencer {
         let col = &self.data[col][..];
 
         let last_row_idx : f32 = (self.rows as f32) - 0.000001;
+        let rows = self.rows;
 
         for (phase, out) in phase.iter().zip(out.iter_mut()) {
             let row_phase  = phase * last_row_idx;
             let phase_frac = row_phase.fract();
-            let line       = row_phase.floor() as usize;
+            let line       = row_phase.floor() as usize % rows;
             let prev_line  = if line == 0 { self.rows - 1 } else { line - 1 };
 
             let prev = col[prev_line];
@@ -106,10 +107,11 @@ impl PatternSequencer {
         let col = &self.data[col][..];
 
         let last_row_idx : f32 = (self.rows as f32) - 0.000001;
+        let rows = self.rows;
 
         for (phase, out) in phase.iter().zip(out.iter_mut()) {
             let row_phase  = phase * last_row_idx;
-            let line       = row_phase.floor() as usize;
+            let line       = row_phase.floor() as usize % rows;
 
             *out = col[line];
         }
@@ -120,11 +122,12 @@ impl PatternSequencer {
     {
         let col = &self.data[col_idx][..];
 
-        let last_row_idx : f32 = (self.rows as f32) - 0.00001;
+        let last_row_idx : f32 = (self.rows as f32) - 0.000001;
+        let rows = self.rows;
 
         for (phase, out) in phase.iter().zip(out.iter_mut()) {
             let row_phase  = phase.clamp(0.0, 1.0) * last_row_idx;
-            let line       = row_phase.floor() as usize;
+            let line       = row_phase.floor() as usize % rows;
             let phase_frac = row_phase.fract();
 
             let gate : u32 = col[line].to_bits();
@@ -201,6 +204,22 @@ mod tests {
         assert_float_eq!(out[3], 0.02);
         assert_float_eq!(out[4], 0.8);
         assert_float_eq!(out[5], 0.99999);
+    }
+
+    #[test]
+    fn check_seq_interpolate_buffer_end() {
+        let mut ps = PatternSequencer::new(256);
+        ps.set_col(0, &[0.0; 256]);
+
+        let mut out = [0.0; 1];
+        ps.col_gate_at_phase(0, &[0.9999999999], &mut out[..]);
+        assert_float_eq!(out[0], 0.0);
+
+        ps.col_get_at_phase(0, &[0.9999999999], &mut out[..]);
+        assert_float_eq!(out[0], 0.0);
+
+        ps.col_interpolate_at_phase(0, &[0.9999999999], &mut out[..]);
+        assert_float_eq!(out[0], 0.0);
     }
 
     #[test]
