@@ -2,7 +2,7 @@
 // This is a part of HexoSynth. Released under (A)GPLv3 or any later.
 // See README.md and COPYING for details.
 
-use crate::nodes::{NodeOp, NodeConfigurator, NodeProg};
+use crate::nodes::NodeConfigurator;
 use crate::dsp::{NodeInfo, NodeId, ParamId, SAtom};
 pub use crate::CellDir;
 pub use crate::nodes::MinMaxMonitorSamples;
@@ -215,7 +215,7 @@ impl Matrix {
     }
 
     pub fn info_for(&self, node_id: &NodeId) -> Option<NodeInfo> {
-        self.config.node_by_id(&node_id)?.0.cloned()
+        Some(self.config.node_by_id(&node_id)?.0.clone())
     }
 
     pub fn phase_value_for(&self, node_id: &NodeId) -> f32 {
@@ -521,24 +521,20 @@ impl Matrix {
                             .unique_index_for(&new_hole_filler_node_id)
                             .is_none()
                         {
-                            let (info, _idx) =
-                                self.config.create_node(new_hole_filler_node_id)
-                                    .expect("NodeInfo existent in Matrix");
+                            self.config.create_node(new_hole_filler_node_id)
+                                .expect("NodeInfo existent in Matrix");
                         }
                     }
 
-                    let (info, _idx) =
-                        self.config.create_node(cell.node_id)
-                            .expect("NodeInfo existent in Matrix");
+                    self.config.create_node(cell.node_id)
+                        .expect("NodeInfo existent in Matrix");
                 }
             }
         }
 
-        self.config.rebuild_node_ports();
-
         // Create the node program and set the execution order of the
         // nodes and their corresponding inputs/outputs.
-        let mut prog = NodeProg::new(out_len, in_len, at_len);
+        let mut prog = self.config.rebuild_node_ports();
 
         for x in 0..self.w {
             for y in 0..self.h {

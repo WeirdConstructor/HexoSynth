@@ -4,10 +4,13 @@
 
 use super::{
     GraphMessage, QuickMessage,
-    NodeProg, MAX_ALLOCATED_NODES, MAX_AVAIL_TRACKERS, UNUSED_MONITOR_IDX
+    NodeProg, NodeOp,
+    MAX_ALLOCATED_NODES,
+    MAX_AVAIL_TRACKERS,
+    UNUSED_MONITOR_IDX
 };
 use crate::nodes::drop_thread::DropThread;
-use crate::dsp::{NodeId, NodeInfo, Node, SAtom, node_factory};
+use crate::dsp::{NodeId, ParamId, NodeInfo, Node, SAtom, node_factory};
 use crate::util::AtomicFloat;
 use crate::monitor::{
     Monitor, MON_SIG_CNT, new_monitor_processor, MinMaxMonitorSamples
@@ -23,7 +26,7 @@ use std::collections::HashMap;
 /// A NodeInstance describes the input/output/atom ports of a Node
 /// and holds other important house keeping information for the [NodeConfigurator].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-struct NodeInstance {
+pub struct NodeInstance {
     id:         NodeId,
     in_use:     bool,
     prog_idx:   usize,
@@ -249,7 +252,7 @@ impl NodeConfigurator {
                 break;
             }
 
-            f(n, nid, i);
+            f(&n.0, nid, i);
         }
     }
 
@@ -259,12 +262,12 @@ impl NodeConfigurator {
 
     pub fn node_by_id(&self, ni: &NodeId) -> Option<&(NodeInfo, Option<NodeInstance>)> {
         let idx = self.unique_index_for(ni)?;
-        self.nodes.get(idx)?
+        self.nodes.get(idx)
     }
 
     pub fn node_by_id_mut(&mut self, ni: &NodeId) -> Option<&mut (NodeInfo, Option<NodeInstance>)> {
         let idx = self.unique_index_for(ni)?;
-        self.nodes.get_mut(idx)?
+        self.nodes.get_mut(idx)
     }
 
     /// Assign [SAtom] values to input parameters and atoms.
@@ -277,9 +280,11 @@ impl NodeConfigurator {
 
             if let Some(nparam) = self.atoms.get_mut(&param) {
                 nparam.value = at.clone();
+
+                let at_idx = nparam.at_idx;
                 let _ =
                     self.shared.quick_update_prod.push(
-                        QuickMessage::AtomUpdate { at_idx, value });
+                        QuickMessage::AtomUpdate { at_idx, value: at });
             }
         } else {
             self.param_values.insert(param, at.f());
@@ -287,6 +292,8 @@ impl NodeConfigurator {
             if let Some(nparam) = self.params.get_mut(&param) {
                 let value = at.f();
                 nparam.value = value;
+
+                let input_idx = nparam.input_idx;
                 let _ =
                     self.shared.quick_update_prod.push(
                         QuickMessage::ParamUpdate { input_idx, value });
@@ -300,13 +307,13 @@ impl NodeConfigurator {
         -> (Vec<(ParamId, f32)>, Vec<(ParamId, SAtom)>)
     {
         let params : Vec<(ParamId, f32)> =
-            self.param_values.borrow()
+            self.param_values
                 .iter()
                 .map(|(param_id, value)| (*param_id, *value))
                 .collect();
 
         let atoms : Vec<(ParamId, SAtom)> =
-            self.atom_values.borrow()
+            self.atom_values
                 .iter()
                 .map(|(param_id, value)| (*param_id, value.clone()))
                 .collect();
@@ -320,11 +327,11 @@ impl NodeConfigurator {
         &mut self, params: &[(ParamId, f32)], atoms: &[(ParamId, SAtom)])
     {
         for (param_id, val) in params.iter() {
-            self.param_values.borrow_mut().insert(*param_id, *val);
+            self.param_values.insert(*param_id, *val);
         }
 
         for (param_id, val) in atoms.iter() {
-            self.atom_values.borrow_mut().insert(*param_id, val.clone());
+            self.atom_values.insert(*param_id, val.clone());
         }
     }
 
@@ -382,13 +389,17 @@ impl NodeConfigurator {
     {
         let mut bufs = [UNUSED_MONITOR_IDX; MON_SIG_CNT];
 
-        if let Some((node_info, node_instance)) = self.node_by_id(node_id) {
+        if let Some((_node_info, node_instance)) = self.node_by_id(node_id) {
             if let Some(node_instance) = node_instance {
 
                 let mut i = 0;
                 for inp_idx in inputs.iter().take(MON_SIG_CNT / 2) {
                     if let Some(inp_idx) = inp_idx {
-                        bufs[i] = node_instance.in_local2global(inp_idx);
+                        if let Some(global_idx)
+                            = node_instance.in_local2global(*inp_idx)
+                        {
+                            bufs[i] = global_idx;
+                        }
                     }
 
                     i += 1;
@@ -396,7 +407,11 @@ impl NodeConfigurator {
 
                 for out_idx in outputs.iter().take(MON_SIG_CNT / 2) {
                     if let Some(out_idx) = out_idx {
-                        bufs[i] = node_instance.in_local2global(out_idx);
+                        if let Some(global_idx)
+                            = node_instance.in_local2global(*out_idx)
+                        {
+                            bufs[i] = global_idx;
+                        }
                     }
 
                     i += 1;
@@ -481,7 +496,9 @@ impl NodeConfigurator {
                 let index = self.nodes.len();
                 self.node2idx.insert(ni, index);
 
-                self.nodes.resize_with((self.nodes.len() + 1) * 2, || NodeInfo::Nop);
+                self.nodes.resize_with(
+                    (self.nodes.len() + 1) * 2,
+                    || (NodeInfo::Nop, None));
                 self.nodes[index] = (info, None);
 
                 let _ =
@@ -510,8 +527,6 @@ impl NodeConfigurator {
     /// If new nodes were created/deleted/reordered in between this function
     /// might not work properly and assign already used instances.
     pub fn unused_instance_node_id(&self, mut id: NodeId) -> NodeId {
-        let instances = self.instances.borrow();
-
         while let Some((_, Some(ni))) = self.node_by_id(&id) {
             if !ni.is_used() {
                 return ni.id;
@@ -527,9 +542,11 @@ impl NodeConfigurator {
     /// if nodes were created/deleted or reordered. It also assigns
     /// input parameter and atom values for new nodes.
     ///
-    /// Execute this after a [create_node] and before creating a new
-    /// [NodeProg].
-    pub fn rebuild_node_ports(&mut self) {
+    /// Returns a new NodeProg with space for all allocated nodes
+    /// inputs, outputs and atoms.
+    ///
+    /// Execute this after a [create_node].
+    pub fn rebuild_node_ports(&mut self) -> NodeProg {
         // Regenerating the params and atoms in the next step:
         self.params.clear();
         self.atoms.clear();
@@ -538,7 +555,9 @@ impl NodeConfigurator {
         let mut in_len  = 0;
         let mut at_len  = 0;
 
-        for (i, (node_info, node_instance)) in self.nodes.iter_mut().enumerate() {
+        for (i, (node_info, node_instance))
+            in self.nodes.iter_mut().enumerate()
+        {
             let id = node_info.to_id();
 
             // - calculate size of output vector.
@@ -555,12 +574,12 @@ impl NodeConfigurator {
 
             // - save offset and length of each node's
             //   allocation in the output vector.
-            node_instance = Some(
+            *node_instance = Some(
                 NodeInstance::new(id)
                 .set_index(i)
                 .set_output(out_idx, out_len)
                 .set_input(in_idx, in_len)
-                .set_atom(at_idx, at_len)));
+                .set_atom(at_idx, at_len));
 
             println!("INSERT[{}]: {:?} outidx: {},{} inidx: {},{} atidx: {},{}",
                      i, id, out_idx, out_len, in_idx, in_len, at_idx, at_len);
@@ -608,7 +627,9 @@ impl NodeConfigurator {
                     });
                 }
             }
-        });
+        }
+
+        NodeProg::new(out_len, in_len, at_len)
     }
 
     /// Adds an adjacent output connection to the given node input.
@@ -621,28 +642,32 @@ impl NodeConfigurator {
     /// [rebuild_node_ports] was not called before. So make sure this is the
     /// case or don't expect the node and input to be executed.
     pub fn set_prog_node_exec_connection(
-        &self, prog: &mut NodeProg, node_input: (NodeId, u8), adjacent_output: (NodeId, u8))
+        &mut self, prog: &mut NodeProg,
+        node_input: (NodeId, u8),
+        adjacent_output: (NodeId, u8))
     {
         let output_index =
             if let Some((_, Some(node_instance)))
-                = self.node_by_id(adjacent_output.0)
+                = self.node_by_id(&adjacent_output.0)
             {
                 node_instance.out_local2global(adjacent_output.1)
-            }
-            else
-            {
+            } else {
                 return;
-            }
+            };
 
-        if let Some((node_info, Some(node_instance)))
-            = self.node_by_id_mut(node_input.0)
+        if let Some((_node_info, Some(node_instance)))
+            = self.node_by_id_mut(&node_input.0)
         {
             node_instance.mark_used();
             let op = node_instance.to_op();
 
             let input_index = node_instance.in_local2global(node_input.1);
-
-            prog.append(op, input_index, output_index);
+            match (input_index, output_index) {
+                (Some(input_index), Some(output_index)) => {
+                    prog.append(op, input_index, output_index);
+                },
+                _ => {},
+            }
         }
     }
 
