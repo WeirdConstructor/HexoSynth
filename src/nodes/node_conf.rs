@@ -389,6 +389,7 @@ impl NodeConfigurator {
     {
         let mut bufs = [UNUSED_MONITOR_IDX; MON_SIG_CNT];
 
+
         if let Some((_node_info, node_instance)) = self.node_by_id(node_id) {
             if let Some(node_instance) = node_instance {
 
@@ -572,6 +573,10 @@ impl NodeConfigurator {
             let at_idx = at_len;
             at_len += node_info.at_count();
 
+            if id == NodeId::Nop {
+                break;
+            }
+
             // - save offset and length of each node's
             //   allocation in the output vector.
             *node_instance = Some(
@@ -632,6 +637,21 @@ impl NodeConfigurator {
         NodeProg::new(out_len, in_len, at_len)
     }
 
+    /// Creates a new [Nodeop] and add it to the [NodeProg].
+    ///
+    /// It will fail silently if the nodes have not been created yet or
+    /// [rebuild_node_ports] was not called before. So make sure this is the
+    /// case or don't expect the node and input to be executed.
+    pub fn add_prog_node(&mut self, prog: &mut NodeProg, node_id: &NodeId) {
+        if let Some((_node_info, Some(node_instance)))
+            = self.node_by_id_mut(node_id)
+        {
+            node_instance.mark_used();
+            let op = node_instance.to_op();
+            prog.append_op(op);
+        }
+    }
+
     /// Adds an adjacent output connection to the given node input.
     /// Will either create a new [NodeOp] in the [NodeProg] or append to an
     /// existing one. This means the order you set the to be executed node
@@ -664,7 +684,7 @@ impl NodeConfigurator {
             let input_index = node_instance.in_local2global(node_input.1);
             match (input_index, output_index) {
                 (Some(input_index), Some(output_index)) => {
-                    prog.append(op, input_index, output_index);
+                    prog.append_edge(op, input_index, output_index);
                 },
                 _ => {},
             }

@@ -132,7 +132,11 @@ impl NodeProg {
         &mut self.atoms
     }
 
-    pub fn append(
+    pub fn append_op(&mut self, node_op: NodeOp) {
+        self.prog.push(node_op);
+    }
+
+    pub fn append_edge(
         &mut self,
         mut node_op: NodeOp,
         inp_index: usize,

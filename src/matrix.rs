@@ -543,6 +543,8 @@ impl Matrix {
                     continue;
                 }
 
+                self.config.add_prog_node(&mut prog, &cell.node_id);
+
                 let in1_output = self.get_adjacent_output(x, y, CellDir::T);
                 let in2_output = self.get_adjacent_output(x, y, CellDir::TL);
                 let in3_output = self.get_adjacent_output(x, y, CellDir::BL);

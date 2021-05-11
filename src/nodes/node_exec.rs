@@ -120,6 +120,9 @@ impl NodeExecutor {
                         }
                     }
 
+                    self.monitor_signal_cur_inp_indices =
+                        [UNUSED_MONITOR_IDX; MON_SIG_CNT];
+
                     let prev_prog = std::mem::replace(&mut self.prog, prog);
                     let _ =
                         self.shared.graph_drop_prod.push(
@@ -127,6 +130,9 @@ impl NodeExecutor {
                 },
                 GraphMessage::NewProg { prog, copy_old_out } => {
                     let mut prev_prog = std::mem::replace(&mut self.prog, prog);
+
+                    self.monitor_signal_cur_inp_indices =
+                        [UNUSED_MONITOR_IDX; MON_SIG_CNT];
 
                     // XXX: Copying from the old vector works, because we only
                     //      append nodes to the _end_ of the node instance vector.
@@ -280,6 +286,7 @@ impl NodeExecutor {
                         std::mem::replace(
                             &mut prog.atoms[at_idx],
                             value);
+
                     let _ =
                         self.shared.graph_drop_prod.push(
                             DropMsg::Atom { atom: garbage });
