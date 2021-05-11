@@ -10,6 +10,25 @@ pub use crate::monitor::MON_SIG_CNT;
 use crate::matrix_repr::*;
 use crate::dsp::tracker::PatternData;
 
+/// This is a cell/tile of the hexagonal [Matrix].
+///
+/// The [Matrix] stores it to keep track of the graphical representation
+/// of the hexagonal tilemap. Using [Matrix::place] you can place new cells.
+///
+///```
+/// use hexosynth::*;
+///
+/// let (node_conf, mut node_exec) = new_node_engine();
+/// let mut matrix = Matrix::new(node_conf, 3, 3);
+///
+/// matrix.place(
+///     2, 2,
+///     Cell::empty(NodeId::Sin(0))
+///     .input(Some(0), None, None)
+///     .out(None, None, Some(0)));
+///
+/// matrix.sync();
+///```
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Cell {
     node_id:  NodeId,
@@ -30,6 +49,19 @@ pub struct Cell {
 }
 
 impl Cell {
+    /// This is the main contructor of a [Cell].
+    /// Empty means that there is no associated position of this cell
+    /// and no inputs/outputs have been assigned. Use the methods [Cell::input] and [Cell::out]
+    /// to assign inputs / outputs.
+    ///
+    ///```
+    /// use hexosynth::*;
+    ///
+    /// let some_cell =
+    ///     Cell::empty(NodeId::Sin(0))
+    ///     .input(None, Some(0), Some(0))
+    ///     .out(None, Some(0), Some(0));
+    ///```
     pub fn empty(node_id: NodeId) -> Self {
         Self {
             node_id,
@@ -44,6 +76,23 @@ impl Cell {
         }
     }
 
+    /// Returns a serializable representation of this [Matrix] [Cell].
+    ///
+    /// See also [CellRepr].
+    ///
+    ///```
+    /// use hexosynth::*;
+    ///
+    /// let some_cell =
+    ///     Cell::empty(NodeId::Sin(0))
+    ///     .input(None, Some(0), Some(0))
+    ///     .out(None, Some(0), Some(0));
+    ///
+    /// let repr = some_cell.to_repr();
+    /// assert_eq!(
+    ///     repr.serialize().to_string(),
+    ///     "[\"sin\",0,0,0,[-1,0,0],[-1,0,0]]");
+    ///```
     pub fn to_repr(&self) -> CellRepr {
         CellRepr {
             node_id: self.node_id,
@@ -252,7 +301,7 @@ impl Matrix {
         self.sync();
     }
 
-    pub fn for_each_atom<F: FnMut(usize, ParamId, &SAtom)>(&self, mut f: F) {
+    pub fn for_each_atom<F: FnMut(usize, ParamId, &SAtom)>(&self, f: F) {
         self.config.for_each_param(f);
     }
 

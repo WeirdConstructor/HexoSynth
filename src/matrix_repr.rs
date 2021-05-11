@@ -24,7 +24,7 @@ fn deserialize_node_id(v: &Value, i1: usize, i2: usize)
 }
 
 impl CellRepr {
-    fn serialize(&self) -> Value {
+    pub fn serialize(&self) -> Value {
         json!([
             self.node_id.name(),
             self.node_id.instance(),
@@ -35,7 +35,7 @@ impl CellRepr {
         ])
     }
 
-    fn deserialize(v: &Value) -> Result<Self, MatrixDeserError> {
+    pub fn deserialize(v: &Value) -> Result<Self, MatrixDeserError> {
         Ok(Self {
             node_id: deserialize_node_id(v, 0, 1)?,
             x:       v[2].as_i64().unwrap_or(0) as usize,

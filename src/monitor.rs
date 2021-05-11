@@ -54,7 +54,7 @@ pub struct MonitorBackend {
 
     /// Holds enough monitor buffers to hold about 1-2 seconds
     /// of data. The [MonitorBuf] boxes are written in the
-    /// backend and then sent via [monitor_prod] to the frontend.
+    /// backend and then sent via [MonitorBackend::rb_mon_prod] to the frontend.
     /// The frontend then sends the used [MonitorBufPtr] back
     /// via quick_update_con.
     unused_monitor_buffers: Vec<MonitorBufPtr>,

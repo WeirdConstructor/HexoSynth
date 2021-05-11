@@ -272,7 +272,7 @@ impl NodeConfigurator {
 
     /// Assign [SAtom] values to input parameters and atoms.
     ///
-    /// Only updates the DSP backend of [rebuild_node_ports] was called
+    /// Only updates the DSP backend of [NodeConfigurator::rebuild_node_ports] was called
     /// before calling this.
     pub fn set_param(&mut self, param: ParamId, at: SAtom) {
         if param.is_atom() {
@@ -383,7 +383,8 @@ impl NodeConfigurator {
 
     /// Monitor the given inputs and outputs of a specific node.
     ///
-    /// The monitor data can be retrieved using [get_minmax_monitor_samples].
+    /// The monitor data can be retrieved using
+    /// [NodeConfigurator::get_minmax_monitor_samples].
     pub fn monitor(&mut self,
         node_id: &NodeId, inputs: &[Option<u8>], outputs: &[Option<u8>])
     {
@@ -523,7 +524,7 @@ impl NodeConfigurator {
     /// graph.
     ///
     /// Should be called after the [NodeProg] has been created
-    /// (and after [rebuild_node_ports] was called).
+    /// (and after [NodeConfigurator::rebuild_node_ports] was called).
     ///
     /// If new nodes were created/deleted/reordered in between this function
     /// might not work properly and assign already used instances.
@@ -546,7 +547,7 @@ impl NodeConfigurator {
     /// Returns a new NodeProg with space for all allocated nodes
     /// inputs, outputs and atoms.
     ///
-    /// Execute this after a [create_node].
+    /// Execute this after a [NodeConfigurator::create_node].
     pub fn rebuild_node_ports(&mut self) -> NodeProg {
         // Regenerating the params and atoms in the next step:
         self.params.clear();
@@ -637,10 +638,10 @@ impl NodeConfigurator {
         NodeProg::new(out_len, in_len, at_len)
     }
 
-    /// Creates a new [Nodeop] and add it to the [NodeProg].
+    /// Creates a new [NodeOp] and add it to the [NodeProg].
     ///
     /// It will fail silently if the nodes have not been created yet or
-    /// [rebuild_node_ports] was not called before. So make sure this is the
+    /// [NodeConfigurator::rebuild_node_ports] was not called before. So make sure this is the
     /// case or don't expect the node and input to be executed.
     pub fn add_prog_node(&mut self, prog: &mut NodeProg, node_id: &NodeId) {
         if let Some((_node_info, Some(node_instance)))
@@ -659,7 +660,7 @@ impl NodeConfigurator {
     /// DSP thread later.
     ///
     /// It will fail silently if the nodes have not been created yet or
-    /// [rebuild_node_ports] was not called before. So make sure this is the
+    /// [NodeConfigurator::rebuild_node_ports] was not called before. So make sure this is the
     /// case or don't expect the node and input to be executed.
     pub fn set_prog_node_exec_connection(
         &mut self, prog: &mut NodeProg,
@@ -693,7 +694,7 @@ impl NodeConfigurator {
 
     /// Uploads a new NodeProg instance.
     ///
-    /// Take care to call [rebuild_node_ports] before calling this
+    /// Take care to call [NodeConfigurator::rebuild_node_ports] before calling this
     /// function with a new [NodeProg].
     ///
     /// The `copy_old_out` parameter should be set if there are only

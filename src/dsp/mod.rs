@@ -46,7 +46,7 @@ pub trait GraphAtomData {
 
 pub type GraphFun = Box<dyn FnMut(&dyn GraphAtomData, bool, f32) -> f32>;
 
-/// This trait represents a DspNode for the [hexosynth::Matrix]
+/// This trait represents a DspNode for the [crate::matrix::Matrix]
 pub trait DspNode {
     /// Number of outputs this node has.
     fn outputs() -> usize;
@@ -491,6 +491,16 @@ macro_rules! make_node_info_enum {
             }
         }
 
+        /// This enum is a collection of all implemented modules (aka nodes)
+        /// that are implemented. The associated `u8` index is the so called
+        /// _instance_ of the corresponding [Node] type.
+        ///
+        /// This is the primary way in this library to refer to a specific node
+        /// in the node graph that is managed by [crate::NodeConfigurator]
+        /// and executed by [crate::NodeExecutor].
+        ///
+        /// To see how to actually use this, refer to the documentation
+        /// of [crate::Cell], where you will find an example.
         #[derive(Debug, Clone, Copy, PartialOrd, PartialEq, Eq, Ord, Hash)]
         pub enum NodeId {
             $v1,
@@ -567,11 +577,11 @@ macro_rules! make_node_info_enum {
             }
 
             /// This maps the atom index of the node to the absolute
-            /// ParamId in the GUI (and in the [Matrix]).
+            /// ParamId in the GUI (and in the [crate::matrix::Matrix]).
             /// The Atom/Param duality is a bit weird because they share
             /// the same ID namespace for the UI. But in the actual
             /// backend, they are split. So the actual splitting happens
-            /// in the [Matrix].
+            /// in the [crate::matrix::Matrix].
             pub fn atom_param_by_idx(&self, idx: usize) -> Option<ParamId> {
                 match self {
                     NodeId::$v1           => None,
@@ -910,7 +920,28 @@ macro_rules! make_node_enum {
             $([$out_idx: literal $out: ident])*
             ,)+
     ) => {
-        /// Holds the complete node program.
+        /// Represents the actually by the DSP thread ([crate::NodeExecutor])
+        /// executed [Node]. You don't construct this directly, but let the
+        /// [crate::NodeConfigurator] or more abstract types like
+        /// [crate::Matrix] do this for you. See also [NodeId] for a way to
+        /// refer to these.
+        ///
+        /// The method [Node::process] is called by [crate::NodeExecutor]
+        /// and comes with the overhead of a big `match` statement.
+        ///
+        /// This is the only point of primitive polymorphism inside
+        /// the DSP graph. Dynamic polymorphism via the trait object
+        /// is not done, as I hope the `match` dispatch is a slight bit faster
+        /// because it's more static.
+        ///
+        /// The size of a [Node] is also limited and protected by a test
+        /// in the test suite. The size should not be needlessly increased
+        /// by implementations, in the hope to achieve better
+        /// cache locality. All allocated [Node]s are held in a big
+        /// continuous vector inside the [crate::NodeExecutor].
+        ///
+        /// The function [node_factory] is responsible for actually creating
+        /// the [Node].
         #[derive(Debug, Clone)]
         pub enum Node {
             /// An empty node that does nothing. It's a placeholder
@@ -920,6 +951,10 @@ macro_rules! make_node_enum {
         }
 
         impl Node {
+            /// Returns the [NodeId] that can be used to refer to this node.
+            /// The node does not store it's instance index, so you have to
+            /// provide it. If the instance is of no meaning for the
+            /// use case pass 0 to `instance`.
             pub fn to_id(&self, instance: usize) -> NodeId {
                 match self {
                     Node::$v1               => NodeId::$v1,
@@ -927,6 +962,10 @@ macro_rules! make_node_enum {
                 }
             }
 
+            /// Resets any state of this [Node], such as
+            /// any internal state variables or counters or whatever.
+            /// The [Node] should just behave as if it was freshly returned
+            /// from [node_factory].
             pub fn reset(&mut self) {
                 match self {
                     Node::$v1           => {},
@@ -936,6 +975,7 @@ macro_rules! make_node_enum {
                 }
             }
 
+            /// Sets the current sample rate this [Node] should operate at.
             pub fn set_sample_rate(&mut self, sample_rate: f32) {
                 match self {
                     Node::$v1           => {},
@@ -953,8 +993,6 @@ node_list!{make_node_info_enum}
 node_list!{make_node_enum}
 
 pub fn node_factory(node_id: NodeId) -> Option<(Node, NodeInfo)> {
-    println!("Factory: {:?}", node_id);
-
     macro_rules! make_node_factory_match {
         ($s1: expr => $v1: ident,
             $($str: ident => $variant: ident
@@ -983,9 +1021,43 @@ pub fn node_factory(node_id: NodeId) -> Option<(Node, NodeInfo)> {
 }
 
 impl Node {
+    /// This function is the heart of any DSP.
+    /// It dispatches this call to the corresponding [Node] implementation.
+    ///
+    /// You don't want to call this directly, but let [crate::NodeConfigurator] and
+    /// [crate::NodeExecutor] do their magic for you.
+    ///
+    /// The slices get passed a [ProcBuf] which is a super _unsafe_
+    /// buffer, that requires special care and invariants to work safely.
+    ///
+    /// Arguments:
+    /// * `ctx`: The [NodeAudioContext] usually provides global context information
+    /// such as access to the actual buffers of the audio driver or access to
+    /// MIDI events.
+    /// * `atoms`: The [SAtom] settings the user can set in the UI or via
+    /// other means. These are usually non interpolated/smoothed settings.
+    /// * `params`: The smoothed input parameters as set by the user (eg. in the UI).
+    /// There is usually no reason to use these, because any parameter can be
+    /// overridden by assigning an output port to the corresponding input.
+    /// This is provided for the rare case that you still want to use the
+    /// value the user set in the interface, and not the input CV signal.
+    /// * `inputs`: For each `params` parameter there is a input port.
+    /// This slice will contain either a buffer from `params` or some output
+    /// buffer from some other (previously executed) [Node]s output.
+    /// * `outputs`: The output buffers this node will write it's signal/CV
+    /// results to.
+    /// * `led`: Contains the feedback [LedPhaseVals], which are used
+    /// to communicate the current value (set once per `process()` call, usually at the end)
+    /// of the most important internal signal. Usually stuff like the output
+    /// value of an oscillator, envelope or the current sequencer output
+    /// value. It also provides a second value, a so called _phase_
+    /// which is usually used by graphical frontends to determine
+    /// the phase of the oscillator, envelope or the sequencer to
+    /// display some kind of position indicator.
     #[inline]
     pub fn process<T: NodeAudioContext>(
-        &mut self, ctx: &mut T, atoms: &[SAtom], params: &[ProcBuf], inputs: &[ProcBuf], outputs: &mut [ProcBuf], led: LedPhaseVals)
+        &mut self, ctx: &mut T, atoms: &[SAtom], params: &[ProcBuf],
+        inputs: &[ProcBuf], outputs: &mut [ProcBuf], led: LedPhaseVals)
     {
         macro_rules! make_node_process {
             ($s1: ident => $v1: ident,

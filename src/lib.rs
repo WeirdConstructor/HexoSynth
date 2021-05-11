@@ -23,13 +23,11 @@ pub mod ui;
 mod util;
 
 use nodes::*;
-use matrix::*;
 
 pub use cell_dir::CellDir;
 pub use matrix_repr::load_patch_from_file;
 pub use matrix_repr::save_patch_to_file;
 
-use dsp::NodeId;
 use serde::{Serialize, Deserialize};
 use raw_window_handle::HasRawWindowHandle;
 
@@ -37,6 +35,14 @@ use std::rc::Rc;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::cell::RefCell;
+
+// START: Public usages for later refactorization to HexoDSP:
+
+pub use nodes::{new_node_engine, NodeConfigurator, NodeExecutor};
+pub use matrix::{Matrix, Cell};
+pub use dsp::NodeId;
+
+// END: (HexoDSP)
 
 
 pub use baseplug::{
