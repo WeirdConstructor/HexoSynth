@@ -354,9 +354,13 @@ macro_rules! make_node_info_enum {
             ,)+
     ) => {
         /// Holds information about the node type that was allocated.
-        /// Also holds the current parameter values for the UI of the corresponding
-        /// Node. See also `NodeConfigurator` which holds the information for all
-        /// the nodes.
+        /// It stores the names of inputs, output and atoms for uniform
+        /// access.
+        ///
+        /// The [crate::NodeConfigurator] allocates and holds instances
+        /// of this type for access by [NodeId].
+        /// See also [crate::NodeConfigurator::node_by_id] and
+        /// [crate::Matrix::info_for].
         #[derive(Debug, Clone)]
         pub enum NodeInfo {
             $v1,
@@ -364,6 +368,10 @@ macro_rules! make_node_info_enum {
         }
 
         impl NodeInfo {
+            /// Allocates a new [NodeInfo] from a [NodeId].
+            /// Usually you access [NodeInfo] in the UI thread via
+            /// [crate::NodeConfigurator::node_by_id]
+            /// or [crate::Matrix::info_for].
             pub fn from_node_id(nid: NodeId) -> NodeInfo {
                 match nid {
                     NodeId::$v1           => NodeInfo::$v1,
@@ -372,6 +380,33 @@ macro_rules! make_node_info_enum {
             }
         }
 
+        /// Refers to an input paramter or atom of a specific
+        /// [Node] referred to by a [NodeId].
+        ///
+        /// To obtain a [ParamId] you use one of these:
+        /// * [NodeId::atom_param_by_idx]
+        /// * [NodeId::inp_param_by_idx]
+        /// * [NodeId::param_by_idx]
+        /// * [NodeId::inp_param]
+        ///
+        ///```
+        /// use hexosynth::*;
+        /// let freq_param = NodeId::Sin(2).inp_param("freq").unwrap();
+        ///
+        /// assert!(!freq_param.is_atom());
+        ///
+        /// // Access the min/max values of this paramter:
+        /// assert_eq!(freq_param.param_min_max().unwrap(), (-1.0, 1.0));
+        ///
+        /// // Access the default value:
+        /// assert_eq!(freq_param.as_atom_def().f(), 0.0);
+        ///
+        /// // Normalize a value (convert frequency to the 0.0 to 1.0 range)
+        /// assert_eq!(freq_param.norm(220.0), -0.1);
+        ///
+        /// // Denormalize a value (convert 0.0 to 1.0 range to frequency)
+        /// assert_eq!(freq_param.denorm(-0.1), 220.0);
+        ///```
         #[derive(Debug, Clone, Copy, PartialOrd, PartialEq, Eq, Ord, Hash)]
         pub struct ParamId {
             name: &'static str,
