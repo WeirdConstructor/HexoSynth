@@ -11,8 +11,11 @@ pub const UNUSED_NODE_EDGE  : usize = 999999;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 struct Node {
+    /// The [NodeId] of this node.
     node_id:    NodeId,
+    /// The output edges of this node.
     edges:      [usize; MAX_NODE_EDGES],
+    /// The first unused index in the `edges` array.
     unused_idx: usize,
 }
 
@@ -48,6 +51,8 @@ pub struct NodeGraph {
     node2idx:   HashMap<NodeId, usize>,
     node_count: usize,
     nodes:      [Node; MAX_ALLOCATED_NODES],
+
+    in_degree: [usize; MAX_ALLOCATED_NODES],
 }
 
 impl NodeGraph {
@@ -56,6 +61,7 @@ impl NodeGraph {
             node2idx:   HashMap::new(),
             node_count: 0,
             nodes:      [Node::new(); MAX_ALLOCATED_NODES],
+            in_degree:  [0; MAX_ALLOCATED_NODES],
         }
     }
 
@@ -125,6 +131,57 @@ impl NodeGraph {
 
         return Some(false);
     }
+
+    /// Run Kahn's Algorithm to find the node order for the directed
+    /// graph. `out` will contain the order the nodes should be
+    /// executed in. If `false` is returned, the graph contains cycles
+    /// and no proper order can be computed. `out` will be cleared
+    /// in this case.
+    pub fn calculate_order(&mut self, out: &mut Vec<NodeId>) -> bool {
+        let mut deq =
+            std::collections::VecDeque::with_capacity(MAX_ALLOCATED_NODES);
+
+        for indeg in self.in_degree.iter_mut() {
+            *indeg = 0;
+        }
+
+        for node in self.nodes.iter().take(self.node_count) {
+            for out_node_idx in node.edges.iter().take(node.unused_idx) {
+                self.in_degree[*out_node_idx] += 1;
+            }
+        }
+
+        for idx in 0..self.node_count {
+            if self.in_degree[idx] == 0 {
+                deq.push_back(idx);
+            }
+        }
+
+        let mut visited_count = 0;
+
+        while let Some(node_idx) = deq.pop_front() {
+            visited_count += 1;
+
+            let node = &self.nodes[node_idx];
+
+            out.push(node.node_id);
+
+            for neigh_node_idx in node.edges.iter().take(node.unused_idx) {
+                self.in_degree[*neigh_node_idx] -= 1;
+
+                if self.in_degree[*neigh_node_idx] == 0 {
+                    deq.push_back(*neigh_node_idx);
+                }
+            }
+        }
+
+        if visited_count != self.node_count {
+            out.clear();
+            false
+        } else {
+            true
+        }
+    }
 }
 
 #[cfg(test)]
@@ -151,6 +208,114 @@ mod tests {
     }
 
     #[test]
+    fn check_ngraph_order_1() {
+        let mut ng = NodeGraph::new();
+        ng.add_node(NodeId::Sin(2));
+        ng.add_node(NodeId::Sin(1));
+        ng.add_node(NodeId::Sin(0));
+
+        ng.add_edge(NodeId::Sin(2), NodeId::Sin(0));
+        ng.add_edge(NodeId::Sin(0), NodeId::Sin(1));
+
+        let mut out = vec![];
+        assert!(ng.calculate_order(&mut out));
+        assert_eq!(out[..], [NodeId::Sin(2), NodeId::Sin(0), NodeId::Sin(1)]);
+    }
+
+    #[test]
+    fn check_ngraph_order_2() {
+        let mut ng = NodeGraph::new();
+        ng.add_node(NodeId::Sin(2));
+        ng.add_node(NodeId::Sin(1));
+        ng.add_node(NodeId::Sin(0));
+        ng.add_node(NodeId::Out(0));
+        ng.add_node(NodeId::Amp(0));
+        ng.add_node(NodeId::Amp(1));
+
+        ng.add_edge(NodeId::Sin(2), NodeId::Sin(0));
+        ng.add_edge(NodeId::Sin(0), NodeId::Sin(1));
+
+        let mut out = vec![];
+        assert!(ng.calculate_order(&mut out));
+        assert_eq!(out[..], [
+            NodeId::Sin(2),
+            NodeId::Out(0),
+            NodeId::Amp(0),
+            NodeId::Amp(1),
+            NodeId::Sin(0),
+            NodeId::Sin(1)
+        ]);
+    }
+
+    #[test]
+    fn check_ngraph_order_3() {
+        let mut ng = NodeGraph::new();
+        ng.add_node(NodeId::Sin(2));
+        ng.add_node(NodeId::Sin(1));
+        ng.add_node(NodeId::Sin(0));
+        ng.add_node(NodeId::Out(0));
+        ng.add_node(NodeId::Amp(0));
+        ng.add_node(NodeId::Amp(1));
+
+        /*
+            amp0 =>         sin0
+            sin2 =>         sin0 => sin1 => out0
+                 => amp1 => sin0
+        */
+
+        ng.add_edge(NodeId::Sin(2), NodeId::Sin(0));
+        ng.add_edge(NodeId::Amp(0), NodeId::Sin(0));
+        ng.add_edge(NodeId::Amp(1), NodeId::Sin(0));
+        ng.add_edge(NodeId::Sin(2), NodeId::Amp(1));
+
+        ng.add_edge(NodeId::Sin(0), NodeId::Sin(1));
+        ng.add_edge(NodeId::Sin(1), NodeId::Out(0));
+
+        let mut out = vec![];
+        assert!(ng.calculate_order(&mut out));
+        assert_eq!(out[..], [
+            NodeId::Sin(2),
+            NodeId::Amp(0),
+            NodeId::Amp(1),
+            NodeId::Sin(0),
+            NodeId::Sin(1),
+            NodeId::Out(0),
+        ]);
+    }
+
+    #[test]
+    fn check_ngraph_order_4() {
+        let mut ng = NodeGraph::new();
+        ng.add_node(NodeId::Sin(2));
+        ng.add_node(NodeId::Sin(1));
+        ng.add_node(NodeId::Sin(0));
+        ng.add_node(NodeId::Out(0));
+        ng.add_node(NodeId::Amp(0));
+        ng.add_node(NodeId::Amp(1));
+
+        /*
+            amp1 => amp0 => sin0
+            sin2 => sin1 => out0
+        */
+
+        ng.add_edge(NodeId::Amp(1), NodeId::Amp(0));
+        ng.add_edge(NodeId::Amp(0), NodeId::Sin(0));
+        ng.add_edge(NodeId::Sin(2), NodeId::Sin(1));
+        ng.add_edge(NodeId::Sin(1), NodeId::Out(0));
+
+        let mut out = vec![];
+        assert!(ng.calculate_order(&mut out));
+        assert_eq!(out[..], [
+            NodeId::Sin(2),
+            NodeId::Amp(1),
+            NodeId::Sin(1),
+            NodeId::Amp(0),
+            NodeId::Out(0),
+            NodeId::Sin(0),
+        ]);
+    }
+
+    #[test]
     fn check_ngraph_dfs_cycle_2() {
         let mut ng = NodeGraph::new();
         ng.add_node(NodeId::Sin(2));
@@ -164,6 +329,9 @@ mod tests {
         assert!(
             ng.has_path(NodeId::Sin(2), NodeId::Sin(1))
             .is_none());
+
+        let mut out = vec![];
+        assert!(!ng.calculate_order(&mut out));
     }
 
     #[test]
