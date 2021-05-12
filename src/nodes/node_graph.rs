@@ -59,6 +59,11 @@ impl NodeGraph {
         }
     }
 
+    pub fn clear(&mut self) {
+        self.node2idx.clear();
+        self.node_count = 0;
+    }
+
     pub fn add_node(&mut self, node_id: NodeId) -> usize {
         if let Some(idx) = self.node2idx.get(&node_id) {
             *idx
@@ -151,7 +156,6 @@ mod tests {
         ng.add_node(NodeId::Sin(2));
         ng.add_node(NodeId::Sin(1));
         ng.add_node(NodeId::Sin(0));
-        ng.add_node(NodeId::Sin(0));
 
         ng.add_edge(NodeId::Sin(2), NodeId::Sin(0));
         ng.add_edge(NodeId::Sin(0), NodeId::Sin(1));
@@ -160,5 +164,22 @@ mod tests {
         assert!(
             ng.has_path(NodeId::Sin(2), NodeId::Sin(1))
             .is_none());
+    }
+
+    #[test]
+    fn check_ngraph_clear() {
+        let mut ng = NodeGraph::new();
+        ng.add_node(NodeId::Sin(2));
+        ng.add_node(NodeId::Sin(1));
+        ng.add_node(NodeId::Sin(0));
+
+        ng.add_edge(NodeId::Sin(2), NodeId::Sin(0));
+        ng.add_edge(NodeId::Sin(0), NodeId::Sin(1));
+
+        assert!(ng.has_path(NodeId::Sin(2), NodeId::Sin(1)).unwrap());
+
+        ng.clear();
+
+        assert!(!ng.has_path(NodeId::Sin(2), NodeId::Sin(1)).unwrap());
     }
 }
