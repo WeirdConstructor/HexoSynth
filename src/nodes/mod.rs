@@ -31,7 +31,7 @@ pub(crate) enum DropMsg {
 /// Big messages for updating the NodeExecutor thread.
 /// Usually used for shoveling NodeProg and Nodes to and from
 /// the NodeExecutor thread.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum GraphMessage {
     NewNode { index: u8, node: Node },
     NewProg { prog: NodeProg, copy_old_out: bool },

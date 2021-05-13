@@ -470,7 +470,7 @@ impl HexGridModel for MatrixUIModel {
         if let Some(cell) = m.get(x, y) {
             if let Some((lbl, is_connected)) = m.edge_label(&cell, edge.into(), buf) {
                 if is_connected {
-                    Some((lbl, HexEdge::Arrow))
+                    Some((lbl, HexEdge::ArrowValue { value: -0.5 }))
                 } else {
                     Some((lbl, HexEdge::NoArrow))
                 }

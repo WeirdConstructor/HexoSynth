@@ -781,7 +781,7 @@ impl Matrix {
             return Err(MatrixError::CycleDetected);
         }
 
-        let mut prog = self.config.rebuild_node_ports();
+        let (mut prog, out_feedback) = self.config.rebuild_node_ports();
 
         for node_id in ordered_nodes.iter() {
             self.config.add_prog_node(&mut prog, node_id);

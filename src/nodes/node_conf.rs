@@ -23,6 +23,8 @@ use std::cell::RefCell;
 use std::sync::Arc;
 use std::collections::HashMap;
 
+use triple_buffer::Output;
+
 /// A NodeInstance describes the input/output/atom ports of a Node
 /// and holds other important house keeping information for the [NodeConfigurator].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -548,7 +550,7 @@ impl NodeConfigurator {
     /// inputs, outputs and atoms.
     ///
     /// Execute this after a [NodeConfigurator::create_node].
-    pub fn rebuild_node_ports(&mut self) -> NodeProg {
+    pub fn rebuild_node_ports(&mut self) -> (NodeProg, Output<Vec<f32>>) {
         // Regenerating the params and atoms in the next step:
         self.params.clear();
         self.atoms.clear();

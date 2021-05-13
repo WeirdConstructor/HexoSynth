@@ -313,6 +313,8 @@ impl NodeExecutor {
         let ctx_vals = &mut self.shared.node_ctx_values;
         let prog     = &mut self.prog;
 
+        let prog_out_fb = prog.out_feedback.input_buffer();
+
         for op in prog.prog.iter() {
             let out = op.out_idxlen;
             let inp = op.in_idxlen;
@@ -328,7 +330,17 @@ impl NodeExecutor {
                     &prog.cur_inp[inp.0..inp.1],
                     &mut prog.out[out.0..out.1],
                     &ctx_vals[ctx_idx..ctx_idx + 2]);
+
+            let last_frame_idx = ctx.nframes() - 1;
+            for (pb, out_buf_idx) in
+                prog.out[out.0..out.1].iter()
+                    .zip(out.0..out.1)
+            {
+                prog_out_fb[out_buf_idx] = pb.read(last_frame_idx);
+            }
         }
+
+        prog.out_feedback.publish();
 
         self.shared.monitor_backend.check_recycle();
 

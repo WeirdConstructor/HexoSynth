@@ -3,6 +3,7 @@
 // See README.md and COPYING for details.
 
 use crate::dsp::{ProcBuf, SAtom};
+use triple_buffer::{Input, Output, TripleBuffer};
 
 /// Step in a `NodeProg` that stores the to be
 /// executed node and output operations.
@@ -41,7 +42,7 @@ impl std::fmt::Display for NodeOp {
 
 /// A node graph execution program. It comes with buffers
 /// for the inputs, outputs and node parameters (knob values).
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct NodeProg {
     /// The input vector stores the smoothed values of the params.
     /// It is not used directly, but will be merged into the `cur_inp`
@@ -72,6 +73,10 @@ pub struct NodeProg {
     /// have been copied into `cur_inp`. You can call `unlock_buffers` to
     /// clear `locked_buffers`:
     pub locked_buffers: bool,
+
+    /// Holds the input end of a triple buffer that is used
+    /// to publish the most recent output values to the frontend.
+    pub out_feedback: Input<Vec<f32>>,
 }
 
 impl Drop for NodeProg {
@@ -89,6 +94,9 @@ impl Drop for NodeProg {
 
 impl NodeProg {
     pub fn empty() -> Self {
+        let out_fb = vec![];
+        let tb = TripleBuffer::new(out_fb);
+        let (input_fb, _output_fb) = tb.split();
         Self {
             out:     vec![],
             inp:     vec![],
@@ -96,13 +104,18 @@ impl NodeProg {
             params:  vec![],
             atoms:   vec![],
             prog:    vec![],
+            out_feedback: input_fb,
             locked_buffers: false,
         }
     }
 
-    pub fn new(out_len: usize, inp_len: usize, at_len: usize) -> Self {
+    pub fn new(out_len: usize, inp_len: usize, at_len: usize) -> (Self, Output<Vec<f32>>) {
         let mut out = vec![];
         out.resize_with(out_len, || ProcBuf::new());
+
+        let out_fb = vec![0.0; out_len];
+        let tb = TripleBuffer::new(out_fb);
+        let (input_fb, output_fb) = tb.split();
 
         let mut inp = vec![];
         inp.resize_with(inp_len, || ProcBuf::new());
@@ -113,15 +126,17 @@ impl NodeProg {
         params.resize(inp_len, 0.0);
         let mut atoms = vec![];
         atoms.resize(at_len, SAtom::setting(0));
-        Self {
+
+        (Self {
             out,
             inp,
             cur_inp,
             params,
             atoms,
             prog:           vec![],
+            out_feedback:   input_fb,
             locked_buffers: false,
-        }
+        }, output_fb)
     }
 
     pub fn params_mut(&mut self) -> &mut [f32] {
