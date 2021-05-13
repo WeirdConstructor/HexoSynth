@@ -65,12 +65,12 @@ impl PatternSequencer {
 
     pub fn rows(&self) -> usize { self.rows }
 
-    pub fn set_col(&mut self, col: usize, col_data: &[f32])
-    {
-        for (out_cell, in_cell) in self.data[col].iter_mut().zip(col_data.iter()) {
-            if *in_cell > 0.0 {
-                println!("YOOOO UPDATE SETCOL {}", *in_cell);
-            }
+    pub fn set_col(&mut self, col: usize, col_data: &[f32]) {
+        for (out_cell, in_cell) in
+            self.data[col]
+                .iter_mut()
+                .zip(col_data.iter())
+        {
             *out_cell = *in_cell;
         }
     }
@@ -168,6 +168,8 @@ impl PatternSequencer {
                 }
             }
 
+            println!("GATE: {:0X}", gate);
+
             if (gate & 0xF000) > 0 {
                 *out = 0.0;
             } else {
@@ -209,11 +211,14 @@ mod tests {
     #[test]
     fn check_seq_interpolate_buffer_end() {
         let mut ps = PatternSequencer::new(256);
-        ps.set_col(0, &[0.0; 256]);
+        ps.set_col(0, &[f32::from_bits(0xF000); 256]);
 
         let mut out = [0.0; 1];
         ps.col_gate_at_phase(0, &[0.9999999999], &mut out[..]);
         assert_float_eq!(out[0], 0.0);
+
+        let mut ps = PatternSequencer::new(256);
+        ps.set_col(0, &[0.0; 256]);
 
         ps.col_get_at_phase(0, &[0.9999999999], &mut out[..]);
         assert_float_eq!(out[0], 0.0);

@@ -2,7 +2,12 @@
 // This is a part of HexoSynth. Released under (A)GPLv3 or any later.
 // See README.md and COPYING for details.
 
-use crate::nodes::{NodeConfigurator, NodeGraphOrdering};
+use crate::nodes::{
+    NodeConfigurator,
+    NodeGraphOrdering,
+    NodeProg,
+    MAX_ALLOCATED_NODES
+};
 use crate::dsp::{NodeInfo, NodeId, ParamId, SAtom};
 pub use crate::CellDir;
 pub use crate::nodes::MinMaxMonitorSamples;
@@ -226,11 +231,13 @@ use std::rc::Rc;
 use std::cell::RefCell;
 
 /// To report back cycle errors from [Matrix::check] and [Matrix::sync].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum MatrixError {
     CycleDetected,
 }
 
 /// An intermediate data structure to store a single edge in the [Matrix].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 struct Edge {
     from:      NodeId,
     from_out:  u8,
@@ -286,6 +293,7 @@ impl Matrix {
             gen_counter:    0,
             saved_matrix:   None,
             graph_ordering: NodeGraphOrdering::new(),
+            edges:          Vec::with_capacity(MAX_ALLOCATED_NODES * 2),
             config,
             w,
             h,
@@ -321,17 +329,34 @@ impl Matrix {
         self.config.check_pattern_data(tracker_id)
     }
 
+    /// Saves the state of the hexagonal grid layout.
+    /// This is usually used together with [Matrix::check]
+    /// and [Matrix::restore_matrix] to try if changes on
+    /// the matrix using [Matrix::place] (or other grid changing
+    /// functions).
+    ///
+    /// See also [Matrix::check] and [Matrix::sync].
     pub fn save_matrix(&mut self) {
         let matrix = self.matrix.clone();
         self.saved_matrix = Some(matrix);
     }
 
+    /// Restores the previously via [Matrix::save_matrix] saved matrix.
+    /// See also [Matrix::check].
     pub fn restore_matrix(&mut self) {
         if let Some(matrix) = self.saved_matrix.take() {
             self.matrix = matrix;
         }
     }
 
+    /// Inserts a cell into the hexagonal grid of the matrix.
+    /// You have to make sure that the resulting DSP graph topology
+    /// does not have cycles, otherwise an upload to the DSP thread via
+    /// [Matrix::sync] will fail.
+    ///
+    /// You can safely check the DSP topology of changes using
+    /// [Matrix::save_matrix], [Matrix::restore_matrix]
+    /// and [Matrix::check]. See also the example in [Matrix::check].
     pub fn place(&mut self, x: usize, y: usize, mut cell: Cell) {
         cell.x = x as u8;
         cell.y = y as u8;
@@ -342,6 +367,10 @@ impl Matrix {
         for cell in self.matrix.iter_mut() {
             *cell = Cell::empty(NodeId::Nop);
         }
+
+        self.graph_ordering.clear();
+        self.edges.clear();
+        self.saved_matrix = None;
 
         self.config.delete_nodes();
         self.monitor_cell(Cell::empty(NodeId::Nop));
@@ -630,14 +659,8 @@ impl Matrix {
     }
 
     fn update_graph_ordering_and_edges(&mut self) {
-    }
-
-    pub fn sync(&mut self) {
-        self.create_intermediate_nodes();
-
-        // Create the node program and set the execution order of the
-        // nodes and their corresponding inputs/outputs.
-        let mut prog = self.config.rebuild_node_ports();
+        self.graph_ordering.clear();
+        self.edges.clear();
 
         for x in 0..self.w {
             for y in 0..self.h {
@@ -646,7 +669,7 @@ impl Matrix {
                     continue;
                 }
 
-                self.config.add_prog_node(&mut prog, &cell.node_id);
+                self.graph_ordering.add_node(cell.node_id);
 
                 let in1_output = self.get_adjacent_output(x, y, CellDir::T);
                 let in2_output = self.get_adjacent_output(x, y, CellDir::TL);
@@ -654,36 +677,151 @@ impl Matrix {
 
                 match (cell.in1, in1_output) {
                     (Some(in1_idx), Some(in1_output)) => {
-                        self.config.set_prog_node_exec_connection(
-                            &mut prog, (cell.node_id, in1_idx), in1_output);
+                        self.edges.push(Edge {
+                            to:       cell.node_id,
+                            to_input: in1_idx,
+                            from:     in1_output.0,
+                            from_out: in1_output.1,
+                        });
+                        self.graph_ordering.add_edge(
+                            in1_output.0, cell.node_id);
                     },
                     _ => {},
                 }
 
                 match (cell.in2, in2_output) {
                     (Some(in2_idx), Some(in2_output)) => {
-                        self.config.set_prog_node_exec_connection(
-                            &mut prog, (cell.node_id, in2_idx), in2_output);
+                        self.edges.push(Edge {
+                            to:       cell.node_id,
+                            to_input: in2_idx,
+                            from:     in2_output.0,
+                            from_out: in2_output.1,
+                        });
+                        self.graph_ordering.add_edge(
+                            in2_output.0, cell.node_id);
                     },
                     _ => {},
                 }
 
                 match (cell.in3, in3_output) {
                     (Some(in3_idx), Some(in3_output)) => {
-                        self.config.set_prog_node_exec_connection(
-                            &mut prog, (cell.node_id, in3_idx), in3_output);
+                        self.edges.push(Edge {
+                            to:       cell.node_id,
+                            to_input: in3_idx,
+                            from:     in3_output.0,
+                            from_out: in3_output.1,
+                        });
+                        self.graph_ordering.add_edge(
+                            in3_output.0, cell.node_id);
                     },
                     _ => {},
                 }
             }
         }
+    }
+
+    /// Compiles a [NodeProg] from the data collected by the previous
+    /// call to [Matrix::update_graph_ordering_and_edges].
+    ///
+    /// May return an error if the graph topology is invalid (cycles)
+    /// or something else happened.
+    fn build_prog(&mut self) -> Result<NodeProg, MatrixError> {
+        let mut ordered_nodes = vec![];
+        if !self.graph_ordering.calculate_order(&mut ordered_nodes) {
+            return Err(MatrixError::CycleDetected);
+        }
+
+        let mut prog = self.config.rebuild_node_ports();
+
+        for node_id in ordered_nodes.iter() {
+            self.config.add_prog_node(&mut prog, node_id);
+        }
+
+        for edge in self.edges.iter() {
+            self.config.set_prog_node_exec_connection(
+                &mut prog,
+                (edge.to, edge.to_input),
+                (edge.from, edge.from_out));
+        }
+
+        Ok(prog)
+    }
+
+    /// Checks the topology of the DSP graph represented by the
+    /// hexagonal matrix.
+    ///
+    /// Use [Matrix::save_matrix] and [Matrix::restore_matrix]
+    /// for trying out changes before committing them to the
+    /// DSP thread using [Matrix::sync].
+    ///
+    ///```
+    /// use hexosynth::*;
+    ///
+    /// let (node_conf, mut node_exec) = new_node_engine();
+    /// let mut matrix = Matrix::new(node_conf, 3, 3);
+    ///
+    /// matrix.save_matrix();
+    ///
+    /// // ...
+    /// matrix.place(0, 1,
+    ///     Cell::empty(NodeId::Sin(1))
+    ///     .input(Some(0), None, None));
+    /// matrix.place(0, 0,
+    ///     Cell::empty(NodeId::Sin(1))
+    ///     .out(None, None, Some(0)));
+    /// // ...
+    ///
+    /// let error =
+    ///     if let Err(_) = matrix.check() {
+    ///        matrix.restore_matrix();
+    ///        true
+    ///     } else {
+    ///        matrix.sync().unwrap();
+    ///        false
+    ///     };
+    ///
+    /// // In this examples case there is an error, as we created
+    /// // a cycle:
+    /// assert!(error);
+    ///```
+    pub fn check(&mut self) -> Result<(), MatrixError> {
+        self.update_graph_ordering_and_edges();
+
+        let mut ordered_nodes = vec![];
+        if !self.graph_ordering.calculate_order(&mut ordered_nodes) {
+            return Err(MatrixError::CycleDetected);
+        }
+
+        Ok(())
+    }
+
+    /// Synchronizes the matrix with the DSP thread.
+    /// Call this everytime you changed any of the matrix [Cell]s
+    /// eg. with [Matrix::place] and want to publish the
+    /// changes to the DSP thread.
+    ///
+    /// This method might return an error, for instance if the
+    /// DSP graph topology contains cycles or has other errors.
+    /// You can check any changes using the methods [Matrix::save_matrix],
+    /// [Matrix::check] and roll back changes using [Matrix::restore_matrix].
+    pub fn sync(&mut self) -> Result<(), MatrixError> {
+        self.create_intermediate_nodes();
+
+        self.update_graph_ordering_and_edges();
+        let prog = self.build_prog()?;
 
         self.config.upload_prog(prog, true); // true => copy_old_out
 
+        // Update the generation counter which is used
+        // by external data structures to sync their state with
+        // the Matrix.
         self.gen_counter += 1;
 
-        // Refresh the input/outputs of the monitored cell, just in case.
+        // Refresh the input/outputs of the monitored cell,
+        // just in case something has changed with that monitored cell.
         self.remonitor_cell();
+
+        Ok(())
     }
 }
 
