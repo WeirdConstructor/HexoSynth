@@ -47,7 +47,7 @@ impl Node {
 }
 
 #[derive(Debug, Clone)]
-pub struct NodeGraph {
+pub struct NodeGraphOrdering {
     node2idx:   HashMap<NodeId, usize>,
     node_count: usize,
     nodes:      [Node; MAX_ALLOCATED_NODES],
@@ -55,7 +55,7 @@ pub struct NodeGraph {
     in_degree: [usize; MAX_ALLOCATED_NODES],
 }
 
-impl NodeGraph {
+impl NodeGraphOrdering {
     pub fn new() -> Self {
         Self {
             node2idx:   HashMap::new(),
@@ -190,7 +190,7 @@ mod tests {
 
     #[test]
     fn check_ngraph_dfs_1() {
-        let mut ng = NodeGraph::new();
+        let mut ng = NodeGraphOrdering::new();
         ng.add_node(NodeId::Sin(2));
         ng.add_node(NodeId::Sin(1));
         ng.add_node(NodeId::Sin(0));
@@ -209,7 +209,7 @@ mod tests {
 
     #[test]
     fn check_ngraph_order_1() {
-        let mut ng = NodeGraph::new();
+        let mut ng = NodeGraphOrdering::new();
         ng.add_node(NodeId::Sin(2));
         ng.add_node(NodeId::Sin(1));
         ng.add_node(NodeId::Sin(0));
@@ -224,7 +224,7 @@ mod tests {
 
     #[test]
     fn check_ngraph_order_2() {
-        let mut ng = NodeGraph::new();
+        let mut ng = NodeGraphOrdering::new();
         ng.add_node(NodeId::Sin(2));
         ng.add_node(NodeId::Sin(1));
         ng.add_node(NodeId::Sin(0));
@@ -249,7 +249,7 @@ mod tests {
 
     #[test]
     fn check_ngraph_order_3() {
-        let mut ng = NodeGraph::new();
+        let mut ng = NodeGraphOrdering::new();
         ng.add_node(NodeId::Sin(2));
         ng.add_node(NodeId::Sin(1));
         ng.add_node(NodeId::Sin(0));
@@ -285,7 +285,7 @@ mod tests {
 
     #[test]
     fn check_ngraph_order_4() {
-        let mut ng = NodeGraph::new();
+        let mut ng = NodeGraphOrdering::new();
         ng.add_node(NodeId::Sin(2));
         ng.add_node(NodeId::Sin(1));
         ng.add_node(NodeId::Sin(0));
@@ -317,7 +317,7 @@ mod tests {
 
     #[test]
     fn check_ngraph_dfs_cycle_2() {
-        let mut ng = NodeGraph::new();
+        let mut ng = NodeGraphOrdering::new();
         ng.add_node(NodeId::Sin(2));
         ng.add_node(NodeId::Sin(1));
         ng.add_node(NodeId::Sin(0));
@@ -336,7 +336,7 @@ mod tests {
 
     #[test]
     fn check_ngraph_clear() {
-        let mut ng = NodeGraph::new();
+        let mut ng = NodeGraphOrdering::new();
         ng.add_node(NodeId::Sin(2));
         ng.add_node(NodeId::Sin(1));
         ng.add_node(NodeId::Sin(0));

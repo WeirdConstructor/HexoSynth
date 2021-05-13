@@ -2,7 +2,7 @@
 // This is a part of HexoSynth. Released under (A)GPLv3 or any later.
 // See README.md and COPYING for details.
 
-use crate::nodes::NodeConfigurator;
+use crate::nodes::{NodeConfigurator, NodeGraphOrdering};
 use crate::dsp::{NodeInfo, NodeId, ParamId, SAtom};
 pub use crate::CellDir;
 pub use crate::nodes::MinMaxMonitorSamples;
@@ -225,11 +225,45 @@ impl Cell {
 use std::rc::Rc;
 use std::cell::RefCell;
 
+/// To report back cycle errors from [Matrix::check] and [Matrix::sync].
+pub enum MatrixError {
+    CycleDetected,
+}
+
+/// An intermediate data structure to store a single edge in the [Matrix].
+struct Edge {
+    from:      NodeId,
+    from_out:  u8,
+    to:        NodeId,
+    to_input:  u8,
+}
+
 pub struct Matrix {
+    /// The node configurator to control the backend.
     config:      NodeConfigurator,
+    /// Holds the actual 2 dimensional matrix cells in one big vector.
     matrix:      Vec<Cell>,
+    /// Width of the matrix.
     w:           usize,
+    /// Height of the matrix.
     h:           usize,
+
+    /// The retained data structure of the graph topology.
+    /// This is used by `sync()` and `check()` to determine the
+    /// order and cycle freeness of the graph.
+    /// We store it in this field, so we don't have to reallocate it
+    /// all the time.
+    graph_ordering: NodeGraphOrdering,
+
+    /// Holds a saved version of the `matrix` field
+    /// to roll back changes that might introduce cycles or
+    /// other invalid topology.
+    saved_matrix: Option<Vec<Cell>>,
+
+    /// Stores the edges which are extracted from the `matrix` field
+    /// by [Matrix::update_graph_ordering_and_edges], which is used
+    /// by [Matrix::sync] and [Matrix::check].
+    edges: Vec<Edge>,
 
     /// Holds the currently monitored cell.
     monitored_cell: Cell,
@@ -249,7 +283,9 @@ impl Matrix {
 
         Self {
             monitored_cell: Cell::empty(NodeId::Nop),
-            gen_counter: 0,
+            gen_counter:    0,
+            saved_matrix:   None,
+            graph_ordering: NodeGraphOrdering::new(),
             config,
             w,
             h,
@@ -283,6 +319,17 @@ impl Matrix {
 
     pub fn check_pattern_data(&mut self, tracker_id: usize) {
         self.config.check_pattern_data(tracker_id)
+    }
+
+    pub fn save_matrix(&mut self) {
+        let matrix = self.matrix.clone();
+        self.saved_matrix = Some(matrix);
+    }
+
+    pub fn restore_matrix(&mut self) {
+        if let Some(matrix) = self.saved_matrix.take() {
+            self.matrix = matrix;
+        }
     }
 
     pub fn place(&mut self, x: usize, y: usize, mut cell: Cell) {
@@ -546,7 +593,7 @@ impl Matrix {
         self.config.unused_instance_node_id(id)
     }
 
-    pub fn sync(&mut self) {
+    fn create_intermediate_nodes(&mut self) {
         // Scan through the matrix and check if (backend) nodes need to be created
         // for new unknown nodes:
         for x in 0..self.w {
@@ -580,6 +627,13 @@ impl Matrix {
                 }
             }
         }
+    }
+
+    fn update_graph_ordering_and_edges(&mut self) {
+    }
+
+    pub fn sync(&mut self) {
+        self.create_intermediate_nodes();
 
         // Create the node program and set the execution order of the
         // nodes and their corresponding inputs/outputs.

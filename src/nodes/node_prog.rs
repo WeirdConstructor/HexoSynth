@@ -154,9 +154,6 @@ impl NodeProg {
                 return;
             }
         }
-
-        node_op.inputs.push((out_index, inp_index));
-        self.prog.push(node_op);
     }
 
     pub fn append_with_inputs(

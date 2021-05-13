@@ -10,12 +10,12 @@ mod node_prog;
 mod node_exec;
 mod node_conf;
 mod drop_thread;
-mod node_graph;
+mod node_graph_ordering;
 
 pub use node_exec::*;
 pub use node_prog::*;
 pub use node_conf::*;
-pub use node_graph::NodeGraph;
+pub use node_graph_ordering::NodeGraphOrdering;
 
 pub use crate::monitor::MinMaxMonitorSamples;
 use crate::monitor::MON_SIG_CNT;
