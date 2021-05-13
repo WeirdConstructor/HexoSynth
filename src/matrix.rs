@@ -32,7 +32,7 @@ use crate::dsp::tracker::PatternData;
 ///     .input(Some(0), None, None)
 ///     .out(None, None, Some(0)));
 ///
-/// matrix.sync();
+/// matrix.sync().unwrap();
 ///```
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Cell {
@@ -335,17 +335,60 @@ impl Matrix {
     /// the matrix using [Matrix::place] (or other grid changing
     /// functions).
     ///
-    /// See also [Matrix::check] and [Matrix::sync].
+    /// It is advised to use convenience functions such as [Matrix::change_matrix].
+    ///
+    /// See also [Matrix::change_matrix], [Matrix::check] and [Matrix::sync].
     pub fn save_matrix(&mut self) {
         let matrix = self.matrix.clone();
         self.saved_matrix = Some(matrix);
     }
 
     /// Restores the previously via [Matrix::save_matrix] saved matrix.
-    /// See also [Matrix::check].
+    ///
+    /// It is advised to use convenience functions such as [Matrix::change_matrix].
+    ///
+    /// See also [Matrix::change_matrix], [Matrix::check].
     pub fn restore_matrix(&mut self) {
         if let Some(matrix) = self.saved_matrix.take() {
             self.matrix = matrix;
+        }
+    }
+
+    /// Helps encapsulating changes of the matrix and wraps them into
+    /// a [Matrix::save_matrix], [Matrix::check] and [Matrix::restore_matrix].
+    ///
+    ///```
+    /// use hexosynth::*;
+    ///
+    /// let (node_conf, mut node_exec) = new_node_engine();
+    /// let mut matrix = Matrix::new(node_conf, 3, 3);
+    ///
+    /// let res = matrix.change_matrix(|matrix| {
+    ///     matrix.place(0, 1,
+    ///         Cell::empty(NodeId::Sin(1))
+    ///         .input(Some(0), None, None));
+    ///     matrix.place(0, 0,
+    ///         Cell::empty(NodeId::Sin(1))
+    ///         .out(None, None, Some(0)));
+    /// });
+    ///
+    /// // In this examples case there is an error, as we created
+    /// // a cycle:
+    /// assert!(res.is_err());
+    ///```
+    pub fn change_matrix<F>(&mut self, mut f: F)
+        -> Result<(), MatrixError>
+        where F: FnMut(&mut Self)
+    {
+        self.save_matrix();
+
+        f(self);
+
+        if let Err(e) = self.check() {
+            self.restore_matrix();
+            Err(e)
+        } else {
+            Ok(())
         }
     }
 
@@ -355,8 +398,11 @@ impl Matrix {
     /// [Matrix::sync] will fail.
     ///
     /// You can safely check the DSP topology of changes using
-    /// [Matrix::save_matrix], [Matrix::restore_matrix]
-    /// and [Matrix::check]. See also the example in [Matrix::check].
+    /// the convenience function [Matrix::change_matrix]
+    /// or alternatively: [Matrix::save_matrix], [Matrix::restore_matrix]
+    /// and [Matrix::check].
+    ///
+    /// See also the example in [Matrix::change_matrix] and [Matrix::check].
     pub fn place(&mut self, x: usize, y: usize, mut cell: Cell) {
         cell.x = x as u8;
         cell.y = y as u8;
@@ -374,7 +420,7 @@ impl Matrix {
 
         self.config.delete_nodes();
         self.monitor_cell(Cell::empty(NodeId::Nop));
-        self.sync();
+        let _ = self.sync();
     }
 
     pub fn for_each_atom<F: FnMut(usize, ParamId, &SAtom)>(&self, f: F) {
@@ -410,7 +456,7 @@ impl Matrix {
         }
     }
 
-    pub fn from_repr(&mut self, repr: &MatrixRepr) {
+    pub fn from_repr(&mut self, repr: &MatrixRepr) -> Result<(), MatrixError> {
         self.clear();
 
         self.config.load_dumped_param_values(
@@ -430,7 +476,7 @@ impl Matrix {
             }
         }
 
-        self.sync();
+        self.sync()
     }
 
     /// Receives the most recent data for the monitored signal at index `idx`.
@@ -754,6 +800,9 @@ impl Matrix {
     /// for trying out changes before committing them to the
     /// DSP thread using [Matrix::sync].
     ///
+    /// Note that there is a convenience function with [Matrix::change_matrix]
+    /// to make it easier to test and rollback changes if they are faulty.
+    ///
     ///```
     /// use hexosynth::*;
     ///
@@ -802,8 +851,9 @@ impl Matrix {
     ///
     /// This method might return an error, for instance if the
     /// DSP graph topology contains cycles or has other errors.
-    /// You can check any changes using the methods [Matrix::save_matrix],
-    /// [Matrix::check] and roll back changes using [Matrix::restore_matrix].
+    ///
+    /// You can check any changes and roll them back
+    /// using the method [Matrix::change_matrix].
     pub fn sync(&mut self) -> Result<(), MatrixError> {
         self.create_intermediate_nodes();
 
@@ -846,7 +896,7 @@ mod tests {
         matrix.place(1, 1,
             Cell::empty(NodeId::Sin(2))
             .input(Some(0), None, None));
-        matrix.sync();
+        matrix.sync().unwrap();
 
         node_exec.process_graph_updates();
 
@@ -876,7 +926,7 @@ mod tests {
                 i += 1;
             }
         }
-        matrix.sync();
+        matrix.sync().unwrap();
 
         node_exec.process_graph_updates();
 
@@ -900,7 +950,7 @@ mod tests {
             Cell::empty(NodeId::Out(0))
             .input(None, Some(0), None)
             .out(None, None, Some(0)));
-        matrix.sync();
+        matrix.sync().unwrap();
 
         node_exec.set_sample_rate(44100.0);
         node_exec.process_graph_updates();
@@ -929,7 +979,7 @@ mod tests {
             Cell::empty(NodeId::Out(0))
             .input(None, Some(0), None)
             .out(None, None, Some(0)));
-        matrix.sync();
+        matrix.sync().unwrap();
 
         node_exec.set_sample_rate(44100.0);
         node_exec.process_graph_updates();

@@ -448,7 +448,7 @@ mod tests {
             Cell::empty(NodeId::Out(0))
             .input(None, Some(0), None)
             .out(None, None, Some(0)));
-        matrix.sync();
+        matrix.sync().unwrap();
 
         let freq_param = sin.inp_param("freq").unwrap();
         matrix.set_param(freq_param, SAtom::param(-0.1));
@@ -535,7 +535,7 @@ mod tests {
                 Cell::empty(NodeId::Out(0))
                 .input(None, Some(0), None)
                 .out(None, None, Some(0)));
-            matrix.sync();
+            matrix.sync().unwrap();
 
             let freq_param = sin.inp_param("freq").unwrap();
             matrix.set_param(freq_param, SAtom::param(-0.1));
@@ -580,7 +580,7 @@ mod tests {
             matrix.place(0, 0,
                 Cell::empty(ts)
                 .out(None, Some(0), None));
-            matrix.sync();
+            matrix.sync().unwrap();
 
             {
                 let pat_ref = matrix.get_pattern_data(0).unwrap();

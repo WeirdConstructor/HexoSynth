@@ -149,7 +149,7 @@ impl PluginContext<HexoSynth> for HexoSynthShared {
             println!("Error loading init.hxy: {:?}", e);
         }
 
-        matrix.sync();
+        let _ = matrix.sync();
 
         Self {
             matrix:    Arc::new(Mutex::new(matrix)),

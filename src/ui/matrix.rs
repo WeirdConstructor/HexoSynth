@@ -46,7 +46,7 @@ impl MenuActionHandler for MatrixActionHandler {
         self.help_txt.set(txt);
     }
 
-    fn assign_cell_port(&mut self, mut cell: Cell, cell_dir: CellDir, idx: Option<usize>) {
+    fn assign_cell_port(&mut self, mut cell: Cell, cell_dir: CellDir, idx: Option<usize>) -> Result<(), MatrixError> {
         let mut m = self.matrix.lock().unwrap();
 
         if let Some(idx) = idx {
@@ -55,18 +55,26 @@ impl MenuActionHandler for MatrixActionHandler {
             cell.clear_io_dir(cell_dir);
         }
         let pos = cell.pos();
-        m.place(pos.0, pos.1, cell);
-        m.sync();
+
+        m.change_matrix(|matrix| {
+            matrix.place(pos.0, pos.1, cell);
+        })?;
+
+        m.sync()
     }
 
-    fn assign_cell_new_node(&mut self, mut cell: Cell, node_id: NodeId) {
+    fn assign_cell_new_node(&mut self, mut cell: Cell, node_id: NodeId) -> Result<(), MatrixError> {
         let mut m = self.matrix.lock().unwrap();
 
         let node_id = m.get_unused_instance_node_id(node_id);
         cell.set_node_id(node_id);
         let pos = cell.pos();
-        m.place(pos.0, pos.1, cell);
-        m.sync();
+
+        m.change_matrix(|matrix| {
+            matrix.place(pos.0, pos.1, cell);
+        })?;
+
+        m.sync()
     }
 }
 
