@@ -1018,7 +1018,7 @@ mod tests {
     fn check_matrix_check_cycle() {
         use crate::nodes::new_node_engine;
 
-        let (node_conf, mut node_exec) = new_node_engine();
+        let (node_conf, _node_exec) = new_node_engine();
         let mut matrix = Matrix::new(node_conf, 3, 3);
 
         matrix.save_matrix();
@@ -1046,7 +1046,7 @@ mod tests {
     fn check_matrix_check_duplicate_input() {
         use crate::nodes::new_node_engine;
 
-        let (node_conf, mut node_exec) = new_node_engine();
+        let (node_conf, _node_exec) = new_node_engine();
         let mut matrix = Matrix::new(node_conf, 5, 5);
 
         matrix.save_matrix();

@@ -243,7 +243,7 @@ fn check_matrix_sine() {
                        .out(None, sin.out("sig"), None));
     matrix.place(1, 0, Cell::empty(out)
                        .input(None, out.inp("ch1"), None));
-    matrix.sync();
+    matrix.sync().unwrap();
 
     let (mut out_l, out_r) = run_no_input(&mut node_exec, 4.0);
 
@@ -291,7 +291,7 @@ fn check_matrix_atom_set() {
                        .out(None, sin.out("sig"), None));
     matrix.place(1, 0, Cell::empty(out)
                        .input(None, out.inp("ch1"), None));
-    matrix.sync();
+    matrix.sync().unwrap();
 
     let mono_param = out.inp_param("mono").unwrap();
 
@@ -331,7 +331,7 @@ fn check_sine_pitch_change() {
                        .out(None, sin.out("sig"), None));
     matrix.place(1, 0, Cell::empty(out)
                        .input(None, out.inp("ch1"), None));
-    matrix.sync();
+    matrix.sync().unwrap();
 
     let (mut out_l, _out_r) = run_no_input(&mut node_exec, 0.2);
 
@@ -380,7 +380,7 @@ fn check_matrix_monitor() {
                        .out(sin.out("sig"), sin.out("sig"), sin.out("sig")));
     matrix.place(1, 0, Cell::empty(out)
                        .input(None, out.inp("ch1"), None));
-    matrix.sync();
+    matrix.sync().unwrap();
 
     // Go to 220Hz
     let freq_param = sin.inp_param("freq").unwrap();
@@ -459,7 +459,7 @@ fn check_matrix_out_config_bug1() {
                        .input(Some(1), Some(0), None)
                        .out(None, None, Some(0)));
 
-    matrix.sync();
+    assert!(matrix.sync().is_err());
 
     let (_out_l, _out_r) = run_no_input(&mut node_exec, 0.2);
 }
@@ -476,7 +476,7 @@ fn check_matrix_out_config_bug1_reduced() {
                        .input(Some(0), None, None)
                        .out(None, None, None));
 
-    matrix.sync();
+    matrix.sync().unwrap();
 
     let (_out_l, _out_r) = run_no_input(&mut node_exec, 0.2);
 }
@@ -491,7 +491,7 @@ fn check_matrix_out_config_bug1b_reduced() {
     matrix.place(1, 1, Cell::empty(NodeId::Out(0))
                        .input(Some(0), None, None));
 
-    matrix.sync();
+    assert!(matrix.sync().is_err());
 
     let (_out_l, _out_r) = run_no_input(&mut node_exec, 0.2);
 }
@@ -506,7 +506,7 @@ fn check_matrix_out_config_bug1c_reduced() {
     matrix.place(1, 1, Cell::empty(NodeId::Out(0))
                        .input(Some(9), None, None));
 
-    matrix.sync();
+    matrix.sync().unwrap();
 
     let (_out_l, _out_r) = run_no_input(&mut node_exec, 0.2);
 }
@@ -518,7 +518,7 @@ macro_rules! simple_sine_output_test {
 
         $block;
 
-        $matrix.sync();
+        $matrix.sync().unwrap();
 
         let (out_l, _out_r) = run_no_input(&mut node_exec, 0.2);
 
@@ -635,7 +635,7 @@ fn check_matrix_adj_odd() {
                        .input(Some(0), None, None));
     matrix.place(0, 2, Cell::empty(NodeId::Sin(6))
                        .out(Some(0), None, None));
-    matrix.sync();
+    matrix.sync().unwrap();
 
     assert_eq!(
         matrix.get_adjacent(1, 1, CellDir::B).unwrap().node_id(),
@@ -703,7 +703,7 @@ fn check_matrix_adj_even() {
                        .input(Some(0), None, None));
     matrix.place(1, 1, Cell::empty(NodeId::Sin(6))
                        .out(Some(0), None, None));
-    matrix.sync();
+    matrix.sync().unwrap();
 
     assert_eq!(
         matrix.get_adjacent(2, 1, CellDir::B).unwrap().node_id(),
@@ -739,7 +739,7 @@ fn check_matrix_out_twice_assignment() {
                        .input(None, Some(0), Some(0))
                        .out(None, None, None));
 
-    matrix.sync();
+    matrix.sync().unwrap();
 
     let (_out_l, _out_r) = run_no_input(&mut node_exec, 0.2);
 
@@ -760,7 +760,7 @@ fn check_matrix_amp() {
                        .out(None, None, sin.out("sig")));
     matrix.place(0, 2, Cell::empty(out)
                        .input(out.inp("ch1"), None, None));
-    matrix.sync();
+    matrix.sync().unwrap();
 
     let att_param  = amp.inp_param("att").unwrap();
     matrix.set_param(att_param, SAtom::param(0.5));
@@ -797,7 +797,7 @@ fn check_matrix_clear() {
                        .out(None, None, sin.out("sig")));
     matrix.place(0, 1, Cell::empty(out)
                        .input(out.inp("ch1"), None, None));
-    matrix.sync();
+    matrix.sync().unwrap();
 
     let freq_param = sin.inp_param("freq").unwrap();
     matrix.set_param(freq_param, SAtom::param(-0.2));
@@ -819,7 +819,7 @@ fn check_matrix_clear() {
                        .out(None, None, sin.out("sig")));
     matrix.place(0, 1, Cell::empty(out)
                        .input(out.inp("ch1"), None, None));
-    matrix.sync();
+    matrix.sync().unwrap();
 
     let fft = run_and_get_fft4096(&mut node_exec, 800, 50.0);
     assert_eq!(fft[0], (441, 1012));
@@ -838,7 +838,7 @@ fn check_matrix_serialize() {
                            .out(None, None, sin.out("sig")));
         matrix.place(0, 1, Cell::empty(out)
                            .input(out.inp("ch1"), None, None));
-        matrix.sync();
+        matrix.sync().unwrap();
 
         let freq_param = sin.inp_param("freq").unwrap();
         matrix.set_param(freq_param, SAtom::param(-0.2));
@@ -879,7 +879,7 @@ fn check_matrix_tseq() {
                        .out(None, None, tsq.out("trk1")));
     matrix.place(0, 2, Cell::empty(out)
                        .input(out.inp("ch1"), None, None));
-    matrix.sync();
+    matrix.sync().unwrap();
 
     let freq_param = sin.inp_param("freq").unwrap();
     matrix.set_param(freq_param, SAtom::param(-0.978));
@@ -953,7 +953,7 @@ fn check_matrix_tseq_gate() {
                        .out(None, None, tsq.out("trk1")));
     matrix.place(0, 2, Cell::empty(out)
                        .input(out.inp("ch1"), None, None));
-    matrix.sync();
+    matrix.sync().unwrap();
 
     let freq_param = sin.inp_param("freq").unwrap();
     matrix.set_param(freq_param, SAtom::param(-0.978));
@@ -1029,7 +1029,7 @@ fn check_matrix_tseq_2col_gate_bug() {
                        .out(None, None, tsq.out("trk2")));
     matrix.place(0, 2, Cell::empty(out)
                        .input(out.inp("ch1"), None, None));
-    matrix.sync();
+    matrix.sync().unwrap();
 
     let freq_param = sin.inp_param("freq").unwrap();
     matrix.set_param(freq_param, SAtom::param(0.0));

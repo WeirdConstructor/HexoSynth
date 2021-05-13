@@ -3,18 +3,16 @@
 // See README.md and COPYING for details.
 
 use crate::dsp::{UICategory, NodeInfo, NodeId};
-use crate::matrix::{Cell, CellDir, MatrixError};
+use crate::matrix::{Cell, CellDir};
 use std::rc::Rc;
 use std::cell::RefCell;
 
 pub trait MenuActionHandler {
     fn update_help_text(&mut self, txt: &str);
     fn assign_cell_port(
-        &mut self, cell: Cell, cell_dir: CellDir, idx: Option<usize>)
-        -> Result<(), MatrixError>;
+        &mut self, cell: Cell, cell_dir: CellDir, idx: Option<usize>);
     fn assign_cell_new_node(
-        &mut self, cell: Cell, node_id: NodeId)
-        -> Result<(), MatrixError>;
+        &mut self, cell: Cell, node_id: NodeId);
 }
 
 pub trait MenuControl {

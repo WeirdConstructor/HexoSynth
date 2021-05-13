@@ -22,8 +22,6 @@ pub mod matrix_repr;
 pub mod ui;
 mod util;
 
-use nodes::*;
-
 pub use cell_dir::CellDir;
 pub use matrix_repr::load_patch_from_file;
 pub use matrix_repr::save_patch_to_file;

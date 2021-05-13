@@ -27,16 +27,67 @@ use crate::ui::util_panel::{UtilPanel, UtilPanelData};
 
 const LED_SAMPLES : usize = 10;
 
+enum DialogMessage {
+    MatrixError(MatrixError),
+}
+
+impl From<MatrixError> for DialogMessage {
+    fn from(error: MatrixError) -> Self {
+        DialogMessage::MatrixError(error)
+    }
+}
+
+fn handle_matrix_change<F>(dialog: &Rc<RefCell<DialogModel>>, mut f: F)
+    where F: FnMut() -> Result<(), DialogMessage>
+{
+    match f() {
+        Err(DialogMessage::MatrixError(err)) => {
+            match err {
+                MatrixError::CycleDetected => {
+                    dialog.borrow_mut().open(
+                        &format!("Cycle Detected!\n\
+                            HexoSynth does not allow to create cyclic configurations.\n\
+                            \n\
+                            For feedback please use the nodes:\n\
+                            * 'FbWr' (Feedback Writer)\n\
+                            * 'FbRd' (Feedback Reader)"),
+                        Box::new(|_| ()));
+                },
+                MatrixError::DuplicatedInput { output1, output2 } => {
+                    dialog.borrow_mut().open(
+                        &format!("Unjoined Outputs Detected!\n\
+                            It's not possible to assign to an input port twice.\n\
+                            Please use a mixer or some other kind of node to join the outputs.\n\
+                            \n\
+                            Conflicting Outputs:\n\
+                            * {} {}, port {}\n\
+                            * {} {}, port {}",
+                            output1.0.name(),
+                            output1.0.instance(),
+                            output1.0.out_name_by_idx(output1.1).unwrap_or("???"),
+                            output2.0.name(),
+                            output2.0.instance(),
+                            output2.0.out_name_by_idx(output2.1).unwrap_or("???")),
+                        Box::new(|_| ()));
+                }
+            }
+        },
+        Ok(_) => (),
+    }
+}
+
 pub struct MatrixActionHandler {
-    matrix:   Arc<Mutex<Matrix>>,
-    help_txt: Rc<TextSourceRef>,
+    matrix:       Arc<Mutex<Matrix>>,
+    help_txt:     Rc<TextSourceRef>,
+    dialog_model: Rc<RefCell<DialogModel>>,
 }
 
 impl MatrixActionHandler {
-    pub fn new(help_txt: Rc<TextSourceRef>, matrix: Arc<Mutex<Matrix>>) -> Self {
+    pub fn new(help_txt: Rc<TextSourceRef>, matrix: Arc<Mutex<Matrix>>, dialog_model: Rc<RefCell<DialogModel>>) -> Self {
         Self {
             matrix,
             help_txt,
+            dialog_model,
         }
     }
 }
@@ -46,7 +97,9 @@ impl MenuActionHandler for MatrixActionHandler {
         self.help_txt.set(txt);
     }
 
-    fn assign_cell_port(&mut self, mut cell: Cell, cell_dir: CellDir, idx: Option<usize>) -> Result<(), MatrixError> {
+    fn assign_cell_port(
+        &mut self, mut cell: Cell, cell_dir: CellDir, idx: Option<usize>)
+    {
         let mut m = self.matrix.lock().unwrap();
 
         if let Some(idx) = idx {
@@ -56,25 +109,33 @@ impl MenuActionHandler for MatrixActionHandler {
         }
         let pos = cell.pos();
 
-        m.change_matrix(|matrix| {
-            matrix.place(pos.0, pos.1, cell);
-        })?;
+        handle_matrix_change(&self.dialog_model, || {
+            m.change_matrix(|matrix| {
+                matrix.place(pos.0, pos.1, cell);
+            })?;
 
-        m.sync()
+            m.sync()?;
+            Ok(())
+        });
     }
 
-    fn assign_cell_new_node(&mut self, mut cell: Cell, node_id: NodeId) -> Result<(), MatrixError> {
+    fn assign_cell_new_node(
+        &mut self, mut cell: Cell, node_id: NodeId)
+    {
         let mut m = self.matrix.lock().unwrap();
 
         let node_id = m.get_unused_instance_node_id(node_id);
         cell.set_node_id(node_id);
         let pos = cell.pos();
 
-        m.change_matrix(|matrix| {
-            matrix.place(pos.0, pos.1, cell);
-        })?;
+        handle_matrix_change(&self.dialog_model, || {
+            m.change_matrix(|matrix| {
+                matrix.place(pos.0, pos.1, cell);
+            })?;
 
-        m.sync()
+            m.sync()?;
+            Ok(())
+        });
     }
 }
 
@@ -83,13 +144,18 @@ pub struct MatrixUIMenu {
 }
 
 impl MatrixUIMenu {
-    pub fn new(matrix: Arc<Mutex<Matrix>>, help_txt: Rc<TextSourceRef>) -> Self {
+    pub fn new(matrix: Arc<Mutex<Matrix>>,
+               dialog_model: Rc<RefCell<DialogModel>>,
+               help_txt: Rc<TextSourceRef>)
+        -> Self
+    {
         Self {
             menu: Rc::new(RefCell::new(
                 Menu::new(
                     Box::new(MatrixActionHandler::new(
                         help_txt,
-                        matrix.clone()))))),
+                        matrix,
+                        dialog_model))))),
         }
     }
 
@@ -458,7 +524,8 @@ impl NodeMatrixData {
         let editor = MatrixEditorRef::new();
 
         let menu_model =
-            Rc::new(MatrixUIMenu::new(matrix.clone(), txtsrc.clone()));
+            Rc::new(MatrixUIMenu::new(
+                matrix.clone(), dialog_model.clone(), txtsrc.clone()));
 
         let matrix_model = Rc::new(MatrixUIModel {
             matrix:         matrix.clone(),
@@ -620,56 +687,35 @@ impl WidgetType for NodeMatrix {
                                         src_cell.with_pos_of(dst_cell));
                                 }
 
-                                match button {
-                                    MButton::Left => {
-                                        match m.change_matrix(|m| {
+                                handle_matrix_change(
+                                    &data.matrix_model.dialog_model, ||
+                                {
+                                    match button {
+                                        MButton::Left => {
+                                            m.change_matrix(|m| {
                                                 m.place(dst.0, dst.1, src_cell);
                                                 m.place(src.0, src.1, dst_cell);
-                                            })
-                                        {
-                                            Err(MatrixError::CycleDetected) => {
-                                                data.matrix_model.dialog_model.borrow_mut().open(
-                                                    &format!("Cycle Detected!\n\
-                                                        HexoSynth does not allow to create cyclic configurations.\n\
-                                                        \n\
-                                                        For feedback please use the nodes:\n\
-                                                        * 'FbWr' (Feedback Writer)\n\
-                                                        * 'FbRd' (Feedback Reader)"),
-                                                    Box::new(|_| ()));
-                                            },
-                                            Err(MatrixError::DuplicatedInput { output1, output2 }) => {
-                                                data.matrix_model.dialog_model.borrow_mut().open(
-                                                    &format!("Unjoined Outputs Detected!\n\
-                                                        It's not possible to assign to an input port twice.\n\
-                                                        Please use a mixer or some other kind of node to join the outputs.\n\
-                                                        \n\
-                                                        Conflicting Outputs:\n\
-                                                        * {} {}, port {}\n\
-                                                        * {} {}, port {}",
-                                                        output1.0.name(),
-                                                        output1.0.instance(),
-                                                        output1.0.out_name_by_idx(output1.1).unwrap_or("???"),
-                                                        output2.0.name(),
-                                                        output2.0.instance(),
-                                                        output2.0.out_name_by_idx(output2.1).unwrap_or("???")),
-                                                    Box::new(|_| ()));
-                                            },
-                                            Ok(_) => {
-                                                let _ = m.sync();
-                                            }
-                                        };
-                                    },
-                                    MButton::Right => {
-                                        m.place(dst.0, dst.1, src_cell);
-                                        m.sync();
-                                    },
-                                    MButton::Middle => {
-                                        let unused_id = m.get_unused_instance_node_id(src_cell.node_id());
-                                        src_cell.set_node_id(unused_id);
-                                        m.place(dst.0, dst.1, src_cell);
-                                        m.sync();
-                                    },
-                                }
+                                            })?;
+                                           m.sync()?;
+                                        },
+                                        MButton::Right => {
+                                            m.change_matrix(|m| {
+                                                m.place(dst.0, dst.1, src_cell);
+                                            })?;
+                                            m.sync()?;
+                                        },
+                                        MButton::Middle => {
+                                            let unused_id = m.get_unused_instance_node_id(src_cell.node_id());
+                                            src_cell.set_node_id(unused_id);
+                                            m.change_matrix(|m| {
+                                                m.place(dst.0, dst.1, src_cell);
+                                            })?;
+                                            m.sync()?;
+                                        },
+                                    }
+
+                                    Ok(())
+                                });
                             }
                         }
                     }

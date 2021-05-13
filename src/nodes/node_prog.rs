@@ -144,7 +144,7 @@ impl NodeProg {
 
     pub fn append_edge(
         &mut self,
-        mut node_op: NodeOp,
+        node_op: NodeOp,
         inp_index: usize,
         out_index: usize)
     {

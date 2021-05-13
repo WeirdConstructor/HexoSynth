@@ -151,6 +151,13 @@ pub enum MatrixDeserError {
     Deserialization(String),
     IO(String),
     InvalidAtom(String),
+    MatrixError(crate::matrix::MatrixError),
+}
+
+impl From<crate::matrix::MatrixError> for MatrixDeserError {
+    fn from(err: crate::matrix::MatrixError) -> Self {
+        MatrixDeserError::MatrixError(err)
+    }
 }
 
 impl From<serde_json::Error> for MatrixDeserError {
@@ -403,7 +410,7 @@ pub fn load_patch_from_file(matrix: &mut crate::matrix::Matrix, filepath: &str)
     -> Result<(), MatrixDeserError>
 {
     let mr = MatrixRepr::read_from_file(filepath)?;
-    matrix.from_repr(&mr);
+    matrix.from_repr(&mr)?;
     Ok(())
 }
 
