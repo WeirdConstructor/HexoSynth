@@ -234,6 +234,10 @@ use std::cell::RefCell;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum MatrixError {
     CycleDetected,
+    DuplicatedInput {
+        output1: (NodeId, u8),
+        output2: (NodeId, u8),
+    },
 }
 
 /// An intermediate data structure to store a single edge in the [Matrix].
@@ -836,6 +840,20 @@ impl Matrix {
     pub fn check(&mut self) -> Result<(), MatrixError> {
         self.update_graph_ordering_and_edges();
 
+        let mut edge_map = std::collections::HashMap::new();
+        for edge in self.edges.iter() {
+            if let Some((out1_node_id, out1_idx)) = edge_map.get(&(edge.to, edge.to_input)) {
+                return Err(MatrixError::DuplicatedInput {
+                    output1: (*out1_node_id, *out1_idx),
+                    output2: (edge.from, edge.from_out),
+                });
+            } else {
+                edge_map.insert(
+                    (edge.to, edge.to_input),
+                    (edge.from, edge.from_out));
+            }
+        }
+
         let mut ordered_nodes = vec![];
         if !self.graph_ordering.calculate_order(&mut ordered_nodes) {
             return Err(MatrixError::CycleDetected);
@@ -994,5 +1012,61 @@ mod tests {
         assert_eq!(prog.prog.len(), 2);
         assert_eq!(prog.prog[0].to_string(), "Op(i=2 out=(2-3) in=(2-3) at=(0-0))");
         assert_eq!(prog.prog[1].to_string(), "Op(i=3 out=(3-3) in=(3-5) at=(0-1) cpy=(o2 => i3))");
+    }
+
+    #[test]
+    fn check_matrix_check_cycle() {
+        use crate::nodes::new_node_engine;
+
+        let (node_conf, mut node_exec) = new_node_engine();
+        let mut matrix = Matrix::new(node_conf, 3, 3);
+
+        matrix.save_matrix();
+        matrix.place(0, 1,
+            Cell::empty(NodeId::Sin(1))
+            .input(Some(0), None, None));
+        matrix.place(0, 0,
+            Cell::empty(NodeId::Sin(1))
+            .out(None, None, Some(0)));
+        let error =
+            if let Err(_) = matrix.check() {
+               matrix.restore_matrix();
+               true
+            } else {
+               matrix.sync().unwrap();
+               false
+            };
+
+        // In this examples case there is an error, as we created
+        // a cycle:
+        assert!(error);
+    }
+
+    #[test]
+    fn check_matrix_check_duplicate_input() {
+        use crate::nodes::new_node_engine;
+
+        let (node_conf, mut node_exec) = new_node_engine();
+        let mut matrix = Matrix::new(node_conf, 5, 5);
+
+        matrix.save_matrix();
+        matrix.place(0, 1,
+            Cell::empty(NodeId::Sin(0))
+            .input(Some(0), None, None));
+        matrix.place(0, 0,
+            Cell::empty(NodeId::Sin(1))
+            .out(None, None, Some(0)));
+
+        matrix.place(0, 3,
+            Cell::empty(NodeId::Sin(0))
+            .input(Some(0), None, None));
+        matrix.place(0, 2,
+            Cell::empty(NodeId::Sin(2))
+            .out(None, None, Some(0)));
+
+        assert_eq!(matrix.check(), Err(MatrixError::DuplicatedInput {
+            output1: (NodeId::Sin(1), 0),
+            output2: (NodeId::Sin(2), 0),
+        }));
     }
 }

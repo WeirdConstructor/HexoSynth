@@ -282,6 +282,7 @@ use dsp::ParamId;
 
 pub struct HexoSynthUIParams {
     params:         HashMap<AtomId, (ParamId, Atom)>,
+    variables:      HashMap<AtomId, (ParamId, Atom)>,
     matrix:         Arc<Mutex<Matrix>>,
     /// Generation counter, to check for matrix updates.
     matrix_gen:     RefCell<usize>,
@@ -290,13 +291,12 @@ pub struct HexoSynthUIParams {
 
 impl HexoSynthUIParams {
     pub fn new(matrix: Arc<Mutex<Matrix>>, dialog_model: Rc<RefCell<DialogModel>>) -> Self {
-        let params = HashMap::new();
-
         let matrix_gen = matrix.lock().unwrap().get_generation();
 
         let mut hsup =
             HexoSynthUIParams {
-                params,
+                params:     HashMap::new(),
+                variables:  HashMap::new(),
                 matrix_gen: RefCell::new(matrix_gen),
                 dialog_model,
                 matrix
@@ -335,19 +335,29 @@ impl HexoSynthUIParams {
     }
 
     pub fn get_param(&self, id: AtomId) -> Option<&(ParamId, Atom)> {
-        self.params.get(&id)
+        if id.node_id() > PARAM_VARIABLES_SPACE {
+            self.variables.get(&id)
+        } else {
+            self.params.get(&id)
+        }
     }
 
     pub fn set_param(&mut self, id: AtomId, atom: Atom) {
-        let pid =
-            if let Some((pid, _)) = self.params.get(&id) {
-                *pid
-            } else {
-                return;
-            };
+        if id.node_id() > PARAM_VARIABLES_SPACE {
+            println!("SET PARAM {:?} = {:?}", id, atom);
+            self.variables.insert(id, (ParamId::none(), atom.clone()));
 
-        self.params.insert(id, (pid, atom.clone()));
-        self.matrix.lock().unwrap().set_param(pid, atom.into());
+        } else {
+            let pid =
+                if let Some((pid, _)) = self.params.get(&id) {
+                    *pid
+                } else {
+                    return;
+                };
+
+            self.params.insert(id, (pid, atom.clone()));
+            self.matrix.lock().unwrap().set_param(pid, atom.into());
+        }
     }
 }
 
@@ -481,11 +491,14 @@ impl AtomDataModel for HexoSynthUIParams {
     }
 }
 
-pub const NODE_MATRIX_ID  : u32   = 9999;
-pub const NODE_PANEL_ID   : u32   = 9998;
-pub const UTIL_PANEL_ID   : usize = 9997;
-pub const PATTERN_PANEL_ID: usize = 9996;
-pub const PATTERN_VIEW_ID : usize = 9995;
+pub const PARAM_VARIABLES_SPACE    : u32   = 1000;
+pub const NODE_MATRIX_ID           : u32   = 9999;
+pub const NODE_PANEL_ID            : u32   = 9998;
+pub const UTIL_PANEL_ID            : usize = 9997;
+pub const PATTERN_PANEL_ID         : usize = 9996;
+pub const PATTERN_VIEW_ID          : usize = 9995;
+pub const DIALOG_ID                : u32   = 90001;
+pub const DIALOG_OK_ID             : u32   = 99;
 
 impl PluginUI for HexoSynth {
     type Handle = u32;
@@ -512,7 +525,8 @@ impl PluginUI for HexoSynth {
                     NODE_MATRIX_ID)),
                 Box::new(wbox!(
                     wt_diag, 90000.into(), center(12, 12),
-                    DialogData::new(90001, 45.into(), dialog_model.clone()))),
+                    DialogData::new(
+                        DIALOG_ID, AtomId::new(DIALOG_ID, DIALOG_OK_ID), dialog_model.clone()))),
                 Box::new(HexoSynthUIParams::new(matrix, dialog_model.clone())),
                 (1400 as f64, 700 as f64),
             ))

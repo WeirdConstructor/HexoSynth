@@ -622,9 +622,42 @@ impl WidgetType for NodeMatrix {
 
                                 match button {
                                     MButton::Left => {
-                                        m.place(dst.0, dst.1, src_cell);
-                                        m.place(src.0, src.1, dst_cell);
-                                        m.sync();
+                                        match m.change_matrix(|m| {
+                                                m.place(dst.0, dst.1, src_cell);
+                                                m.place(src.0, src.1, dst_cell);
+                                            })
+                                        {
+                                            Err(MatrixError::CycleDetected) => {
+                                                data.matrix_model.dialog_model.borrow_mut().open(
+                                                    &format!("Cycle Detected!\n\
+                                                        HexoSynth does not allow to create cyclic configurations.\n\
+                                                        \n\
+                                                        For feedback please use the nodes:\n\
+                                                        * 'FbWr' (Feedback Writer)\n\
+                                                        * 'FbRd' (Feedback Reader)"),
+                                                    Box::new(|_| ()));
+                                            },
+                                            Err(MatrixError::DuplicatedInput { output1, output2 }) => {
+                                                data.matrix_model.dialog_model.borrow_mut().open(
+                                                    &format!("Unjoined Outputs Detected!\n\
+                                                        It's not possible to assign to an input port twice.\n\
+                                                        Please use a mixer or some other kind of node to join the outputs.\n\
+                                                        \n\
+                                                        Conflicting Outputs:\n\
+                                                        * {} {}, port {}\n\
+                                                        * {} {}, port {}",
+                                                        output1.0.name(),
+                                                        output1.0.instance(),
+                                                        output1.0.out_name_by_idx(output1.1).unwrap_or("???"),
+                                                        output2.0.name(),
+                                                        output2.0.instance(),
+                                                        output2.0.out_name_by_idx(output2.1).unwrap_or("???")),
+                                                    Box::new(|_| ()));
+                                            },
+                                            Ok(_) => {
+                                                let _ = m.sync();
+                                            }
+                                        };
                                     },
                                     MButton::Right => {
                                         m.place(dst.0, dst.1, src_cell);

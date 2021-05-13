@@ -415,6 +415,14 @@ macro_rules! make_node_info_enum {
         }
 
         impl ParamId {
+            pub fn none() -> Self {
+                Self {
+                    name: "NOP",
+                    node: NodeId::Nop,
+                    idx: 0,
+                }
+            }
+
             pub fn node_id(&self) -> NodeId       { self.node }
             pub fn inp(&self)     -> u8           { self.idx }
             pub fn name(&self)    -> &'static str { self.name }
@@ -697,6 +705,18 @@ macro_rules! make_node_info_enum {
                     $(NodeId::$variant(_) => {
                         match name {
                             $(stringify!($para) => Some($in_idx),)*
+                            _ => None,
+                        }
+                    }),+
+                }
+            }
+
+            pub fn out_name_by_idx(&self, idx: u8) -> Option<&'static str> {
+                match self {
+                    NodeId::$v1           => None,
+                    $(NodeId::$variant(_) => {
+                        match idx {
+                            $($out_idx => Some(stringify!($out)),)*
                             _ => None,
                         }
                     }),+

@@ -258,7 +258,9 @@ fn main() {
                     11)),
                 Box::new(wbox!(
                     wt_diag, 90000.into(), center(12, 12),
-                    DialogData::new(90001, 45.into(), dialog_model.clone()))),
+                    DialogData::new(
+                        DIALOG_ID,
+                        AtomId::new(DIALOG_ID, DIALOG_OK_ID), dialog_model.clone()))),
                 Box::new(HexoSynthUIParams::new(matrix, dialog_model.clone())),
                 (1400 as f64, 700 as f64),
             ))
