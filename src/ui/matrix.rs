@@ -467,10 +467,23 @@ impl HexGridModel for MatrixUIModel {
 
     fn cell_edge<'a>(&self, x: usize, y: usize, edge: HexDir, buf: &'a mut [u8]) -> Option<(&'a str, HexEdge)> {
         let m = self.matrix.lock().unwrap();
+
         if let Some(cell) = m.get(x, y) {
-            if let Some((lbl, is_connected)) = m.edge_label(&cell, edge.into(), buf) {
+            let cell_dir = edge.into();
+
+            if let Some((lbl, is_connected)) = m.edge_label(&cell, cell_dir, buf) {
                 if is_connected {
-                    Some((lbl, HexEdge::ArrowValue { value: -0.5 }))
+                    if let Some(out_idx) = cell.local_port_idx(cell_dir) {
+                        if let Some(val) =
+                            m.out_fb_for(&cell.node_id(), out_idx)
+                        {
+                            Some((lbl, HexEdge::ArrowValue { value: val }))
+                        } else {
+                            Some((lbl, HexEdge::NoArrow))
+                        }
+                    } else {
+                        Some((lbl, HexEdge::NoArrow))
+                    }
                 } else {
                     Some((lbl, HexEdge::NoArrow))
                 }
@@ -605,6 +618,10 @@ impl WidgetType for NodeMatrix {
         data.with(|data: &mut NodeMatrixData| {
 
             data.matrix_model.editor.new_filter_frame();
+
+            if let Ok(mut m) = data.matrix_model.matrix.lock() {
+                m.update_output_feedback();
+            }
 
             let panel_pos = pos.resize(360.0, pos.h);
             let util_pos =

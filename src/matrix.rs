@@ -15,6 +15,8 @@ pub use crate::monitor::MON_SIG_CNT;
 use crate::matrix_repr::*;
 use crate::dsp::tracker::PatternData;
 
+use triple_buffer::Output;
+
 /// This is a cell/tile of the hexagonal [Matrix].
 ///
 /// The [Matrix] stores it to keep track of the graphical representation
@@ -188,6 +190,18 @@ impl Cell {
         }
     }
 
+    pub fn local_port_idx(&self, dir: CellDir) -> Option<u8> {
+        match dir {
+            CellDir::TR => { self.out1 },
+            CellDir::BR => { self.out2 },
+            CellDir::B  => { self.out3 },
+            CellDir::BL => { self.in3 },
+            CellDir::TL => { self.in2 },
+            CellDir::T  => { self.in1 },
+            CellDir::C  => None,
+        }
+    }
+
     pub fn clear_io_dir(&mut self, dir: CellDir) {
         match dir {
             CellDir::TR => { self.out1 = None; },
@@ -283,6 +297,14 @@ pub struct Matrix {
     /// by other components of the application to detect changes in
     /// the matrix to resync their own data.
     gen_counter: usize,
+
+    /// Holds a copy of the most recently updated output port feedback
+    /// values. Update this by calling [Matrix::update_output_feedback].
+    output_feedback_values: Vec<f32>,
+
+    /// Holds the channel to the backend that sends output port feedback.
+    /// This is queried by [Matrix::update_output_feedback].
+    output_feedback_cons: Option<Output<Vec<f32>>>,
 }
 
 unsafe impl Send for Matrix {}
@@ -298,6 +320,8 @@ impl Matrix {
             saved_matrix:   None,
             graph_ordering: NodeGraphOrdering::new(),
             edges:          Vec::with_capacity(MAX_ALLOCATED_NODES * 2),
+            output_feedback_values: vec![],
+            output_feedback_cons:   None,
             config,
             w,
             h,
@@ -329,6 +353,8 @@ impl Matrix {
         self.config.get_pattern_data(tracker_id)
     }
 
+    /// Checks if pattern data updates need to be sent to the
+    /// DSP thread.
     pub fn check_pattern_data(&mut self, tracker_id: usize) {
         self.config.check_pattern_data(tracker_id)
     }
@@ -783,6 +809,8 @@ impl Matrix {
 
         let (mut prog, out_feedback) = self.config.rebuild_node_ports();
 
+        self.output_feedback_cons = Some(out_feedback);
+
         for node_id in ordered_nodes.iter() {
             self.config.add_prog_node(&mut prog, node_id);
         }
@@ -890,6 +918,31 @@ impl Matrix {
         self.remonitor_cell();
 
         Ok(())
+    }
+
+    pub fn out_fb_for(&self, node_id: &NodeId, out: u8) -> Option<f32> {
+        if let Some((_, Some(node_instance))) = self.config.node_by_id(node_id) {
+            self.output_feedback_values.get(
+                node_instance.out_local2global(out)?).copied()
+        } else {
+            None
+        }
+    }
+
+    /// Checks if the backend has new output feedback values.
+    /// Call this function for each frame of the UI to get the most
+    /// up to date output feedback values that are available.
+    ///
+    /// Retrieve the output value by calling [Matrix::out_fb_for].
+    pub fn update_output_feedback(&mut self) {
+        if let Some(out_fb_output) = &mut self.output_feedback_cons {
+            out_fb_output.update();
+            let out_vec = out_fb_output.output_buffer();
+
+            self.output_feedback_values.clear();
+            self.output_feedback_values.resize(out_vec.len(), 0.0);
+            self.output_feedback_values.copy_from_slice(&out_vec[..]);
+        }
     }
 }
 
