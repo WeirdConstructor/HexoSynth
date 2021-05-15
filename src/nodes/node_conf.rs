@@ -392,7 +392,6 @@ impl NodeConfigurator {
     {
         let mut bufs = [UNUSED_MONITOR_IDX; MON_SIG_CNT];
 
-
         if let Some((_node_info, node_instance)) = self.node_by_id(node_id) {
             if let Some(node_instance) = node_instance {
 
@@ -412,7 +411,7 @@ impl NodeConfigurator {
                 for out_idx in outputs.iter().take(MON_SIG_CNT / 2) {
                     if let Some(out_idx) = out_idx {
                         if let Some(global_idx)
-                            = node_instance.in_local2global(*out_idx)
+                            = node_instance.out_local2global(*out_idx)
                         {
                             bufs[i] = global_idx;
                         }

@@ -440,6 +440,40 @@ fn check_matrix_monitor() {
 }
 
 #[test]
+fn check_matrix_monitor_bug_1() {
+    let (node_conf, mut node_exec) = new_node_engine();
+    let mut matrix = Matrix::new(node_conf, 3, 3);
+
+    let sin = NodeId::Sin(0);
+    let amp = NodeId::Amp(1);
+    matrix.place(0, 0, Cell::empty(sin)
+                       .out(None, sin.out("sig"), None));
+    matrix.place(1, 0, Cell::empty(amp)
+                       .out(None, None, amp.out("sig"))
+                       .input(None, amp.inp("inp"), None));
+    matrix.sync().unwrap();
+
+    matrix.monitor_cell(*matrix.get(1, 0).unwrap());
+
+    let (_out_l, _out_r) =
+        run_realtime_no_input(&mut node_exec, 0.2, true);
+
+    std::thread::sleep(std::time::Duration::from_millis(100));
+
+    for i in [0, 2, 3, 4].iter() {
+        let sl = matrix.get_minmax_monitor_samples(*i);
+        assert_eq!((sl[sl.len() - 1].0  * 10000.0) as i64, 0);
+        assert_eq!((sl[sl.len() - 1].1  * 10000.0) as i64, 0);
+    }
+
+    for i in [1, 5].iter() {
+        let sl = matrix.get_minmax_monitor_samples(*i);
+        assert_eq!((sl[sl.len() - 1].0  * 10000.0) as i64, -9999);
+        assert_eq!((sl[sl.len() - 1].1  * 10000.0) as i64, 9999);
+    }
+}
+
+#[test]
 fn check_matrix_out_config_bug1() {
     let (node_conf, mut node_exec) = new_node_engine();
     let mut matrix = Matrix::new(node_conf, 7, 7);
