@@ -77,6 +77,9 @@ pub struct NodeProg {
     /// Holds the input end of a triple buffer that is used
     /// to publish the most recent output values to the frontend.
     pub out_feedback: Input<Vec<f32>>,
+
+    /// Temporary hold for the producer for the `out_feedback`:
+    pub out_fb_cons: Option<Output<Vec<f32>>>,
 }
 
 impl Drop for NodeProg {
@@ -96,7 +99,7 @@ impl NodeProg {
     pub fn empty() -> Self {
         let out_fb = vec![];
         let tb = TripleBuffer::new(out_fb);
-        let (input_fb, _output_fb) = tb.split();
+        let (input_fb, output_fb) = tb.split();
         Self {
             out:     vec![],
             inp:     vec![],
@@ -104,12 +107,13 @@ impl NodeProg {
             params:  vec![],
             atoms:   vec![],
             prog:    vec![],
-            out_feedback: input_fb,
+            out_feedback:   input_fb,
+            out_fb_cons:    Some(output_fb),
             locked_buffers: false,
         }
     }
 
-    pub fn new(out_len: usize, inp_len: usize, at_len: usize) -> (Self, Output<Vec<f32>>) {
+    pub fn new(out_len: usize, inp_len: usize, at_len: usize) -> Self {
         let mut out = vec![];
         out.resize_with(out_len, || ProcBuf::new());
 
@@ -127,7 +131,7 @@ impl NodeProg {
         let mut atoms = vec![];
         atoms.resize(at_len, SAtom::setting(0));
 
-        (Self {
+        Self {
             out,
             inp,
             cur_inp,
@@ -135,8 +139,13 @@ impl NodeProg {
             atoms,
             prog:           vec![],
             out_feedback:   input_fb,
+            out_fb_cons:    Some(output_fb),
             locked_buffers: false,
-        }, output_fb)
+        }
+    }
+
+    pub fn take_feedback_consumer(&mut self) -> Option<Output<Vec<f32>>> {
+        self.out_fb_cons.take()
     }
 
     pub fn params_mut(&mut self) -> &mut [f32] {

@@ -393,6 +393,10 @@ macro_rules! make_node_info_enum {
         /// * [NodeId::param_by_idx]
         /// * [NodeId::inp_param]
         ///
+        /// To obtain an input and output index for a port use:
+        /// * [Nodeid::inp]
+        /// * [Nodeid::out]
+        ///
         ///```
         /// use hexosynth::*;
         /// let freq_param = NodeId::Sin(2).inp_param("freq").unwrap();

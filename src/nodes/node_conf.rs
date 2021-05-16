@@ -5,6 +5,7 @@
 use super::{
     GraphMessage, QuickMessage,
     NodeProg, NodeOp,
+    FeedbackFilter,
     MAX_ALLOCATED_NODES,
     MAX_AVAIL_TRACKERS,
     UNUSED_MONITOR_IDX
@@ -118,8 +119,6 @@ struct NodeInputAtom {
     value:      SAtom,
 }
 
-
-
 /// This struct holds the frontend node configuration.
 ///
 /// It stores which nodes are allocated and where.
@@ -137,8 +136,11 @@ pub struct NodeConfigurator {
     pub(crate) node2idx:           HashMap<NodeId, usize>,
     /// Holding the tracker sequencers
     pub(crate) trackers:           Vec<Tracker>,
-    /// The shared parts of the [NodeConfigurator] and the [crate::nodes::NodeExecutor].
+    /// The shared parts of the [NodeConfigurator]
+    /// and the [crate::nodes::NodeExecutor].
     pub(crate) shared:             SharedNodeConf,
+
+    feedback_filter:               FeedbackFilter,
 
     /// Contains (automateable) parameters
     params:         std::collections::HashMap<ParamId, NodeInputParam>,
@@ -148,6 +150,14 @@ pub struct NodeConfigurator {
     atoms:          std::collections::HashMap<ParamId, NodeInputAtom>,
     /// Stores the most recently set atoms
     atom_values:    std::collections::HashMap<ParamId, SAtom>,
+
+    /// Holds a copy of the most recently updated output port feedback
+    /// values. Update this by calling [NodeConfigurator::update_output_feedback].
+    output_fb_values: Vec<f32>,
+
+    /// Holds the channel to the backend that sends output port feedback.
+    /// This is queried by [NodeConfigurator::update_output_feedback].
+    output_fb_cons:   Option<Output<Vec<f32>>>,
 }
 
 pub(crate) struct SharedNodeConf {
@@ -216,12 +226,15 @@ impl NodeConfigurator {
         (NodeConfigurator {
             nodes,
             shared,
-            params:         std::collections::HashMap::new(),
-            param_values:   std::collections::HashMap::new(),
-            atoms:          std::collections::HashMap::new(),
-            atom_values:    std::collections::HashMap::new(),
-            node2idx:       HashMap::new(),
-            trackers:       vec![Tracker::new(); MAX_AVAIL_TRACKERS],
+            feedback_filter:    FeedbackFilter::new(),
+            output_fb_values:   vec![],
+            output_fb_cons:     None,
+            params:             std::collections::HashMap::new(),
+            param_values:       std::collections::HashMap::new(),
+            atoms:              std::collections::HashMap::new(),
+            atom_values:        std::collections::HashMap::new(),
+            node2idx:           HashMap::new(),
+            trackers:           vec![Tracker::new(); MAX_AVAIL_TRACKERS],
         }, shared_exec)
     }
 // FIXME: We can't drop nodes at runtime!
@@ -381,6 +394,74 @@ impl NodeConfigurator {
         } else {
             0.0
         }
+    }
+
+    /// Triggers recalculation of the filtered values from the
+    /// current LED values and output feedback.
+    /// See also [NodeConfigurator::filtered_led_for] 
+    /// and [NodeConfigurator::filtered_out_fb_for].
+    pub fn update_filters(&mut self) {
+        self.feedback_filter.trigger_recalc();
+    }
+
+    /// Returns a filtered LED value that is smoothed a bit
+    /// and provides a min and max value.
+    ///
+    /// Make sure to call [NodeConfigurator::update_filters]
+    /// before calling this function, or the values won't be up to date.
+    ///
+    ///```
+    /// use hexosynth::*;
+    ///
+    /// let (mut node_conf, mut node_exec) = new_node_engine();
+    ///
+    /// node_conf.create_node(NodeId::Sin(0));
+    /// node_conf.create_node(NodeId::Amp(0));
+    ///
+    /// let mut prog = node_conf.rebuild_node_ports();
+    ///
+    /// node_conf.add_prog_node(&mut prog, &NodeId::Sin(0));
+    /// node_conf.add_prog_node(&mut prog, &NodeId::Amp(0));
+    ///
+    /// node_conf.set_prog_node_exec_connection(
+    ///     &mut prog,
+    ///     (NodeId::Amp(0), NodeId::Amp(0).inp("inp").unwrap()),
+    ///     (NodeId::Sin(0), NodeId::Sin(0).out("sig").unwrap()));
+    ///
+    /// node_conf.upload_prog(prog, true);
+    ///
+    /// node_exec.test_run(0.1, false);
+    /// assert!((node_conf.led_value_for(&NodeId::Sin(0)) - (-0.062522)).abs() < 0.001);
+    /// assert!((node_conf.led_value_for(&NodeId::Amp(0)) - (-0.062522)).abs() < 0.001);
+    ///
+    /// for _ in 0..10 {
+    ///     node_exec.test_run(0.1, false);
+    ///     node_conf.update_filters();
+    ///     node_conf.filtered_led_for(&NodeId::Sin(0));
+    ///     node_conf.filtered_led_for(&NodeId::Amp(0));
+    /// }
+    ///
+    /// assert_eq!((node_conf.filtered_led_for(&NodeId::Sin(0)).0 * 1000.0).floor() as i64, 62);
+    /// assert_eq!((node_conf.filtered_led_for(&NodeId::Amp(0)).0 * 1000.0).floor() as i64, 62);
+    ///```
+    pub fn filtered_led_for(&mut self, ni: &NodeId) -> (f32, f32) {
+        let led_value = self.led_value_for(ni);
+        self.feedback_filter.get_led(ni, led_value)
+    }
+
+    /// Returns a filtered output port value that is smoothed
+    /// a bit and provides a min and max value.
+    ///
+    /// Make sure to call [NodeConfigurator::update_filters]
+    /// before calling this function, or the values won't be up to date.
+    ///
+    /// For an example on how to use see [NodeConfigurator::filtered_led_for]
+    /// which has the same semantics as this function.
+    pub fn filtered_out_fb_for(&mut self, node_id: &NodeId, out: u8)
+        -> (f32, f32)
+    {
+        let out_value = self.out_fb_for(node_id, out).unwrap_or(0.0);
+        self.feedback_filter.get_out(node_id, out, out_value)
     }
 
     /// Monitor the given inputs and outputs of a specific node.
@@ -549,7 +630,7 @@ impl NodeConfigurator {
     /// inputs, outputs and atoms.
     ///
     /// Execute this after a [NodeConfigurator::create_node].
-    pub fn rebuild_node_ports(&mut self) -> (NodeProg, Output<Vec<f32>>) {
+    pub fn rebuild_node_ports(&mut self) -> NodeProg {
         // Regenerating the params and atoms in the next step:
         self.params.clear();
         self.atoms.clear();
@@ -695,8 +776,9 @@ impl NodeConfigurator {
 
     /// Uploads a new NodeProg instance.
     ///
-    /// Take care to call [NodeConfigurator::rebuild_node_ports] before calling this
-    /// function with a new [NodeProg].
+    /// Create a new NodeProg instance with [NodeConfigurator::rebuild_node_ports]
+    /// for each call to this function. Otherwise things like the
+    /// [NodeConfigurator::out_fb_for] might not work properly!
     ///
     /// The `copy_old_out` parameter should be set if there are only
     /// new nodes appended to the end of the node instances.
@@ -704,6 +786,30 @@ impl NodeConfigurator {
     ///
     /// It must not be set when a completely new set of node instances
     /// was created, for instance when a completely new patch was loaded.
+    ///
+    /// Here is an example on how to use the [NodeConfigurator]
+    /// directly to setup and upload a [NodeProg]:
+    ///
+    ///```
+    /// use hexosynth::*;
+    ///
+    /// let (mut node_conf, mut node_exec) = new_node_engine();
+    ///
+    /// node_conf.create_node(NodeId::Sin(0));
+    /// node_conf.create_node(NodeId::Amp(0));
+    ///
+    /// let mut prog = node_conf.rebuild_node_ports();
+    ///
+    /// node_conf.add_prog_node(&mut prog, &NodeId::Sin(0));
+    /// node_conf.add_prog_node(&mut prog, &NodeId::Amp(0));
+    ///
+    /// node_conf.set_prog_node_exec_connection(
+    ///     &mut prog,
+    ///     (NodeId::Amp(0), NodeId::Amp(0).inp("inp").unwrap()),
+    ///     (NodeId::Sin(0), NodeId::Sin(0).out("sig").unwrap()));
+    ///
+    /// node_conf.upload_prog(prog, true);
+    ///```
     pub fn upload_prog(&mut self, mut prog: NodeProg, copy_old_out: bool) {
         // Copy the parameter values and atom data into the program:
         // They are extracted by process_graph_updates() later to
@@ -717,13 +823,46 @@ impl NodeConfigurator {
             prog.atoms_mut()[param.at_idx] = param.value.clone();
         }
 
+        self.output_fb_cons = prog.take_feedback_consumer();
+
         let _ =
             self.shared.graph_update_prod.push(
                 GraphMessage::NewProg { prog, copy_old_out });
+    }
+
+    /// Retrieves the feedback value for a specific output port of the
+    /// given [NodeId]. You need to call [NodeConfigurator::update_output_feedback]
+    /// before this, or otherwise your output values might be outdated
+    /// or not available at all.
+    ///
+    /// See also [NodeConfigurator::filtered_out_fb_for] for a
+    /// filtered variant suitable for UI usage.
+    pub fn out_fb_for(&self, node_id: &NodeId, out: u8) -> Option<f32> {
+        if let Some((_, Some(node_instance))) = self.node_by_id(node_id) {
+            self.output_fb_values.get(
+                node_instance.out_local2global(out)?).copied()
+        } else {
+            None
+        }
+    }
+
+    /// Checks if the backend has new output feedback values.
+    /// Call this function for each frame of the UI to get the most
+    /// up to date output feedback values that are available.
+    ///
+    /// Retrieve the output value by calling [Matrix::out_fb_for].
+    pub fn update_output_feedback(&mut self) {
+        if let Some(out_fb_output) = &mut self.output_fb_cons {
+            out_fb_output.update();
+            let out_vec = out_fb_output.output_buffer();
+
+            self.output_fb_values.clear();
+            self.output_fb_values.resize(out_vec.len(), 0.0);
+            self.output_fb_values.copy_from_slice(&out_vec[..]);
+        }
     }
 
     pub fn get_minmax_monitor_samples(&mut self, idx: usize) -> &MinMaxMonitorSamples {
         self.shared.monitor.get_minmax_monitor_samples(idx)
     }
 }
-

@@ -38,7 +38,7 @@ use std::cell::RefCell;
 
 pub use nodes::{new_node_engine, NodeConfigurator, NodeExecutor};
 pub use matrix::{Matrix, Cell};
-pub use dsp::NodeId;
+pub use dsp::{NodeId, SAtom};
 
 // END: (HexoDSP)
 

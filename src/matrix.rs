@@ -297,14 +297,6 @@ pub struct Matrix {
     /// by other components of the application to detect changes in
     /// the matrix to resync their own data.
     gen_counter: usize,
-
-    /// Holds a copy of the most recently updated output port feedback
-    /// values. Update this by calling [Matrix::update_output_feedback].
-    output_feedback_values: Vec<f32>,
-
-    /// Holds the channel to the backend that sends output port feedback.
-    /// This is queried by [Matrix::update_output_feedback].
-    output_feedback_cons: Option<Output<Vec<f32>>>,
 }
 
 unsafe impl Send for Matrix {}
@@ -320,8 +312,6 @@ impl Matrix {
             saved_matrix:   None,
             graph_ordering: NodeGraphOrdering::new(),
             edges:          Vec::with_capacity(MAX_ALLOCATED_NODES * 2),
-            output_feedback_values: vec![],
-            output_feedback_cons:   None,
             config,
             w,
             h,
@@ -345,6 +335,18 @@ impl Matrix {
 
     pub fn led_value_for(&self, node_id: &NodeId) -> f32 {
         self.config.led_value_for(node_id)
+    }
+
+    pub fn update_filters(&mut self) {
+        self.config.update_filters();
+    }
+
+    pub fn filtered_led_for(&mut self, ni: &NodeId) -> (f32, f32) {
+        self.config.filtered_led_for(ni)
+    }
+
+    pub fn filtered_out_fb_for(&mut self, ni: &NodeId, out: u8) -> (f32, f32) {
+        self.config.filtered_out_fb_for(ni, out)
     }
 
     pub fn get_pattern_data(&self, tracker_id: usize)
@@ -457,8 +459,46 @@ impl Matrix {
         self.config.for_each_param(f);
     }
 
+    /// Returns the DSP graph generation, which is increased
+    /// after each call to [Matrix::sync].
+    ///
+    /// This can be used by external components to track if they
+    /// should update their knowledge of the nodes in the DSP
+    /// graph. Such as parameter values.
+    ///
+    /// HexoSynth for instance updates the UI parameters
+    /// by tracking this value and calling [Matrix::for_each_atom]
+    /// to retrieve the most current set of parameter values.
+    /// In case new nodes were created and their default
+    /// parameter/atom values were added.
     pub fn get_generation(&self) -> usize { self.gen_counter }
 
+    /// Returns a serializable representation of the matrix.
+    /// This representation contains all parameters,
+    /// created nodes, connections and the tracker's pattern data.
+    ///
+    ///```
+    /// use hexosynth::*;
+    ///
+    /// let (node_conf, mut _node_exec) = new_node_engine();
+    /// let mut matrix = Matrix::new(node_conf, 3, 3);
+    ///
+    /// let sin = NodeId::Sin(2);
+    ///
+    /// matrix.place(0, 0,
+    ///     Cell::empty(sin)
+    ///     .out(None, Some(0), None));
+    ///
+    /// let freq_param = sin.inp_param("freq").unwrap();
+    /// matrix.set_param(freq_param, SAtom::param(-0.1));
+    ///
+    /// let mut serialized = matrix.to_repr().serialize().to_string();
+    ///
+    /// assert!(serialized.find("\"sin\",2,0,0,[-1,-1,-1],[-1,0,-1]").is_some());
+    /// assert!(serialized.find("\"freq\",-0.100").is_some());
+    ///```
+    ///
+    /// See also [MatrixRepr::to_repr].
     pub fn to_repr(&self) -> MatrixRepr {
         let (params, atoms) = self.config.dump_param_values();
 
@@ -486,6 +526,11 @@ impl Matrix {
         }
     }
 
+    /// Loads the matrix from a previously my [Matrix::to_repr]
+    /// generated matrix representation.
+    ///
+    /// This function will call [Matrix::sync] after loading and
+    /// overwriting the current matrix contents.
     pub fn from_repr(&mut self, repr: &MatrixRepr) -> Result<(), MatrixError> {
         self.clear();
 
@@ -807,9 +852,7 @@ impl Matrix {
             return Err(MatrixError::CycleDetected);
         }
 
-        let (mut prog, out_feedback) = self.config.rebuild_node_ports();
-
-        self.output_feedback_cons = Some(out_feedback);
+        let mut prog = self.config.rebuild_node_ports();
 
         for node_id in ordered_nodes.iter() {
             self.config.add_prog_node(&mut prog, node_id);
@@ -920,29 +963,21 @@ impl Matrix {
         Ok(())
     }
 
+    /// Retrieves the output port feedback for a specific output
+    /// of the given [NodeId].
+    ///
+    /// See also [NodeConfigurator::out_fb_for].
     pub fn out_fb_for(&self, node_id: &NodeId, out: u8) -> Option<f32> {
-        if let Some((_, Some(node_instance))) = self.config.node_by_id(node_id) {
-            self.output_feedback_values.get(
-                node_instance.out_local2global(out)?).copied()
-        } else {
-            None
-        }
+        self.config.out_fb_for(node_id, out)
     }
 
-    /// Checks if the backend has new output feedback values.
-    /// Call this function for each frame of the UI to get the most
-    /// up to date output feedback values that are available.
+    /// Updates the output port feedback. Call this every UI frame
+    /// or whenever you want to get the most recent values from
+    /// [Matrix::out_fb_for].
     ///
-    /// Retrieve the output value by calling [Matrix::out_fb_for].
+    /// See also [NodeConfigurator::update_output_feedback].
     pub fn update_output_feedback(&mut self) {
-        if let Some(out_fb_output) = &mut self.output_feedback_cons {
-            out_fb_output.update();
-            let out_vec = out_fb_output.output_buffer();
-
-            self.output_feedback_values.clear();
-            self.output_feedback_values.resize(out_vec.len(), 0.0);
-            self.output_feedback_values.copy_from_slice(&out_vec[..]);
-        }
+        self.config.update_output_feedback();
     }
 }
 

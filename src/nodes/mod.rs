@@ -11,10 +11,15 @@ mod node_exec;
 mod node_conf;
 mod drop_thread;
 mod node_graph_ordering;
+pub mod visual_sampling_filter;
+mod feedback_filter;
+
+pub(crate) use visual_sampling_filter::*;
 
 pub use node_exec::*;
 pub use node_prog::*;
 pub use node_conf::*;
+pub use feedback_filter::*;
 pub use node_graph_ordering::NodeGraphOrdering;
 
 pub use crate::monitor::MinMaxMonitorSamples;

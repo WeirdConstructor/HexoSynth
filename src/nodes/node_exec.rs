@@ -367,4 +367,66 @@ impl NodeExecutor {
         // println!("ta Elapsed: {:?}", ta);
         // println!("tb Elapsed: {:?}", tb);
     }
+
+    /// This is a convenience function used for testing
+    /// the DSP graph output in automated tests for this crate.
+    ///
+    /// The sample rate that is used to run the DSP code is 44100 Hz.
+    ///
+    /// Relying on the behvaiour of this function for production code
+    /// is not it's intended usecase and changes might break your code.
+    ///
+    /// * `seconds`: The number of seconds to run the DSP thread for.
+    /// * `realtime`: If this is set, the function will sleep.
+    ///
+    /// You can use it's source as reference for your own audio
+    /// DSP thread processing function.
+    pub fn test_run(&mut self, seconds: f32, realtime: bool) -> (Vec<f32>, Vec<f32>) {
+        const SAMPLE_RATE : f32 = 44100.0;
+        self.set_sample_rate(SAMPLE_RATE);
+        self.process_graph_updates();
+
+        let mut nframes = (seconds * SAMPLE_RATE) as usize;
+
+        let input        = vec![0.0; nframes];
+        let mut output_l = vec![0.0; nframes];
+        let mut output_r = vec![0.0; nframes];
+
+        for i in 0..nframes {
+            output_l[i] = 0.0;
+            output_r[i] = 0.0;
+        }
+        let mut offs = 0;
+        while nframes > 0 {
+            let cur_nframes =
+                if nframes >= crate::dsp::MAX_BLOCK_SIZE {
+                    crate::dsp::MAX_BLOCK_SIZE
+                } else {
+                    nframes
+                };
+            nframes -= cur_nframes;
+
+            let mut context = crate::Context {
+                nframes: cur_nframes,
+                output:  &mut [&mut output_l[offs..(offs + cur_nframes)],
+                               &mut output_r[offs..(offs + cur_nframes)]],
+                input:   &[&input[offs..(offs + cur_nframes)]],
+            };
+
+            self.process(&mut context);
+
+            if realtime {
+                let micros =
+                    ((crate::dsp::MAX_BLOCK_SIZE as u64) * 1000000)
+                    / (SAMPLE_RATE as u64);
+                std::thread::sleep(
+                    std::time::Duration::from_micros(micros));
+            }
+
+            offs += cur_nframes;
+        }
+
+        (output_l, output_r)
+    }
+
 }
