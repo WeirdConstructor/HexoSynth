@@ -38,49 +38,7 @@ fn run_no_input(node_exec: &mut hexosynth::nodes::NodeExecutor, seconds: f32) ->
 }
 
 fn run_realtime_no_input(node_exec: &mut hexosynth::nodes::NodeExecutor, seconds: f32, sleep_a_bit: bool) -> (Vec<f32>, Vec<f32>) {
-    node_exec.set_sample_rate(SAMPLE_RATE);
-    node_exec.process_graph_updates();
-
-    let mut nframes = (seconds * SAMPLE_RATE) as usize;
-
-    let input        = vec![0.0; nframes];
-    let mut output_l = vec![0.0; nframes];
-    let mut output_r = vec![0.0; nframes];
-
-    for i in 0..nframes {
-        output_l[i] = 0.0;
-        output_r[i] = 0.0;
-    }
-    let mut offs = 0;
-    while nframes > 0 {
-        let cur_nframes =
-            if nframes >= hexosynth::dsp::MAX_BLOCK_SIZE {
-                hexosynth::dsp::MAX_BLOCK_SIZE
-            } else {
-                nframes
-            };
-        nframes -= cur_nframes;
-
-        let mut context = hexosynth::Context {
-            nframes: cur_nframes,
-            output:  &mut [&mut output_l[offs..(offs + cur_nframes)],
-                           &mut output_r[offs..(offs + cur_nframes)]],
-            input:   &[&input[offs..(offs + cur_nframes)]],
-        };
-
-        node_exec.process(&mut context);
-
-        if sleep_a_bit {
-            let micros =
-                ((hexosynth::dsp::MAX_BLOCK_SIZE as u64) * 1000000)
-                / (SAMPLE_RATE as u64);
-            std::thread::sleep(std::time::Duration::from_micros(micros));
-        }
-
-        offs += cur_nframes;
-    }
-
-    (output_l, output_r)
+    node_exec.test_run(seconds, sleep_a_bit)
 }
 
 fn calc_rms_mimax_each_ms(buf: &[f32], ms: f32) -> Vec<(f32, f32, f32)> {
