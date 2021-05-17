@@ -1106,7 +1106,44 @@ fn check_matrix_tseq_2col_gate_bug() {
         if *s > 0.0 { any_non_zero = true; }
     }
 
-    println!("FO {:?}", samples);
     assert!(any_non_zero);
-//    assert!(false);
 }
+
+
+#[test]
+fn check_matrix_output_feedback() {
+    let (node_conf, mut node_exec) = new_node_engine();
+    let mut matrix = Matrix::new(node_conf, 3, 3);
+
+    let sin = NodeId::Sin(0);
+    let amp = NodeId::Amp(0);
+    matrix.place(0, 0, Cell::empty(sin)
+                       .out(None, None, sin.out("sig")));
+    matrix.place(0, 1, Cell::empty(amp)
+                       .input(amp.inp("inp"), None, None));
+    matrix.sync().unwrap();
+
+    let gain_p = amp.inp_param("gain").unwrap();
+    matrix.set_param(gain_p, SAtom::param(0.25));
+
+    for _ in 0..10 {
+        node_exec.test_run(0.11, true);
+        matrix.update_filters();
+        matrix.filtered_out_fb_for(&sin, sin.out("sig").unwrap());
+        matrix.filtered_out_fb_for(&amp, amp.out("sig").unwrap());
+    }
+
+    let o_sin = matrix.out_fb_for(&sin, sin.out("sig").unwrap()).unwrap();
+    let o_amp = matrix.out_fb_for(&amp, amp.out("sig").unwrap()).unwrap();
+    let fo_sin = matrix.filtered_out_fb_for(&sin, sin.out("sig").unwrap());
+    let fo_amp = matrix.filtered_out_fb_for(&amp, amp.out("sig").unwrap());
+
+    assert_float_eq!(o_sin, -0.061266);
+    assert_float_eq!(o_amp, -0.007658);
+
+    assert_float_eq!(fo_sin.0, 0.96846);
+    assert_float_eq!(fo_sin.1, 0.9302191);
+    assert_float_eq!(fo_amp.0, 0.12105);
+    assert_float_eq!(fo_amp.1, 0.11627);
+}
+

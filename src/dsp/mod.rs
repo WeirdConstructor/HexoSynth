@@ -394,8 +394,8 @@ macro_rules! make_node_info_enum {
         /// * [NodeId::inp_param]
         ///
         /// To obtain an input and output index for a port use:
-        /// * [Nodeid::inp]
-        /// * [Nodeid::out]
+        /// * [NodeId::inp]
+        /// * [NodeId::out]
         ///
         ///```
         /// use hexosynth::*;

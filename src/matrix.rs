@@ -498,7 +498,7 @@ impl Matrix {
     /// assert!(serialized.find("\"freq\",-0.100").is_some());
     ///```
     ///
-    /// See also [MatrixRepr::to_repr].
+    /// See also [MatrixRepr::serialize].
     pub fn to_repr(&self) -> MatrixRepr {
         let (params, atoms) = self.config.dump_param_values();
 

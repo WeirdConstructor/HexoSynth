@@ -552,7 +552,6 @@ impl WidgetType for NodeMatrix {
 
             if let Ok(mut m) = data.matrix_model.matrix.lock() {
                 m.update_filters();
-                m.update_output_feedback();
             }
 
             let panel_pos = pos.resize(360.0, pos.h);

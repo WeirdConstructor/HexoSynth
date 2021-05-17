@@ -398,9 +398,14 @@ impl NodeConfigurator {
 
     /// Triggers recalculation of the filtered values from the
     /// current LED values and output feedback.
+    ///
+    /// This function internally calls [NodeConfigurator::update_output_feedback]
+    /// for you, so you don't need to call it yourself.
+    ///
     /// See also [NodeConfigurator::filtered_led_for] 
     /// and [NodeConfigurator::filtered_out_fb_for].
     pub fn update_filters(&mut self) {
+        self.update_output_feedback();
         self.feedback_filter.trigger_recalc();
     }
 
@@ -454,6 +459,8 @@ impl NodeConfigurator {
     ///
     /// Make sure to call [NodeConfigurator::update_filters]
     /// before calling this function, or the values won't be up to date.
+    /// That function also calls [NodeConfigurator::update_output_feedback]
+    /// for you conveniently.
     ///
     /// For an example on how to use see [NodeConfigurator::filtered_led_for]
     /// which has the same semantics as this function.
@@ -850,7 +857,7 @@ impl NodeConfigurator {
     /// Call this function for each frame of the UI to get the most
     /// up to date output feedback values that are available.
     ///
-    /// Retrieve the output value by calling [Matrix::out_fb_for].
+    /// Retrieve the output value by calling [NodeConfigurator::out_fb_for].
     pub fn update_output_feedback(&mut self) {
         if let Some(out_fb_output) = &mut self.output_fb_cons {
             out_fb_output.update();
