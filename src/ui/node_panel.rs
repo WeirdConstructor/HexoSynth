@@ -11,6 +11,7 @@ use hexotk::widgets::{
     Button, ButtonData,
     Text, TextSourceRef, TextData,
     Graph, GraphData,
+    List, ListData, ListItems, ListOutput,
 };
 
 use std::rc::Rc;
@@ -60,6 +61,9 @@ pub struct GenericNodeUI {
     wt_btn:        Rc<Button>,
     wt_text:       Rc<Text>,
     wt_graph:      Rc<Graph>,
+    wt_sampl_list: Rc<List>,
+
+    sample_list:   ListItems,
 
     help_txt:      Rc<TextSourceRef>,
 }
@@ -73,6 +77,17 @@ impl GenericNodeUI {
         let wt_btn   = Rc::new(Button::new(50.0, 12.0));
         let wt_text  = Rc::new(Text::new(12.0));
         let wt_graph = Rc::new(Graph::new(240.0, 100.0));
+        let wt_sampl_list = Rc::new(List::new(60.0, 12.0, 4));
+
+        let sample_list = ListItems::new(8);
+        sample_list.push(0, String::from("bd.wav"));
+        sample_list.push(1, String::from("sd.wav"));
+        sample_list.push(2, String::from("hh.wav"));
+        sample_list.push(3, String::from("oh.wav"));
+        sample_list.push(4, String::from("tom1.wav"));
+        sample_list.push(5, String::from("tom2.wav"));
+        sample_list.push(6, String::from("bd808.wav"));
+        sample_list.push(7, String::from("bd909.wav"));
 
         Self {
             dsp_node_id:    NodeId::Nop,
@@ -80,11 +95,13 @@ impl GenericNodeUI {
             info:           None,
             cont:           None,
             help_txt:       Rc::new(TextSourceRef::new(42)),
+            wt_sampl_list,
             wt_knob_01,
             wt_knob_11,
             wt_btn,
             wt_text,
             wt_graph,
+            sample_list,
         }
     }
 
@@ -126,6 +143,14 @@ impl GenericNodeUI {
                     AtomId::new(self.model_node_id, idx as u32),
                     center(pos.0, pos.1),
                     ButtonData::new_toggle(param_name)))
+            },
+            SAtom::AudioSample((filename, _)) => {
+                println!("AUDIO SAMPLE: {}", filename);
+                Some(wbox!(
+                    self.wt_sampl_list.clone(),
+                    AtomId::new(self.model_node_id, idx as u32),
+                    center(pos.0, pos.1),
+                    ListData::new("Sample:", ListOutput::ByAudioSample, self.sample_list.clone())))
             },
             _ => { None },
         }

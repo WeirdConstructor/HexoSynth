@@ -347,6 +347,7 @@ impl AtomDataModel for HexoSynthUIParams {
     }
 
     fn set(&mut self, id: AtomId, v: Atom) {
+        println!("SET: {:?} = {:?}", id, v);
         self.set_param(id, v);
     }
 
