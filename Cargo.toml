@@ -7,6 +7,7 @@ edition     = "2018"
 description = "HexoSynth - A hexagonal modular synthesizer plugin"
 
 [dependencies]
+hexodsp    = { git = "https://github.com/WeirdConstructor/HexoDSP.git" }
 hexotk     = { git = "https://github.com/WeirdConstructor/HexoTK.git" }
 #hexotk     = { path = "../hexotk" }
 raw-window-handle  = "0.3"

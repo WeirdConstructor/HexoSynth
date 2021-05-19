@@ -11,20 +11,7 @@ use core::arch::x86_64::{
     _MM_GET_FLUSH_ZERO_MODE
 };
 
-pub mod nodes;
-#[allow(unused_macros)]
-pub mod dsp;
-pub mod matrix;
-pub mod cell_dir;
-pub mod monitor;
-pub mod matrix_repr;
-
 pub mod ui;
-mod util;
-
-pub use cell_dir::CellDir;
-pub use matrix_repr::load_patch_from_file;
-pub use matrix_repr::save_patch_to_file;
 
 use serde::{Serialize, Deserialize};
 use raw_window_handle::HasRawWindowHandle;
@@ -34,14 +21,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::cell::RefCell;
 
-// START: Public usages for later refactorization to HexoDSP:
-
-pub use nodes::{new_node_engine, NodeConfigurator, NodeExecutor};
-pub use matrix::{Matrix, Cell};
-pub use dsp::{NodeId, SAtom};
-
-// END: (HexoDSP)
-
+use hexodsp::*;
 
 pub use baseplug::{
     ProcessContext,
@@ -50,7 +30,6 @@ pub use baseplug::{
     PluginUI,
     Plugin,
 };
-
 
 baseplug::model! {
     #[derive(Debug, Serialize, Deserialize)]
@@ -157,27 +136,6 @@ impl PluginContext<HexoSynth> for HexoSynthShared {
 }
 
 pub struct HexoSynth {
-}
-
-pub struct Context<'a, 'b, 'c, 'd> {
-    pub nframes:    usize,
-    pub output:     &'a mut [&'b mut [f32]],
-    pub input:      &'c [&'d [f32]],
-}
-
-impl<'a, 'b, 'c, 'd> nodes::NodeAudioContext for Context<'a, 'b, 'c, 'd> {
-    #[inline]
-    fn nframes(&self) -> usize { self.nframes }
-
-    #[inline]
-    fn output(&mut self, channel: usize, frame: usize, v: f32) {
-        self.output[channel][frame] = v;
-    }
-
-    #[inline]
-    fn input(&mut self, channel: usize, frame: usize) -> f32 {
-        self.input[channel][frame]
-    }
 }
 
 impl Plugin for HexoSynth {

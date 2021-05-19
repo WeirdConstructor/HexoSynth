@@ -6,7 +6,7 @@ use hexotk::*;
 //use hexotk::widgets::*;
 use hexosynth::ui::matrix::NodeMatrixData;
 use hexosynth::*;
-use hexosynth::nodes::NodeExecutor;
+use hexodsp::*;
 
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -184,8 +184,8 @@ fn start_backend<F: FnMut()>(shared: Arc<HexoSynthShared>, mut f: F) {
 
         while frames_left > 0 {
             let cur_nframes =
-                if frames_left >= hexosynth::dsp::MAX_BLOCK_SIZE {
-                    hexosynth::dsp::MAX_BLOCK_SIZE
+                if frames_left >= hexodsp::dsp::MAX_BLOCK_SIZE {
+                    hexodsp::dsp::MAX_BLOCK_SIZE
                 } else {
                     frames_left
                 };
