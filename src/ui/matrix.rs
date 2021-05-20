@@ -2,6 +2,13 @@
 // This is a part of HexoSynth. Released under (A)GPLv3 or any later.
 // See README.md and COPYING for details.
 
+use crate::UICtrlRef;
+use crate::matrix::*;
+use crate::dsp::NodeId;
+use crate::ui::menu::{Menu, MenuControl, MenuActionHandler};
+use crate::ui::node_panel::{NodePanel, NodePanelData};
+use crate::ui::util_panel::{UtilPanel, UtilPanelData};
+
 use hexotk::widgets::hexgrid::HexGridModel;
 use hexotk::{MButton, UIPos, AtomId};
 use hexotk::{Rect, WidgetUI, Painter, WidgetData, WidgetType, UIEvent, wbox};
@@ -15,15 +22,8 @@ use hexotk::widgets::{
 
 use std::rc::Rc;
 use std::cell::RefCell;
-
-use crate::matrix::*;
 use std::sync::Arc;
 use std::sync::Mutex;
-
-use crate::dsp::NodeId;
-use crate::ui::menu::{Menu, MenuControl, MenuActionHandler};
-use crate::ui::node_panel::{NodePanel, NodePanelData};
-use crate::ui::util_panel::{UtilPanel, UtilPanelData};
 
 enum DialogMessage {
     MatrixError(MatrixError),
@@ -75,14 +75,16 @@ fn handle_matrix_change<F>(dialog: &Rc<RefCell<DialogModel>>, mut f: F)
 }
 
 pub struct MatrixActionHandler {
+    ui_ctrl:      UICtrlRef,
     matrix:       Arc<Mutex<Matrix>>,
     help_txt:     Rc<TextSourceRef>,
     dialog_model: Rc<RefCell<DialogModel>>,
 }
 
 impl MatrixActionHandler {
-    pub fn new(help_txt: Rc<TextSourceRef>, matrix: Arc<Mutex<Matrix>>, dialog_model: Rc<RefCell<DialogModel>>) -> Self {
+    pub fn new(ui_ctrl: UICtrlRef, help_txt: Rc<TextSourceRef>, matrix: Arc<Mutex<Matrix>>, dialog_model: Rc<RefCell<DialogModel>>) -> Self {
         Self {
+            ui_ctrl,
             matrix,
             help_txt,
             dialog_model,
@@ -142,7 +144,8 @@ pub struct MatrixUIMenu {
 }
 
 impl MatrixUIMenu {
-    pub fn new(matrix: Arc<Mutex<Matrix>>,
+    pub fn new(ui_ctrl: UICtrlRef,
+               matrix: Arc<Mutex<Matrix>>,
                dialog_model: Rc<RefCell<DialogModel>>,
                help_txt: Rc<TextSourceRef>)
         -> Self
@@ -151,6 +154,7 @@ impl MatrixUIMenu {
             menu: Rc::new(RefCell::new(
                 Menu::new(
                     Box::new(MatrixActionHandler::new(
+                        ui_ctrl,
                         help_txt,
                         matrix,
                         dialog_model))))),
@@ -311,6 +315,7 @@ impl MatrixEditorRef {
 
 
 pub struct MatrixUIModel {
+    ui_ctrl: UICtrlRef,
     matrix: Arc<Mutex<Matrix>>,
     menu:   Rc<MatrixUIMenu>,
 
@@ -438,6 +443,7 @@ pub struct NodeMatrixData {
     util_panel:   Box<WidgetData>,
 
     matrix_model: Rc<MatrixUIModel>,
+    ui_ctrl:      UICtrlRef,
 
     grid_click_pos: Option<(f64, f64)>,
 }
@@ -452,6 +458,7 @@ const UTIL_PANEL_ID         : u32 = 12;
 
 impl NodeMatrixData {
     pub fn new(
+        ui_ctrl: UICtrlRef,
         matrix: Arc<Mutex<Matrix>>,
         dialog_model: Rc<RefCell<DialogModel>>,
         pos: UIPos,
@@ -471,9 +478,13 @@ impl NodeMatrixData {
 
         let menu_model =
             Rc::new(MatrixUIMenu::new(
-                matrix.clone(), dialog_model.clone(), txtsrc.clone()));
+                ui_ctrl.clone(),
+                matrix.clone(),
+                dialog_model.clone(),
+                txtsrc.clone()));
 
         let matrix_model = Rc::new(MatrixUIModel {
+            ui_ctrl:        ui_ctrl.clone(),
             matrix:         matrix.clone(),
             dialog_model,
             menu:           menu_model.clone(),
@@ -511,6 +522,7 @@ impl NodeMatrixData {
             AtomId::new(node_id, HEX_MATRIX_ID),
             pos,
             Box::new(Self {
+                ui_ctrl: ui_ctrl.clone(),
                 hex_grid: WidgetData::new_tl_box(
                     wt_hexgrid.clone(),
                     AtomId::new(node_id, HEX_GRID_ID),
@@ -523,12 +535,12 @@ impl NodeMatrixData {
                     wt_node_panel,
                     AtomId::new(node_id, NODE_PANEL_ID),
                     center(12, 12),
-                    NodePanelData::new(node_id, matrix.clone(), editor.clone()))),
+                    NodePanelData::new(ui_ctrl.clone(), node_id, matrix.clone(), editor.clone()))),
                 util_panel: Box::new(wbox!(
                     UtilPanel::new_ref(),
                     AtomId::new(node_id, UTIL_PANEL_ID),
                     center(12, 12),
-                    UtilPanelData::new(matrix.clone(), editor))),
+                    UtilPanelData::new(ui_ctrl.clone(), matrix.clone(), editor))),
                 hex_menu_id,
                 matrix_model,
                 grid_click_pos: None,

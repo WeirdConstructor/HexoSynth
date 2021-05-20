@@ -2,6 +2,12 @@
 // This is a part of HexoSynth. Released under (A)GPLv3 or any later.
 // See README.md and COPYING for details.
 
+use crate::UICtrlRef;
+use crate::matrix::{Matrix, Cell};
+use crate::ui::matrix::MatrixEditorRef;
+use crate::dsp::{NodeId, NodeInfo, SAtom, GraphAtomData};
+use crate::ui::monitors::{Monitors, MonitorsData};
+
 use hexotk::{UIPos, AtomId, wbox};
 use hexotk::{Rect, WidgetUI, Painter, WidgetData, WidgetType, UIEvent};
 use hexotk::constants::*;
@@ -18,14 +24,6 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use std::sync::Arc;
 use std::sync::Mutex;
-
-use crate::matrix::{Matrix, Cell};
-
-use crate::ui::matrix::MatrixEditorRef;
-
-use crate::dsp::{NodeId, NodeInfo, SAtom, GraphAtomData};
-
-use crate::ui::monitors::{Monitors, MonitorsData};
 
 const PANEL_HELP_TEXT_ID      : u32 = 1;
 const PANEL_HELP_TEXT_CONT_ID : u32 = 2;
@@ -51,6 +49,8 @@ impl<'a> GraphAtomData for GraphAtomDataAdapter<'a> {
 }
 
 pub struct GenericNodeUI {
+    ui_ctrl:        UICtrlRef,
+
     dsp_node_id:    NodeId,
     model_node_id:  u32,
     info:           Option<NodeInfo>,
@@ -69,7 +69,7 @@ pub struct GenericNodeUI {
 }
 
 impl GenericNodeUI {
-    pub fn new() -> Self {
+    pub fn new(ui_ctrl: UICtrlRef) -> Self {
         let wt_knob_01 =
             Rc::new(Knob::new(25.0, 12.0, 9.0));
         let wt_knob_11 =
@@ -90,6 +90,7 @@ impl GenericNodeUI {
         sample_list.push(7, String::from("bd909.wav"));
 
         Self {
+            ui_ctrl,
             dsp_node_id:    NodeId::Nop,
             model_node_id:  0,
             info:           None,
@@ -221,6 +222,7 @@ impl GenericNodeUI {
 }
 
 pub struct NodePanelData {
+    ui_ctrl: UICtrlRef,
     #[allow(dead_code)]
     matrix: Arc<Mutex<Matrix>>,
 
@@ -234,8 +236,8 @@ pub struct NodePanelData {
 }
 
 impl NodePanelData {
-    pub fn new(node_id: u32, matrix: Arc<Mutex<Matrix>>, editor: MatrixEditorRef) -> Box<dyn std::any::Any> {
-        let node_ui = Rc::new(RefCell::new(GenericNodeUI::new()));
+    pub fn new(ui_ctrl: UICtrlRef, node_id: u32, matrix: Arc<Mutex<Matrix>>, editor: MatrixEditorRef) -> Box<dyn std::any::Any> {
+        let node_ui = Rc::new(RefCell::new(GenericNodeUI::new(ui_ctrl.clone())));
         node_ui.borrow_mut().set_target(NodeId::Sin(0), 1);
 
         let wt_monitors = Rc::new(Monitors::new());
@@ -249,6 +251,7 @@ impl NodePanelData {
                     matrix.clone())));
 
         Box::new(Self {
+            ui_ctrl,
             matrix,
             node_ui,
             editor,

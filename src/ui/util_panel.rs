@@ -1,3 +1,5 @@
+use crate::UICtrlRef;
+
 use hexotk::{UIPos, AtomId};
 use hexotk::{
     Rect, WidgetUI, Painter, WidgetData, WidgetType,
@@ -19,8 +21,9 @@ use std::sync::{Arc, Mutex};
 use std::rc::Rc;
 
 pub struct PatternViewData {
-    matrix: Arc<Mutex<Matrix>>,
-    cont:   WidgetData,
+    ui_ctrl:    UICtrlRef,
+    matrix:     Arc<Mutex<Matrix>>,
+    cont:       WidgetData,
 }
 
 fn create_pattern_edit(id: AtomId, matrix: Arc<Mutex<Matrix>>) -> WidgetData {
@@ -34,12 +37,13 @@ fn create_pattern_edit(id: AtomId, matrix: Arc<Mutex<Matrix>>) -> WidgetData {
 }
 
 impl PatternViewData {
-    pub fn new(id: AtomId, matrix: Arc<Mutex<Matrix>>)
+    pub fn new(ui_ctrl: UICtrlRef, id: AtomId, matrix: Arc<Mutex<Matrix>>)
         -> Box<dyn std::any::Any>
     {
         let cont = create_pattern_edit(id, matrix.clone());
 
         Box::new(Self {
+            ui_ctrl,
             matrix,
             cont,
         })
@@ -54,13 +58,14 @@ impl PatternViewData {
 define_containing_widget!{PatternView, PatternViewData}
 
 pub struct UtilPanelData {
-    matrix: Arc<Mutex<Matrix>>,
-    editor: MatrixEditorRef,
-    cont:   WidgetData,
+    ui_ctrl:    UICtrlRef,
+    matrix:     Arc<Mutex<Matrix>>,
+    editor:     MatrixEditorRef,
+    cont:       WidgetData,
 }
 
 impl UtilPanelData {
-    pub fn new(matrix: Arc<Mutex<Matrix>>, editor: MatrixEditorRef)
+    pub fn new(ui_ctrl: UICtrlRef, matrix: Arc<Mutex<Matrix>>, editor: MatrixEditorRef)
         -> Box<dyn std::any::Any>
     {
         let mut tdata = TabsData::new();
@@ -79,9 +84,10 @@ impl UtilPanelData {
                 PatternView::new_ref(),
                 crate::PATTERN_VIEW_ID.into(),
                 center(12, 12),
-                PatternViewData::new(id, matrix.clone())));
+                PatternViewData::new(ui_ctrl.clone(), id, matrix.clone())));
 
         Box::new(Self {
+            ui_ctrl,
             cont: wbox!(
                 Tabs::new_ref(),
                 crate::UTIL_PANEL_ID.into(),

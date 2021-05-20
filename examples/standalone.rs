@@ -246,12 +246,15 @@ fn main() {
     start_backend(shared.clone(), move || {
         let matrix = shared.matrix.clone();
 
-        open_window("HexoTK Standalone", 1400, 700, None, Box::new(|| {
+        open_window("HexoTK Standalone", 1400, 700, None, Box::new(move || {
             let dialog_model = Rc::new(RefCell::new(DialogModel::new()));
             let wt_diag      = Rc::new(Dialog::new());
 
+            let ui_ctrl = UICtrlRef::new(matrix.clone(), dialog_model.clone());
+
             Box::new(UI::new(
                 Box::new(NodeMatrixData::new(
+                    ui_ctrl.clone(),
                     matrix.clone(),
                     dialog_model.clone(),
                     UIPos::center(12, 12),
@@ -261,7 +264,7 @@ fn main() {
                     DialogData::new(
                         DIALOG_ID,
                         AtomId::new(DIALOG_ID, DIALOG_OK_ID), dialog_model.clone()))),
-                Box::new(HexoSynthUIParams::new(matrix, dialog_model.clone())),
+                Box::new(UIParams::new(ui_ctrl)),
                 (1400 as f64, 700 as f64),
             ))
         }));

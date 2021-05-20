@@ -232,30 +232,68 @@ impl Plugin for HexoSynth {
     }
 }
 
+
+/// This structure holds global information for the UI,
+/// such as a reference to the [Matrix] and other stateful
+/// informaiton.
+///
+/// It also provides helper functions for manipulating
+/// the [Matrix] and other state.
+pub struct UIControl {
+    matrix:         Arc<Mutex<Matrix>>,
+    dialog_model:   Rc<RefCell<DialogModel>>,
+}
+
+#[derive(Clone)]
+pub struct UICtrlRef(Rc<RefCell<UIControl>>);
+
+impl UICtrlRef {
+    pub fn new(matrix: Arc<Mutex<Matrix>>,
+               dialog_model: Rc<RefCell<DialogModel>>)
+        -> UICtrlRef
+    {
+        UICtrlRef(
+            Rc::new(RefCell::new(UIControl {
+                matrix,
+                dialog_model,
+            })))
+    }
+
+//    pub fn lock_matrix(&self) -> std::sync::MutexGuard<'_, Matrix> {
+//        self.0.borrow().matrix.lock().unwrap()
+//    }
+//
+    pub fn with_matrix<F, R>(&self, fun: F) -> R
+        where F: FnOnce(&mut Matrix) -> R
+    {
+        let ctrl = self.0.borrow();
+        let mut lock = ctrl.matrix.lock().unwrap();
+        fun(&mut *lock)
+    }
+}
+
 use hexotk::*;
 use hexotk::widgets::DialogModel;
 use dsp::ParamId;
 
-pub struct HexoSynthUIParams {
+pub struct UIParams {
     params:         HashMap<AtomId, (ParamId, Atom)>,
     variables:      HashMap<AtomId, (ParamId, Atom)>,
-    matrix:         Arc<Mutex<Matrix>>,
     /// Generation counter, to check for matrix updates.
     matrix_gen:     RefCell<usize>,
-    dialog_model:   Rc<RefCell<DialogModel>>,
+    ui_ctrl:        UICtrlRef,
 }
 
-impl HexoSynthUIParams {
-    pub fn new(matrix: Arc<Mutex<Matrix>>, dialog_model: Rc<RefCell<DialogModel>>) -> Self {
-        let matrix_gen = matrix.lock().unwrap().get_generation();
+impl UIParams {
+    pub fn new(ui_ctrl: UICtrlRef) -> Self {
+        let matrix_gen = ui_ctrl.with_matrix(|m| m.get_generation());
 
         let mut hsup =
-            HexoSynthUIParams {
+            UIParams {
+                ui_ctrl,
                 params:     HashMap::new(),
                 variables:  HashMap::new(),
                 matrix_gen: RefCell::new(matrix_gen),
-                dialog_model,
-                matrix
             };
 
         hsup.sync_from_matrix();
@@ -264,28 +302,29 @@ impl HexoSynthUIParams {
     }
 
     pub fn sync_from_matrix(&mut self) {
-        let m = self.matrix.lock().unwrap();
-
         // TODO: this could all lead to speed problems in the UI:
         //       the allocation might cause a (too long?) pause.
         //       if this is too slow, then matrix.sync() is probably also
         //       too slow and we need to do that on an extra thread.
-        //       and all communication in HexoSynthUIParams needs to happen
+        //       and all communication in UIParams needs to happen
         //       through an Arc<Mutex<HashMap<AtomId, ...>>>.
         let mut new_hm = HashMap::new();
 
-        m.for_each_atom(|unique_idx, param_id, satom| {
-            println!(
-                "NODEID: {} => idx={}",
-                param_id.node_id(),
-                unique_idx);
+        *self.matrix_gen.borrow_mut() =
+            self.ui_ctrl.with_matrix(|m| {
+                m.for_each_atom(|unique_idx, param_id, satom| {
+                    println!(
+                        "NODEID: {} => idx={}",
+                        param_id.node_id(),
+                        unique_idx);
 
-            new_hm.insert(
-                AtomId::new(unique_idx as u32, param_id.inp() as u32),
-                (param_id, satom.clone().into()));
-        });
+                    new_hm.insert(
+                        AtomId::new(unique_idx as u32, param_id.inp() as u32),
+                        (param_id, satom.clone().into()));
+                });
 
-        *self.matrix_gen.borrow_mut() = m.get_generation();
+                m.get_generation()
+            });
 
         self.params = new_hm;
     }
@@ -312,26 +351,26 @@ impl HexoSynthUIParams {
                 };
 
             self.params.insert(id, (pid, atom.clone()));
-            self.matrix.lock().unwrap().set_param(pid, atom.into());
+            self.ui_ctrl.with_matrix(move |m| m.set_param(pid, atom.clone().into()));
         }
     }
 }
 
-impl AtomDataModel for HexoSynthUIParams {
+impl AtomDataModel for UIParams {
     fn get_phase_value(&self, id: AtomId) -> Option<f32> {
         let (pid, _atom) = self.get_param(id)?;
-        let m = self.matrix.lock().unwrap();
-        Some(m.phase_value_for(&pid.node_id()))
+        self.ui_ctrl.with_matrix(|m|
+            Some(m.phase_value_for(&pid.node_id())))
     }
 
     fn get_led_value(&self, id: AtomId) -> Option<f32> {
         let (pid, _atom) = self.get_param(id)?;
-        let m = self.matrix.lock().unwrap();
-        Some(m.led_value_for(&pid.node_id()))
+        self.ui_ctrl.with_matrix(|m|
+            Some(m.led_value_for(&pid.node_id())))
     }
 
     fn check_sync(&mut self) {
-        let cur_gen = self.matrix.lock().unwrap().get_generation();
+        let cur_gen = self.ui_ctrl.with_matrix(|m| m.get_generation());
         if *self.matrix_gen.borrow() < cur_gen {
             self.sync_from_matrix();
         }
@@ -474,9 +513,12 @@ impl PluginUI for HexoSynth {
             let dialog_model = Rc::new(RefCell::new(DialogModel::new()));
             let wt_diag      = Rc::new(Dialog::new());
 
+            let ui_ctrl = UICtrlRef::new(matrix.clone(), dialog_model.clone());
+
             Box::new(UI::new(
                 Box::new(NodeMatrixData::new(
-                    matrix.clone(),
+                    ui_ctrl.clone(),
+                    matrix,
                     dialog_model.clone(),
                     UIPos::center(12, 12),
                     NODE_MATRIX_ID)),
@@ -484,7 +526,7 @@ impl PluginUI for HexoSynth {
                     wt_diag, 90000.into(), center(12, 12),
                     DialogData::new(
                         DIALOG_ID, AtomId::new(DIALOG_ID, DIALOG_OK_ID), dialog_model.clone()))),
-                Box::new(HexoSynthUIParams::new(matrix, dialog_model.clone())),
+                Box::new(UIParams::new(ui_ctrl)),
                 (1400 as f64, 700 as f64),
             ))
         }));
