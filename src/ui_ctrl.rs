@@ -41,16 +41,13 @@ impl UICtrlRef {
             })))
     }
 
-//    pub fn lock_matrix(&self) -> std::sync::MutexGuard<'_, Matrix> {
-//        self.0.borrow().matrix.lock().unwrap()
-//    }
-//
     pub fn with_matrix<F, R>(&self, fun: F) -> R
         where F: FnOnce(&mut Matrix) -> R
     {
         let ctrl = self.0.borrow();
-        let mut lock = ctrl.matrix.lock().unwrap();
-        fun(&mut *lock)
+        if let Some(mut lock) = ctrl.matrix.lock() {
+            fun(&mut *lock)
+        }
     }
 
     pub fn assign_cell_port(

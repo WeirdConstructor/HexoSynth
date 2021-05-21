@@ -481,7 +481,6 @@ impl PluginUI for HexoSynth {
             Box::new(UI::new(
                 Box::new(NodeMatrixData::new(
                     ui_ctrl.clone(),
-                    matrix,
                     dialog_model.clone(),
                     UIPos::center(12, 12),
                     NODE_MATRIX_ID)),

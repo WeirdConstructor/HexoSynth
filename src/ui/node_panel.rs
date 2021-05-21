@@ -3,7 +3,7 @@
 // See README.md and COPYING for details.
 
 use crate::UICtrlRef;
-use crate::matrix::{Matrix, Cell};
+use crate::matrix::Cell;
 use crate::dsp::{NodeId, NodeInfo, SAtom, GraphAtomData};
 use crate::ui::monitors::{Monitors, MonitorsData};
 
@@ -221,19 +221,14 @@ impl GenericNodeUI {
 }
 
 pub struct NodePanelData {
-    ui_ctrl: UICtrlRef,
-    #[allow(dead_code)]
-    matrix: Arc<Mutex<Matrix>>,
-
-    node_ui: Rc<RefCell<GenericNodeUI>>,
-
-    monitors: WidgetData,
-
+    ui_ctrl:    UICtrlRef,
+    node_ui:    Rc<RefCell<GenericNodeUI>>,
+    monitors:   WidgetData,
     prev_focus: Cell,
 }
 
 impl NodePanelData {
-    pub fn new(ui_ctrl: UICtrlRef, node_id: u32, matrix: Arc<Mutex<Matrix>>) -> Box<dyn std::any::Any> {
+    pub fn new(ui_ctrl: UICtrlRef, node_id: u32) -> Box<dyn std::any::Any> {
         let node_ui = Rc::new(RefCell::new(GenericNodeUI::new(ui_ctrl.clone())));
         node_ui.borrow_mut().set_target(NodeId::Sin(0), 1);
 
@@ -245,11 +240,10 @@ impl NodePanelData {
                 center(12, 12),
                 Box::new(MonitorsData::new(
                     AtomId::new(node_id, 101),
-                    matrix.clone())));
+                    ui_ctrl.clone())));
 
         Box::new(Self {
             ui_ctrl,
-            matrix,
             node_ui,
             monitors,
             prev_focus: Cell::empty(NodeId::Nop),
@@ -263,14 +257,14 @@ impl NodePanelData {
             self.prev_focus = cur_focus;
 
             if cur_focus.node_id() != NodeId::Nop {
-                let mut m = self.matrix.lock().expect("matrix lock");
+                self.ui_ctrl.with_matrix(|m| {
+                    self.node_ui.borrow_mut().set_target(
+                        cur_focus.node_id(),
+                        m.unique_index_for(&cur_focus.node_id())
+                         .unwrap_or(0) as u32);
 
-                self.node_ui.borrow_mut().set_target(
-                    cur_focus.node_id(),
-                    m.unique_index_for(&cur_focus.node_id())
-                     .unwrap_or(0) as u32);
-
-                m.monitor_cell(cur_focus);
+                    m.monitor_cell(cur_focus);
+                });
             }
         }
     }

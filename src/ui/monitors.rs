@@ -2,16 +2,14 @@
 // This is a part of HexoSynth. Released under (A)GPLv3 or any later.
 // See README.md and COPYING for details.
 
+use crate::UICtrlRef;
+
 use hexotk::{UIPos, AtomId, wbox};
 use hexotk::{Rect, WidgetUI, Painter, WidgetData, WidgetType, UIEvent};
 use hexotk::constants::*;
 use hexotk::widgets::{
     Container, ContainerData,
-//    Knob, KnobData,
-//    Button, ButtonData,
-//    Text, TextData,
     TextSourceRef,
-//    Graph, GraphData,
     GraphMinMax, GraphMinMaxData, GraphMinMaxSource
 };
 
@@ -19,15 +17,14 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::Mutex;
 
-use crate::matrix::{Matrix, Cell};
+use crate::matrix::Cell;
 
 use crate::dsp::NodeId;
 
 
 struct MonitorsSource {
-    matrix:     Arc<Mutex<Matrix>>,
+    ui_ctrl:    UICtrlRef,
     idx:        usize,
-    //d// cnt:        usize,
 }
 
 use crate::CellDir;
@@ -46,39 +43,33 @@ fn sigidx2celldir(idx: usize) -> CellDir {
 
 impl GraphMinMaxSource for MonitorsSource {
     fn read(&mut self, buf: &mut [(f64, f64)]) {
-        let mut m = self.matrix.lock().expect("matrix lockable");
-
-        let cell = m.monitored_cell();
-        if !cell.has_dir_set(sigidx2celldir(self.idx)) {
-            for i in 0..buf.len() {
-                buf[i] = (0.0, 0.0);
+        self.ui_ctrl.with_matrix(|m| {
+            let cell = m.monitored_cell();
+            if !cell.has_dir_set(sigidx2celldir(self.idx)) {
+                for i in 0..buf.len() {
+                    buf[i] = (0.0, 0.0);
+                }
+                return;
             }
-            return;
-        }
 
-        let mimbuf = m.get_minmax_monitor_samples(self.idx);
-        for i in 0..buf.len() {
-            let mm = mimbuf.at(i);
-            buf[i] = (mm.0 as f64, mm.1 as f64);
-
-            //d// if self.cnt % 1000 == 0 {
-            //d//     println!("[{}] => {:?}", i, buf[i]);
-            //d// }
-        }
-        //d// self.cnt += 1;
+            let mimbuf = m.get_minmax_monitor_samples(self.idx);
+            for i in 0..buf.len() {
+                let mm = mimbuf.at(i);
+                buf[i] = (mm.0 as f64, mm.1 as f64);
+            }
+        });
     }
 }
 
 pub struct MonitorsData {
-    matrix:         Arc<Mutex<Matrix>>,
+    ui_ctrl:        UICtrlRef,
     cont:           WidgetData,
-//    cur_cell:       Rc<RefCell<Cell>>,
     last_cell:      Cell,
     sig_labels:     [Rc<TextSourceRef>; 6],
 }
 
 impl MonitorsData {
-    pub fn new(id: AtomId, matrix: Arc<Mutex<Matrix>>) -> Self {
+    pub fn new(id: AtomId, ui_ctrl: UICtrlRef) -> Self {
         let wt_cont = Rc::new(Container::new());
         let wt_gmm  = Rc::new(GraphMinMax::new(128.0, 64.0));
 
@@ -99,7 +90,7 @@ impl MonitorsData {
                 sig_labels[idx].clone(),
                 crate::monitor::MONITOR_MINMAX_SAMPLES,
                 Box::new(MonitorsSource {
-                    matrix: matrix.clone(),
+                    ui_ctrl: ui_ctrl.clone(),
                     idx,
                     //d// cnt: 0,
                 }))
@@ -129,57 +120,60 @@ impl MonitorsData {
                 center(6, 4), build_minmaxdata(5)));
 
         Self {
-            matrix,
-            cont: wbox!(wt_cont, id, center(12, 12), cd),
-            last_cell: Cell::empty(NodeId::Nop),
+            cont:       wbox!(wt_cont, id, center(12, 12), cd),
+            last_cell:  Cell::empty(NodeId::Nop),
+            ui_ctrl,
             sig_labels,
         }
     }
 
     fn check_labels(&mut self) {
-        let m = self.matrix.lock().expect("matrix lock");
-        let c = m.monitored_cell();
-        if self.last_cell != *c {
-            self.last_cell = *c;
+        let ui_ctrl = self.ui_ctrl.clone();
+        ui_ctrl.with_matrix(|m| {
+            let c = m.monitored_cell();
 
-            let mut buf : [u8; 30] = [0; 30];
+            if self.last_cell != *c {
+                self.last_cell = *c;
 
-            if let Some((lbl, _)) = m.edge_label(&c, CellDir::T, &mut buf[..]) {
-                self.sig_labels[0].set(lbl);
-            } else {
-                self.sig_labels[0].set("-");
+                let mut buf : [u8; 30] = [0; 30];
+
+                if let Some((lbl, _)) = m.edge_label(&c, CellDir::T, &mut buf[..]) {
+                    self.sig_labels[0].set(lbl);
+                } else {
+                    self.sig_labels[0].set("-");
+                }
+
+                if let Some((lbl, _)) = m.edge_label(&c, CellDir::TL, &mut buf[..]) {
+                    self.sig_labels[1].set(lbl);
+                } else {
+                    self.sig_labels[1].set("-");
+                }
+
+                if let Some((lbl, _)) = m.edge_label(&c, CellDir::BL, &mut buf[..]) {
+                    self.sig_labels[2].set(lbl);
+                } else {
+                    self.sig_labels[2].set("-");
+                }
+
+                if let Some((lbl, _)) = m.edge_label(&c, CellDir::TR, &mut buf[..]) {
+                    self.sig_labels[3].set(lbl);
+                } else {
+                    self.sig_labels[3].set("-");
+                }
+
+                if let Some((lbl, _)) = m.edge_label(&c, CellDir::BR, &mut buf[..]) {
+                    self.sig_labels[4].set(lbl);
+                } else {
+                    self.sig_labels[4].set("-");
+                }
+
+                if let Some((lbl, _)) = m.edge_label(&c, CellDir::B, &mut buf[..]) {
+                    self.sig_labels[5].set(lbl);
+                } else {
+                    self.sig_labels[5].set("-");
+                }
             }
-
-            if let Some((lbl, _)) = m.edge_label(&c, CellDir::TL, &mut buf[..]) {
-                self.sig_labels[1].set(lbl);
-            } else {
-                self.sig_labels[1].set("-");
-            }
-
-            if let Some((lbl, _)) = m.edge_label(&c, CellDir::BL, &mut buf[..]) {
-                self.sig_labels[2].set(lbl);
-            } else {
-                self.sig_labels[2].set("-");
-            }
-
-            if let Some((lbl, _)) = m.edge_label(&c, CellDir::TR, &mut buf[..]) {
-                self.sig_labels[3].set(lbl);
-            } else {
-                self.sig_labels[3].set("-");
-            }
-
-            if let Some((lbl, _)) = m.edge_label(&c, CellDir::BR, &mut buf[..]) {
-                self.sig_labels[4].set(lbl);
-            } else {
-                self.sig_labels[4].set("-");
-            }
-
-            if let Some((lbl, _)) = m.edge_label(&c, CellDir::B, &mut buf[..]) {
-                self.sig_labels[5].set(lbl);
-            } else {
-                self.sig_labels[5].set("-");
-            }
-        }
+        });
     }
 }
 

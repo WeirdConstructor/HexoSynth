@@ -178,7 +178,6 @@ impl HexGridModel for MatrixUIMenu {
 
 pub struct MatrixUIModel {
     ui_ctrl: UICtrlRef,
-    matrix: Arc<Mutex<Matrix>>,
     menu:   Rc<MatrixUIMenu>,
 
     dialog_model: Rc<RefCell<DialogModel>>,
@@ -202,29 +201,31 @@ impl HexGridModel for MatrixUIModel {
         } else {
             match btn {
                 MButton::Right => {
-                    let m = self.matrix.lock().unwrap();
-                    if let Some(cell) = m.get_copy(x, y) {
-                        if let Some(node_info) = m.info_for(&cell.node_id()) {
-                            if modkey {
-                                menu.open_select_cell_dir(cell, node_info);
+                    self.ui_ctrl.with_matrix(|m| {
+                        if let Some(cell) = m.get_copy(x, y) {
+                            if let Some(node_info) = m.info_for(&cell.node_id()) {
+                                if modkey {
+                                    menu.open_select_cell_dir(cell, node_info);
+                                } else {
+                                }
                             } else {
+                                menu.open_select_node_category(cell);
                             }
-                        } else {
-                            menu.open_select_node_category(cell);
                         }
-                    }
+                    });
                 },
                 MButton::Left => {
-                    let m = self.matrix.lock().unwrap();
-                    if let Some(cell) = m.get_copy(x, y) {
-                        if cell.node_id() == NodeId::Nop {
-                            self.ui_ctrl.clear_focus();
+                    self.ui_ctrl.with_matrix(|m| {
+                        if let Some(cell) = m.get_copy(x, y) {
+                            if cell.node_id() == NodeId::Nop {
+                                self.ui_ctrl.clear_focus();
+                            } else {
+                                self.ui_ctrl.set_focus(cell);
+                            }
                         } else {
-                            self.ui_ctrl.set_focus(cell);
+                            self.ui_ctrl.clear_focus();
                         }
-                    } else {
-                        self.ui_ctrl.clear_focus();
-                    }
+                    });
                 },
                 _ => {},
             }
@@ -243,7 +244,15 @@ impl HexGridModel for MatrixUIModel {
 
     fn cell_label<'a>(&self, x: usize, y: usize, buf: &'a mut [u8]) -> Option<(&'a str, HexCell, Option<(f32, f32)>)> {
         if x >= self.w || y >= self.h { return None; }
-        let mut m = self.matrix.lock().unwrap();
+        let (label, led_value) =
+            self.ui_ctrl.with_matrix(|m| {
+                let cell    = m.get(x, y)?;
+                let label   = cell.label(buf)?;
+                let node_id = cell.node_id();
+                let v       = m.filtered_led_for(&node_id);
+
+                Some((label, v))
+            })?;
 
         let hl =
             if self.ui_ctrl.is_cell_focussed(x, y) {
@@ -252,45 +261,41 @@ impl HexGridModel for MatrixUIModel {
                 HexCell::Normal
             };
 
-        let cell    = m.get(x, y)?;
-        let label   = cell.label(buf)?;
-        let node_id = cell.node_id();
-        let v       = m.filtered_led_for(&node_id);
-        Some((label, hl, Some(v)))
+        Some((label, hl, Some(led_value)))
     }
 
     fn cell_edge<'a>(&self, x: usize, y: usize, edge: HexDir, buf: &'a mut [u8]) -> Option<(&'a str, HexEdge)> {
-        let mut m = self.matrix.lock().unwrap();
+        self.ui_ctrl.with_matrix(|m| {
+            let mut edge_lbl = None;
+            let mut out_fb_info = None;
 
-        let mut edge_lbl = None;
-        let mut out_fb_info = None;
+            if let Some(cell) = m.get(x, y) {
+                let cell_dir = edge.into();
 
-        if let Some(cell) = m.get(x, y) {
-            let cell_dir = edge.into();
+                if let Some((lbl, is_connected)) = m.edge_label(&cell, cell_dir, buf) {
+                    edge_lbl = Some(lbl);
 
-            if let Some((lbl, is_connected)) = m.edge_label(&cell, cell_dir, buf) {
-                edge_lbl = Some(lbl);
-
-                if is_connected {
-                    if let Some(out_idx) = cell.local_port_idx(cell_dir) {
-                        out_fb_info = Some((cell.node_id(), out_idx));
+                    if is_connected {
+                        if let Some(out_idx) = cell.local_port_idx(cell_dir) {
+                            out_fb_info = Some((cell.node_id(), out_idx));
+                        }
                     }
                 }
             }
-        }
 
-        if let Some(lbl) = edge_lbl {
-            if let Some((node_id, out)) = out_fb_info {
-                let val =
-                    m.filtered_out_fb_for(&node_id, out);
+            if let Some(lbl) = edge_lbl {
+                if let Some((node_id, out)) = out_fb_info {
+                    let val =
+                        m.filtered_out_fb_for(&node_id, out);
 
-                Some((lbl, HexEdge::ArrowValue { value: val }))
+                    Some((lbl, HexEdge::ArrowValue { value: val }))
+                } else {
+                    Some((lbl, HexEdge::NoArrow))
+                }
             } else {
-                Some((lbl, HexEdge::NoArrow))
+                None
             }
-        } else {
-            None
-        }
+        })
     }
 }
 
@@ -319,7 +324,6 @@ const UTIL_PANEL_ID         : u32 = 12;
 impl NodeMatrixData {
     pub fn new(
         ui_ctrl: UICtrlRef,
-        matrix: Arc<Mutex<Matrix>>,
         dialog_model: Rc<RefCell<DialogModel>>,
         pos: UIPos,
         node_id: u32)
@@ -338,7 +342,6 @@ impl NodeMatrixData {
 
         let matrix_model = Rc::new(MatrixUIModel {
             ui_ctrl:        ui_ctrl.clone(),
-            matrix:         matrix.clone(),
             dialog_model,
             menu:           menu_model.clone(),
             w:              size.0,
@@ -387,7 +390,7 @@ impl NodeMatrixData {
                     wt_node_panel,
                     AtomId::new(node_id, NODE_PANEL_ID),
                     center(12, 12),
-                    NodePanelData::new(ui_ctrl.clone(), node_id, matrix.clone()))),
+                    NodePanelData::new(ui_ctrl.clone(), node_id))),
                 util_panel: Box::new(wbox!(
                     UtilPanel::new_ref(),
                     AtomId::new(node_id, UTIL_PANEL_ID),
@@ -414,9 +417,7 @@ impl WidgetType for NodeMatrix {
     fn draw(&self, ui: &mut dyn WidgetUI, data: &mut WidgetData, p: &mut dyn Painter, pos: Rect) {
         data.with(|data: &mut NodeMatrixData| {
 
-            if let Ok(mut m) = data.matrix_model.matrix.lock() {
-                m.update_filters();
-            }
+            data.ui_ctrl.with_matrix(|m| m.update_filters());
 
             let panel_pos = pos.resize(360.0, pos.h);
             let util_pos =
@@ -492,6 +493,7 @@ impl WidgetType for NodeMatrix {
                 data.with(|data: &mut NodeMatrixData| {
                     if *id == data.hex_grid.id() {
                         let mut m = data.matrix_model.matrix.lock().unwrap();
+
                         if let Some(mut src_cell) = m.get(src.0, src.1).copied() {
                             if let Some(dst_cell) = m.get(dst.0, dst.1).copied() {
                                 if data.matrix_model.ui_ctrl.is_cell_focussed(src.0, src.1) {
