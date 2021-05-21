@@ -21,6 +21,8 @@ use std::sync::Mutex;
 pub struct UIControl {
     matrix:         Arc<Mutex<Matrix>>,
     dialog_model:   Rc<RefCell<DialogModel>>,
+
+    focus_cell:     Cell,
 }
 
 #[derive(Clone)]
@@ -35,6 +37,7 @@ impl UICtrlRef {
             Rc::new(RefCell::new(UIControl {
                 matrix,
                 dialog_model,
+                focus_cell: Cell::empty(NodeId::Nop),
             })))
     }
 
@@ -94,6 +97,29 @@ impl UICtrlRef {
                 Ok(())
             });
         });
+    }
+
+    pub fn get_recent_focus(&self) -> Cell {
+        self.0.borrow().focus_cell
+    }
+
+    pub fn is_cell_focussed(&self, x: usize, y: usize) -> bool {
+        let cell = self.0.borrow().focus_cell;
+
+        if cell.node_id() == NodeId::Nop {
+            return false;
+        }
+
+        let (cx, cy) = cell.pos();
+        cx == x && cy == y
+    }
+
+    pub fn clear_focus(&self) {
+        self.0.borrow_mut().focus_cell = Cell::empty(NodeId::Nop);
+    }
+
+    pub fn set_focus(&self, cell: Cell) {
+        self.0.borrow_mut().focus_cell = cell;
     }
 }
 

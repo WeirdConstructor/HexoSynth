@@ -4,7 +4,6 @@
 
 use crate::UICtrlRef;
 use crate::matrix::{Matrix, Cell};
-use crate::ui::matrix::MatrixEditorRef;
 use crate::dsp::{NodeId, NodeInfo, SAtom, GraphAtomData};
 use crate::ui::monitors::{Monitors, MonitorsData};
 
@@ -231,12 +230,10 @@ pub struct NodePanelData {
     monitors: WidgetData,
 
     prev_focus: Cell,
-
-    editor: MatrixEditorRef,
 }
 
 impl NodePanelData {
-    pub fn new(ui_ctrl: UICtrlRef, node_id: u32, matrix: Arc<Mutex<Matrix>>, editor: MatrixEditorRef) -> Box<dyn std::any::Any> {
+    pub fn new(ui_ctrl: UICtrlRef, node_id: u32, matrix: Arc<Mutex<Matrix>>) -> Box<dyn std::any::Any> {
         let node_ui = Rc::new(RefCell::new(GenericNodeUI::new(ui_ctrl.clone())));
         node_ui.borrow_mut().set_target(NodeId::Sin(0), 1);
 
@@ -254,14 +251,13 @@ impl NodePanelData {
             ui_ctrl,
             matrix,
             node_ui,
-            editor,
             monitors,
             prev_focus: Cell::empty(NodeId::Nop),
         })
     }
 
     fn check_focus_change(&mut self) {
-        let cur_focus = self.editor.get_recent_focus();
+        let cur_focus = self.ui_ctrl.get_recent_focus();
 
         if cur_focus != self.prev_focus {
             self.prev_focus = cur_focus;

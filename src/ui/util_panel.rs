@@ -14,7 +14,6 @@ use hexotk::widgets::{
     Tabs, TabsData,
 };
 use crate::matrix::Matrix;
-use crate::ui::matrix::MatrixEditorRef;
 use crate::dsp::NodeId;
 
 use std::sync::{Arc, Mutex};
@@ -22,13 +21,12 @@ use std::rc::Rc;
 
 pub struct PatternViewData {
     ui_ctrl:    UICtrlRef,
-    matrix:     Arc<Mutex<Matrix>>,
     cont:       WidgetData,
 }
 
-fn create_pattern_edit(id: AtomId, matrix: Arc<Mutex<Matrix>>) -> WidgetData {
-    let m = matrix.lock().unwrap();
-    let data = m.get_pattern_data(0).unwrap();
+fn create_pattern_edit(id: AtomId, ui_ctrl: &UICtrlRef) -> WidgetData {
+    let data = ui_ctrl.with_matrix(|m| m.get_pattern_data(0).unwrap());
+
     wbox!(
         PatternEditor::new_ref(6, 32),
         id,
@@ -37,21 +35,20 @@ fn create_pattern_edit(id: AtomId, matrix: Arc<Mutex<Matrix>>) -> WidgetData {
 }
 
 impl PatternViewData {
-    pub fn new(ui_ctrl: UICtrlRef, id: AtomId, matrix: Arc<Mutex<Matrix>>)
+    pub fn new(ui_ctrl: UICtrlRef, id: AtomId)
         -> Box<dyn std::any::Any>
     {
-        let cont = create_pattern_edit(id, matrix.clone());
+        let cont = create_pattern_edit(id, &ui_ctrl);
 
         Box::new(Self {
             ui_ctrl,
-            matrix,
             cont,
         })
     }
 
     pub fn check_cont_update(&mut self, _ui: &mut dyn WidgetUI) {
-        let mut m = self.matrix.lock().unwrap();
-        m.check_pattern_data(0);
+        self.ui_ctrl.with_matrix(|m|
+            m.check_pattern_data(0));
     }
 }
 
@@ -59,21 +56,19 @@ define_containing_widget!{PatternView, PatternViewData}
 
 pub struct UtilPanelData {
     ui_ctrl:    UICtrlRef,
-    matrix:     Arc<Mutex<Matrix>>,
-    editor:     MatrixEditorRef,
     cont:       WidgetData,
 }
 
 impl UtilPanelData {
-    pub fn new(ui_ctrl: UICtrlRef, matrix: Arc<Mutex<Matrix>>, editor: MatrixEditorRef)
+    pub fn new(ui_ctrl: UICtrlRef)
         -> Box<dyn std::any::Any>
     {
         let mut tdata = TabsData::new();
 
         let id = {
-            let m = matrix.lock().unwrap();
-            m.unique_index_for(&NodeId::TSeq(0))
-             .unwrap_or(crate::PATTERN_VIEW_ID)
+            ui_ctrl.with_matrix(|m|
+                m.unique_index_for(&NodeId::TSeq(0))
+                 .unwrap_or(crate::PATTERN_VIEW_ID))
         };
 
         let id = AtomId::new(id as u32, 0);
@@ -84,7 +79,7 @@ impl UtilPanelData {
                 PatternView::new_ref(),
                 crate::PATTERN_VIEW_ID.into(),
                 center(12, 12),
-                PatternViewData::new(ui_ctrl.clone(), id, matrix.clone())));
+                PatternViewData::new(ui_ctrl.clone(), id)));
 
         Box::new(Self {
             ui_ctrl,
@@ -93,8 +88,6 @@ impl UtilPanelData {
                 crate::UTIL_PANEL_ID.into(),
                 center(12, 12),
                 tdata),
-            matrix,
-            editor,
         })
     }
 

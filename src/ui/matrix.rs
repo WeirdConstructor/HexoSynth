@@ -176,64 +176,10 @@ impl HexGridModel for MatrixUIMenu {
     }
 }
 
-#[derive(Debug)]
-pub struct MatrixEditor {
-    focus_cell: Cell,
-}
-
-impl MatrixEditor {
-    pub fn new() -> Self {
-        Self {
-            focus_cell: Cell::empty(NodeId::Nop),
-        }
-    }
-}
-
-#[derive(Clone)]
-pub struct MatrixEditorRef(Rc<RefCell<MatrixEditor>>);
-
-impl std::fmt::Debug for MatrixEditorRef {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "MatrixEditorRef({:?})", *self.0.borrow())
-    }
-}
-
-impl MatrixEditorRef {
-    pub fn new() -> Self {
-        Self(Rc::new(RefCell::new(MatrixEditor::new())))
-    }
-
-    pub fn get_recent_focus(&self) -> Cell {
-        self.0.borrow().focus_cell
-    }
-
-    pub fn is_cell_focussed(&self, x: usize, y: usize) -> bool {
-        let cell = self.0.borrow().focus_cell;
-
-        if cell.node_id() == NodeId::Nop {
-            return false;
-        }
-
-        let (cx, cy) = cell.pos();
-        cx == x && cy == y
-    }
-
-    pub fn clear_focus(&self) {
-        self.0.borrow_mut().focus_cell = Cell::empty(NodeId::Nop);
-    }
-
-    pub fn set_focus(&self, cell: Cell) {
-        self.0.borrow_mut().focus_cell = cell;
-    }
-}
-
-
 pub struct MatrixUIModel {
     ui_ctrl: UICtrlRef,
     matrix: Arc<Mutex<Matrix>>,
     menu:   Rc<MatrixUIMenu>,
-
-    editor: MatrixEditorRef,
 
     dialog_model: Rc<RefCell<DialogModel>>,
 
@@ -272,12 +218,12 @@ impl HexGridModel for MatrixUIModel {
                     let m = self.matrix.lock().unwrap();
                     if let Some(cell) = m.get_copy(x, y) {
                         if cell.node_id() == NodeId::Nop {
-                            self.editor.clear_focus();
+                            self.ui_ctrl.clear_focus();
                         } else {
-                            self.editor.set_focus(cell);
+                            self.ui_ctrl.set_focus(cell);
                         }
                     } else {
-                        self.editor.clear_focus();
+                        self.ui_ctrl.clear_focus();
                     }
                 },
                 _ => {},
@@ -300,7 +246,7 @@ impl HexGridModel for MatrixUIModel {
         let mut m = self.matrix.lock().unwrap();
 
         let hl =
-            if self.editor.is_cell_focussed(x, y) {
+            if self.ui_ctrl.is_cell_focussed(x, y) {
                 HexCell::HLight
             } else {
                 HexCell::Normal
@@ -385,8 +331,6 @@ impl NodeMatrixData {
 
         let txtsrc = Rc::new(TextSourceRef::new(30));
 
-        let editor = MatrixEditorRef::new();
-
         let menu_model =
             Rc::new(MatrixUIMenu::new(
                 ui_ctrl.clone(),
@@ -397,7 +341,6 @@ impl NodeMatrixData {
             matrix:         matrix.clone(),
             dialog_model,
             menu:           menu_model.clone(),
-            editor:         editor.clone(),
             w:              size.0,
             h:              size.1,
         });
@@ -444,12 +387,12 @@ impl NodeMatrixData {
                     wt_node_panel,
                     AtomId::new(node_id, NODE_PANEL_ID),
                     center(12, 12),
-                    NodePanelData::new(ui_ctrl.clone(), node_id, matrix.clone(), editor.clone()))),
+                    NodePanelData::new(ui_ctrl.clone(), node_id, matrix.clone()))),
                 util_panel: Box::new(wbox!(
                     UtilPanel::new_ref(),
                     AtomId::new(node_id, UTIL_PANEL_ID),
                     center(12, 12),
-                    UtilPanelData::new(ui_ctrl.clone(), matrix.clone(), editor))),
+                    UtilPanelData::new(ui_ctrl.clone()))),
                 hex_menu_id,
                 matrix_model,
                 grid_click_pos: None,
@@ -551,8 +494,8 @@ impl WidgetType for NodeMatrix {
                         let mut m = data.matrix_model.matrix.lock().unwrap();
                         if let Some(mut src_cell) = m.get(src.0, src.1).copied() {
                             if let Some(dst_cell) = m.get(dst.0, dst.1).copied() {
-                                if data.matrix_model.editor.is_cell_focussed(src.0, src.1) {
-                                    data.matrix_model.editor.set_focus(
+                                if data.matrix_model.ui_ctrl.is_cell_focussed(src.0, src.1) {
+                                    data.matrix_model.ui_ctrl.set_focus(
                                         src_cell.with_pos_of(dst_cell));
                                 }
 
