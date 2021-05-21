@@ -25,69 +25,16 @@ use std::cell::RefCell;
 use std::sync::Arc;
 use std::sync::Mutex;
 
-enum DialogMessage {
-    MatrixError(MatrixError),
-}
-
-impl From<MatrixError> for DialogMessage {
-    fn from(error: MatrixError) -> Self {
-        DialogMessage::MatrixError(error)
-    }
-}
-
-fn handle_matrix_change<F>(dialog: &Rc<RefCell<DialogModel>>, mut f: F)
-    where F: FnMut() -> Result<(), DialogMessage>
-{
-    match f() {
-        Err(DialogMessage::MatrixError(err)) => {
-            match err {
-                MatrixError::CycleDetected => {
-                    dialog.borrow_mut().open(
-                        &format!("Cycle Detected!\n\
-                            HexoSynth does not allow to create cyclic configurations.\n\
-                            \n\
-                            For feedback please use the nodes:\n\
-                            * 'FbWr' (Feedback Writer)\n\
-                            * 'FbRd' (Feedback Reader)"),
-                        Box::new(|_| ()));
-                },
-                MatrixError::DuplicatedInput { output1, output2 } => {
-                    dialog.borrow_mut().open(
-                        &format!("Unjoined Outputs Detected!\n\
-                            It's not possible to assign to an input port twice.\n\
-                            Please use a mixer or some other kind of node to join the outputs.\n\
-                            \n\
-                            Conflicting Outputs:\n\
-                            * {} {}, port {}\n\
-                            * {} {}, port {}",
-                            output1.0.name(),
-                            output1.0.instance(),
-                            output1.0.out_name_by_idx(output1.1).unwrap_or("???"),
-                            output2.0.name(),
-                            output2.0.instance(),
-                            output2.0.out_name_by_idx(output2.1).unwrap_or("???")),
-                        Box::new(|_| ()));
-                }
-            }
-        },
-        Ok(_) => (),
-    }
-}
-
 pub struct MatrixActionHandler {
     ui_ctrl:      UICtrlRef,
-    matrix:       Arc<Mutex<Matrix>>,
     help_txt:     Rc<TextSourceRef>,
-    dialog_model: Rc<RefCell<DialogModel>>,
 }
 
 impl MatrixActionHandler {
-    pub fn new(ui_ctrl: UICtrlRef, help_txt: Rc<TextSourceRef>, matrix: Arc<Mutex<Matrix>>, dialog_model: Rc<RefCell<DialogModel>>) -> Self {
+    pub fn new(ui_ctrl: UICtrlRef, help_txt: Rc<TextSourceRef>) -> Self {
         Self {
             ui_ctrl,
-            matrix,
             help_txt,
-            dialog_model,
         }
     }
 }
@@ -100,42 +47,13 @@ impl MenuActionHandler for MatrixActionHandler {
     fn assign_cell_port(
         &mut self, mut cell: Cell, cell_dir: CellDir, idx: Option<usize>)
     {
-        let mut m = self.matrix.lock().unwrap();
-
-        if let Some(idx) = idx {
-            cell.set_io_dir(cell_dir, idx);
-        } else {
-            cell.clear_io_dir(cell_dir);
-        }
-        let pos = cell.pos();
-
-        handle_matrix_change(&self.dialog_model, || {
-            m.change_matrix(|matrix| {
-                matrix.place(pos.0, pos.1, cell);
-            })?;
-
-            m.sync()?;
-            Ok(())
-        });
+        self.ui_ctrl.assign_cell_port(cell, cell_dir, idx);
     }
 
     fn assign_cell_new_node(
         &mut self, mut cell: Cell, node_id: NodeId)
     {
-        let mut m = self.matrix.lock().unwrap();
-
-        let node_id = m.get_unused_instance_node_id(node_id);
-        cell.set_node_id(node_id);
-        let pos = cell.pos();
-
-        handle_matrix_change(&self.dialog_model, || {
-            m.change_matrix(|matrix| {
-                matrix.place(pos.0, pos.1, cell);
-            })?;
-
-            m.sync()?;
-            Ok(())
-        });
+        self.ui_ctrl.assign_cell_new_node(cell, node_id);
     }
 }
 
@@ -145,8 +63,6 @@ pub struct MatrixUIMenu {
 
 impl MatrixUIMenu {
     pub fn new(ui_ctrl: UICtrlRef,
-               matrix: Arc<Mutex<Matrix>>,
-               dialog_model: Rc<RefCell<DialogModel>>,
                help_txt: Rc<TextSourceRef>)
         -> Self
     {
@@ -155,9 +71,7 @@ impl MatrixUIMenu {
                 Menu::new(
                     Box::new(MatrixActionHandler::new(
                         ui_ctrl,
-                        help_txt,
-                        matrix,
-                        dialog_model))))),
+                        help_txt))))),
         }
     }
 
@@ -467,10 +381,7 @@ impl NodeMatrixData {
     {
         let wt_nmatrix  = Rc::new(NodeMatrix::new());
 
-        let size = {
-            let m = matrix.lock().unwrap();
-            m.size()
-        };
+        let size = ui_ctrl.with_matrix(|m| m.size());
 
         let txtsrc = Rc::new(TextSourceRef::new(30));
 
@@ -479,8 +390,6 @@ impl NodeMatrixData {
         let menu_model =
             Rc::new(MatrixUIMenu::new(
                 ui_ctrl.clone(),
-                matrix.clone(),
-                dialog_model.clone(),
                 txtsrc.clone()));
 
         let matrix_model = Rc::new(MatrixUIModel {
@@ -647,7 +556,7 @@ impl WidgetType for NodeMatrix {
                                         src_cell.with_pos_of(dst_cell));
                                 }
 
-                                handle_matrix_change(
+                                crate::ui_ctrl::handle_matrix_change(
                                     &data.matrix_model.dialog_model, ||
                                 {
                                     match button {

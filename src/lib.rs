@@ -12,6 +12,9 @@ use core::arch::x86_64::{
 };
 
 pub mod ui;
+pub mod ui_ctrl;
+
+pub use ui_ctrl::UICtrlRef;
 
 use serde::{Serialize, Deserialize};
 use raw_window_handle::HasRawWindowHandle;
@@ -229,46 +232,6 @@ impl Plugin for HexoSynth {
         unsafe {
             _MM_SET_FLUSH_ZERO_MODE(prev_ftz);
         }
-    }
-}
-
-
-/// This structure holds global information for the UI,
-/// such as a reference to the [Matrix] and other stateful
-/// informaiton.
-///
-/// It also provides helper functions for manipulating
-/// the [Matrix] and other state.
-pub struct UIControl {
-    matrix:         Arc<Mutex<Matrix>>,
-    dialog_model:   Rc<RefCell<DialogModel>>,
-}
-
-#[derive(Clone)]
-pub struct UICtrlRef(Rc<RefCell<UIControl>>);
-
-impl UICtrlRef {
-    pub fn new(matrix: Arc<Mutex<Matrix>>,
-               dialog_model: Rc<RefCell<DialogModel>>)
-        -> UICtrlRef
-    {
-        UICtrlRef(
-            Rc::new(RefCell::new(UIControl {
-                matrix,
-                dialog_model,
-            })))
-    }
-
-//    pub fn lock_matrix(&self) -> std::sync::MutexGuard<'_, Matrix> {
-//        self.0.borrow().matrix.lock().unwrap()
-//    }
-//
-    pub fn with_matrix<F, R>(&self, fun: F) -> R
-        where F: FnOnce(&mut Matrix) -> R
-    {
-        let ctrl = self.0.borrow();
-        let mut lock = ctrl.matrix.lock().unwrap();
-        fun(&mut *lock)
     }
 }
 
