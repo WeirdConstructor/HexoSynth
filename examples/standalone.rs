@@ -255,7 +255,6 @@ fn main() {
             Box::new(UI::new(
                 Box::new(NodeMatrixData::new(
                     ui_ctrl.clone(),
-                    matrix.clone(),
                     dialog_model.clone(),
                     UIPos::center(12, 12),
                     11)),

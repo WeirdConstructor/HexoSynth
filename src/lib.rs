@@ -14,7 +14,7 @@ use core::arch::x86_64::{
 pub mod ui;
 pub mod ui_ctrl;
 
-pub use ui_ctrl::UICtrlRef;
+pub use ui_ctrl::{UICtrlRef, UICellTrans};
 
 use serde::{Serialize, Deserialize};
 use raw_window_handle::HasRawWindowHandle;
@@ -476,7 +476,7 @@ impl PluginUI for HexoSynth {
             let dialog_model = Rc::new(RefCell::new(DialogModel::new()));
             let wt_diag      = Rc::new(Dialog::new());
 
-            let ui_ctrl = UICtrlRef::new(matrix.clone(), dialog_model.clone());
+            let ui_ctrl = UICtrlRef::new(matrix, dialog_model.clone());
 
             Box::new(UI::new(
                 Box::new(NodeMatrixData::new(

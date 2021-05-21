@@ -4,6 +4,7 @@
 
 use hexodsp::*;
 use hexodsp::matrix::MatrixError;
+use hexodsp::matrix_repr::save_patch_to_file;
 
 use hexotk::widgets::DialogModel;
 
@@ -11,6 +12,16 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use std::sync::Arc;
 use std::sync::Mutex;
+
+/// Common operations that can be done with the matrix
+pub enum UICellTrans {
+    /// Swap two cells
+    Swap,
+    /// Copy source to destination cell
+    CopyTo,
+    /// Instanciate new cell with the same type as the source cell
+    Instanciate,
+}
 
 /// This structure holds global information for the UI,
 /// such as a reference to the [Matrix] and other stateful
@@ -45,9 +56,8 @@ impl UICtrlRef {
         where F: FnOnce(&mut Matrix) -> R
     {
         let ctrl = self.0.borrow();
-        if let Some(mut lock) = ctrl.matrix.lock() {
-            fun(&mut *lock)
-        }
+        let mut lock = ctrl.matrix.lock().expect("matrix lockable");
+        fun(&mut *lock)
     }
 
     pub fn assign_cell_port(
@@ -62,7 +72,7 @@ impl UICtrlRef {
 
         let this = self.0.borrow();
 
-        handle_matrix_change(&this.dialog_model, || {
+        catch_err_dialog(&this.dialog_model, || {
             self.with_matrix(|m| {
                 m.change_matrix(|matrix| {
                     matrix.place(pos.0, pos.1, cell);
@@ -85,7 +95,7 @@ impl UICtrlRef {
 
             let this = self.0.borrow();
 
-            handle_matrix_change(&this.dialog_model, || {
+            catch_err_dialog(&this.dialog_model, || {
                 m.change_matrix(|matrix| {
                     matrix.place(pos.0, pos.1, cell);
                 })?;
@@ -94,6 +104,73 @@ impl UICtrlRef {
                 Ok(())
             });
         });
+    }
+
+    pub fn save_patch(&self) {
+        let this = self.0.borrow();
+
+        self.with_matrix(|m| {
+            catch_err_dialog(&this.dialog_model, || {
+                match save_patch_to_file(m, "init.hxy") {
+                    Ok(_) => Ok(()),
+                    Err(e) => Err(PatchSaveError {
+                        path:  "init.hxy".to_string(),
+                        error: e
+                    })?,
+                }
+            });
+        });
+    }
+
+    pub fn cell_transform(
+        &self, src_pos: (usize, usize), dst_pos: (usize, usize), transform: UICellTrans) -> Option<()>
+    {
+        let (mut src_cell, dst_cell) =
+            self.with_matrix(|m| {
+                Some((
+                    m.get_copy(src_pos.0, src_pos.1)?,
+                    m.get_copy(dst_pos.0, dst_pos.1)?
+                ))
+            })?;
+
+        if self.is_cell_focussed(src_pos.0, src_pos.1) {
+            self.set_focus(src_cell.with_pos_of(dst_cell));
+        }
+
+        let this = self.0.borrow();
+
+        self.with_matrix(|m| {
+            crate::ui_ctrl::catch_err_dialog(&this.dialog_model, || {
+                match transform {
+                    UICellTrans::Swap => {
+                        m.change_matrix(|m| {
+                            m.place(dst_pos.0, dst_pos.1, src_cell);
+                            m.place(src_pos.0, src_pos.1, dst_cell);
+                        })?;
+                        m.sync()?;
+                    },
+                    UICellTrans::CopyTo => {
+                        m.change_matrix(|m| {
+                            m.place(dst_pos.0, dst_pos.1, src_cell);
+                        })?;
+                        m.sync()?;
+                    },
+                    UICellTrans::Instanciate => {
+                        let unused_id =
+                            m.get_unused_instance_node_id(src_cell.node_id());
+                        src_cell.set_node_id(unused_id);
+                        m.change_matrix(|m| {
+                            m.place(dst_pos.0, dst_pos.1, src_cell);
+                        })?;
+                        m.sync()?;
+                    },
+                }
+
+                Ok(())
+            })
+        });
+
+        Some(())
     }
 
     pub fn get_recent_focus(&self) -> Cell {
@@ -120,8 +197,15 @@ impl UICtrlRef {
     }
 }
 
+pub struct PatchSaveError {
+    path:   String,
+    error:  std::io::Error,
+}
+
 pub enum DialogMessage {
     MatrixError(MatrixError),
+    IOError(std::io::Error),
+    PatchSaveError(PatchSaveError),
 }
 
 impl From<MatrixError> for DialogMessage {
@@ -130,10 +214,35 @@ impl From<MatrixError> for DialogMessage {
     }
 }
 
-pub fn handle_matrix_change<F>(dialog: &Rc<RefCell<DialogModel>>, mut f: F)
+impl From<std::io::Error> for DialogMessage {
+    fn from(error: std::io::Error) -> Self {
+        DialogMessage::IOError(error)
+    }
+}
+
+impl From<PatchSaveError> for DialogMessage {
+    fn from(error: PatchSaveError) -> Self {
+        DialogMessage::PatchSaveError(error)
+    }
+}
+
+pub fn catch_err_dialog<F>(dialog: &Rc<RefCell<DialogModel>>, mut f: F)
     where F: FnMut() -> Result<(), DialogMessage>
 {
     match f() {
+        Err(DialogMessage::PatchSaveError(err)) => {
+            dialog.borrow_mut().open(
+                &format!("Patch Saving failed!\n\
+                    Path: {}\n\
+                    Error: {}\n", err.path, err.error),
+                Box::new(|_| ()));
+        },
+        Err(DialogMessage::IOError(err)) => {
+            dialog.borrow_mut().open(
+                &format!("An Unknown I/O Error Occured!\n\
+                    Error: {}\n", err),
+                Box::new(|_| ()));
+        },
         Err(DialogMessage::MatrixError(err)) => {
             match err {
                 MatrixError::CycleDetected => {

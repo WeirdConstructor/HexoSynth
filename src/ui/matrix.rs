@@ -2,7 +2,7 @@
 // This is a part of HexoSynth. Released under (A)GPLv3 or any later.
 // See README.md and COPYING for details.
 
-use crate::UICtrlRef;
+use crate::{UICtrlRef, UICellTrans};
 use crate::matrix::*;
 use crate::dsp::NodeId;
 use crate::ui::menu::{Menu, MenuControl, MenuActionHandler};
@@ -244,15 +244,16 @@ impl HexGridModel for MatrixUIModel {
 
     fn cell_label<'a>(&self, x: usize, y: usize, buf: &'a mut [u8]) -> Option<(&'a str, HexCell, Option<(f32, f32)>)> {
         if x >= self.w || y >= self.h { return None; }
-        let (label, led_value) =
+        let (cell, led_value) =
             self.ui_ctrl.with_matrix(|m| {
-                let cell    = m.get(x, y)?;
-                let label   = cell.label(buf)?;
+                let cell    = m.get_copy(x, y)?;
                 let node_id = cell.node_id();
                 let v       = m.filtered_led_for(&node_id);
 
-                Some((label, v))
+                Some((cell, v))
             })?;
+
+        let label = cell.label(buf)?;
 
         let hl =
             if self.ui_ctrl.is_cell_focussed(x, y) {
@@ -265,7 +266,7 @@ impl HexGridModel for MatrixUIModel {
     }
 
     fn cell_edge<'a>(&self, x: usize, y: usize, edge: HexDir, buf: &'a mut [u8]) -> Option<(&'a str, HexEdge)> {
-        self.ui_ctrl.with_matrix(|m| {
+        self.ui_ctrl.with_matrix(move |m| {
             let mut edge_lbl = None;
             let mut out_fb_info = None;
 
@@ -492,46 +493,14 @@ impl WidgetType for NodeMatrix {
             UIEvent::FieldDrag { id, button, src, dst, .. } => {
                 data.with(|data: &mut NodeMatrixData| {
                     if *id == data.hex_grid.id() {
-                        let mut m = data.matrix_model.matrix.lock().unwrap();
-
-                        if let Some(mut src_cell) = m.get(src.0, src.1).copied() {
-                            if let Some(dst_cell) = m.get(dst.0, dst.1).copied() {
-                                if data.matrix_model.ui_ctrl.is_cell_focussed(src.0, src.1) {
-                                    data.matrix_model.ui_ctrl.set_focus(
-                                        src_cell.with_pos_of(dst_cell));
-                                }
-
-                                crate::ui_ctrl::handle_matrix_change(
-                                    &data.matrix_model.dialog_model, ||
-                                {
-                                    match button {
-                                        MButton::Left => {
-                                            m.change_matrix(|m| {
-                                                m.place(dst.0, dst.1, src_cell);
-                                                m.place(src.0, src.1, dst_cell);
-                                            })?;
-                                           m.sync()?;
-                                        },
-                                        MButton::Right => {
-                                            m.change_matrix(|m| {
-                                                m.place(dst.0, dst.1, src_cell);
-                                            })?;
-                                            m.sync()?;
-                                        },
-                                        MButton::Middle => {
-                                            let unused_id = m.get_unused_instance_node_id(src_cell.node_id());
-                                            src_cell.set_node_id(unused_id);
-                                            m.change_matrix(|m| {
-                                                m.place(dst.0, dst.1, src_cell);
-                                            })?;
-                                            m.sync()?;
-                                        },
-                                    }
-
-                                    Ok(())
-                                });
-                            }
-                        }
+                        data.matrix_model.ui_ctrl.cell_transform(
+                            *src,
+                            *dst,
+                            match button {
+                                MButton::Left   => UICellTrans::Swap,
+                                MButton::Right  => UICellTrans::CopyTo,
+                                MButton::Middle => UICellTrans::Instanciate,
+                            });
                     }
                 });
                 ui.queue_redraw();
@@ -539,20 +508,10 @@ impl WidgetType for NodeMatrix {
             UIEvent::Key { key, .. } => {
                 use keyboard_types::Key;
 
-                println!("KEY!");
-
                 match key {
                     Key::F4 => {
                         data.with(|data: &mut NodeMatrixData| {
-                            use crate::matrix_repr::save_patch_to_file;
-
-                            let mut m =
-                                data.matrix_model.matrix.lock().unwrap();
-
-                            println!("SAVE!");
-                            save_patch_to_file(
-                                &mut m,
-                                "init.hxy").unwrap();
+                            data.matrix_model.ui_ctrl.save_patch();
                         });
                     },
                     _ => {
@@ -564,7 +523,6 @@ impl WidgetType for NodeMatrix {
 
             },
             _ => {
-            println!("FOOEFO");
                 data.with(|data: &mut NodeMatrixData| {
                     data.util_panel.event(ui, ev);
                 });
