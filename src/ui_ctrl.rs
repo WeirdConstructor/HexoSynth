@@ -140,7 +140,7 @@ impl UICtrlRef {
         let this = self.0.borrow();
 
         self.with_matrix(|m| {
-            crate::ui_ctrl::catch_err_dialog(&this.dialog_model, || {
+            catch_err_dialog(&this.dialog_model, || {
                 match transform {
                     UICellTrans::Swap => {
                         m.change_matrix(|m| {

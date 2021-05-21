@@ -481,13 +481,14 @@ impl PluginUI for HexoSynth {
             Box::new(UI::new(
                 Box::new(NodeMatrixData::new(
                     ui_ctrl.clone(),
-                    dialog_model.clone(),
                     UIPos::center(12, 12),
                     NODE_MATRIX_ID)),
                 Box::new(wbox!(
                     wt_diag, 90000.into(), center(12, 12),
                     DialogData::new(
-                        DIALOG_ID, AtomId::new(DIALOG_ID, DIALOG_OK_ID), dialog_model.clone()))),
+                        DIALOG_ID,
+                        AtomId::new(DIALOG_ID, DIALOG_OK_ID),
+                        dialog_model.clone()))),
                 Box::new(UIParams::new(ui_ctrl)),
                 (1400 as f64, 700 as f64),
             ))

@@ -180,8 +180,6 @@ pub struct MatrixUIModel {
     ui_ctrl: UICtrlRef,
     menu:   Rc<MatrixUIMenu>,
 
-    dialog_model: Rc<RefCell<DialogModel>>,
-
     w:      usize,
     h:      usize,
 }
@@ -325,7 +323,6 @@ const UTIL_PANEL_ID         : u32 = 12;
 impl NodeMatrixData {
     pub fn new(
         ui_ctrl: UICtrlRef,
-        dialog_model: Rc<RefCell<DialogModel>>,
         pos: UIPos,
         node_id: u32)
     -> WidgetData
@@ -343,7 +340,6 @@ impl NodeMatrixData {
 
         let matrix_model = Rc::new(MatrixUIModel {
             ui_ctrl:        ui_ctrl.clone(),
-            dialog_model,
             menu:           menu_model.clone(),
             w:              size.0,
             h:              size.1,
