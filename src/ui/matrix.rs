@@ -213,17 +213,17 @@ impl HexGridModel for MatrixUIModel {
                     });
                 },
                 MButton::Left => {
-                    self.ui_ctrl.with_matrix(|m| {
-                        if let Some(cell) = m.get_copy(x, y) {
-                            if cell.node_id() == NodeId::Nop {
-                                self.ui_ctrl.clear_focus();
-                            } else {
-                                self.ui_ctrl.set_focus(cell);
-                            }
-                        } else {
+                    let cell = self.ui_ctrl.with_matrix(|m| m.get_copy(x, y));
+
+                    if let Some(cell) = cell {
+                        if cell.node_id() == NodeId::Nop {
                             self.ui_ctrl.clear_focus();
+                        } else {
+                            self.ui_ctrl.set_focus(cell);
                         }
-                    });
+                    } else {
+                        self.ui_ctrl.clear_focus();
+                    }
                 },
                 _ => {},
             }

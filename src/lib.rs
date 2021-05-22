@@ -301,7 +301,14 @@ impl UIParams {
     }
 
     pub fn set_param(&mut self, id: AtomId, atom: Atom) {
-        if id.node_id() > PARAM_VARIABLES_SPACE {
+        if id.node_id() > UI_CTRL_SPACE {
+            let ui_ctrl = self.ui_ctrl.clone();
+
+            if ui_ctrl.set_event(self, id, atom.clone()) {
+                self.variables.insert(id, (ParamId::none(), atom));
+            }
+
+        } else if id.node_id() > PARAM_VARIABLES_SPACE {
             println!("SET PARAM {:?} = {:?}", id, atom);
             self.variables.insert(id, (ParamId::none(), atom.clone()));
 
@@ -451,6 +458,8 @@ impl AtomDataModel for UIParams {
 }
 
 pub const PARAM_VARIABLES_SPACE    : u32   = 1000;
+pub const UI_CTRL_SPACE            : u32   = 100000;
+
 pub const NODE_MATRIX_ID           : u32   = 9999;
 pub const NODE_PANEL_ID            : u32   = 9998;
 pub const UTIL_PANEL_ID            : usize = 9997;
@@ -458,6 +467,7 @@ pub const PATTERN_PANEL_ID         : usize = 9996;
 pub const PATTERN_VIEW_ID          : usize = 9995;
 pub const DIALOG_ID                : u32   = 90001;
 pub const DIALOG_OK_ID             : u32   = 99;
+
 
 impl PluginUI for HexoSynth {
     type Handle = u32;

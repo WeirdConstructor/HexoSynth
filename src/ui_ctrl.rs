@@ -2,10 +2,13 @@
 // This is a part of HexoSynth. Released under (A)GPLv3 or any later.
 // See README.md and COPYING for details.
 
+use crate::UIParams;
+
 use hexodsp::*;
 use hexodsp::matrix::MatrixError;
 use hexodsp::matrix_repr::save_patch_to_file;
 
+use hexotk::{AtomId, Atom, AtomDataModel};
 use hexotk::widgets::DialogModel;
 
 use std::rc::Rc;
@@ -30,33 +33,35 @@ pub enum UICellTrans {
 /// It also provides helper functions for manipulating
 /// the [Matrix] and other state.
 pub struct UIControl {
-    matrix:         Arc<Mutex<Matrix>>,
     dialog_model:   Rc<RefCell<DialogModel>>,
 
+    sample_load_id: AtomId,
     focus_cell:     Cell,
 }
 
 #[derive(Clone)]
-pub struct UICtrlRef(Rc<RefCell<UIControl>>);
+pub struct UICtrlRef(Rc<RefCell<UIControl>>, Arc<Mutex<Matrix>>);
 
 impl UICtrlRef {
+    pub const ATNID_SAMPLE_LOAD_ID : u32 = 190001;
+
     pub fn new(matrix: Arc<Mutex<Matrix>>,
                dialog_model: Rc<RefCell<DialogModel>>)
         -> UICtrlRef
     {
         UICtrlRef(
             Rc::new(RefCell::new(UIControl {
-                matrix,
                 dialog_model,
+                sample_load_id: AtomId::from(99999),
                 focus_cell: Cell::empty(NodeId::Nop),
-            })))
+            })),
+            matrix)
     }
 
     pub fn with_matrix<F, R>(&self, fun: F) -> R
         where F: FnOnce(&mut Matrix) -> R
     {
-        let ctrl = self.0.borrow();
-        let mut lock = ctrl.matrix.lock().expect("matrix lockable");
+        let mut lock = self.1.lock().expect("matrix lockable");
         fun(&mut *lock)
     }
 
@@ -194,6 +199,23 @@ impl UICtrlRef {
 
     pub fn set_focus(&self, cell: Cell) {
         self.0.borrow_mut().focus_cell = cell;
+    }
+
+    pub fn set_sample_load_id(&self, id: AtomId) {
+        self.0.borrow_mut().sample_load_id = id;
+    }
+
+    /// Lets the UI emit a set event for a specific [AtomId].
+    /// Should return true if the value should be saved in the
+    /// variables register.
+    pub fn set_event(&self, ui_params: &mut UIParams, id: AtomId, atom: Atom) -> bool {
+        if id.node_id() == Self::ATNID_SAMPLE_LOAD_ID {
+            println!("SET SAMPLE={:?}", atom);
+            let load_id = self.0.borrow().sample_load_id;
+            ui_params.set(load_id, atom);
+        }
+
+        true
     }
 }
 

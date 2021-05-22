@@ -145,12 +145,17 @@ impl GenericNodeUI {
                     ButtonData::new_toggle(param_name)))
             },
             SAtom::AudioSample((filename, _)) => {
-                println!("AUDIO SAMPLE: {}", filename);
+                self.ui_ctrl.set_sample_load_id(
+                    AtomId::new(self.model_node_id, idx as u32));
+
                 Some(wbox!(
                     self.wt_sampl_list.clone(),
-                    AtomId::new(self.model_node_id, idx as u32),
+                    AtomId::new(UICtrlRef::ATNID_SAMPLE_LOAD_ID, idx as u32),
                     center(pos.0, pos.1),
-                    ListData::new("Sample:", ListOutput::ByAudioSample, self.sample_list.clone())))
+                    ListData::new(
+                        "Sample:",
+                        ListOutput::ByAudioSample,
+                        self.sample_list.clone())))
             },
             _ => { None },
         }
