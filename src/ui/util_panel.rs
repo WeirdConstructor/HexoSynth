@@ -12,6 +12,7 @@ use hexotk::widgets::{
 //    Text, TextSourceRef, TextData,
     PatternEditor, PatternEditorData,
     Tabs, TabsData,
+    List, ListData, ListItems, ListOutput,
 };
 use crate::matrix::Matrix;
 use crate::dsp::NodeId;
@@ -81,11 +82,35 @@ impl UtilPanelData {
                 center(12, 12),
                 PatternViewData::new(ui_ctrl.clone(), id)));
 
+        let wt_sampl_list = Rc::new(List::new(330.0, 12.0, 35));
+
+        let sample_list = ListItems::new(45);
+        sample_list.push(0, String::from("bd.wav"));
+        sample_list.push(1, String::from("sd.wav"));
+        sample_list.push(2, String::from("hh.wav"));
+        sample_list.push(3, String::from("oh.wav"));
+        sample_list.push(4, String::from("tom1.wav"));
+        sample_list.push(5, String::from("tom2.wav"));
+        sample_list.push(6, String::from("bd808.wav"));
+        sample_list.push(7, String::from("bd909.wav"));
+        sample_list.push(8, String::from("0123456789012345678901234567890123456789012345678901234567890123456789"));
+
+        tdata.add(
+            "Samples",
+            wbox!(
+                wt_sampl_list,
+                AtomId::new(UICtrlRef::ATNID_SAMPLE_LOAD_ID, 0),
+                center(12, 12),
+                ListData::new(
+                    "Sample:",
+                    ListOutput::ByAudioSample,
+                    sample_list)));
+
         Box::new(Self {
             ui_ctrl,
             cont: wbox!(
                 Tabs::new_ref(),
-                crate::UTIL_PANEL_ID.into(),
+                AtomId::new(crate::UTIL_PANEL_ID as u32, 0),
                 center(12, 12),
                 tdata),
         })
