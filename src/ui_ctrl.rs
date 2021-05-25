@@ -9,7 +9,10 @@ use hexodsp::matrix::MatrixError;
 use hexodsp::matrix_repr::save_patch_to_file;
 
 use hexotk::{AtomId, Atom, AtomDataModel};
-use hexotk::widgets::DialogModel;
+use hexotk::widgets::{
+    DialogModel,
+    ListItems,
+};
 
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -33,10 +36,12 @@ pub enum UICellTrans {
 /// It also provides helper functions for manipulating
 /// the [Matrix] and other state.
 pub struct UIControl {
-    dialog_model:   Rc<RefCell<DialogModel>>,
+    dialog_model:       Rc<RefCell<DialogModel>>,
 
-    sample_load_id: AtomId,
-    focus_cell:     Cell,
+    sample_dir:         String,
+    sample_browse_list: ListItems,
+    sample_load_id:     AtomId,
+    focus_cell:         Cell,
 }
 
 #[derive(Clone)]
@@ -52,10 +57,19 @@ impl UICtrlRef {
         UICtrlRef(
             Rc::new(RefCell::new(UIControl {
                 dialog_model,
-                sample_load_id: AtomId::from(99999),
-                focus_cell: Cell::empty(NodeId::Nop),
+                sample_dir:         ".".to_string(),
+                sample_browse_list: ListItems::new(45),
+                sample_load_id:     AtomId::from(99999),
+                focus_cell:         Cell::empty(NodeId::Nop),
             })),
             matrix)
+    }
+
+    fn reload_sample_dir_list(&self) {
+        let this = self.0.borrow_mut();
+        this.sample_browse_list.clear();
+        this.sample_browse_list.push(0, "..".to_string());
+
     }
 
     pub fn with_matrix<F, R>(&self, fun: F) -> R
