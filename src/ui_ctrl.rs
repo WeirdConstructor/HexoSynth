@@ -38,7 +38,8 @@ pub enum UICellTrans {
 pub struct UIControl {
     dialog_model:       Rc<RefCell<DialogModel>>,
 
-    sample_dir:         String,
+    sample_dir:         std::path::PathBuf,
+    path_browse_list:   Vec<std::path::PathBuf>,
     sample_browse_list: ListItems,
     sample_load_id:     AtomId,
     focus_cell:         Cell,
@@ -57,7 +58,10 @@ impl UICtrlRef {
         UICtrlRef(
             Rc::new(RefCell::new(UIControl {
                 dialog_model,
-                sample_dir:         ".".to_string(),
+                path_browse_list:   vec![],
+                sample_dir:
+                    std::env::current_dir()
+                        .unwrap_or(std::path::PathBuf::from(".")),
                 sample_browse_list: ListItems::new(45),
                 sample_load_id:     AtomId::from(99999),
                 focus_cell:         Cell::empty(NodeId::Nop),
@@ -65,11 +69,49 @@ impl UICtrlRef {
             matrix)
     }
 
-    fn reload_sample_dir_list(&self) {
-        let this = self.0.borrow_mut();
+    pub fn reload_sample_dir_list(&self) {
+        let mut this = self.0.borrow_mut();
         this.sample_browse_list.clear();
-        this.sample_browse_list.push(0, "..".to_string());
+        this.path_browse_list.clear();
 
+        let (lbl, pb) =
+            if let Some(parent) = this.sample_dir.parent() {
+                ("..".to_string(), parent.to_path_buf())
+            } else {
+                (".".to_string(), this.sample_dir.clone())
+            };
+
+        this.sample_browse_list.push(0, lbl);
+        this.path_browse_list.push(pb);
+
+        let mut i = 1;
+        if let Ok(rd) = std::fs::read_dir(&this.sample_dir) {
+            for entry in rd {
+                if let Ok(dir) = entry {
+                    let pb = dir.path();
+
+                    if pb.is_dir() {
+                        if let Some(Some(s)) = pb.file_name().map(|s| s.to_str()) {
+                            this.sample_browse_list.push(i, s.to_string() + "/");
+                            i += 1;
+                        }
+                    } else {
+                        if let Some(Some(ext)) = pb.extension().map(|s| s.to_str()) {
+                            if ext == "wav" {
+                                if let Some(Some(s)) = pb.file_name().map(|s| s.to_str()) {
+                                    this.sample_browse_list.push(i, s.to_string());
+                                    i += 1;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn get_sample_dir_list(&self) -> ListItems {
+        self.0.borrow_mut().sample_browse_list.clone()
     }
 
     pub fn with_matrix<F, R>(&self, fun: F) -> R
@@ -225,6 +267,20 @@ impl UICtrlRef {
     pub fn set_event(&self, ui_params: &mut UIParams, id: AtomId, atom: Atom) -> bool {
         if id.node_id() == Self::ATNID_SAMPLE_LOAD_ID {
             println!("SET SAMPLE={:?}", atom);
+
+            let idx = atom.i() as usize;
+
+            {
+                let mut this = self.0.borrow_mut();
+
+                let prev_dir = this.sample_dir.clone();
+                this.sample_dir =
+                    if let Some(pb) = this.path_browse_list.get(idx) { pb.clone() }
+                    else { prev_dir };
+            }
+
+            self.reload_sample_dir_list();
+
             let load_id = self.0.borrow().sample_load_id;
             ui_params.set(load_id, atom);
         }
