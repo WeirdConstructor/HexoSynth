@@ -105,6 +105,8 @@ impl GenericNodeUI {
         let param_id = self.dsp_node_id.param_by_idx(idx)?;
         let param_name = param_id.name();
 
+        println!("BUILD ATOM INPUT: {:?} | {}", param_id, param_name);
+
         match param_id.as_atom_def() {
             SAtom::Param(_) => {
                 let knob_type =
@@ -166,6 +168,15 @@ impl GenericNodeUI {
         for idx in 0..4 {
             if let Some(wd) = self.build_atom_input((3, 3), idx) {
                 cd.add(wd);
+            }
+        }
+
+        if self.dsp_node_id.param_by_idx(4).is_some() {
+            cd.new_row();
+            for idx in 0..4 {
+                if let Some(wd) = self.build_atom_input((3, 3), 4 + idx) {
+                    cd.add(wd);
+                }
             }
         }
 
