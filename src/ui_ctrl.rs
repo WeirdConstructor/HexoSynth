@@ -93,6 +93,7 @@ impl UICtrlRef {
                     if pb.is_dir() {
                         if let Some(Some(s)) = pb.file_name().map(|s| s.to_str()) {
                             this.sample_browse_list.push(i, s.to_string() + "/");
+                            this.path_browse_list.push(pb);
                             i += 1;
                         }
                     } else {
@@ -100,6 +101,7 @@ impl UICtrlRef {
                             if ext == "wav" {
                                 if let Some(Some(s)) = pb.file_name().map(|s| s.to_str()) {
                                     this.sample_browse_list.push(i, s.to_string());
+                                    this.path_browse_list.push(pb);
                                     i += 1;
                                 }
                             }
