@@ -48,7 +48,13 @@ To run the example:
 
 You might need following dependencies (Ubuntu Linux):
 
-    sudo apt install libjack0 libjack-jackd2-dev qjackctl libx11-xcb-dev libxcb-icccm4-dev libxcb-dri3-dev
+    sudo apt install libjack0 libjack-jackd2-dev qjackctl libx11-xcb-dev
+    sudo apt install libxcb-icccm4-dev libxcb-dri3-dev
+
+You might need following dependencies (Ubuntu 20.04 Linux):
+
+    sudo apt install libgl1-mesa-dev libjack-jackd2-dev qjackctl libxcursor-dev
+    sudo apt install libx11-xcb-dev libxcb-icccm4-dev libxcb-dri2-0-dev libxcb-dri3-dev
 
 These might work on Debian too:
 
