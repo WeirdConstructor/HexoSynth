@@ -112,6 +112,11 @@ impl UICtrlRef {
         }
     }
 
+    pub fn ui_message(&self, s: &str) {
+        self.0.borrow().dialog_model.borrow_mut().open(
+            s, Box::new(|_| ()));
+    }
+
     pub fn get_sample_dir_list(&self) -> ListItems {
         self.0.borrow_mut().sample_browse_list.clone()
     }

@@ -340,7 +340,15 @@ impl AtomDataModel for UIParams {
     }
 
     fn check_sync(&mut self) {
-        let cur_gen = self.ui_ctrl.with_matrix(|m| m.get_generation());
+        let (cur_gen, error) =
+            self.ui_ctrl.with_matrix(|m| {
+                (m.get_generation(), m.pop_error())
+            });
+
+        if let Some(error) = error {
+            self.ui_ctrl.ui_message(&error);
+        }
+
         if *self.matrix_gen.borrow() < cur_gen {
             self.sync_from_matrix();
         }
