@@ -72,10 +72,10 @@ impl GenericNodeUI {
             Rc::new(Knob::new(25.0, 12.0, 9.0));
         let wt_knob_11 =
             Rc::new(Knob::new(25.0, 12.0, 9.0).range_signed());
-        let wt_btn        = Rc::new(Button::new(50.0, 12.0));
-        let wt_text       = Rc::new(Text::new(12.0));
+        let wt_btn        = Rc::new(Button::new(60.0, 12.0));
+        let wt_text       = Rc::new(Text::new(10.0));
         let wt_graph      = Rc::new(Graph::new(240.0, 100.0));
-        let wt_editview   = Rc::new(Entry::new_not_editable(50.0, 12.0, 8));
+        let wt_editview   = Rc::new(Entry::new_not_editable(70.0, 10.0, 13));
 
         Self {
             ui_ctrl,
@@ -83,7 +83,7 @@ impl GenericNodeUI {
             model_node_id:  0,
             info:           None,
             cont:           None,
-            help_txt:       Rc::new(TextSourceRef::new(42)),
+            help_txt:       Rc::new(TextSourceRef::new(54)),
             wt_knob_01,
             wt_knob_11,
             wt_btn,
