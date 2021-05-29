@@ -84,7 +84,8 @@ impl UICtrlRef {
         this.sample_browse_list.push(0, lbl);
         this.path_browse_list.push(pb);
 
-        let mut i = 1;
+        let mut dir_contents = vec![];
+
         if let Ok(rd) = std::fs::read_dir(&this.sample_dir) {
             for entry in rd {
                 if let Ok(dir) = entry {
@@ -92,23 +93,27 @@ impl UICtrlRef {
 
                     if pb.is_dir() {
                         if let Some(Some(s)) = pb.file_name().map(|s| s.to_str()) {
-                            this.sample_browse_list.push(i, s.to_string() + "/");
-                            this.path_browse_list.push(pb);
-                            i += 1;
+                            dir_contents.push((true, s.to_string() + "/", pb));
                         }
                     } else {
                         if let Some(Some(ext)) = pb.extension().map(|s| s.to_str()) {
                             if ext == "wav" {
                                 if let Some(Some(s)) = pb.file_name().map(|s| s.to_str()) {
-                                    this.sample_browse_list.push(i, s.to_string());
-                                    this.path_browse_list.push(pb);
-                                    i += 1;
+                                    dir_contents.push((false, s.to_string(), pb));
                                 }
                             }
                         }
                     }
                 }
             }
+        }
+
+        dir_contents.sort_by(|a, b| a.1.cmp(&b.1));
+        dir_contents.sort_by(|a, b| b.0.cmp(&a.0));
+
+        for (i, (_is_dir, filename, pb)) in dir_contents.into_iter().enumerate() {
+            this.sample_browse_list.push((i + 1) as i64, filename);
+            this.path_browse_list.push(pb);
         }
     }
 
@@ -265,6 +270,12 @@ impl UICtrlRef {
     }
 
     pub fn set_sample_load_id(&self, id: AtomId) {
+//        self.with_matrix(|m| {
+//        });
+//
+//                sample_dir:
+//                    std::env::current_dir()
+//                        .unwrap_or(std::path::PathBuf::from(".")),
         self.0.borrow_mut().sample_load_id = id;
     }
 
