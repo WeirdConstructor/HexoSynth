@@ -12,12 +12,10 @@ use hexotk::widgets::{
 //    Text, TextSourceRef, TextData,
     PatternEditor, PatternEditorData,
     Tabs, TabsData,
-    List, ListData, ListItems, ListOutput,
+    List, ListData, ListOutput,
 };
-use crate::matrix::Matrix;
 use crate::dsp::NodeId;
 
-use std::sync::{Arc, Mutex};
 use std::rc::Rc;
 
 pub struct PatternViewData {
@@ -56,6 +54,7 @@ impl PatternViewData {
 define_containing_widget!{PatternView, PatternViewData}
 
 pub struct UtilPanelData {
+    #[allow(dead_code)]
     ui_ctrl:    UICtrlRef,
     cont:       WidgetData,
 }

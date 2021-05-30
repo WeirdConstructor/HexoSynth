@@ -14,8 +14,6 @@ use hexotk::widgets::{
 };
 
 use std::rc::Rc;
-use std::sync::Arc;
-use std::sync::Mutex;
 
 use crate::matrix::Cell;
 
@@ -96,7 +94,7 @@ impl MonitorsData {
                 }))
         };
 
-        cd.contrast_border()
+        cd
             .new_row()
             .add(wbox!(
                 wt_gmm, AtomId::new(id.node_id(), id.atom_id() + 1),

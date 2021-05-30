@@ -22,12 +22,12 @@ use hexotk::widgets::{
 
 use std::rc::Rc;
 use std::cell::RefCell;
-use std::sync::Arc;
-use std::sync::Mutex;
 
 const PANEL_HELP_TEXT_ID      : u32 = 1;
 const PANEL_HELP_TEXT_CONT_ID : u32 = 2;
 const PANEL_GRAPH_ID          : u32 = 3;
+const PANEL_SUB_CONT_ID       : u32 = 4;
+const PANEL_MAIN_CONT_ID      : u32 = 5;
 
 struct GraphAtomDataAdapter<'a> {
     ui: &'a dyn WidgetUI,
@@ -83,7 +83,7 @@ impl GenericNodeUI {
             model_node_id:  0,
             info:           None,
             cont:           None,
-            help_txt:       Rc::new(TextSourceRef::new(54)),
+            help_txt:       Rc::new(TextSourceRef::new(55)),
             wt_knob_01,
             wt_knob_11,
             wt_btn,
@@ -134,7 +134,7 @@ impl GenericNodeUI {
                     center(pos.0, pos.1),
                     ButtonData::new_toggle(param_name)))
             },
-            SAtom::AudioSample((filename, _)) => {
+            SAtom::AudioSample((_filename, _)) => {
                 self.ui_ctrl.set_sample_load_id(
                     AtomId::new(self.model_node_id, idx as u32));
 
@@ -161,24 +161,39 @@ impl GenericNodeUI {
     pub fn rebuild(&mut self) {
         let wt_cont = Rc::new(Container::new());
 
-        let mut cd = ContainerData::new();
+        let mut param_cd = ContainerData::new();
 
-        cd.contrast_border().new_row();
+        param_cd.contrast_border().new_row();
 
         for idx in 0..4 {
             if let Some(wd) = self.build_atom_input((3, 3), idx) {
-                cd.add(wd);
+                param_cd.add(wd);
             }
         }
 
         if self.dsp_node_id.param_by_idx(4).is_some() {
-            cd.new_row();
+            param_cd.new_row();
             for idx in 0..4 {
                 if let Some(wd) = self.build_atom_input((3, 3), 4 + idx) {
-                    cd.add(wd);
+                    param_cd.add(wd);
                 }
             }
         }
+
+        if let Some(mut graph_fun) = self.dsp_node_id.graph_fun() {
+            let graph_fun =
+                Box::new(move |ui: &dyn WidgetUI, init: bool, x: f64| -> f64 {
+                    let gd = GraphAtomDataAdapter { ui };
+                    graph_fun(&gd, init, x as f32) as f64
+                });
+
+            param_cd.new_row()
+              .add(wbox!(self.wt_graph,
+                   AtomId::new(crate::NODE_PANEL_ID, PANEL_GRAPH_ID),
+                   center(12, 6),
+                   GraphData::new(30, graph_fun)));
+        }
+
 
         let mut txt_cd = ContainerData::new();
         txt_cd
@@ -193,21 +208,15 @@ impl GenericNodeUI {
                center(12, 12),
                TextData::new(self.help_txt.clone())));
 
-        if let Some(mut graph_fun) = self.dsp_node_id.graph_fun() {
-            let graph_fun =
-                Box::new(move |ui: &dyn WidgetUI, init: bool, x: f64| -> f64 {
-                    let gd = GraphAtomDataAdapter { ui };
-                    graph_fun(&gd, init, x as f32) as f64
-                });
+        let mut panel_cd = ContainerData::new();
+        panel_cd
+            .new_row().add(wbox!(
+                wt_cont,
+                AtomId::new(crate::NODE_PANEL_ID, PANEL_SUB_CONT_ID),
+                center(12, 9),
+                param_cd));
 
-            cd.new_row()
-              .add(wbox!(self.wt_graph,
-                   AtomId::new(crate::NODE_PANEL_ID, PANEL_GRAPH_ID),
-                   center(12, 3),
-                   GraphData::new(30, graph_fun)));
-        }
-
-        cd.new_row()
+        panel_cd.new_row()
           .add(wbox!(wt_cont,
                AtomId::new(crate::NODE_PANEL_ID, PANEL_HELP_TEXT_CONT_ID),
                center(12, 3),
@@ -216,8 +225,9 @@ impl GenericNodeUI {
         self.cont =
             Some(Box::new(wbox!(
                 wt_cont,
-                AtomId::new(self.model_node_id, 1),
-                center(12, 12), cd)));
+                AtomId::new(crate::NODE_PANEL_ID, PANEL_MAIN_CONT_ID),
+                center(12, 12),
+                panel_cd)));
     }
 }
 
@@ -296,7 +306,7 @@ impl WidgetType for NodePanel {
                 node_ui.check_hover_text_for(at_id);
             }
 
-            let monitor_height = 260.0;
+            let monitor_height = 220.0;
 
             let cont_pos = pos.crop_bottom(monitor_height);
 

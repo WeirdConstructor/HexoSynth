@@ -17,13 +17,10 @@ use hexotk::widgets::{
     HexGrid, HexGridData, HexCell, HexEdge, HexDir,
     Container, ContainerData,
     Text, TextSourceRef, TextData,
-    DialogModel,
 };
 
 use std::rc::Rc;
 use std::cell::RefCell;
-use std::sync::Arc;
-use std::sync::Mutex;
 
 pub struct MatrixActionHandler {
     ui_ctrl:      UICtrlRef,
@@ -45,13 +42,13 @@ impl MenuActionHandler for MatrixActionHandler {
     }
 
     fn assign_cell_port(
-        &mut self, mut cell: Cell, cell_dir: CellDir, idx: Option<usize>)
+        &mut self, cell: Cell, cell_dir: CellDir, idx: Option<usize>)
     {
         self.ui_ctrl.assign_cell_port(cell, cell_dir, idx);
     }
 
     fn assign_cell_new_node(
-        &mut self, mut cell: Cell, node_id: NodeId)
+        &mut self, cell: Cell, node_id: NodeId)
     {
         self.ui_ctrl.assign_cell_new_node(cell, node_id);
     }
