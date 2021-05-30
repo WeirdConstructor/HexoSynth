@@ -17,6 +17,7 @@ use hexotk::widgets::{
     HexGrid, HexGridData, HexCell, HexEdge, HexDir,
     Container, ContainerData,
     Text, TextSourceRef, TextData,
+    Tabs, TabsData,
 };
 
 use std::rc::Rc;
@@ -302,6 +303,8 @@ pub struct NodeMatrixData {
     #[allow(dead_code)]
     node_panel:   Box<WidgetData>,
     util_panel:   Box<WidgetData>,
+    help_text:    Box<WidgetData>,
+    show_help:    bool,
 
     matrix_model: Rc<MatrixUIModel>,
     ui_ctrl:      UICtrlRef,
@@ -316,6 +319,10 @@ const HEX_MENU_HELP_TEXT_ID : u32 = 4;
 const HEX_MENU_ID           : u32 = 5;
 const NODE_PANEL_ID         : u32 = 11;
 const UTIL_PANEL_ID         : u32 = 12;
+const HELP_CONT_ID          : u32 = 13;
+const HELP_TEXT_ID          : u32 = 14;
+const HELP_TEXT_SHORTCUT_ID : u32 = 15;
+const HELP_TEXT_ABOUT_ID    : u32 = 16;
 
 impl NodeMatrixData {
     pub fn new(
@@ -348,8 +355,9 @@ impl NodeMatrixData {
         let wt_hexgrid_menu =
             Rc::new(HexGrid::new_y_offs_pinned(12.0, 10.0, 45.0)
                     .bg_color(UI_GRID_BG2_CLR));
-        let wt_cont = Rc::new(Container::new());
-        let wt_text = Rc::new(Text::new(12.0));
+        let wt_cont         = Rc::new(Container::new());
+        let wt_text         = Rc::new(Text::new(12.0));
+        let wt_help_txt     = Rc::new(Text::new(14.0));
 
         let hex_menu_id = AtomId::new(node_id, HEX_MENU_ID);
         let mut hex_menu = ContainerData::new();
@@ -366,11 +374,136 @@ impl NodeMatrixData {
                 center(6, 12),
                 TextData::new(txtsrc.clone())));
 
+        let mut tdata = TabsData::new();
+
+        let about_text = Rc::new(TextSourceRef::new(77));
+        about_text.set(r#"About HexoSynth
+HexoSynth is a modular synthesizer where the graph is
+represented as hexagonal tile map. The 6 edges of each tile
+are the ports of the nodes (aka modules). The top and left edges
+are the input edges, and the bottom and right edges are the outputs.
+
+ATTENTION: For help please take a look at the other tabs of this about screen at the top!
+
+-------------------------------
+
+HexoSynth modular synthesizer
+Copyright (C) 2021  Weird Constructor <weirdconstructor@gmail.com>
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"#);
+
+        let key_text = Rc::new(TextSourceRef::new(77));
+        key_text.set(r#"Keyboard Shortcuts
+* Hex Grid
+
+    Drag LMB    - Move / Swap Nodes
+    Drag RMB    - Linked clone of dragged node
+    Drag MMB    - New instance of dragged node type
+
+    Ctrl + RMB  - Assign edge menu to set inputs/outputs of clicked node.
+
+    Shift + Drag LMB Up/Down - Pan hex grid
+    Shift + Drag RMB Up/Down - Zoom Out/IN
+
+LMB = Left Mouse Button, RMB = Right Mouse Button, MMB = Middle Mouse Button
+"#);
+
+        let tracker_key_text = Rc::new(TextSourceRef::new(77));
+        tracker_key_text.set(r#"Tracker / Pattern Editor Keyboard Shortcuts
+* Normal Mode
+
+    Return              - Enter Edit Mode
+    Escape              - Exit Edit Mode
+
+    Home                - Cursor to first row
+    End                 - Cursor to last row (within edit step)
+    Page Up             - Cursor up by 2 edit steps
+    Page Down           - Cursor down by 2 edit steps
+    Up/Down/Left/Right  - Move Cursor
+    'f'                 - Toggle cursor follow phase bar
+
+    Del                 - Delete value in cell at cursor
+    '+' / '-'           - In-/Decrease note enter mode octave
+    '*' / '/' (Keypad)  - In-/Decrease edit step by 1
+    'r'                 - Enter new pattern rows / length mode
+    'e'                 - Enter new edit step mode
+    'o'                 - Enter octave mode
+    'c'                 - Change column type mode
+    'd'                 - Delete col/row/step mode
+
+    Shift + PgUp   - (+ 0x100) Increase 1st nibble of value under cursor
+    Shift + PgDown - (- 0x100) Decrease 1st nibble of value under cursor
+    Shift + Up     - (+ 0x010) Increase 2nd nibble of value under cursor
+    Shift + Down   - (- 0x010) Decrease 2nd nibble of value under cursor
+    Shift + Right  - (+ 0x001) Increase 3rd nibble of value under cursor
+    Shift + Left   - (- 0x001) Decrease 3rd nibble of value under cursor
+
+* Edit Mode
+
+    Up/Down/Left/Right - Move Cursor
+
+    '.'                - Repeat entering most recently entered value
+                         and advance one edit step
+    Note Column  :    Note entering via keyboard "like Renoise".
+    Other Columns:    '0'-'9', 'a'-'f' - Enter value
+"#);
+        tdata.add(
+            "Keys",
+            wbox!(
+                wt_help_txt.clone(),
+                AtomId::new(node_id, HELP_TEXT_SHORTCUT_ID),
+                center(12, 12),
+                TextData::new(key_text)));
+
+        tdata.add(
+            "Tracker Keys",
+            wbox!(
+                wt_help_txt.clone(),
+                AtomId::new(node_id, HELP_TEXT_SHORTCUT_ID),
+                center(12, 12),
+                TextData::new(tracker_key_text)));
+
+
+        tdata.add(
+            "Module",
+            wbox!(
+                wt_help_txt.clone(),
+                AtomId::new(node_id, HELP_TEXT_ID),
+                center(12, 12),
+                TextData::new(ui_ctrl.get_help_text_src())));
+
+        tdata.add(
+            "About",
+            wbox!(
+                wt_help_txt.clone(),
+                AtomId::new(node_id, HELP_TEXT_ABOUT_ID),
+                center(12, 12),
+                TextData::new(about_text)));
+
+        let help_text =
+            WidgetData::new_tl_box(
+                Tabs::new_ref(),
+                AtomId::new(crate::HELP_TABS_ID, 0),
+                tdata);
+
         WidgetData::new(
             wt_nmatrix,
             AtomId::new(node_id, HEX_MATRIX_ID),
             pos,
             Box::new(Self {
+                show_help: false,
                 ui_ctrl: ui_ctrl.clone(),
                 hex_grid: WidgetData::new_tl_box(
                     wt_hexgrid.clone(),
@@ -390,6 +523,7 @@ impl NodeMatrixData {
                     AtomId::new(node_id, UTIL_PANEL_ID),
                     center(12, 12),
                     UtilPanelData::new(ui_ctrl.clone()))),
+                help_text,
                 hex_menu_id,
                 matrix_model,
                 grid_click_pos: None,
@@ -419,9 +553,16 @@ impl WidgetType for NodeMatrix {
                    .offs(pos.w - 360.0, 0.0);
 
             let hex_pos = pos.shrink(365.0, 0.0);
-            (*data.hex_grid).draw(ui, p, hex_pos);
+            if !data.show_help {
+                (*data.hex_grid).draw(ui, p, hex_pos);
+            }
+
             (*data.node_panel).draw(ui, p, panel_pos);
             (*data.util_panel).draw(ui, p, util_pos);
+
+            if data.show_help {
+                (*data.help_text).draw(ui, p, hex_pos);
+            }
 
             if let Some(mouse_pos) = data.grid_click_pos {
                 if data.matrix_model.menu.menu.borrow().is_open() {
@@ -454,7 +595,16 @@ impl WidgetType for NodeMatrix {
                          ev, *id, button, data.id());
 
                 data.with(|data: &mut NodeMatrixData| {
-                    if *id == data.hex_menu_id {
+                    if data.show_help {
+                        data.help_text.event(ui, ev);
+                        if *id == data.hex_menu_id {
+                            data.hex_menu.event(ui, ev);
+                        } else {
+                            data.node_panel.event(ui, ev);
+                            data.util_panel.event(ui, ev);
+                        }
+
+                    } else if *id == data.hex_menu_id {
                         data.hex_menu.event(ui, ev);
 
                     } else {
@@ -502,6 +652,11 @@ impl WidgetType for NodeMatrix {
                 use keyboard_types::Key;
 
                 match key {
+                    Key::F1 => {
+                        data.with(|data: &mut NodeMatrixData| {
+                            data.show_help = !data.show_help;
+                        });
+                    },
                     Key::F4 => {
                         data.with(|data: &mut NodeMatrixData| {
                             data.matrix_model.ui_ctrl.save_patch();

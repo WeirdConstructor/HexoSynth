@@ -12,6 +12,7 @@ use hexotk::{AtomId, Atom, AtomDataModel};
 use hexotk::widgets::{
     DialogModel,
     ListItems,
+    TextSourceRef,
 };
 
 use std::rc::Rc;
@@ -37,6 +38,7 @@ pub enum UICellTrans {
 /// the [Matrix] and other state.
 pub struct UIControl {
     dialog_model:       Rc<RefCell<DialogModel>>,
+    help_text_src:      Rc<TextSourceRef>,
 
     sample_dir:         std::path::PathBuf,
     path_browse_list:   Vec<std::path::PathBuf>,
@@ -57,6 +59,7 @@ impl UICtrlRef {
     {
         UICtrlRef(
             Rc::new(RefCell::new(UIControl {
+                help_text_src:      Rc::new(TextSourceRef::new(50)),
                 dialog_model,
                 path_browse_list:   vec![],
                 sample_dir:
@@ -67,6 +70,10 @@ impl UICtrlRef {
                 focus_cell:         Cell::empty(NodeId::Nop),
             })),
             matrix)
+    }
+
+    pub fn get_help_text_src(&self) -> Rc<TextSourceRef> {
+        self.0.borrow().help_text_src.clone()
     }
 
     pub fn reload_sample_dir_list(&self) {
