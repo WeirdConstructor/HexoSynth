@@ -435,34 +435,10 @@ impl AtomDataModel for UIParams {
         let mut bw = std::io::BufWriter::new(buf);
 
         if let Some((pid, atom)) = self.get_param(id) {
-//            if let Atom::Setting(i) = atom {
-//                if let Some(lbl) = pid.setting_lbl(i.abs() as usize) {
-//                    match write!(bw, "{}", lbl) {
-//                        Ok(_)  => bw.buffer().len(),
-//                        Err(_) => 0,
-//                    }
-//                } else {
-//                    match write!(bw, "{}", i) {
-//                        Ok(_)  => bw.buffer().len(),
-//                        Err(_) => 0,
-//                    }
-//                }
-//
-//            } else {
-                match pid.format(&mut bw, atom.f()) {
-                    Some(Ok(_)) => bw.buffer().len(),
-                    _ => 0,
-                }
-//                if let Some(denorm_v) = self.get_denorm(id) {
-//                    match write!(bw, "{:6.3}", denorm_v) {
-//                        Ok(_)  => bw.buffer().len(),
-//                        Err(_) => 0,
-//                    }
-//                } else {
-//                    0
-//                }
-//            }
-
+            match pid.format(&mut bw, atom.f()) {
+                Some(Ok(_)) => bw.buffer().len(),
+                _ => 0,
+            }
         } else {
             0
         }
