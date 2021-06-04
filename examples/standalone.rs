@@ -256,7 +256,7 @@ fn main() {
                 Box::new(NodeMatrixData::new(
                     ui_ctrl.clone(),
                     UIPos::center(12, 12),
-                    11)),
+                    110003)),
                 Box::new(wbox!(
                     wt_diag, 90000.into(), center(12, 12),
                     DialogData::new(

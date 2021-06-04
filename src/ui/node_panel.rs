@@ -128,6 +128,7 @@ impl GenericNodeUI {
                     KnobData::new(param_name)))
             },
             SAtom::Setting(_) => {
+                println!("CREATE BUTTON: {}, {}", self.model_node_id, idx);
                 Some(wbox!(
                     self.wt_btn.clone(),
                     AtomId::new(self.model_node_id, idx as u32),
@@ -327,6 +328,7 @@ impl WidgetType for NodePanel {
         data.with(|data: &mut NodePanelData| {
             let mut node_ui = data.node_ui.borrow_mut();
             if let Some(cont) = &mut node_ui.cont {
+                println!("CONT EVENT NODE PANEL: {:?}", ev);
                 cont.event(ui, ev);
             }
         });
