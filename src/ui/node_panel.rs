@@ -57,7 +57,6 @@ pub struct GenericNodeUI {
     cont:           Option<Box<WidgetData>>,
 
     wt_knob_01:    Rc<Knob>,
-    wt_knob_11:    Rc<Knob>,
     wt_btn:        Rc<Button>,
     wt_text:       Rc<Text>,
     wt_graph:      Rc<Graph>,
@@ -70,8 +69,6 @@ impl GenericNodeUI {
     pub fn new(ui_ctrl: UICtrlRef) -> Self {
         let wt_knob_01 =
             Rc::new(Knob::new(25.0, 12.0, 9.0));
-        let wt_knob_11 =
-            Rc::new(Knob::new(25.0, 12.0, 9.0).range_signed());
         let wt_btn        = Rc::new(Button::new(60.0, 12.0));
         let wt_text       = Rc::new(Text::new(10.0));
         let wt_graph      = Rc::new(Graph::new(240.0, 100.0));
@@ -85,7 +82,6 @@ impl GenericNodeUI {
             cont:           None,
             help_txt:       Rc::new(TextSourceRef::new(55)),
             wt_knob_01,
-            wt_knob_11,
             wt_btn,
             wt_text,
             wt_graph,
@@ -109,17 +105,8 @@ impl GenericNodeUI {
 
         match param_id.as_atom_def() {
             SAtom::Param(_) => {
-                let knob_type =
-                    if let Some((min, _max)) = param_id.param_min_max() {
-                        if min < 0.0 {
-                            self.wt_knob_11.clone()
-                        } else {
-                            self.wt_knob_01.clone()
-                        }
-                    } else {
-                        // FIXME: Widget type should be determined by the Atom enum!
-                        self.wt_knob_01.clone()
-                    };
+                    // FIXME: Widget type should be determined by the Atom enum!
+                let knob_type = self.wt_knob_01.clone();
 
                 Some(wbox!(
                     knob_type,

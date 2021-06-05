@@ -358,6 +358,24 @@ impl AtomDataModel for UIParams {
         Some(&self.get_param(id)?.1)
     }
 
+    fn get_ui_range(&self, id: AtomId) -> Option<f32> {
+        if let Some((pid, _)) = self.get_param(id) {
+            if let Some((min, max)) = pid.param_min_max() {
+                if min < 0.0 {
+                    return Some((self.get(id)?.f() + 1.0) * 0.5);
+                } else {
+                    return Some(self.get(id)?.f());
+                }
+            }
+        }
+
+        None
+    }
+
+    fn get_ui_steps(&self, id: AtomId) -> Option<(f32, f32)> {
+        None // default is coarse: 1.0 / 20.0, fine: 1.0 / 100.0
+    }
+
     fn get_denorm(&self, id: AtomId) -> Option<f32> {
         let (pid, atom) = self.get_param(id)?;
         Some(pid.denorm(atom.f()))
