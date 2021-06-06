@@ -359,7 +359,7 @@ impl AtomDataModel for UIParams {
 
     fn get_ui_range(&self, id: AtomId) -> Option<f32> {
         if let Some((pid, _)) = self.get_param(id) {
-            if let Some((min, max)) = pid.param_min_max() {
+            if let Some(((min, max), _)) = pid.param_min_max() {
                 let v = self.get(id)?.f();
                 return Some(((v - min) / (max - min)).abs());
             }
@@ -370,13 +370,13 @@ impl AtomDataModel for UIParams {
 
     fn get_ui_steps(&self, id: AtomId) -> Option<(f32, f32)> {
         if let Some((pid, _)) = self.get_param(id) {
-            if let Some((min, max)) = pid.param_min_max() {
+            if let Some(((min, max), (coarse, fine))) = pid.param_min_max() {
                 let delta = (max - min).abs();
-                return Some((delta / 20.0, delta / 100.0));
+                return Some((delta / coarse, delta / fine));
             }
         }
 
-        None // default is coarse: 1.0 / 20.0, fine: 1.0 / 100.0
+        None
     }
 
     fn get_denorm(&self, id: AtomId) -> Option<f32> {
@@ -403,24 +403,17 @@ impl AtomDataModel for UIParams {
     fn change(&mut self, id: AtomId, v: f32, single: bool, res: ChangeRes) {
         println!("CHANGE: {},{} ({})", id, v, single);
         if let Some((pid, _)) = self.get_param(id) {
-            if let Some((min, max)) = pid.param_min_max() {
+            if let Some(((min, max), _)) = pid.param_min_max() {
                 println!(
                     "CHANGE: {},{} ({}), min={}, max={}",
                     id, v, single, min, max);
-                match res {
-                    ChangeRes::Coarse =>
-                        self.set(
-                            id,
-                            Atom::param(
-                                pid.round(v.clamp(min, max), true))),
-                    ChangeRes::Fine =>
-                        self.set(
-                            id,
-                            Atom::param(
-                                pid.round(v.clamp(min, max), false))),
-                    ChangeRes::Free =>
-                        self.set(id, Atom::param(v.clamp(min, max))),
-                }
+                let v =
+                    match res {
+                        ChangeRes::Coarse => pid.round(v.clamp(min, max), true),
+                        ChangeRes::Fine   => pid.round(v.clamp(min, max), false),
+                        ChangeRes::Free   => v.clamp(min, max),
+                    };
+                self.set(id, Atom::param(v));
             }
         }
     }
@@ -428,21 +421,14 @@ impl AtomDataModel for UIParams {
     fn change_end(&mut self, id: AtomId, v: f32, res: ChangeRes) {
         println!("CHANGE END: {},{}", id, v);
         if let Some((pid, _)) = self.get_param(id) {
-            if let Some((min, max)) = pid.param_min_max() {
-                match res {
-                    ChangeRes::Coarse =>
-                        self.set(
-                            id,
-                            Atom::param(
-                                pid.round(v.clamp(min, max), true))),
-                    ChangeRes::Fine =>
-                        self.set(
-                            id,
-                            Atom::param(
-                                pid.round(v.clamp(min, max), false))),
-                    ChangeRes::Free =>
-                        self.set(id, Atom::param(v.clamp(min, max))),
-                }
+            if let Some(((min, max), _)) = pid.param_min_max() {
+                let v =
+                    match res {
+                        ChangeRes::Coarse => pid.round(v.clamp(min, max), true),
+                        ChangeRes::Fine   => pid.round(v.clamp(min, max), false),
+                        ChangeRes::Free   => v.clamp(min, max),
+                    };
+                self.set(id, Atom::param(v));
             }
         }
     }
@@ -480,7 +466,6 @@ impl AtomDataModel for UIParams {
     }
 
     fn fmt<'a>(&self, id: AtomId, buf: &'a mut [u8]) -> usize {
-        use std::io::Write;
         let mut bw = std::io::BufWriter::new(buf);
 
         if let Some((pid, atom)) = self.get_param(id) {
