@@ -309,7 +309,6 @@ impl UIParams {
             }
 
         } else if id.node_id() > PARAM_VARIABLES_SPACE {
-            println!("SET PARAM {:?} = {:?}", id, atom);
             self.variables.insert(id, (ParamId::none(), atom.clone()));
 
         } else {
@@ -361,11 +360,8 @@ impl AtomDataModel for UIParams {
     fn get_ui_range(&self, id: AtomId) -> Option<f32> {
         if let Some((pid, _)) = self.get_param(id) {
             if let Some((min, max)) = pid.param_min_max() {
-                if min < 0.0 {
-                    return Some((self.get(id)?.f() + 1.0) * 0.5);
-                } else {
-                    return Some(self.get(id)?.f());
-                }
+                let v = self.get(id)?.f();
+                return Some(((v - min) / (max - min)).abs());
             }
         }
 
@@ -373,6 +369,13 @@ impl AtomDataModel for UIParams {
     }
 
     fn get_ui_steps(&self, id: AtomId) -> Option<(f32, f32)> {
+        if let Some((pid, _)) = self.get_param(id) {
+            if let Some((min, max)) = pid.param_min_max() {
+                let delta = (max - min).abs();
+                return Some((delta / 20.0, delta / 100.0));
+            }
+        }
+
         None // default is coarse: 1.0 / 20.0, fine: 1.0 / 100.0
     }
 
