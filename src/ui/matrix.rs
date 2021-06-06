@@ -406,6 +406,22 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
         let key_text = Rc::new(TextSourceRef::new(77));
         key_text.set(r#"Keyboard Shortcuts
+* Parameter Knobs
+
+    Parameter knobs have two areas where you can grab them:
+    * Center/Value label is the coarse area.
+    * Name Label below center is the fine adjustment area.
+
+    Drag LMB Up/Down                - Adjust parameter.
+    Shift + Drag LMB Up/Down        - Fine adjust parameter.
+    Ctrl  + Drag LMB Up/Down        - Disable parameter snap. (eg. for the
+                                      detune parameter)
+    Ctrl + Shift + Drag LMB Up/Down - Fine adjustment of parameters with
+                                      disabled parameter snap.
+
+    Combining the fine adjustment areas with the Shift key gives a freedom
+    of 4 resolutions to adjust parameters.
+
 * Hex Grid
 
     Drag LMB    - Move / Swap Nodes
