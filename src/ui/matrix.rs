@@ -477,7 +477,7 @@ LMB = Left Mouse Button, RMB = Right Mouse Button, MMB = Middle Mouse Button
                          and advance one edit step.
     ','                - Remember the current cell value as most recently
                          used value and advance one edit step.
-                         Useful for copying a value.
+                         Useful for copying a value and paste it with '.'.
     Note Column  :    Note entering via keyboard "like Renoise".
     Other Columns:    '0'-'9', 'a'-'f' - Enter value
 "#);
