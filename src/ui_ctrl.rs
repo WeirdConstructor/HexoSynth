@@ -45,6 +45,7 @@ pub struct UIControl {
     sample_browse_list: ListItems,
     sample_load_id:     AtomId,
     focus_cell:         Cell,
+    focus_node_info:    NodeInfo,
 }
 
 #[derive(Clone)]
@@ -59,7 +60,9 @@ impl UICtrlRef {
     {
         UICtrlRef(
             Rc::new(RefCell::new(UIControl {
-                help_text_src:      Rc::new(TextSourceRef::new(50)),
+                help_text_src:
+                    Rc::new(TextSourceRef::new(
+                        crate::ui::UI_MAIN_HELP_TEXT_WIDTH)),
                 dialog_model,
                 path_browse_list:   vec![],
                 sample_dir:
@@ -68,6 +71,7 @@ impl UICtrlRef {
                 sample_browse_list: ListItems::new(45),
                 sample_load_id:     AtomId::from(99999),
                 focus_cell:         Cell::empty(NodeId::Nop),
+                focus_node_info:    NodeInfo::from_node_id(NodeId::Nop),
             })),
             matrix)
     }
@@ -274,6 +278,10 @@ impl UICtrlRef {
 
     pub fn set_focus(&self, cell: Cell) {
         self.0.borrow_mut().focus_cell = cell;
+        self.0.borrow_mut().focus_node_info =
+            NodeInfo::from_node_id(cell.node_id());
+        let help_txt = self.0.borrow_mut().focus_node_info.help();
+        self.0.borrow().help_text_src.set(help_txt);
     }
 
     pub fn set_sample_load_id(&self, id: AtomId) {

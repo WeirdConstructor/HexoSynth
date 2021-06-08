@@ -192,7 +192,7 @@ impl Menu {
                 });
             },
             MenuState::SubCategory { cell, cat, offset, count } => {
-                self.lbl_fun = Box::new(move |idx, _help, _state| {
+                self.lbl_fun = Box::new(move |idx, help, _state| {
                     match idx {
                         0 => Some("<Back"),
                         _ => {
@@ -209,16 +209,21 @@ impl Menu {
                             if next {
                                 Some("Next>")
                             } else {
-                                let mut names : [Option<&'static str>; 6] = [None; 6];
+                                let mut s : Option<&'static str> = None;
+
                                 let mut i = 0;
                                 cat.get_node_ids(offset, |node_id| {
-                                    if i < 6 {
-                                        names[i] = Some(node_id.name());
+                                    if i == (idx - 1) {
+                                        if help {
+                                            s = Some(NodeInfo::from_node_id(node_id).desc());
+                                        } else {
+                                            s = Some(node_id.name());
+                                        }
                                     }
                                     i += 1;
                                 });
 
-                                names[idx - 1]
+                                s
                             }
                         }
                     }

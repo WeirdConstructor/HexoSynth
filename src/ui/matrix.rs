@@ -376,7 +376,8 @@ impl NodeMatrixData {
 
         let mut tdata = TabsData::new();
 
-        let about_text = Rc::new(TextSourceRef::new(77));
+        let about_text =
+            Rc::new(TextSourceRef::new(crate::ui::UI_MAIN_HELP_TEXT_WIDTH));
         about_text.set(r#"About HexoSynth
 HexoSynth is a modular synthesizer where the graph is
 represented as hexagonal tile map. The 6 edges of each tile
@@ -404,7 +405,8 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 "#);
 
-        let key_text = Rc::new(TextSourceRef::new(77));
+        let key_text =
+            Rc::new(TextSourceRef::new(crate::ui::UI_MAIN_HELP_TEXT_WIDTH));
         key_text.set(r#"Keyboard Shortcuts
 * Parameter Knobs
 
@@ -419,7 +421,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     Ctrl + Shift + Drag LMB Up/Down - Fine adjustment of parameters with
                                       disabled parameter snap.
 
-    Combining the fine adjustment areas with the Shift key gives a freedom
+    Combining the fine adjustment areas with the Shift key allows a freedom
     of 4 resolutions to adjust parameters.
 
 * Hex Grid
@@ -436,7 +438,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 LMB = Left Mouse Button, RMB = Right Mouse Button, MMB = Middle Mouse Button
 "#);
 
-        let tracker_key_text = Rc::new(TextSourceRef::new(77));
+        let tracker_key_text =
+            Rc::new(TextSourceRef::new(crate::ui::UI_MAIN_HELP_TEXT_WIDTH));
         tracker_key_text.set(r#"Tracker / Pattern Editor Keyboard Shortcuts
 * Normal Mode
 
@@ -671,6 +674,13 @@ impl WidgetType for NodeMatrix {
                     Key::F1 => {
                         data.with(|data: &mut NodeMatrixData| {
                             data.show_help = !data.show_help;
+                        });
+                    },
+                    Key::Escape => {
+                        data.with(|data: &mut NodeMatrixData| {
+                            if data.show_help {
+                                data.show_help = false;
+                            }
                         });
                     },
                     Key::F4 => {

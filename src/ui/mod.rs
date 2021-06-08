@@ -7,3 +7,5 @@ mod node_panel;
 mod menu;
 mod monitors;
 mod util_panel;
+
+pub const UI_MAIN_HELP_TEXT_WIDTH : usize = 77;
