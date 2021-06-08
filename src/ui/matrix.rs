@@ -473,8 +473,11 @@ LMB = Left Mouse Button, RMB = Right Mouse Button, MMB = Middle Mouse Button
 
     Up/Down/Left/Right - Move Cursor
 
-    '.'                - Repeat entering most recently entered value
-                         and advance one edit step
+    '.'                - Enter most recently entered value
+                         and advance one edit step.
+    ','                - Remember the current cell value as most recently
+                         used value and advance one edit step.
+                         Useful for copying a value.
     Note Column  :    Note entering via keyboard "like Renoise".
     Other Columns:    '0'-'9', 'a'-'f' - Enter value
 "#);
