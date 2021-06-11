@@ -168,6 +168,15 @@ impl GenericNodeUI {
             }
         }
 
+        if self.dsp_node_id.param_by_idx(8).is_some() {
+            param_cd.new_row();
+            for idx in 0..4 {
+                if let Some(wd) = self.build_atom_input((3, 3), 8 + idx) {
+                    param_cd.add(wd);
+                }
+            }
+        }
+
         if let Some(mut graph_fun) = self.dsp_node_id.graph_fun() {
             let graph_fun =
                 Box::new(move |ui: &dyn WidgetUI, init: bool, x: f64| -> f64 {
