@@ -30,9 +30,15 @@ fn create_pattern_edit(tseq_idx: usize, ui_ctrl: &UICtrlRef) -> WidgetData {
             m.get_pattern_data(tseq_idx)
              .unwrap());
 
+    let id = {
+        ui_ctrl.with_matrix(|m|
+            m.unique_index_for(&NodeId::TSeq(tseq_idx as u8))
+             .unwrap_or(crate::PATTERN_VIEW_ID))
+    };
+
     wbox!(
         PatternEditor::new_ref(6, 44),
-        AtomId::new(crate::PATTERN_VIEW_ID as u32, 0),
+        AtomId::new(id as u32, 0),
         center(12, 12),
         PatternEditorData::new(data))
 }
