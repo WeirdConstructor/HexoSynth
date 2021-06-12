@@ -261,6 +261,10 @@ impl UICtrlRef {
         self.0.borrow().focus_cell
     }
 
+    pub fn get_focus_id(&self) -> NodeId {
+        self.0.borrow().focus_cell.node_id()
+    }
+
     pub fn is_cell_focussed(&self, x: usize, y: usize) -> bool {
         let cell = self.0.borrow().focus_cell;
 
