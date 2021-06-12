@@ -229,8 +229,13 @@ impl HexGridModel for MatrixUIModel {
     }
 
     fn cell_empty(&self, x: usize, y: usize) -> bool {
-        if x >= self.w || y >= self.h { return true; }
-        false
+        self.ui_ctrl.with_matrix(|m| {
+            if let Some(cell) = m.get(x, y) {
+                cell.node_id() == NodeId::Nop
+            } else {
+                true
+            }
+        })
     }
 
     fn cell_visible(&self, x: usize, y: usize) -> bool {
