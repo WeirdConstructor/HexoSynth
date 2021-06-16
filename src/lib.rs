@@ -362,6 +362,9 @@ impl AtomDataModel for UIParams {
             if let Some(((min, max), _)) = pid.param_min_max() {
                 let v = self.get(id)?.f();
                 return Some(((v - min) / (max - min)).abs());
+            } else {
+                let v = self.get(id)?.f();
+                return Some(v);
             }
         }
 
@@ -373,6 +376,8 @@ impl AtomDataModel for UIParams {
             if let Some(((min, max), (coarse, fine))) = pid.param_min_max() {
                 let delta = (max - min).abs();
                 return Some((delta / coarse, delta / fine));
+            } else {
+                return Some((1.0 / 20.0, 1.0 / 100.0));
             }
         }
 
@@ -413,6 +418,8 @@ impl AtomDataModel for UIParams {
                         ChangeRes::Fine   => pid.round(v.clamp(min, max), false),
                         ChangeRes::Free   => v.clamp(min, max),
                     };
+                self.set(id, Atom::param(v));
+            } else {
                 self.set(id, Atom::param(v));
             }
         }

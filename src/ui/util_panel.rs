@@ -144,6 +144,12 @@ impl UtilPanelData {
     }
 
     pub fn check_cont_update(&mut self, _ui: &mut dyn WidgetUI) {
+//        let nid = ui_ctrl.get_focus_id();
+//        if nid.to_instance(0) == NodeId::Sampl(0) {
+//            Some(nid.instance())
+//        } else {
+//            None
+//        }
     }
 }
 

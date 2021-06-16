@@ -425,6 +425,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
                                       detune parameter)
     Ctrl + Shift + Drag LMB Up/Down - Fine adjustment of parameters with
                                       disabled parameter snap.
+    MMB                             - Reset Parameter to it's default value.
 
     Combining the fine adjustment areas with the Shift key allows a freedom
     of 4 resolutions to adjust parameters.
