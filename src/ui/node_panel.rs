@@ -53,6 +53,18 @@ impl<'a> GraphAtomData for GraphAtomDataAdapter<'a> {
             .map(|a| a.f())
             .unwrap_or(0.0)
     }
+
+    fn get_phase(&self) -> f32 {
+        self.ui.atoms()
+            .get_phase_value(AtomId::new(self.node_idx, 0))
+            .unwrap_or(0.0)
+    }
+
+    fn get_led(&self) -> f32 {
+        self.ui.atoms()
+            .get_led_value(AtomId::new(self.node_idx, 0))
+            .unwrap_or(0.0)
+    }
 }
 
 pub struct GenericNodeUI {
@@ -186,11 +198,9 @@ impl GenericNodeUI {
 
         if let Some(mut graph_fun) = self.dsp_node_id.graph_fun() {
             let node_id = self.dsp_node_id;
-            println!("XXX");
             let node_idx =
                 self.ui_ctrl.with_matrix(|m|
                     m.unique_index_for(&node_id).unwrap_or(0) as u32);
-            println!("YYY {}", node_idx);
 
             let graph_fun =
                 Box::new(move |ui: &dyn WidgetUI, init: bool, x: f64| -> f64 {
