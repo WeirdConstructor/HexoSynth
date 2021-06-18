@@ -30,20 +30,27 @@ const PANEL_SUB_CONT_ID       : u32 = 4;
 const PANEL_MAIN_CONT_ID      : u32 = 5;
 
 struct GraphAtomDataAdapter<'a> {
+    node_idx: u32,
     ui: &'a dyn WidgetUI,
 }
 
 impl<'a> GraphAtomData for GraphAtomDataAdapter<'a> {
-    fn get(&self, node_id: usize, param_idx: u32) -> Option<SAtom> {
-        Some(self.ui.atoms().get(AtomId::new(node_id as u32, param_idx))?
+    fn get(&self, param_idx: u32) -> Option<SAtom> {
+        Some(self.ui.atoms().get(AtomId::new(self.node_idx, param_idx))?
              .clone()
              .into())
     }
 
-    fn get_denorm(&self, node_id: usize, param_idx: u32) -> f32 {
+    fn get_denorm(&self, param_idx: u32) -> f32 {
         self.ui.atoms()
-            .get_denorm(
-                AtomId::new(node_id as u32, param_idx))
+            .get_denorm(AtomId::new(self.node_idx, param_idx))
+            .unwrap_or(0.0)
+    }
+
+    fn get_norm(&self, param_idx: u32) -> f32 {
+        self.ui.atoms()
+            .get(AtomId::new(self.node_idx, param_idx))
+            .map(|a| a.f())
             .unwrap_or(0.0)
     }
 }
@@ -178,9 +185,16 @@ impl GenericNodeUI {
         }
 
         if let Some(mut graph_fun) = self.dsp_node_id.graph_fun() {
+            let node_id = self.dsp_node_id;
+            println!("XXX");
+            let node_idx =
+                self.ui_ctrl.with_matrix(|m|
+                    m.unique_index_for(&node_id).unwrap_or(0) as u32);
+            println!("YYY {}", node_idx);
+
             let graph_fun =
                 Box::new(move |ui: &dyn WidgetUI, init: bool, x: f64| -> f64 {
-                    let gd = GraphAtomDataAdapter { ui };
+                    let gd = GraphAtomDataAdapter { node_idx, ui };
                     graph_fun(&gd, init, x as f32) as f64
                 });
 
@@ -188,7 +202,7 @@ impl GenericNodeUI {
               .add(wbox!(self.wt_graph,
                    AtomId::new(crate::NODE_PANEL_ID, PANEL_GRAPH_ID),
                    center(12, 6),
-                   GraphData::new(30, graph_fun)));
+                   GraphData::new(160, graph_fun)));
         }
 
 
@@ -265,14 +279,17 @@ impl NodePanelData {
             self.prev_focus = cur_focus;
 
             if cur_focus.node_id() != NodeId::Nop {
-                self.ui_ctrl.with_matrix(|m| {
-                    self.node_ui.borrow_mut().set_target(
-                        cur_focus.node_id(),
-                        m.unique_index_for(&cur_focus.node_id())
-                         .unwrap_or(0) as u32);
+                let (node_id, uniq_idx) =
+                    self.ui_ctrl.with_matrix(|m| {
+                        m.monitor_cell(cur_focus);
+                        (
+                            cur_focus.node_id(),
+                            m.unique_index_for(&cur_focus.node_id())
+                             .unwrap_or(0) as u32
+                        )
+                    });
 
-                    m.monitor_cell(cur_focus);
-                });
+                self.node_ui.borrow_mut().set_target(node_id, uniq_idx);
             }
         }
     }
