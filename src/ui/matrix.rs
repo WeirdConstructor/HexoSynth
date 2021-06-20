@@ -48,9 +48,11 @@ impl MenuActionHandler for MatrixActionHandler {
         self.ui_ctrl.assign_cell_port(cell, cell_dir, idx);
     }
 
-    fn assign_cell_new_node(
-        &mut self, cell: Cell, node_id: NodeId)
-    {
+    fn clear_cell_ports(&mut self, cell: Cell) {
+        self.ui_ctrl.clear_cell_ports(cell);
+    }
+
+    fn assign_cell_new_node(&mut self, cell: Cell, node_id: NodeId) {
         self.ui_ctrl.assign_cell_new_node(cell, node_id);
     }
 }
@@ -189,6 +191,7 @@ impl HexGridModel for MatrixUIModel {
     fn cell_click(&self, x: usize, y: usize, btn: MButton, modkey: bool) {
 
         println!("MATRIX CLICK CELL: {},{}: {:?}", x, y, btn);
+
         let mut menu = self.menu.menu.borrow_mut();
 
         if menu.is_open() {
@@ -203,6 +206,7 @@ impl HexGridModel for MatrixUIModel {
                                 if modkey {
                                     menu.open_select_cell_dir(cell, node_info);
                                 } else {
+                                    menu.open_node_context(cell, node_info);
                                 }
                             } else {
                                 menu.open_select_node_category(cell);
@@ -432,14 +436,18 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 * Hex Grid
 
+    RMB         - Open context menu
+    Ctrl + RMB  - Assign edge menu to set inputs/outputs of clicked node.
+
     Drag LMB    - Move / Swap Nodes
     Drag RMB    - Linked clone of dragged node
     Drag MMB    - New instance of dragged node type
 
-    Ctrl + RMB  - Assign edge menu to set inputs/outputs of clicked node.
-
     Shift + Drag LMB Up/Down - Pan hex grid
     Shift + Drag RMB Up/Down - Zoom Out/IN
+
+    w, q, a     - Assign input port to input 1, 2 or 3
+    e, d, s     - Assign output port to output 1, 2 or 3
 
 LMB = Left Mouse Button, RMB = Right Mouse Button, MMB = Middle Mouse Button
 "#);
@@ -676,7 +684,7 @@ impl WidgetType for NodeMatrix {
                 });
                 ui.queue_redraw();
             },
-            UIEvent::Key { key, .. } => {
+            UIEvent::Key { key, mouse_pos, .. } => {
                 use keyboard_types::Key;
 
                 match key {
@@ -695,6 +703,36 @@ impl WidgetType for NodeMatrix {
                     Key::F4 => {
                         data.with(|data: &mut NodeMatrixData| {
                             data.matrix_model.ui_ctrl.save_patch();
+                        });
+                    },
+                    Key::Character(c) => {
+                        data.with(|data: &mut NodeMatrixData| {
+                            let ui_ctrl   = &data.matrix_model.ui_ctrl;
+                            let cell      = ui_ctrl.get_recent_focus();
+                            let node_info = ui_ctrl.get_focus_node_info();
+
+                            let mut assign_port_dir = None;
+
+                            match &c[..] {
+                                "w" => { assign_port_dir = Some(CellDir::T); },
+                                "q" => { assign_port_dir = Some(CellDir::TL); },
+                                "a" => { assign_port_dir = Some(CellDir::BL); },
+                                "e" => { assign_port_dir = Some(CellDir::TR); },
+                                "d" => { assign_port_dir = Some(CellDir::BR); },
+                                "s" => { assign_port_dir = Some(CellDir::B); },
+                                _ => {},
+                            }
+
+                            if let Some(dir) = assign_port_dir {
+                                if cell.node_id() != NodeId::Nop {
+                                    data.matrix_model.menu.menu
+                                        .borrow_mut()
+                                        .open_assign_port(
+                                            cell, node_info, dir);
+                                    data.grid_click_pos = Some(*mouse_pos);
+                                    ui.queue_redraw();
+                                }
+                            }
                         });
                     },
                     _ => {

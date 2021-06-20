@@ -11,6 +11,7 @@ pub trait MenuActionHandler {
     fn update_help_text(&mut self, txt: &str);
     fn assign_cell_port(
         &mut self, cell: Cell, cell_dir: CellDir, idx: Option<usize>);
+    fn clear_cell_ports(&mut self, cell: Cell);
     fn assign_cell_new_node(
         &mut self, cell: Cell, node_id: NodeId);
 }
@@ -24,7 +25,10 @@ pub trait MenuControl {
 
     fn is_open(&self) -> bool;
     fn open_select_node_category(&mut self, cell: Cell);
+    fn open_node_context(&mut self, cell: Cell, node_info: NodeInfo);
     fn open_select_cell_dir(&mut self, cell: Cell, node_info: NodeInfo);
+    fn open_assign_port(
+        &mut self, cell: Cell, node_info: NodeInfo, cell_dir: CellDir);
     fn close(&mut self);
 }
 
@@ -33,6 +37,10 @@ enum MenuState {
     None,
     NodeCategory {
         cell:   Cell,
+    },
+    NodeContext {
+        cell:       Cell,
+        node_info:  Rc<NodeInfo>,
     },
     SubCategory {
         cell:   Cell,
@@ -188,6 +196,56 @@ impl Menu {
                                     });
                         },
                         _ => (),
+                    }
+                });
+            },
+            MenuState::NodeContext { .. } => {
+                self.lbl_fun = Box::new(|idx, help, _state| {
+                    if help {
+                        match idx {
+                            0 => Some("\nExit Menu"),
+                            1 => Some(
+                                "Assign Ports\n\
+                                Goes to sub menus for reassigning ports \
+                                of this node.\nDirect matrix keyboard shortcuts:\n\n\
+                                - 'w' for In 1\n\
+                                - 'q' for In 2\n\
+                                - 'a' for In 3\n\
+                                - 'e' for Out 1\n\
+                                - 'f' for Out 2\n\
+                                - 'd' for Out 3\n\n\
+                                An alternative shortcut to this is Ctrl + RMB."),
+                            2 => Some("Clear Ports\nImmediately clears all assigned ports."),
+                            _ => None,
+                        }
+                    } else {
+                        match idx {
+                            0 => Some("<Exit"),
+                            1 => Some("Ports"),
+                            2 => Some("Clear"),
+                            _ => None,
+                        }
+                    }
+                });
+                self.act_fun = Box::new(move |idx, state, hdl| {
+                    if let MenuState::NodeContext { cell, node_info } = state {
+                        match idx {
+                            0 => { *pa.borrow_mut() = PostAction::close(); },
+                            1 => {
+                                *pa.borrow_mut() =
+                                    PostAction::next_state(
+                                        MenuState::CellDir {
+                                            cell:      cell.clone(),
+                                            node_info: node_info.clone(),
+                                            dirs:      vec![],
+                                        });
+                            },
+                            2 => {
+                                hdl.clear_cell_ports(cell.clone());
+                                *pa.borrow_mut() = PostAction::close();
+                            },
+                            _ => (),
+                        }
                     }
                 });
             },
@@ -468,12 +526,30 @@ impl MenuControl for Menu {
             MenuState::NodeCategory { cell });
     }
 
+    fn open_node_context(&mut self, cell: Cell, node_info: NodeInfo) {
+        self.activate_init_state(
+            MenuState::NodeContext { cell, node_info: Rc::new(node_info) });
+    }
+
     fn open_select_cell_dir(&mut self, cell: Cell, node_info: NodeInfo) {
+        println!("OSCD");
         self.activate_init_state(
             MenuState::CellDir {
                 cell,
                 node_info: Rc::new(node_info),
                 dirs: vec![],
+            });
+    }
+
+    fn open_assign_port(
+        &mut self, cell: Cell, node_info: NodeInfo, cell_dir: CellDir)
+    {
+        self.activate_init_state(
+            MenuState::AssignPort {
+                cell,
+                node_info: Rc::new(node_info),
+                offset:    0,
+                cell_dir,
             });
     }
 

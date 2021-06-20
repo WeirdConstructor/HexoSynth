@@ -48,6 +48,27 @@ pub struct UIControl {
     focus_node_info:    NodeInfo,
 }
 
+impl UIControl {
+    pub fn is_cell_focussed(&self, x: usize, y: usize) -> bool {
+        let cell = self.focus_cell;
+
+        if cell.node_id() == NodeId::Nop {
+            return false;
+        }
+
+        let (cx, cy) = cell.pos();
+        cx == x && cy == y
+    }
+
+    pub fn set_focus(&mut self, cell: Cell) {
+        self.focus_cell = cell;
+        self.focus_node_info =
+            NodeInfo::from_node_id(cell.node_id());
+        let help_txt = self.focus_node_info.help();
+        self.help_text_src.set(help_txt);
+    }
+}
+
 #[derive(Clone)]
 pub struct UICtrlRef(Rc<RefCell<UIControl>>, Arc<Mutex<Matrix>>);
 
@@ -141,7 +162,33 @@ impl UICtrlRef {
         where F: FnOnce(&mut Matrix) -> R
     {
         let mut lock = self.1.lock().expect("matrix lockable");
-        fun(&mut *lock)
+        let res = fun(&mut *lock);
+
+        res
+    }
+
+    pub fn clear_cell_ports(&self, mut cell: Cell) {
+        let pos      = cell.pos();
+        let mut this = self.0.borrow_mut();
+        cell.clear_io_dir(CellDir::C);
+
+        catch_err_dialog(this.dialog_model.clone(), || {
+            self.with_matrix(|m| {
+                m.change_matrix(|matrix| {
+                    matrix.place(pos.0, pos.1, cell);
+                })?;
+
+                if this.is_cell_focussed(pos.0, pos.1) {
+                    if let Some(cell) = m.get_copy(pos.0, pos.1) {
+                        this.set_focus(cell);
+                    }
+                }
+
+                m.sync()?;
+
+                Ok(())
+            })
+        });
     }
 
     pub fn assign_cell_port(
@@ -154,13 +201,19 @@ impl UICtrlRef {
         }
         let pos = cell.pos();
 
-        let this = self.0.borrow();
+        let mut this = self.0.borrow_mut();
 
-        catch_err_dialog(&this.dialog_model, || {
+        catch_err_dialog(this.dialog_model.clone(), || {
             self.with_matrix(|m| {
                 m.change_matrix(|matrix| {
                     matrix.place(pos.0, pos.1, cell);
                 })?;
+
+                if this.is_cell_focussed(pos.0, pos.1) {
+                    if let Some(cell) = m.get_copy(pos.0, pos.1) {
+                        this.set_focus(cell);
+                    }
+                }
 
                 m.sync()?;
 
@@ -177,16 +230,23 @@ impl UICtrlRef {
             cell.set_node_id(node_id);
             let pos = cell.pos();
 
-            let this = self.0.borrow();
+            let mut this = self.0.borrow_mut();
 
-            catch_err_dialog(&this.dialog_model, || {
+            catch_err_dialog(this.dialog_model.clone(), || {
                 m.change_matrix(|matrix| {
                     matrix.place(pos.0, pos.1, cell);
                 })?;
 
+                if this.is_cell_focussed(pos.0, pos.1) {
+                    if let Some(cell) = m.get_copy(pos.0, pos.1) {
+                        this.set_focus(cell);
+                    }
+                }
+
                 m.sync()?;
                 Ok(())
             });
+
         });
     }
 
@@ -194,7 +254,7 @@ impl UICtrlRef {
         let this = self.0.borrow();
 
         self.with_matrix(|m| {
-            catch_err_dialog(&this.dialog_model, || {
+            catch_err_dialog(this.dialog_model.clone(), || {
                 match save_patch_to_file(m, "init.hxy") {
                     Ok(_) => Ok(()),
                     Err(e) => Err(PatchSaveError {
@@ -224,7 +284,7 @@ impl UICtrlRef {
         let this = self.0.borrow();
 
         self.with_matrix(|m| {
-            catch_err_dialog(&this.dialog_model, || {
+            catch_err_dialog(this.dialog_model.clone(), || {
                 match transform {
                     UICellTrans::Swap => {
                         m.change_matrix(|m| {
@@ -261,19 +321,16 @@ impl UICtrlRef {
         self.0.borrow().focus_cell
     }
 
+    pub fn get_focus_node_info(&self) -> NodeInfo {
+        self.0.borrow_mut().focus_node_info.clone()
+    }
+
     pub fn get_focus_id(&self) -> NodeId {
         self.0.borrow().focus_cell.node_id()
     }
 
     pub fn is_cell_focussed(&self, x: usize, y: usize) -> bool {
-        let cell = self.0.borrow().focus_cell;
-
-        if cell.node_id() == NodeId::Nop {
-            return false;
-        }
-
-        let (cx, cy) = cell.pos();
-        cx == x && cy == y
+        self.0.borrow().is_cell_focussed(x, y)
     }
 
     pub fn clear_focus(&self) {
@@ -281,11 +338,7 @@ impl UICtrlRef {
     }
 
     pub fn set_focus(&self, cell: Cell) {
-        self.0.borrow_mut().focus_cell = cell;
-        self.0.borrow_mut().focus_node_info =
-            NodeInfo::from_node_id(cell.node_id());
-        let help_txt = self.0.borrow_mut().focus_node_info.help();
-        self.0.borrow().help_text_src.set(help_txt);
+        self.0.borrow_mut().set_focus(cell);
     }
 
     pub fn set_sample_load_id(&self, id: AtomId) {
@@ -371,7 +424,7 @@ impl From<PatchSaveError> for DialogMessage {
     }
 }
 
-pub fn catch_err_dialog<F>(dialog: &Rc<RefCell<DialogModel>>, mut f: F)
+pub fn catch_err_dialog<F>(dialog: Rc<RefCell<DialogModel>>, mut f: F)
     where F: FnMut() -> Result<(), DialogMessage>
 {
     match f() {
