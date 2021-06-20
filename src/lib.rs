@@ -119,8 +119,9 @@ impl PluginContext<HexoSynth> for HexoSynthShared {
                            .input(None, None, Some(0)));
         matrix.place(2, 0, Cell::empty(NodeId::Out(0))
                            .input(None, None, Some(0)));
-        matrix.place(4, 4, Cell::empty(NodeId::Test(0))
-                           .input(None, None, None));
+
+        let gain_p = NodeId::Amp(0).inp_param("gain").unwrap();
+        matrix.set_param(gain_p, gain_p.norm(0.09).into());
 
         if let Err(e) =
             load_patch_from_file(
