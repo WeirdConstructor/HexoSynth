@@ -124,14 +124,22 @@ impl GenericNodeUI {
 
         match param_id.as_atom_def() {
             SAtom::Param(_) => {
-                    // FIXME: Widget type should be determined by the Atom enum!
-                let knob_type = self.wt_knob_01.clone();
+                // FIXME: Widget type should be determined by the Atom enum!
+                if param_name == "trig" {
+                    Some(wbox!(
+                        self.wt_btn.clone(),
+                        AtomId::new(self.model_node_id, idx as u32),
+                        center(pos.0, pos.1),
+                        ButtonData::new_param_click(param_name)))
+                } else {
+                    let knob_type = self.wt_knob_01.clone();
 
-                Some(wbox!(
-                    knob_type,
-                    AtomId::new(self.model_node_id, idx as u32),
-                    center(pos.0, pos.1),
-                    KnobData::new(param_name)))
+                    Some(wbox!(
+                        knob_type,
+                        AtomId::new(self.model_node_id, idx as u32),
+                        center(pos.0, pos.1),
+                        KnobData::new(param_name)))
+                }
             },
             SAtom::Setting(_) => {
                 println!("CREATE BUTTON: {}, {}", self.model_node_id, idx);
