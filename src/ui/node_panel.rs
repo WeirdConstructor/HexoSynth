@@ -87,7 +87,7 @@ pub struct GenericNodeUI {
 impl GenericNodeUI {
     pub fn new(ui_ctrl: UICtrlRef) -> Self {
         let wt_knob_01 =
-            Rc::new(Knob::new(25.0, 12.0, 9.0));
+            Rc::new(Knob::new(28.0, 12.0, 9.0));
         let wt_btn        = Rc::new(Button::new(60.0, 12.0));
         let wt_text       = Rc::new(Text::new(10.0));
         let wt_graph      = Rc::new(Graph::new(240.0, 100.0));
