@@ -684,64 +684,73 @@ impl WidgetType for NodeMatrix {
                 });
                 ui.queue_redraw();
             },
-            UIEvent::Key { key, mouse_pos, .. } => {
+            UIEvent::Key { id, key, mouse_pos, .. } => {
                 use keyboard_types::Key;
 
-                match key {
-                    Key::F1 => {
-                        data.with(|data: &mut NodeMatrixData| {
-                            data.show_help = !data.show_help;
-                        });
-                    },
-                    Key::Escape => {
-                        data.with(|data: &mut NodeMatrixData| {
-                            if data.show_help {
-                                data.show_help = false;
-                            }
-                        });
-                    },
-                    Key::F4 => {
-                        data.with(|data: &mut NodeMatrixData| {
-                            data.matrix_model.ui_ctrl.save_patch();
-                        });
-                    },
-                    Key::Character(c) => {
-                        data.with(|data: &mut NodeMatrixData| {
-                            let ui_ctrl   = &data.matrix_model.ui_ctrl;
-                            let cell      = ui_ctrl.get_recent_focus();
-                            let node_info = ui_ctrl.get_focus_node_info();
-
-                            let mut assign_port_dir = None;
-
-                            match &c[..] {
-                                "w" => { assign_port_dir = Some(CellDir::T); },
-                                "q" => { assign_port_dir = Some(CellDir::TL); },
-                                "a" => { assign_port_dir = Some(CellDir::BL); },
-                                "e" => { assign_port_dir = Some(CellDir::TR); },
-                                "d" => { assign_port_dir = Some(CellDir::BR); },
-                                "s" => { assign_port_dir = Some(CellDir::B); },
-                                _ => {},
-                            }
-
-                            if let Some(dir) = assign_port_dir {
-                                if cell.node_id() != NodeId::Nop {
-                                    data.matrix_model.menu.menu
-                                        .borrow_mut()
-                                        .open_assign_port(
-                                            cell, node_info, dir);
-                                    data.grid_click_pos = Some(*mouse_pos);
-                                    ui.queue_redraw();
+                if *id == data.id() {
+                    match key {
+                        Key::F1 => {
+                            data.with(|data: &mut NodeMatrixData| {
+                                data.show_help = !data.show_help;
+                            });
+                        },
+                        Key::Escape => {
+                            data.with(|data: &mut NodeMatrixData| {
+                                if data.show_help {
+                                    data.show_help = false;
                                 }
-                            }
-                        });
-                    },
-                    _ => {
-                        data.with(|data: &mut NodeMatrixData| {
-                            data.util_panel.event(ui, ev);
-                        });
-                    },
-                }
+                            });
+                        },
+                        Key::F4 => {
+                            data.with(|data: &mut NodeMatrixData| {
+                                data.matrix_model.ui_ctrl.save_patch();
+                            });
+                        },
+                        Key::Character(c) => {
+                            data.with(|data: &mut NodeMatrixData| {
+                                let ui_ctrl   = &data.matrix_model.ui_ctrl;
+                                let cell      = ui_ctrl.get_recent_focus();
+                                let node_info = ui_ctrl.get_focus_node_info();
 
+                                let mut assign_port_dir = None;
+
+                                match &c[..] {
+                                    "w" => { assign_port_dir = Some(CellDir::T); },
+                                    "q" => { assign_port_dir = Some(CellDir::TL); },
+                                    "a" => { assign_port_dir = Some(CellDir::BL); },
+                                    "e" => { assign_port_dir = Some(CellDir::TR); },
+                                    "d" => { assign_port_dir = Some(CellDir::BR); },
+                                    "s" => { assign_port_dir = Some(CellDir::B); },
+                                    _ => {},
+                                }
+
+                                if let Some(dir) = assign_port_dir {
+                                    if cell.node_id() != NodeId::Nop {
+                                        data.matrix_model.menu.menu
+                                            .borrow_mut()
+                                            .open_assign_port(
+                                                cell, node_info, dir);
+                                        data.grid_click_pos = Some(*mouse_pos);
+                                        ui.queue_redraw();
+                                    }
+                                }
+                            });
+
+                            data.with(|data: &mut NodeMatrixData| {
+                                data.util_panel.event(ui, ev);
+                            });
+                        },
+                        _ => {
+                            data.with(|data: &mut NodeMatrixData| {
+                                data.util_panel.event(ui, ev);
+                            });
+                        },
+                    }
+                } else {
+                    data.with(|data: &mut NodeMatrixData| {
+                        data.util_panel.event(ui, ev);
+                    });
+                }
             },
             _ => {
                 data.with(|data: &mut NodeMatrixData| {
