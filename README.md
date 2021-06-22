@@ -16,9 +16,10 @@ The goal is rather to have a good set of predefined modules.
 
 ## State of Development
 
-This project is still (2021-03-17) under heavy development and is considered
-pre alpha stage. There is no noteworthy functionality yet implemented.
-Just a lot of prototype code and plumbing.
+This project is still (2021-06-22) under heavy development and is considered
+pre alpha stage. There are only few nodes (aka modules) implemented yet. The
+interface is mostly functional though. But not tested in all hosts yet and
+there are known bugs.
 
 Make sure to follow [Weird Constructors Mastodon
 account](https://mastodon.online/@weirdconstructor) or the releases of this
@@ -29,11 +30,14 @@ project to be notified once I release a beta or stable release.
 I have a pretty detailed TODO list in my private notebook, but
 this is the rough road map:
 
-- Make a UI that is more or less fluently usable and easily extendable
+- DONE: Make a UI that is more or less fluently usable and easily extendable
 with new modules.
-- Take a bit of care that there is online help.
+- DONE: Take a bit of care that there is online help.
+- DONE: Factor out the DSP code into it's own crate.
 - Add lots of modules (Oscillators, Filters, Envelopes, LFOs, Quantizers, ...).
-- Factor out the DSP code into it's own crate.
+- Add a MIDI-CV interface for receiving pitch CV, gate and clock from the DAW
+- Add parameter input node for receiving automation from the DAW
+- Add audio inputs for receiving audio from the DAW
 - Comment the code for easier maintenance.
 
 ## Running the Standalone Example:
@@ -65,6 +69,15 @@ These might work on Debian too:
 There exists an automate test suite for the DSP and backend code:
 
     cargo test
+
+## DAW Compatibility
+
+As of 2021-06-22 HexoSynth has been tested with:
+
+    - Windows 10 and Ableton Live: It starts, and you can use it via the mouse.
+      The keyboard handling is not working properly though.
+    - Ubuntu Linux 20.04 and Carla: Works
+    - Ubuntu Linux 20.04 and Bitwig: Works
 
 ## Known Bugs
 
