@@ -19,6 +19,7 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use std::sync::Arc;
 use std::sync::Mutex;
+use std::path::Path;
 
 /// Common operations that can be done with the matrix
 pub enum UICellTrans {
@@ -46,6 +47,8 @@ pub struct UIControl {
     sample_load_id:     AtomId,
     focus_cell:         Cell,
     focus_node_info:    NodeInfo,
+
+    sample_dir_from:    Option<AtomId>,
 }
 
 impl UIControl {
@@ -93,6 +96,7 @@ impl UICtrlRef {
                 sample_load_id:     AtomId::from(99999),
                 focus_cell:         Cell::empty(NodeId::Nop),
                 focus_node_info:    NodeInfo::from_node_id(NodeId::Nop),
+                sample_dir_from:    None,
             })),
             matrix)
     }
@@ -338,17 +342,48 @@ impl UICtrlRef {
     }
 
     pub fn set_focus(&self, cell: Cell) {
+        let nid = cell.node_id();
         self.0.borrow_mut().set_focus(cell);
+
+        if nid.to_instance(0) == NodeId::Sampl(0) {
+            let uniq_id =
+                self.with_matrix(|m|
+                    m.unique_index_for(&nid).unwrap_or(0) as u32);
+
+            if let Some(pid) = nid.inp_param("sample") {
+                self.0.borrow_mut().sample_dir_from =
+                    Some(AtomId::new(uniq_id, pid.inp().into()));
+            }
+        }
+    }
+
+    pub fn check_atoms(&mut self, atoms: &dyn AtomDataModel) {
+        use hexotk::Atom;
+
+        let at_id_dir = self.0.borrow_mut().sample_dir_from.take();
+
+        if let Some(at_id_dir) = at_id_dir {
+            let sampl = atoms.get(at_id_dir);
+
+            if let Some(Atom::AudioSample((path, _))) = sampl {
+                let path = Path::new(path);
+
+                if let Some(path) = path.parent() {
+                    self.navigate_sample_dir(path);
+                }
+            }
+        }
     }
 
     pub fn set_sample_load_id(&self, id: AtomId) {
-//        self.with_matrix(|m| {
-//        });
-//
-//                sample_dir:
-//                    std::env::current_dir()
-//                        .unwrap_or(std::path::PathBuf::from(".")),
         self.0.borrow_mut().sample_load_id = id;
+    }
+
+    pub fn navigate_sample_dir(&mut self, path: &Path) {
+        if path != self.0.borrow().sample_dir {
+            self.0.borrow_mut().sample_dir = path.to_path_buf();
+            self.reload_sample_dir_list();
+        }
     }
 
     /// Lets the UI emit a set event for a specific [AtomId].
@@ -361,6 +396,7 @@ impl UICtrlRef {
             let idx = atom.i() as usize;
 
             let mut load_file = None;
+            let mut do_reload = false;
 
             {
                 let mut this = self.0.borrow_mut();
@@ -376,11 +412,14 @@ impl UICtrlRef {
                 }
 
                 if let Some(pb) = new_sample_dir {
+                    do_reload       = this.sample_dir != pb;
                     this.sample_dir = pb;
                 }
             }
 
-            self.reload_sample_dir_list();
+            if do_reload {
+                self.reload_sample_dir_list();
+            }
 
             if let Some(file) = load_file {
                 if let Some(path_str) = file.to_str() {

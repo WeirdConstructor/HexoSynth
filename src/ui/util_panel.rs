@@ -16,6 +16,7 @@ use hexotk::widgets::{
 };
 use crate::dsp::NodeId;
 
+use std::path::Path;
 use std::rc::Rc;
 
 pub struct PatternViewData {
@@ -90,8 +91,9 @@ define_containing_widget!{PatternView, PatternViewData}
 
 pub struct UtilPanelData {
     #[allow(dead_code)]
-    ui_ctrl:    UICtrlRef,
-    cont:       WidgetData,
+    ui_ctrl:        UICtrlRef,
+    cont:           WidgetData,
+    prev_node_id:   NodeId,
 }
 
 impl UtilPanelData {
@@ -140,16 +142,12 @@ impl UtilPanelData {
                 AtomId::new(crate::UTIL_PANEL_ID as u32, 0),
                 center(12, 12),
                 tdata),
+            prev_node_id: NodeId::Nop,
         })
     }
 
-    pub fn check_cont_update(&mut self, _ui: &mut dyn WidgetUI) {
-//        let nid = ui_ctrl.get_focus_id();
-//        if nid.to_instance(0) == NodeId::Sampl(0) {
-//            Some(nid.instance())
-//        } else {
-//            None
-//        }
+    pub fn check_cont_update(&mut self, ui: &mut dyn WidgetUI) {
+        self.ui_ctrl.check_atoms(ui.atoms());
     }
 }
 
