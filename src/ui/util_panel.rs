@@ -20,7 +20,7 @@ use std::path::Path;
 use std::rc::Rc;
 
 pub struct PatternViewData {
-    cur_tseq:   usize,
+    cur_tseq:   Option<usize>,
     ui_ctrl:    UICtrlRef,
     cont:       WidgetData,
 }
@@ -57,33 +57,30 @@ impl PatternViewData {
     pub fn new(ui_ctrl: UICtrlRef)
         -> Box<dyn std::any::Any>
     {
+        let tseq_idx = cur_tseq_idx(&ui_ctrl);
         let idx =
-            if let Some(idx) = cur_tseq_idx(&ui_ctrl) {
-                idx
-            } else { 0 };
+            if let Some(idx) = tseq_idx { idx }
+            else { 0 };
 
         let cont = create_pattern_edit(idx, &ui_ctrl);
 
         Box::new(Self {
-            cur_tseq: idx,
+            cur_tseq: tseq_idx,
             ui_ctrl,
             cont,
         })
     }
 
     pub fn check_cont_update(&mut self, _ui: &mut dyn WidgetUI) {
-        let idx =
-            if let Some(idx) = cur_tseq_idx(&self.ui_ctrl) {
-                idx
-            } else { 0 };
+        let tseq_idx = cur_tseq_idx(&self.ui_ctrl);
 
-        if idx != self.cur_tseq {
-            self.cont     = create_pattern_edit(idx, &self.ui_ctrl);
-            self.cur_tseq = idx;
+        if tseq_idx != self.cur_tseq {
+            self.cont     = create_pattern_edit(tseq_idx.unwrap_or(0), &self.ui_ctrl);
+            self.cur_tseq = tseq_idx;
         }
 
         self.ui_ctrl.with_matrix(|m|
-            m.check_pattern_data(self.cur_tseq));
+            m.check_pattern_data(self.cur_tseq.unwrap_or(0)));
     }
 }
 
