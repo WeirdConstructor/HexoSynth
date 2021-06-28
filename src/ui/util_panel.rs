@@ -16,7 +16,6 @@ use hexotk::widgets::{
 };
 use crate::dsp::NodeId;
 
-use std::path::Path;
 use std::rc::Rc;
 
 pub struct PatternViewData {

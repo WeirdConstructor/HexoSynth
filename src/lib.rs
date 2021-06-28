@@ -473,6 +473,20 @@ impl AtomDataModel for UIParams {
         }
     }
 
+    fn fmt_norm<'a>(&self, id: AtomId, buf: &'a mut [u8]) -> usize {
+        let mut bw = std::io::BufWriter::new(buf);
+
+        if let Some((pid, atom)) = self.get_param(id) {
+            use std::io::Write;
+            match write!(bw, "{:6.4}", atom.f()) {
+                Ok(_)  => bw.buffer().len(),
+                Err(_) => 0,
+            }
+        } else {
+            0
+        }
+    }
+
     fn fmt<'a>(&self, id: AtomId, buf: &'a mut [u8]) -> usize {
         let mut bw = std::io::BufWriter::new(buf);
 
