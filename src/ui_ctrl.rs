@@ -358,8 +358,6 @@ impl UICtrlRef {
     }
 
     pub fn check_atoms(&mut self, atoms: &dyn AtomDataModel) {
-        use hexotk::Atom;
-
         let at_id_dir = self.0.borrow_mut().sample_dir_from.take();
 
         if let Some(at_id_dir) = at_id_dir {

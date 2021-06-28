@@ -423,8 +423,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     * Center/Value label is the coarse area.
     * Name Label below center is the fine adjustment area.
       The fine adjustment area will highlight and display the
-      raw signal value. This can be useful if you want to build
-      modulators that reach exactly a certain value.
+      raw signal value of the input parameter. This can be useful
+      if you want to build modulators that reach exactly a certain value.
 
     Drag LMB Up/Down                - Adjust parameter.
     Shift + Drag LMB Up/Down        - Fine adjust parameter.

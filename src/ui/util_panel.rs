@@ -89,7 +89,6 @@ pub struct UtilPanelData {
     #[allow(dead_code)]
     ui_ctrl:        UICtrlRef,
     cont:           WidgetData,
-    prev_node_id:   NodeId,
 }
 
 impl UtilPanelData {
@@ -138,7 +137,6 @@ impl UtilPanelData {
                 AtomId::new(crate::UTIL_PANEL_ID as u32, 0),
                 center(12, 12),
                 tdata),
-            prev_node_id: NodeId::Nop,
         })
     }
 
