@@ -109,15 +109,6 @@ impl UtilPanelData {
 
         ui_ctrl.reload_sample_dir_list();
         let sample_list = ui_ctrl.get_sample_dir_list();
-//        sample_list.push(0, String::from("bd.wav"));
-//        sample_list.push(1, String::from("sd.wav"));
-//        sample_list.push(2, String::from("hh.wav"));
-//        sample_list.push(3, String::from("oh.wav"));
-//        sample_list.push(4, String::from("tom1.wav"));
-//        sample_list.push(5, String::from("tom2.wav"));
-//        sample_list.push(6, String::from("bd808.wav"));
-//        sample_list.push(7, String::from("bd909.wav"));
-//        sample_list.push(8, String::from("0123456789012345678901234567890123456789012345678901234567890123456789"));
 
         tdata.add(
             "Samples",
