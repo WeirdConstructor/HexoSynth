@@ -324,6 +324,22 @@ impl UIParams {
             self.ui_ctrl.with_matrix(move |m| m.set_param(pid, atom.clone().into()));
         }
     }
+
+    pub fn set_param_denorm(&mut self, id: AtomId, v: f32) {
+        if id.node_id() > UI_CTRL_SPACE || id.node_id() > UI_CTRL_SPACE {
+            self.set_param(id, v.into());
+
+        } else {
+            let pid =
+                if let Some((pid, _)) = self.params.get(&id) {
+                    *pid
+                } else {
+                    return;
+                };
+
+            self.set_param(id, pid.norm(v).into());
+        }
+    }
 }
 
 impl AtomDataModel for UIParams {
@@ -337,6 +353,15 @@ impl AtomDataModel for UIParams {
         let (pid, _atom) = self.get_param(id)?;
         self.ui_ctrl.with_matrix(|m|
             Some(m.led_value_for(&pid.node_id())))
+    }
+
+    fn enabled(&self, id: AtomId) -> bool {
+        if let Some((pid, _)) = self.params.get(&id) {
+            self.ui_ctrl.with_matrix(|m|
+                !m.param_input_is_used(*pid))
+        } else {
+            true
+        }
     }
 
     fn check_sync(&mut self) {
@@ -393,6 +418,10 @@ impl AtomDataModel for UIParams {
     fn set(&mut self, id: AtomId, v: Atom) {
         println!("SET: {:?} = {:?}", id, v);
         self.set_param(id, v);
+    }
+
+    fn set_denorm(&mut self, id: AtomId, v: f32) {
+        self.set_param_denorm(id, v);
     }
 
     fn set_default(&mut self, id: AtomId) {
