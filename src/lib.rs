@@ -320,6 +320,17 @@ impl UIParams {
                     return;
                 };
 
+            let atom =
+                if let Some(((min, max), _)) = pid.param_min_max() {
+                    if let Atom::Param(v) = atom {
+                        Atom::param(v.clamp(min, max))
+                    } else {
+                        atom
+                    }
+                } else {
+                    atom
+                };
+
             self.params.insert(id, (pid, atom.clone()));
             self.ui_ctrl.with_matrix(move |m| m.set_param(pid, atom.clone().into()));
         }
