@@ -416,8 +416,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
         let key_text =
             Rc::new(TextSourceRef::new(crate::ui::UI_MAIN_HELP_TEXT_WIDTH));
-        key_text.set(r#"Keyboard Shortcuts
-* Parameter Knobs
+        key_text.set(r#"Parameter Knobs
 
     Parameter knobs have two areas where you can grab them:
     * Center/Value label is the coarse area.
@@ -426,6 +425,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
       raw signal value of the input parameter. This can be useful
       if you want to build modulators that reach exactly a certain value.
 
+    Parameter Knobs are greyed out when it's corresponding input
+    is connected to an output. That means, the parameter value is not
+    been used. You can still change it if you want though, it just wont
+    make a difference as long as the input is in use.
+
     Drag LMB Up/Down                - Adjust parameter.
     Shift + Drag LMB Up/Down        - Fine adjust parameter.
     Ctrl  + Drag LMB Up/Down        - Disable parameter snap. (eg. for the
@@ -433,11 +437,20 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     Ctrl + Shift + Drag LMB Up/Down - Fine adjustment of parameters with
                                       disabled parameter snap.
     MMB                             - Reset Parameter to it's default value.
+    RMB                             - Open the direct value entry.
+                                      Coarse adjustment area will edit the
+                                      denormalized value. Fine adjustment
+                                      area will edit the normalized
+                                      -1..1 or 0..1 value.
 
     Combining the fine adjustment areas with the Shift key allows a freedom
     of 4 resolutions to adjust parameters.
 
-* Hex Grid
+LMB = Left Mouse Button, RMB = Right Mouse Button, MMB = Middle Mouse Button
+
+Next page: Hex Grid
+---page---
+Hex Grid
 
     RMB         - Open context menu
     Ctrl + RMB  - Assign edge menu to set inputs/outputs of clicked node.
@@ -499,7 +512,7 @@ LMB = Left Mouse Button, RMB = Right Mouse Button, MMB = Middle Mouse Button
     Other Columns:    '0'-'9', 'a'-'f' - Enter value
 "#);
         tdata.add(
-            "Keys",
+            "Matrix",
             wbox!(
                 wt_help_txt.clone(),
                 AtomId::new(node_id, HELP_TEXT_SHORTCUT_ID),
@@ -507,7 +520,7 @@ LMB = Left Mouse Button, RMB = Right Mouse Button, MMB = Middle Mouse Button
                 TextData::new(key_text)));
 
         tdata.add(
-            "Tracker Keys",
+            "Tracker",
             wbox!(
                 wt_help_txt.clone(),
                 AtomId::new(node_id, HELP_TEXT_SHORTCUT_ID),
