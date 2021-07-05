@@ -396,23 +396,30 @@ impl AtomDataModel for UIParams {
 
     fn get_ui_range(&self, id: AtomId) -> Option<f32> {
         if let Some((pid, _)) = self.get_param(id) {
-            if let Some(((min, max), _)) = pid.param_min_max() {
-                let v = self.get(id)?.f();
-                return Some(((v - min) / (max - min)).abs());
-            } else {
-                let v = self.get(id)?.f();
-                return Some(v);
-            }
-        }
+            let v = self.get(id)?.f();
 
-        None
+            if let Some(((min, max), _)) = pid.param_min_max() {
+                Some(((v - min) / (max - min)).abs())
+            } else {
+                Some(v)
+            }
+        } else {
+            None
+        }
     }
 
     fn get_ui_steps(&self, id: AtomId) -> Option<(f32, f32)> {
         if let Some((pid, _)) = self.get_param(id) {
             if let Some(((min, max), (coarse, fine))) = pid.param_min_max() {
                 let delta = (max - min).abs();
-                return Some((delta / coarse, delta / fine));
+                Some((delta / coarse, delta / fine))
+            } else {
+                Some((1.0 / 20.0, 1.0 / 100.0))
+            }
+        } else {
+            None
+        }
+    }
             } else {
                 return Some((1.0 / 20.0, 1.0 / 100.0));
             }
