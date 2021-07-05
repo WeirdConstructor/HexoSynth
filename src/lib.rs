@@ -242,6 +242,7 @@ use dsp::ParamId;
 
 pub struct UIParams {
     params:         HashMap<AtomId, (ParamId, Atom)>,
+    modamts:        HashMap<AtomId, Option<f32>>,
     variables:      HashMap<AtomId, (ParamId, Atom)>,
     /// Generation counter, to check for matrix updates.
     matrix_gen:     RefCell<usize>,
@@ -256,6 +257,7 @@ impl UIParams {
             UIParams {
                 ui_ctrl,
                 params:     HashMap::new(),
+                modamts:    HashMap::new(),
                 variables:  HashMap::new(),
                 matrix_gen: RefCell::new(matrix_gen),
             };
@@ -351,6 +353,37 @@ impl UIParams {
             self.set_param(id, pid.norm(v).into());
         }
     }
+
+    pub fn set_param_modamt(&mut self, id: AtomId, amt: Option<f32>) {
+        if id.node_id() > PARAM_VARIABLES_SPACE {
+            return;
+        }
+
+        let pid =
+            if let Some((pid, _)) = self.params.get(&id) {
+                *pid
+            } else {
+                return;
+            };
+
+        if let Some(((min, max), _)) = pid.param_min_max() {
+            self.modamts.insert(
+                id, amt.map(|v| v.clamp(min - max, max - min)));
+        } else {
+            let (min, max) = (-1.0, 1.0);
+
+            self.modamts.insert(
+                id, amt.map(|v| v.clamp(min - max, max - min)));
+        }
+    }
+
+    pub fn get_param_modamt(&self, id: AtomId) -> Option<f32> {
+        if id.node_id() > PARAM_VARIABLES_SPACE {
+            return None;
+        }
+
+        *self.modamts.get(&id)?
+    }
 }
 
 impl AtomDataModel for UIParams {
@@ -420,12 +453,27 @@ impl AtomDataModel for UIParams {
             None
         }
     }
-            } else {
-                return Some((1.0 / 20.0, 1.0 / 100.0));
-            }
-        }
 
-        None
+    fn get_mod_amt(&self, id: AtomId) -> Option<f32> {
+        self.get_param_modamt(id)
+    }
+
+    fn get_ui_mod_amt(&self, id: AtomId) -> Option<f32> {
+        if let Some((pid, _)) = self.get_param(id) {
+            let v = self.get_param_modamt(id)?;
+
+            if let Some(((min, max), _)) = pid.param_min_max() {
+                Some(v / (max - min))
+            } else {
+                Some(v)
+            }
+        } else {
+            None
+        }
+    }
+
+    fn set_mod_amt(&mut self, id: AtomId, amt: Option<f32>) {
+        self.set_param_modamt(id, amt);
     }
 
     fn get_denorm(&self, id: AtomId) -> Option<f32> {
