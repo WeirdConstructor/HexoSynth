@@ -275,10 +275,11 @@ impl UIParams {
         //       and all communication in UIParams needs to happen
         //       through an Arc<Mutex<HashMap<AtomId, ...>>>.
         let mut new_hm = HashMap::new();
+        let mut new_ma = HashMap::new();
 
         *self.matrix_gen.borrow_mut() =
             self.ui_ctrl.with_matrix(|m| {
-                m.for_each_atom(|unique_idx, param_id, satom| {
+                m.for_each_atom(|unique_idx, param_id, satom, modamt| {
                     println!(
                         "NODEID: {} => idx={}",
                         param_id.node_id(),
@@ -287,12 +288,16 @@ impl UIParams {
                     new_hm.insert(
                         AtomId::new(unique_idx as u32, param_id.inp() as u32),
                         (param_id, satom.clone().into()));
+                    new_ma.insert(
+                        AtomId::new(unique_idx as u32, param_id.inp() as u32),
+                        modamt);
                 });
 
                 m.get_generation()
             });
 
-        self.params = new_hm;
+        self.params  = new_hm;
+        self.modamts = new_ma;
     }
 
     pub fn get_param(&self, id: AtomId) -> Option<&(ParamId, Atom)> {
