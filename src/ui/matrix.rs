@@ -417,7 +417,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
         let key_text =
             Rc::new(TextSourceRef::new(crate::ui::UI_MAIN_HELP_TEXT_WIDTH));
         key_text.set(r#"Parameter Knobs
-
     Parameter knobs have two areas where you can grab them:
     * Center/Value label is the coarse area.
     * Name Label below center is the fine adjustment area.
@@ -431,23 +430,27 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     make a difference as long as the input is in use.
 
     Drag LMB Up/Down                - Adjust parameter.
+    Drag RMB Up/Down                - Adjust parameter modulation amount.
+    Hover over knob + Backspace     - Remove parameter modulation amount.
+    Hover over knob + Delete        - Remove parameter modulation amount.
     Shift + Drag LMB Up/Down        - Fine adjust parameter.
+    Shift + Drag BMB Up/Down        - Fine adjust parameter mod. amount.
     Ctrl  + Drag LMB Up/Down        - Disable parameter snap. (eg. for the
                                       detune parameter)
     Ctrl + Shift + Drag LMB Up/Down - Fine adjustment of parameters with
                                       disabled parameter snap.
     MMB                             - Reset Parameter to it's default value.
-    RMB                             - Open the direct value entry.
-                                      Coarse adjustment area will edit the
-                                      denormalized value. Fine adjustment
+    Hover over Knob + Enter         - Open the direct value entry.
+    or:                               Coarse adjustment area will edit the
+    Ctrl + RMB                        denormalized value. Fine adjustment
                                       area will edit the normalized
-                                      -1..1 or 0..1 value.
+                                      -1..1 or 0..1 signal value. Hit 'Esc'
+                                      to exit the value entry without change.
 
     Combining the fine adjustment areas with the Shift key allows a freedom
     of 4 resolutions to adjust parameters.
 
 LMB = Left Mouse Button, RMB = Right Mouse Button, MMB = Middle Mouse Button
-
 Next page: Hex Grid
 ---page---
 Hex Grid
