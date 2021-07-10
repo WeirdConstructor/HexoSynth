@@ -210,9 +210,9 @@ impl GenericNodeUI {
                     m.unique_index_for(&node_id).unwrap_or(0) as u32);
 
             let graph_fun =
-                Box::new(move |ui: &dyn WidgetUI, init: bool, x: f64| -> f64 {
+                Box::new(move |ui: &dyn WidgetUI, init: bool, x: f64, xn: f64| -> f64 {
                     let gd = GraphAtomDataAdapter { node_idx, ui };
-                    graph_fun(&gd, init, x as f32) as f64
+                    graph_fun(&gd, init, x as f32, xn as f32) as f64
                 });
 
             param_cd.new_row()
