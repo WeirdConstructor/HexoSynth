@@ -593,6 +593,26 @@ impl AtomDataModel for UIParams {
         }
     }
 
+    fn fmt_mod<'a>(&self, id: AtomId, buf: &'a mut [u8]) -> usize {
+        let modamt =
+            if let Some(ma) = self.get_mod_amt(id) {
+                ma
+            } else {
+                return 0;
+            };
+
+        let mut bw = std::io::BufWriter::new(buf);
+
+        if let Some((pid, atom)) = self.get_param(id) {
+            match pid.format(&mut bw, atom.f() + modamt) {
+                Some(Ok(_)) => bw.buffer().len(),
+                _ => 0,
+            }
+        } else {
+            0
+        }
+    }
+
     fn fmt<'a>(&self, id: AtomId, buf: &'a mut [u8]) -> usize {
         let mut bw = std::io::BufWriter::new(buf);
 
