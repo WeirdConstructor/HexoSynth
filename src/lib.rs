@@ -380,6 +380,10 @@ impl UIParams {
             self.modamts.insert(
                 id, amt.map(|v| v.clamp(min - max, max - min)));
         }
+
+        let amt = self.modamts.get(&id).copied().flatten();
+        self.ui_ctrl.with_matrix_catch_err(
+            move |m| m.set_param_modamt(pid, amt));
     }
 
     pub fn get_param_modamt(&self, id: AtomId) -> Option<f32> {
@@ -405,7 +409,9 @@ impl AtomDataModel for UIParams {
     }
 
     fn enabled(&self, id: AtomId) -> bool {
-        if let Some((pid, _)) = self.params.get(&id) {
+        if let Some(_) = self.get_param_modamt(id) {
+            true
+        } else if let Some((pid, _)) = self.params.get(&id) {
             self.ui_ctrl.with_matrix(|m|
                 !m.param_input_is_used(*pid))
         } else {

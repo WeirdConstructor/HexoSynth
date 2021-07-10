@@ -162,6 +162,16 @@ impl UICtrlRef {
         self.0.borrow_mut().sample_browse_list.clone()
     }
 
+    pub fn with_matrix_catch_err<F>(&self, mut fun: F)
+        where F: FnMut(&mut Matrix) -> Result<(), MatrixError>
+    {
+        let mut lock = self.1.lock().expect("matrix lockable");
+        let this = self.0.borrow_mut();
+        catch_err_dialog(this.dialog_model.clone(), move || {
+            Ok(fun(&mut *lock)?)
+        });
+    }
+
     pub fn with_matrix<F, R>(&self, fun: F) -> R
         where F: FnOnce(&mut Matrix) -> R
     {
