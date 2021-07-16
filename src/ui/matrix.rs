@@ -602,6 +602,10 @@ impl WidgetType for NodeMatrix {
 
             data.ui_ctrl.with_matrix(|m| m.update_filters());
 
+            if data.ui_ctrl.check_help_toggle() {
+                data.show_help = !data.show_help;
+            }
+
             let panel_pos = pos.resize(360.0, pos.h);
             let util_pos =
                 pos.resize(355.0, pos.h - 5.0)

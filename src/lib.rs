@@ -635,10 +635,13 @@ pub const NODE_PANEL_ID            : u32   = 9998;
 pub const UTIL_PANEL_ID            : usize = 9997;
 pub const PATTERN_PANEL_ID         : usize = 9996;
 pub const PATTERN_VIEW_ID          : usize = 9995;
+pub const UTIL_PANEL_TOP_ID        : usize = 9994;
+pub const UTIL_PANEL_VER_ID        : usize = 9993;
 pub const HELP_TABS_ID             : u32   = 7000;
 pub const DIALOG_ID                : u32   = 90001;
 pub const DIALOG_OK_ID             : u32   = 99;
 
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 impl PluginUI for HexoSynth {
     type Handle = u32;

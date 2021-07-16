@@ -49,6 +49,8 @@ pub struct UIControl {
     focus_node_info:    NodeInfo,
 
     sample_dir_from:    Option<AtomId>,
+
+    toggle_help:        bool,
 }
 
 impl UIControl {
@@ -77,6 +79,7 @@ pub struct UICtrlRef(Rc<RefCell<UIControl>>, Arc<Mutex<Matrix>>);
 
 impl UICtrlRef {
     pub const ATNID_SAMPLE_LOAD_ID : u32 = 190001;
+    pub const ATNID_HELP_BUTTON    : u32 = 190002;
 
     pub fn new(matrix: Arc<Mutex<Matrix>>,
                dialog_model: Rc<RefCell<DialogModel>>)
@@ -97,8 +100,15 @@ impl UICtrlRef {
                 focus_cell:         Cell::empty(NodeId::Nop),
                 focus_node_info:    NodeInfo::from_node_id(NodeId::Nop),
                 sample_dir_from:    None,
+                toggle_help:        false,
             })),
             matrix)
+    }
+
+    pub fn check_help_toggle(&mut self) -> bool {
+        let r = self.0.borrow().toggle_help;
+        self.0.borrow_mut().toggle_help = false;
+        r
     }
 
     pub fn get_help_text_src(&self) -> Rc<TextSourceRef> {
@@ -436,6 +446,11 @@ impl UICtrlRef {
                     ui_params.set(load_id, Atom::audio_unloaded(path_str));
                 }
             }
+        } else if id.node_id() == Self::ATNID_HELP_BUTTON {
+            if atom.i() == 1 {
+                self.0.borrow_mut().toggle_help = true;
+            }
+            return false;
         }
 
         true
