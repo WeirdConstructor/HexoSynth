@@ -275,7 +275,7 @@ impl Menu {
                                         if help {
                                             s = Some(NodeInfo::from_node_id(node_id).desc());
                                         } else {
-                                            s = Some(node_id.name());
+                                            s = Some(node_id.label());
                                         }
                                     }
                                     i += 1;
