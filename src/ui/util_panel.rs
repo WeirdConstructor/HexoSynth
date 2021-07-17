@@ -39,7 +39,7 @@ fn create_pattern_edit(tseq_idx: usize, ui_ctrl: &UICtrlRef) -> WidgetData {
     };
 
     wbox!(
-        PatternEditor::new_ref(6, 44),
+        PatternEditor::new_ref(6, 41),
         AtomId::new(id as u32, 0),
         center(12, 12),
         PatternEditorData::new(data))
