@@ -252,7 +252,35 @@ fn main() {
 
             let ui_ctrl = UICtrlRef::new(matrix.clone(), dialog_model.clone());
 
-            Box::new(UI::new(
+            let (drv, drv_frontend) = Driver::new();
+
+            std::thread::spawn(move || {
+                use hexotk::constants::*;
+                loop {
+                    std::thread::sleep(
+                        std::time::Duration::from_millis(1000));
+
+                    println!("ZONES: {:#?}",
+                        drv_frontend.query_zones(
+                            6.into()).unwrap());
+
+                    let pos =
+                        drv_frontend.get_zone_pos(
+                            6.into(), DBGID_KNOB_FINE)
+                        .unwrap();
+
+                    drv_frontend.move_mouse(
+                        pos.x + 1.0, pos.y + 1.0);
+
+                    assert_eq!(
+                        drv_frontend.get_text(
+                            6.into(),
+                            DBGID_KNOB_NAME).unwrap(),
+                        "0.0000");
+                }
+            });
+
+            (drv, Box::new(UI::new(
                 Box::new(NodeMatrixData::new(
                     ui_ctrl.clone(),
                     UIPos::center(12, 12),
@@ -264,7 +292,7 @@ fn main() {
                         AtomId::new(DIALOG_ID, DIALOG_OK_ID), dialog_model.clone()))),
                 Box::new(UIParams::new(ui_ctrl)),
                 (1400 as f64, 700 as f64),
-            ))
+            )))
         }));
     });
 }

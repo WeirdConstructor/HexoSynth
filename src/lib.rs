@@ -662,7 +662,9 @@ impl PluginUI for HexoSynth {
 
             let ui_ctrl = UICtrlRef::new(matrix, dialog_model.clone());
 
-            Box::new(UI::new(
+            let (drv, _drv_frontend) = Driver::new();
+
+            (drv, Box::new(UI::new(
                 Box::new(NodeMatrixData::new(
                     ui_ctrl.clone(),
                     UIPos::center(12, 12),
@@ -675,7 +677,7 @@ impl PluginUI for HexoSynth {
                         dialog_model.clone()))),
                 Box::new(UIParams::new(ui_ctrl)),
                 (1400 as f64, 700 as f64),
-            ))
+            )))
         }));
 
         Ok(42)
