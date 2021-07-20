@@ -92,6 +92,11 @@ fn main_gui() {
             std::thread::spawn(move || {
                 use hexotk::constants::*;
                 loop {
+                    {
+                        let mut m = matrix.lock().unwrap();
+                        m.place(3, 3, Cell::empty(NodeId::TSeq(0)));
+                        m.sync();
+                    }
                     std::thread::sleep(
                         std::time::Duration::from_millis(1000));
 
