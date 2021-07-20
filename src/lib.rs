@@ -24,7 +24,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::cell::RefCell;
 
-use hexodsp::*;
+pub use hexodsp::*;
 
 pub use baseplug::{
     ProcessContext,
@@ -236,7 +236,7 @@ impl Plugin for HexoSynth {
     }
 }
 
-use hexotk::*;
+pub use hexotk::*;
 use hexotk::widgets::DialogModel;
 use dsp::ParamId;
 
