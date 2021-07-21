@@ -18,6 +18,7 @@ pub use ui_ctrl::{UICtrlRef, UICellTrans};
 
 use serde::{Serialize, Deserialize};
 use raw_window_handle::HasRawWindowHandle;
+use raw_window_handle::RawWindowHandle;
 
 use std::rc::Rc;
 use std::collections::HashMap;
@@ -643,26 +644,30 @@ pub const DIALOG_OK_ID             : u32   = 99;
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-impl PluginUI for HexoSynth {
-    type Handle = u32;
+pub fn open_hexosynth(
+    parent: Option<RawWindowHandle>,
+    drv:    Option<Driver>,
+    matrix: Arc<Mutex<Matrix>>
+) {
+    use hexotk::widgets::{Dialog, DialogData};
+    use crate::ui::matrix::NodeMatrixData;
 
-    fn ui_size() -> (i16, i16) {
-        (1400, 700)
-    }
-
-    fn ui_open(parent: &impl HasRawWindowHandle, ctx: &HexoSynthShared) -> WindowOpenResult<Self::Handle> {
-        use hexotk::widgets::{Dialog, DialogData};
-        use crate::ui::matrix::NodeMatrixData;
-
-        let matrix = ctx.matrix.clone();
-
-        open_window("HexoSynth", 1400, 700, Some(parent.raw_window_handle()), Box::new(|| {
+    open_window(
+        "HexoSynth", 1400, 700,
+        parent,
+        Box::new(move || {
             let dialog_model = Rc::new(RefCell::new(DialogModel::new()));
             let wt_diag      = Rc::new(Dialog::new());
 
             let ui_ctrl = UICtrlRef::new(matrix, dialog_model.clone());
 
-            let (drv, _drv_frontend) = Driver::new();
+            let drv =
+                if let Some(drv) = drv {
+                    drv
+                } else {
+                    let (drv, _drv_frontend) = Driver::new();
+                    drv
+                };
 
             (drv, Box::new(UI::new(
                 Box::new(NodeMatrixData::new(
@@ -678,7 +683,19 @@ impl PluginUI for HexoSynth {
                 Box::new(UIParams::new(ui_ctrl)),
                 (1400 as f64, 700 as f64),
             )))
-        }));
+    }));
+
+}
+
+impl PluginUI for HexoSynth {
+    type Handle = u32;
+
+    fn ui_size() -> (i16, i16) {
+        (1400, 700)
+    }
+
+    fn ui_open(parent: &impl HasRawWindowHandle, ctx: &HexoSynthShared) -> WindowOpenResult<Self::Handle> {
+        open_hexosynth(Some(parent.raw_window_handle()), None, ctx.matrix.clone());
 
         Ok(42)
     }

@@ -244,29 +244,6 @@ fn main() {
     let shared = Arc::new(HexoSynthShared::new());
 
     start_backend(shared.clone(), move || {
-        let matrix = shared.matrix.clone();
-
-        open_window("HexoTK Standalone", 1400, 700, None, Box::new(move || {
-            let dialog_model = Rc::new(RefCell::new(DialogModel::new()));
-            let wt_diag      = Rc::new(Dialog::new());
-
-            let ui_ctrl = UICtrlRef::new(matrix.clone(), dialog_model.clone());
-
-            let (drv, _drv_frontend) = Driver::new();
-
-            (drv, Box::new(UI::new(
-                Box::new(NodeMatrixData::new(
-                    ui_ctrl.clone(),
-                    UIPos::center(12, 12),
-                    110003)),
-                Box::new(wbox!(
-                    wt_diag, 90000.into(), center(12, 12),
-                    DialogData::new(
-                        DIALOG_ID,
-                        AtomId::new(DIALOG_ID, DIALOG_OK_ID), dialog_model.clone()))),
-                Box::new(UIParams::new(ui_ctrl)),
-                (1400 as f64, 700 as f64),
-            )))
-        }));
+        open_hexosynth(None, None, shared.matrix.clone());
     });
 }

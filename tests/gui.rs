@@ -7,7 +7,10 @@ use std::sync::{Arc, Mutex};
 use std::rc::Rc;
 use std::cell::RefCell;
 
-fn start_backend<F: FnMut()>(shared: Arc<HexoSynthShared>, mut f: F) {
+use wlambda;
+use wlambda::vval::VVal;
+
+fn start_backend(shared: Arc<HexoSynthShared>) {
     let node_exec = shared.node_exec.borrow_mut().take().unwrap();
     let ne        = Arc::new(Mutex::new(node_exec));
     let ne2       = ne.clone();
@@ -66,41 +69,24 @@ fn start_backend<F: FnMut()>(shared: Arc<HexoSynthShared>, mut f: F) {
                 };
         }
     });
-
-    f();
 }
 
-#[test]
-fn main_gui() {
-    use hexotk::widgets::{Dialog, DialogData, DialogModel};
+fn start_driver(matrix: Arc<Mutex<Matrix>>) -> Driver {
+    let (driver, mut drv_frontend) = Driver::new();
 
-    let shared = Arc::new(HexoSynthShared::new());
+    println!("START");
+    std::thread::spawn(move || {
+        use hexotk::constants::*;
+        loop {
+            {
+                let mut m = matrix.lock().unwrap();
+                m.place(3, 3, Cell::empty(NodeId::TSeq(0)));
+                m.sync();
+            }
+            std::thread::sleep(
+                std::time::Duration::from_millis(1000));
 
-    start_backend(shared.clone(), move || {
-        let matrix = shared.matrix.clone();
-
-        open_window("HexoTK Standalone", 1400, 700, None, Box::new(move || {
-            use crate::ui::matrix::NodeMatrixData;
-
-            let dialog_model = Rc::new(RefCell::new(DialogModel::new()));
-            let wt_diag      = Rc::new(Dialog::new());
-
-            let ui_ctrl = UICtrlRef::new(matrix.clone(), dialog_model.clone());
-
-            let (drv, drv_frontend) = Driver::new();
-
-            std::thread::spawn(move || {
-                use hexotk::constants::*;
-                loop {
-                    {
-                        let mut m = matrix.lock().unwrap();
-                        m.place(3, 3, Cell::empty(NodeId::TSeq(0)));
-                        m.sync();
-                    }
-                    std::thread::sleep(
-                        std::time::Duration::from_millis(1000));
-
-                    println!("{:#?}", drv_frontend.get_text_dump());
+//                println!("{:#?}", drv_frontend.get_text_dump());
 
 //                    println!("ZONES: {:#?}",
 //                        drv_frontend.query_zones(
@@ -111,32 +97,34 @@ fn main_gui() {
 //                            6.into(), DBGID_KNOB_FINE)
 //                        .unwrap();
 
-                    drv_frontend.move_mouse(142.0, 49.0);
+            drv_frontend.move_mouse(142.0, 49.0);
+            drv_frontend.query_state();
+            println!("mp: {:?}", drv_frontend.mouse_pos);
 
-                    let z = drv_frontend.query_hover().unwrap().unwrap();
-                    println!("z: {:#?}", z);
+//                let z = drv_frontend.query_hover().unwrap().unwrap();
+//                println!("z: {:#?}", z);
 
-                    assert_eq!(
-                        drv_frontend.get_text(
-                            z.id, DBGID_KNOB_NAME).unwrap(),
-                        "det");
-                }
-            });
-
-            (drv, Box::new(UI::new(
-                Box::new(NodeMatrixData::new(
-                    ui_ctrl.clone(),
-                    UIPos::center(12, 12),
-                    110003)),
-                Box::new(wbox!(
-                    wt_diag, 90000.into(), center(12, 12),
-                    DialogData::new(
-                        DIALOG_ID,
-                        AtomId::new(DIALOG_ID, DIALOG_OK_ID),
-                        dialog_model.clone()))),
-                Box::new(UIParams::new(ui_ctrl)),
-                (1400 as f64, 700 as f64),
-            )))
-        }));
+//                assert_eq!(
+//                    drv_frontend.get_text(
+//                        z.id, DBGID_KNOB_NAME).unwrap(),
+//                    "det");
+        }
     });
+
+    driver
+}
+
+#[test]
+fn main_gui() {
+    use hexotk::widgets::{Dialog, DialogData, DialogModel};
+
+    println!("INIT");
+    let shared = Arc::new(HexoSynthShared::new());
+
+    start_backend(shared.clone());
+    let matrix = shared.matrix.clone();
+
+    let drv = start_driver(matrix.clone());
+
+    open_hexosynth(None, Some(drv), matrix);
 }
