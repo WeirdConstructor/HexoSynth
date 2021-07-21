@@ -7,10 +7,10 @@ edition     = "2018"
 description = "HexoSynth - A hexagonal modular synthesizer plugin"
 
 [dependencies]
-hexodsp    = { git = "https://github.com/WeirdConstructor/HexoDSP.git" }
-#hexodsp    = { path = "../hexodsp" }
-hexotk     = { git = "https://github.com/WeirdConstructor/HexoTK.git" }
-#hexotk     = { path = "../hexotk" }
+#hexodsp    = { git = "https://github.com/WeirdConstructor/HexoDSP.git" }
+hexodsp    = { path = "../hexodsp" }
+#hexotk     = { git = "https://github.com/WeirdConstructor/HexoTK.git" }
+hexotk     = { path = "../hexotk", features=["driver"] }
 raw-window-handle  = "0.3"
 #baseplug   = { git = "https://github.com/wrl/baseplug.git" }
 baseplug   = { git = "https://github.com/WeirdConstructor/baseplug.git", branch = "plugin_context" }
@@ -26,6 +26,8 @@ microfft    = "0.3.1"
 num-complex = "0.2"
 hound       = "3.4.0"
 jack        = "0.6.6"
+wlambda     = { path = "../wlambda" }
+rustyline   = { version = "6.1.2" }
 
 [lib]
 name="hexosynth"

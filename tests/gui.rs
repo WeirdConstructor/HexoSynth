@@ -10,6 +10,8 @@ use std::cell::RefCell;
 use wlambda;
 use wlambda::vval::VVal;
 
+use rustyline;
+
 fn start_backend(shared: Arc<HexoSynthShared>) {
     let node_exec = shared.node_exec.borrow_mut().take().unwrap();
     let ne        = Arc::new(Mutex::new(node_exec));
@@ -118,18 +120,49 @@ fn start_driver(matrix: Arc<Mutex<Matrix>>) -> Driver {
         files.sort();
 
         for f in files.iter() {
+            let path = std::path::Path::new(f);
+            let name = path.file_name().unwrap().to_str().unwrap();
+
             match ctx.eval_file(&f) {
                 Ok(v) => {
-                    println!("*** OK: {}", "in.wl");
+                    println!("*** OK: {}", name);
                 },
                 Err(e) => {
-                    println!("*** ERROR: {}", e);
+                    println!("*** ERROR: {}\n    {}", name, e);
                 },
             }
         }
 
-        drvctx.borrow_mut().drv.exit();
+        let mut rl = rustyline::Editor::<()>::new();
+        if rl.load_history("gui_wlambda.history").is_ok() {
+            println!("Loaded history from 'gui_wlambda.history' file.");
+        }
 
+        drvctx.borrow_mut().drv.be_quiet();
+
+        eprintln!("HexoSynth Version {}", VERSION);
+        loop {
+            let readline = rl.readline(">> ");
+            match readline {
+                Ok(line) => {
+                    rl.add_history_entry(line.as_str());
+
+                    match ctx.eval(&line) {
+                        Ok(v)  => {
+                            println!("> {}", v.s());
+                            ctx.set_global_var("@@", &v);
+                        },
+                        Err(e) => { println!("*** {}", e); }
+                    }
+                },
+                Err(_) => { break; },
+            }
+        }
+        if rl.save_history("gui_wlambda.history").is_ok() {
+            println!("Saved history to 'gui_wlambda.history'");
+        }
+
+        drvctx.borrow_mut().drv.exit();
 
 //            {
 //                let mut m = matrix.lock().unwrap();
