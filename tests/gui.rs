@@ -71,20 +71,73 @@ fn start_backend(shared: Arc<HexoSynthShared>) {
     });
 }
 
+struct Ctx {
+    drv:    DriverFrontend,
+    matrix: Arc<Mutex<Matrix>>,
+}
+
+fn setup_environment() -> wlambda::GlobalEnvRef {
+    use wlambda::{Env, VVal};
+    let global_env = wlambda::GlobalEnv::new_default();
+
+    global_env.borrow_mut().add_func(
+        "query_state", |env: &mut Env, argc: usize| {
+        env.with_user_do(|ctx: &mut Ctx| {
+            ctx.drv.query_state();
+            Ok(VVal::None)
+        })
+    }, Some(0), Some(0));
+
+    global_env
+}
+
 fn start_driver(matrix: Arc<Mutex<Matrix>>) -> Driver {
     let (driver, mut drv_frontend) = Driver::new();
 
-    println!("START");
     std::thread::spawn(move || {
         use hexotk::constants::*;
-        loop {
-            {
-                let mut m = matrix.lock().unwrap();
-                m.place(3, 3, Cell::empty(NodeId::TSeq(0)));
-                m.sync();
+
+        let drvctx = Rc::new(RefCell::new(Ctx {
+            drv: drv_frontend,
+            matrix,
+        }));
+
+        let mut ctx =
+            wlambda::EvalContext::new_with_user(
+                setup_environment(),
+                drvctx.clone());
+
+
+        let path = env!("CARGO_MANIFEST_DIR");
+
+        let mut files : Vec<String> =
+            std::fs::read_dir(path.to_string() + "/tests/gui/").unwrap().map(|e| {
+                e.unwrap().path().as_path().to_str().unwrap().to_string()
+            }).collect();
+
+        files.sort();
+
+        for f in files.iter() {
+            match ctx.eval_file(&f) {
+                Ok(v) => {
+                    println!("*** OK: {}", "in.wl");
+                },
+                Err(e) => {
+                    println!("*** ERROR: {}", e);
+                },
             }
-            std::thread::sleep(
-                std::time::Duration::from_millis(1000));
+        }
+
+        drvctx.borrow_mut().drv.exit();
+
+
+//            {
+//                let mut m = matrix.lock().unwrap();
+//                m.place(3, 3, Cell::empty(NodeId::TSeq(0)));
+//                m.sync();
+//            }
+//            std::thread::sleep(
+//                std::time::Duration::from_millis(1000));
 
 //                println!("{:#?}", drv_frontend.get_text_dump());
 
@@ -97,9 +150,9 @@ fn start_driver(matrix: Arc<Mutex<Matrix>>) -> Driver {
 //                            6.into(), DBGID_KNOB_FINE)
 //                        .unwrap();
 
-            drv_frontend.move_mouse(142.0, 49.0);
-            drv_frontend.query_state();
-            println!("mp: {:?}", drv_frontend.mouse_pos);
+//            drv_frontend.move_mouse(142.0, 49.0);
+//            drv_frontend.query_state();
+//            println!("mp: {:?}", drv_frontend.mouse_pos);
 
 //                let z = drv_frontend.query_hover().unwrap().unwrap();
 //                println!("z: {:#?}", z);
@@ -108,7 +161,7 @@ fn start_driver(matrix: Arc<Mutex<Matrix>>) -> Driver {
 //                    drv_frontend.get_text(
 //                        z.id, DBGID_KNOB_NAME).unwrap(),
 //                    "det");
-        }
+//        }
     });
 
     driver
