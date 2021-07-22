@@ -3,6 +3,7 @@ use hexosynth::dsp::*;
 use hexosynth::dsp::tracker::UIPatternModel;
 
 use hexodsp::dsp::tracker::PatternData;
+use hexodsp::CellDir;
 
 use hexotk::constants::{dbgid2str, str2dbgid, dbgid_unpack};
 
@@ -93,10 +94,11 @@ fn zone_type2vval(zt: ZoneType) -> wlambda::VVal {
         ZoneType::TextInput           => VVal::vec1(VVal::new_str("text_input")),
         ZoneType::Keyboard            => VVal::vec1(VVal::new_str("keyboard")),
         ZoneType::AtomClick { .. }    => VVal::vec1(VVal::new_str("atom_click")),
-        ZoneType::HexFieldClick { pos, ..  } => {
-            VVal::vec2(
+        ZoneType::HexFieldClick { pos, tile_size, ..  } => {
+            VVal::vec3(
                 VVal::new_str("hex_field_click"),
-                VVal::ivec2(pos.0 as i64, pos.1 as i64))
+                VVal::ivec2(pos.0 as i64, pos.1 as i64),
+                VVal::Flt(tile_size))
         },
         ZoneType::Click { index } => {
             VVal::vec2(VVal::new_str("click"), VVal::Int(index as i64))
@@ -284,6 +286,27 @@ fn new_pattern_obj(pat: Arc<Mutex<PatternData>>) -> VVal {
     obj
 }
 
+fn cell_port2vval(cell: Cell, dir: CellDir) -> VVal {
+    let node_id = cell.node_id();
+
+    if let Some(i) = cell.local_port_idx(dir) {
+        if dir.is_input() {
+            if let Some(param) = node_id.inp_param_by_idx(i as usize) {
+                VVal::new_str(param.name())
+            } else {
+                VVal::Int(i as i64)
+            }
+        } else {
+            if let Some(name) = node_id.out_name_by_idx(i) {
+                VVal::new_str(name)
+            } else {
+                VVal::Int(i as i64)
+            }
+        }
+    } else {
+        VVal::None
+    }
+}
 
 fn setup_hx_module() -> wlambda::SymbolTable {
     let mut st = wlambda::SymbolTable::new();
@@ -496,11 +519,43 @@ fn setup_hx_module() -> wlambda::SymbolTable {
     }, Some(3), Some(3), false);
 
     st.fun(
+        "get_cell", |env: &mut Env, argc: usize| {
+        let pos = env.arg(0);
+        env.with_user_do(|ctx: &mut Ctx| {
+            let m = ctx.matrix.lock().unwrap();
+            let cell = m.get_copy(pos.v_i(0) as usize, pos.v_i(1) as usize);
+
+            if let Some(cell) = cell {
+                let node_id = cell.node_id();
+
+                let ports = VVal::vec();
+                ports.push(cell_port2vval(cell, CellDir::T));
+                ports.push(cell_port2vval(cell, CellDir::TL));
+                ports.push(cell_port2vval(cell, CellDir::BL));
+                ports.push(cell_port2vval(cell, CellDir::TR));
+                ports.push(cell_port2vval(cell, CellDir::BR));
+                ports.push(cell_port2vval(cell, CellDir::B));
+
+                Ok(VVal::map3(
+                    "node_id",
+                    VVal::pair(
+                        VVal::new_str(node_id.label()),
+                        VVal::Int(node_id.instance() as i64)),
+                    "pos",
+                    VVal::ivec2(
+                        cell.pos().0 as i64,
+                        cell.pos().1 as i64),
+                    "ports", ports))
+            } else {
+                Ok(VVal::None)
+            }
+        })
+    }, Some(1), Some(1), false);
+
+    st.fun(
         "mouse_pos", |env: &mut Env, argc: usize| {
         env.with_user_do(|ctx: &mut Ctx| {
-            Ok(VVal::pair(
-                VVal::Flt(ctx.drv.mouse_pos.0),
-                VVal::Flt(ctx.drv.mouse_pos.1)))
+            Ok(VVal::fvec2(ctx.drv.mouse_pos.0, ctx.drv.mouse_pos.1))
         })
     }, Some(0), Some(0), false);
 
@@ -515,6 +570,8 @@ fn start_driver(matrix: Arc<Mutex<Matrix>>) -> Driver {
     std::thread::spawn(move || {
         std::thread::sleep(
             std::time::Duration::from_millis(1000));
+
+        let clear_matrix = matrix.clone();
 
         let drvctx = Rc::new(RefCell::new(Ctx {
             drv: drv_frontend,
@@ -542,12 +599,18 @@ fn start_driver(matrix: Arc<Mutex<Matrix>>) -> Driver {
             let path = std::path::Path::new(f);
             let name = path.file_name().unwrap().to_str().unwrap();
 
+            {
+                let mut m = clear_matrix.lock().unwrap();
+                m.clear();
+            }
+
             match ctx.eval_file(&f) {
                 Ok(v) => {
                     println!("*** OK: {}", name);
                 },
                 Err(e) => {
                     println!("*** ERROR: {}\n    {}", name, e);
+                    break;
                 },
             }
         }

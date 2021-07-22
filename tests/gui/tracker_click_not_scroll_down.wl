@@ -32,4 +32,3 @@ std:assert_eq
 !pat = hx:pattern_data_for_tracker 0;
 std:assert_eq pat.get_cursor[]   $i(2, 2)  "cursor advanced";
 std:assert_eq (pat.get_cell 0 0) "fff"     "first cell contains right data";
-
