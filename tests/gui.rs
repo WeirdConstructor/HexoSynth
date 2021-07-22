@@ -1,6 +1,4 @@
 use hexosynth::*;
-use hexosynth::matrix::*;
-use hexosynth::nodes::new_node_engine;
 use hexosynth::dsp::*;
 
 use hexotk::constants::{dbgid2str, str2dbgid, dbgid_unpack};
@@ -9,7 +7,11 @@ use std::sync::{Arc, Mutex};
 use std::rc::Rc;
 use std::cell::RefCell;
 
+use keyboard_types::Key;
+
 use wlambda;
+use wlambda::StackAction;
+use wlambda::Env;
 use wlambda::vval::VVal;
 
 use rustyline;
@@ -127,11 +129,50 @@ fn id_idx2vval(id: AtomId, idx: usize) -> wlambda::VVal {
     }
 }
 
-fn setup_environment() -> wlambda::GlobalEnvRef {
-    use wlambda::{Env, VVal};
-    let global_env = wlambda::GlobalEnv::new_default();
+fn str2key(s: &str) -> Result<Key, StackAction> {
+    if s.len() == 1 {
+        Ok(Key::Character(s.to_string()))
 
-    global_env.borrow_mut().add_func(
+    } else {
+        match s {
+            "Alt"        => Ok(Key::Alt),
+            "Control"    => Ok(Key::Control),
+            "Shift"      => Ok(Key::Shift),
+            "Enter"      => Ok(Key::Enter),
+            "Tab"        => Ok(Key::Tab),
+            "Home"       => Ok(Key::Home),
+            "Escape"     => Ok(Key::Escape),
+            "Delete"     => Ok(Key::Delete),
+            "Backspace"  => Ok(Key::Backspace),
+            "PageUp"     => Ok(Key::PageUp),
+            "PageDown"   => Ok(Key::PageDown),
+            "ArrowUp"    => Ok(Key::ArrowUp),
+            "ArrowDown"  => Ok(Key::ArrowDown),
+            "ArrowLeft"  => Ok(Key::ArrowLeft),
+            "ArrowRight" => Ok(Key::ArrowRight),
+            "F1"         => Ok(Key::F1),
+            "F2"         => Ok(Key::F2),
+            "F3"         => Ok(Key::F3),
+            "F4"         => Ok(Key::F4),
+            "F5"         => Ok(Key::F5),
+            "F6"         => Ok(Key::F6),
+            "F7"         => Ok(Key::F7),
+            "F8"         => Ok(Key::F8),
+            "F9"         => Ok(Key::F9),
+            "F10"        => Ok(Key::F10),
+            "F11"        => Ok(Key::F11),
+            "F12"        => Ok(Key::F12),
+            _ => Err(
+                StackAction::panic_msg(format!(
+                    "Unknown key: '{}'", s)))
+        }
+    }
+}
+
+fn setup_hx_module() -> wlambda::SymbolTable {
+    let mut st = wlambda::SymbolTable::new();
+
+    st.fun(
         "query_state", |env: &mut Env, argc: usize| {
         env.with_user_do(|ctx: &mut Ctx| {
             ctx.drv.query_state();
@@ -139,9 +180,9 @@ fn setup_environment() -> wlambda::GlobalEnvRef {
 //            println!("TEXTS: {:?}", ctx.drv.texts);
             Ok(VVal::None)
         })
-    }, Some(0), Some(0));
+    }, Some(0), Some(0), false);
 
-    global_env.borrow_mut().add_func(
+    st.fun(
         "hover", |env: &mut Env, argc: usize| {
         env.with_user_do(|ctx: &mut Ctx| {
             if let Some(hz) = ctx.drv.hover {
@@ -150,9 +191,9 @@ fn setup_environment() -> wlambda::GlobalEnvRef {
                 Ok(VVal::None)
             }
         })
-    }, Some(0), Some(0));
+    }, Some(0), Some(0), false);
 
-    global_env.borrow_mut().add_func(
+    st.fun(
         "zones", |env: &mut Env, argc: usize| {
         env.with_user_do(|ctx: &mut Ctx| {
             let ret = VVal::vec();
@@ -162,10 +203,31 @@ fn setup_environment() -> wlambda::GlobalEnvRef {
 
             Ok(ret)
         })
-    }, Some(0), Some(0));
+    }, Some(0), Some(0), false);
+
+    st.fun(
+        "id_by_text", |env: &mut Env, argc: usize| {
+        let needle = env.arg(0).s_raw();
+
+        env.with_user_do(|ctx: &mut Ctx| {
+            let ret = VVal::vec();
+
+            for ((id, idx), (s, pos)) in ctx.drv.texts.iter() {
+                if *s == needle {
+                    ret.push(
+                        VVal::vec3(
+                            id_idx2vval(*id, *idx),
+                            VVal::fvec4(pos.x, pos.y, pos.w, pos.h),
+                            VVal::new_str(s)));
+                }
+            }
+
+            Ok(if ret.len() == 0 { VVal::None } else { ret })
+        })
+    }, Some(1), Some(1), false);
 
 
-    global_env.borrow_mut().add_func(
+    st.fun(
         "id_by_text_contains", |env: &mut Env, argc: usize| {
         let needle = env.arg(0).s_raw();
 
@@ -184,21 +246,97 @@ fn setup_environment() -> wlambda::GlobalEnvRef {
 
             Ok(if ret.len() == 0 { VVal::None } else { ret })
         })
-    }, Some(1), Some(1));
+    }, Some(1), Some(1), false);
 
-    global_env.borrow_mut().add_func(
+    st.fun(
         "mouse_move", |env: &mut Env, argc: usize| {
-        let (x, y) = (
-            env.arg(0).v_f(0),
-            env.arg(0).v_f(1)
-        );
-        env.with_user_do(|ctx: &mut Ctx| {
-            ctx.drv.move_mouse(x, y);
-            Ok(VVal::None)
-        })
-    }, Some(1), Some(1));
+        let (x, y) =
+            if argc == 1 { (env.arg(0).v_f(0), env.arg(0).v_f(1)) }
+            else         { (env.arg(0).f(),    env.arg(1).f()) };
 
-    global_env.borrow_mut().add_func(
+        env.with_user_do(|ctx: &mut Ctx| {
+            match ctx.drv.move_mouse(x, y) {
+                Ok(_)  => Ok(VVal::None),
+                Err(e) => Err(
+                    StackAction::panic_msg(format!(
+                        "Driver error: {:?}", e)))
+            }
+        })
+    }, Some(1), Some(2), false);
+
+    st.fun(
+        "mouse_down", |env: &mut Env, argc: usize| {
+        let btn =
+            env.arg(0).with_s_ref(|s| {
+                match s {
+                    "left"      => Ok(MButton::Left),
+                    "right"     => Ok(MButton::Right),
+                    "middle"    => Ok(MButton::Middle),
+                    _ => Err(
+                        StackAction::panic_msg(format!(
+                            "Unknown button: '{}'", s)))
+                }
+            })?;
+        env.with_user_do(|ctx: &mut Ctx| {
+            match ctx.drv.mouse_down(btn) {
+                Ok(_)  => Ok(VVal::None),
+                Err(e) => Err(
+                    StackAction::panic_msg(format!(
+                        "Driver error: {:?}", e)))
+            }
+        })
+    }, Some(1), Some(1), false);
+
+    st.fun(
+        "mouse_up", |env: &mut Env, argc: usize| {
+        let btn =
+            env.arg(0).with_s_ref(|s| {
+                match s {
+                    "left"      => Ok(MButton::Left),
+                    "right"     => Ok(MButton::Right),
+                    "middle"    => Ok(MButton::Middle),
+                    _ => Err(
+                        StackAction::panic_msg(format!(
+                            "Unknown button: '{}'", s)))
+                }
+            })?;
+        env.with_user_do(|ctx: &mut Ctx| {
+            match ctx.drv.mouse_up(btn) {
+                Ok(_)  => Ok(VVal::None),
+                Err(e) => Err(
+                    StackAction::panic_msg(format!(
+                        "Driver error: {:?}", e)))
+            }
+        })
+    }, Some(1), Some(1), false);
+
+    st.fun(
+        "key_down", |env: &mut Env, argc: usize| {
+        let key = env.arg(0).with_s_ref(str2key)?;
+        env.with_user_do(|ctx: &mut Ctx| {
+            match ctx.drv.key_down(key.clone()) {
+                Ok(_)  => Ok(VVal::None),
+                Err(e) => Err(
+                    StackAction::panic_msg(format!(
+                        "Driver error: {:?}", e)))
+            }
+        })
+    }, Some(1), Some(1), false);
+
+    st.fun(
+        "key_up", |env: &mut Env, argc: usize| {
+        let key = env.arg(0).with_s_ref(str2key)?;
+        env.with_user_do(|ctx: &mut Ctx| {
+            match ctx.drv.key_up(key.clone()) {
+                Ok(_)  => Ok(VVal::None),
+                Err(e) => Err(
+                    StackAction::panic_msg(format!(
+                        "Driver error: {:?}", e)))
+            }
+        })
+    }, Some(1), Some(1), false);
+
+    st.fun(
         "param_id", |env: &mut Env, argc: usize| {
         let node_id = env.arg(0).with_s_ref(|s| NodeId::from_str(s));
         let node_id = node_id.to_instance(env.arg(1).i() as usize);
@@ -224,26 +362,26 @@ fn setup_environment() -> wlambda::GlobalEnvRef {
         } else {
             Ok(VVal::None)
         }
-    }, Some(3), Some(3));
+    }, Some(3), Some(3), false);
 
-    global_env.borrow_mut().add_func(
+    st.fun(
         "mouse_pos", |env: &mut Env, argc: usize| {
         env.with_user_do(|ctx: &mut Ctx| {
             Ok(VVal::pair(
                 VVal::Flt(ctx.drv.mouse_pos.0),
                 VVal::Flt(ctx.drv.mouse_pos.1)))
         })
-    }, Some(0), Some(0));
+    }, Some(0), Some(0), false);
 
-    global_env
+    st
 }
 
 fn start_driver(matrix: Arc<Mutex<Matrix>>) -> Driver {
-    let (driver, mut drv_frontend) = Driver::new();
+    let (mut driver, mut drv_frontend) = Driver::new();
+
+    driver.take_control();
 
     std::thread::spawn(move || {
-        use hexotk::constants::*;
-
         std::thread::sleep(
             std::time::Duration::from_millis(1000));
 
@@ -252,10 +390,12 @@ fn start_driver(matrix: Arc<Mutex<Matrix>>) -> Driver {
             matrix,
         }));
 
+        let global_env = wlambda::GlobalEnv::new_default();
+        global_env.borrow_mut().set_module("hx", setup_hx_module());
+
         let mut ctx =
             wlambda::EvalContext::new_with_user(
-                setup_environment(),
-                drvctx.clone());
+                global_env, drvctx.clone());
 
 
         let path = env!("CARGO_MANIFEST_DIR");
