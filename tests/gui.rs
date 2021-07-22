@@ -1,5 +1,8 @@
 use hexosynth::*;
 use hexosynth::dsp::*;
+use hexosynth::dsp::tracker::UIPatternModel;
+
+use hexodsp::dsp::tracker::PatternData;
 
 use hexotk::constants::{dbgid2str, str2dbgid, dbgid_unpack};
 
@@ -13,6 +16,7 @@ use wlambda;
 use wlambda::StackAction;
 use wlambda::Env;
 use wlambda::vval::VVal;
+use wlambda::set_vval_method;
 
 use rustyline;
 
@@ -169,6 +173,118 @@ fn str2key(s: &str) -> Result<Key, StackAction> {
     }
 }
 
+fn new_pattern_obj(pat: Arc<Mutex<PatternData>>) -> VVal {
+    let obj = VVal::map();
+
+    set_vval_method!(obj, pat, get_cell, Some(2), Some(2), env, _argc, {
+        let (row, col) = (
+            env.arg(0).i() as usize,
+            env.arg(1).i() as usize,
+        );
+        if let Some(cell) = pat.lock().unwrap().get_cell(row, col) {
+            Ok(VVal::new_str(cell))
+        } else {
+            Ok(VVal::None)
+        }
+    });
+
+    set_vval_method!(obj, pat, is_col_note, Some(1), Some(1), env, _argc, {
+        let col = env.arg(0).i() as usize;
+        Ok(VVal::Bol(pat.lock().unwrap().is_col_note(col)))
+    });
+
+    set_vval_method!(obj, pat, is_col_step, Some(1), Some(1), env, _argc, {
+        let col = env.arg(0).i() as usize;
+        Ok(VVal::Bol(pat.lock().unwrap().is_col_step(col)))
+    });
+
+    set_vval_method!(obj, pat, is_col_gate, Some(1), Some(1), env, _argc, {
+        let col = env.arg(0).i() as usize;
+        Ok(VVal::Bol(pat.lock().unwrap().is_col_gate(col)))
+    });
+
+    set_vval_method!(obj, pat, rows, Some(0), Some(0), _env, _argc, {
+        Ok(VVal::Int(pat.lock().unwrap().rows() as i64))
+    });
+
+    set_vval_method!(obj, pat, cols, Some(0), Some(0), _env, _argc, {
+        Ok(VVal::Int(pat.lock().unwrap().cols() as i64))
+    });
+
+    set_vval_method!(obj, pat, set_rows, Some(1), Some(1), env, _argc, {
+        pat.lock().unwrap().set_rows(env.arg(0).i() as usize);
+        Ok(VVal::None)
+    });
+
+    set_vval_method!(obj, pat, clear_cell, Some(2), Some(2), env, _argc, {
+        let (row, col) = (
+            env.arg(0).i() as usize,
+            env.arg(1).i() as usize,
+        );
+        pat.lock().unwrap().clear_cell(row, col);
+        Ok(VVal::None)
+    });
+
+    set_vval_method!(obj, pat, set_col_note_type, Some(1), Some(1), env, _argc, {
+        let col = env.arg(0).i() as usize;
+        pat.lock().unwrap().set_col_note_type(col);
+        Ok(VVal::None)
+    });
+
+    set_vval_method!(obj, pat, set_col_step_type, Some(1), Some(1), env, _argc, {
+        let col = env.arg(0).i() as usize;
+        pat.lock().unwrap().set_col_step_type(col);
+        Ok(VVal::None)
+    });
+
+    set_vval_method!(obj, pat, set_col_value_type, Some(1), Some(1), env, _argc, {
+        let col = env.arg(0).i() as usize;
+        pat.lock().unwrap().set_col_value_type(col);
+        Ok(VVal::None)
+    });
+
+    set_vval_method!(obj, pat, set_col_gate_type, Some(1), Some(1), env, _argc, {
+        let col = env.arg(0).i() as usize;
+        pat.lock().unwrap().set_col_gate_type(col);
+        Ok(VVal::None)
+    });
+
+    set_vval_method!(obj, pat, set_cell_value, Some(3), Some(3), env, _argc, {
+        let (row, col) = (
+            env.arg(0).i() as usize,
+            env.arg(1).i() as usize,
+        );
+        let value = env.arg(2).i() as u16;
+        pat.lock().unwrap().set_cell_value(row, col, value);
+        Ok(VVal::None)
+    });
+
+    set_vval_method!(obj, pat, get_cell_value, Some(2), Some(2), env, _argc, {
+        let (row, col) = (
+            env.arg(0).i() as usize,
+            env.arg(1).i() as usize,
+        );
+        Ok(VVal::Int(pat.lock().unwrap().get_cell_value(row, col) as i64))
+    });
+
+    set_vval_method!(obj, pat, set_cursor, Some(2), Some(2), env, _argc, {
+        let (row, col) = (
+            env.arg(0).i() as usize,
+            env.arg(1).i() as usize,
+        );
+        pat.lock().unwrap().set_cursor(row, col);
+        Ok(VVal::None)
+    });
+
+    set_vval_method!(obj, pat, get_cursor, Some(0), Some(0), env, _argc, {
+        let cur = pat.lock().unwrap().get_cursor();
+        Ok(VVal::ivec2(cur.0 as i64, cur.1 as i64))
+    });
+
+    obj
+}
+
+
 fn setup_hx_module() -> wlambda::SymbolTable {
     let mut st = wlambda::SymbolTable::new();
 
@@ -204,6 +320,21 @@ fn setup_hx_module() -> wlambda::SymbolTable {
             Ok(ret)
         })
     }, Some(0), Some(0), false);
+
+    st.fun(
+        "pattern_data_for_tracker", |env: &mut Env, _argc: usize| {
+        let tracker_id = env.arg(0).i();
+
+        env.with_user_do(|ctx: &mut Ctx| {
+            let m = ctx.matrix.lock().unwrap();
+            if let Some(pat) = m.get_pattern_data(tracker_id as usize) {
+                Ok(new_pattern_obj(pat))
+            } else {
+                Err(StackAction::panic_msg(
+                    format!("No data for tracker_id={}", tracker_id)))
+            }
+        })
+    }, Some(1), Some(1), false);
 
     st.fun(
         "id_by_text", |env: &mut Env, argc: usize| {
