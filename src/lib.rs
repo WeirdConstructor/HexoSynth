@@ -25,6 +25,8 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::cell::RefCell;
 
+use keyboard_types::KeyboardEvent;
+
 pub use hexodsp::*;
 
 pub use baseplug::{
@@ -702,10 +704,20 @@ impl PluginUI for HexoSynth {
     ) {
     }
 
-    fn ui_close(mut _handle: Self::Handle) {
+    fn ui_close(mut _handle: Self::Handle, ctx: &HexoSynthShared) {
         // TODO: Close window!
+    }
+
+    fn ui_key_down(_handle: Self::Handle, ctx: &HexoSynthShared, ev: KeyboardEvent) -> bool {
+        println!("VSTEVDW: {:?}", ev);
+        true
+    }
+
+    fn ui_key_up(_handle: Self::Handle, ctx: &HexoSynthShared, ev: KeyboardEvent) -> bool {
+        println!("VSTEVUP: {:?}", ev);
+        true
     }
 }
 
-//#[cfg(not(test))]
-//baseplug::vst2!(HexoSynth, b"HxsY");
+#[cfg(not(test))]
+baseplug::vst2!(HexoSynth, b"HxsY");
