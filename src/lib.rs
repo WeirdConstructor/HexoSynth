@@ -508,11 +508,11 @@ impl AtomDataModel for UIParams {
         }
     }
 
-    fn change_start(&mut self, id: AtomId) {
+    fn change_start(&mut self, _id: AtomId) {
         //d// println!("CHANGE START: {}", id);
     }
 
-    fn change(&mut self, id: AtomId, v: f32, single: bool, res: ChangeRes) {
+    fn change(&mut self, id: AtomId, v: f32, _single: bool, res: ChangeRes) {
         //d// println!("CHANGE: {},{} ({})", id, v, single);
         if let Some((pid, _)) = self.get_param(id) {
             if let Some(((min, max), _)) = pid.param_min_max() {

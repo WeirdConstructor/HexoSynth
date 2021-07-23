@@ -115,6 +115,7 @@ impl UICtrlRef {
         self.0.borrow().help_text_src.clone()
     }
 
+    #[allow(clippy::collapsible_else_if)]
     pub fn reload_sample_dir_list(&self) {
         let mut this = self.0.borrow_mut();
         this.sample_browse_list.clear();

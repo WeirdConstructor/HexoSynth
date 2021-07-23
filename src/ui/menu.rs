@@ -112,6 +112,7 @@ impl Menu {
 type MenuLblFun    = Box<dyn Fn(usize, bool, &MenuState) -> Option<&'static str>>;
 type MenuActionFun = Box<dyn FnMut(usize, &MenuState, &mut Box<dyn MenuActionHandler>)>;
 
+#[allow(clippy::collapsible_else_if)]
 impl Menu {
     fn activate_init_state(&mut self, state: MenuState) {
         self.prev.clear();
@@ -400,19 +401,17 @@ impl Menu {
 
                                     if next {
                                         Some("Next>")
-                                    } else {
-                                        if help {
-                                            if cell_dir.is_output() {
-                                                node_info.out_help(cur_idx)
-                                            } else {
-                                                node_info.in_help(cur_idx)
-                                            }
+                                    } else if help {
+                                        if cell_dir.is_output() {
+                                            node_info.out_help(cur_idx)
                                         } else {
-                                            if cell_dir.is_output() {
-                                                node_info.out_name(cur_idx)
-                                            } else {
-                                                node_info.in_name(cur_idx)
-                                            }
+                                            node_info.in_help(cur_idx)
+                                        }
+                                    } else {
+                                        if cell_dir.is_output() {
+                                            node_info.out_name(cur_idx)
+                                        } else {
+                                            node_info.in_name(cur_idx)
                                         }
                                     }
                                 },

@@ -2,16 +2,10 @@
 // This is a part of HexoSynth. Released under (A)GPLv3 or any later.
 // See README.md and COPYING for details.
 
-use hexotk::*;
-//use hexotk::widgets::*;
-use hexosynth::ui::matrix::NodeMatrixData;
 use hexosynth::*;
-use hexodsp::*;
 
 use std::sync::Arc;
 use std::sync::Mutex;
-use std::rc::Rc;
-use std::cell::RefCell;
 
 struct Notifications {
     node_exec: Arc<Mutex<NodeExecutor>>,
@@ -239,8 +233,6 @@ fn start_backend<F: FnMut()>(shared: Arc<HexoSynthShared>, mut f: F) {
 }
 
 fn main() {
-    use hexotk::widgets::{Dialog, DialogData, DialogModel};
-
     let shared = Arc::new(HexoSynthShared::new());
 
     start_backend(shared.clone(), move || {

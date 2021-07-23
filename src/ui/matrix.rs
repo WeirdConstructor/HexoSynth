@@ -14,7 +14,7 @@ use hexotk::{MButton, UIPos, AtomId};
 use hexotk::{Rect, WidgetUI, Painter, WidgetData, WidgetType, UIEvent, wbox};
 use hexotk::constants::*;
 use hexotk::widgets::{
-    HexGrid, HexGridData, HexCell, HexEdge, HexDir,
+    HexGrid, HexGridData, HexHLight, HexEdge, HexDir, HexCell,
     Container, ContainerData,
     Text, TextSourceRef, TextData,
     Tabs, TabsData,
@@ -148,11 +148,13 @@ impl HexGridModel for MatrixUIMenu {
 
     fn cell_visible(&self, x: usize, y: usize) -> bool {
         if x >= 3 || y >= 3 { return false; }
-        if x == 0 && y == 0 || x == 2 && y == 0 { return false; }
+        if (x == 0 || x == 2) && y == 0 { return false; }
         true
     }
 
-    fn cell_label<'a>(&self, x: usize, y: usize, buf: &'a mut [u8]) -> Option<(&'a str, HexCell, Option<(f32, f32)>)> {
+    fn cell_label<'a>(&self, x: usize, y: usize, buf: &'a mut [u8])
+        -> Option<HexCell<'a>>
+    {
         if x >= 3 || y >= 3 { return None; }
         let mut len = 0;
 
@@ -165,7 +167,11 @@ impl HexGridModel for MatrixUIMenu {
         }
 
         if let Ok(s) = std::str::from_utf8(&buf[0..len]) {
-            Some((s, HexCell::Plain, None))
+            Some(HexCell {
+                label:     s,
+                hlight: HexHLight::Plain,
+                rg_colors: None
+            })
         } else {
             None
         }
@@ -244,7 +250,9 @@ impl HexGridModel for MatrixUIModel {
         true
     }
 
-    fn cell_label<'a>(&self, x: usize, y: usize, buf: &'a mut [u8]) -> Option<(&'a str, HexCell, Option<(f32, f32)>)> {
+    fn cell_label<'a>(&self, x: usize, y: usize, buf: &'a mut [u8])
+        -> Option<HexCell<'a>>
+    {
         if x >= self.w || y >= self.h { return None; }
         let (cell, led_value) =
             self.ui_ctrl.with_matrix(|m| {
@@ -259,12 +267,12 @@ impl HexGridModel for MatrixUIModel {
 
         let hl =
             if self.ui_ctrl.is_cell_focussed(x, y) {
-                HexCell::HLight
+                HexHLight::HLight
             } else {
-                HexCell::Normal
+                HexHLight::Normal
             };
 
-        Some((label, hl, Some(led_value)))
+        Some(HexCell { label, hlight: hl, rg_colors: Some(led_value) })
     }
 
     fn cell_edge<'a>(&self, x: usize, y: usize, edge: HexDir, buf: &'a mut [u8]) -> Option<(&'a str, HexEdge)> {
@@ -325,11 +333,11 @@ const HEX_MENU_HELP_TEXT_ID : u32 = 4;
 const HEX_MENU_ID           : u32 = 5;
 const NODE_PANEL_ID         : u32 = 11;
 const UTIL_PANEL_ID         : u32 = 12;
-const HELP_CONT_ID          : u32 = 13;
-const HELP_TEXT_ID          : u32 = 14;
-const HELP_TEXT_SHORTCUT_ID : u32 = 15;
-const HELP_TEXT_ABOUT_ID    : u32 = 16;
+const HELP_TEXT_ID          : u32 = 13;
+const HELP_TEXT_SHORTCUT_ID : u32 = 14;
+const HELP_TEXT_ABOUT_ID    : u32 = 15;
 
+#[allow(clippy::new_ret_no_self)]
 impl NodeMatrixData {
     pub fn new(
         ui_ctrl: UICtrlRef,
@@ -378,7 +386,7 @@ impl NodeMatrixData {
            .add(wbox!(wt_text,
                 AtomId::new(node_id, HEX_MENU_HELP_TEXT_ID),
                 center(6, 12),
-                TextData::new(txtsrc.clone())));
+                TextData::new(txtsrc)));
 
         let mut tdata = TabsData::new();
 
@@ -514,7 +522,7 @@ LMB = Left Mouse Button, RMB = Right Mouse Button, MMB = Middle Mouse Button
         tdata.add(
             "Matrix",
             wbox!(
-                wt_help_txt.clone(),
+                wt_help_txt,
                 AtomId::new(node_id, HELP_TEXT_SHORTCUT_ID),
                 center(12, 12),
                 TextData::new(key_text)));
@@ -522,7 +530,7 @@ LMB = Left Mouse Button, RMB = Right Mouse Button, MMB = Middle Mouse Button
         tdata.add(
             "Tracker",
             wbox!(
-                wt_help_txt.clone(),
+                wt_help_txt,
                 AtomId::new(node_id, HELP_TEXT_SHORTCUT_ID),
                 center(12, 12),
                 TextData::new(tracker_key_text)));
@@ -531,7 +539,7 @@ LMB = Left Mouse Button, RMB = Right Mouse Button, MMB = Middle Mouse Button
         tdata.add(
             "Module",
             wbox!(
-                wt_help_txt.clone(),
+                wt_help_txt,
                 AtomId::new(node_id, HELP_TEXT_ID),
                 center(12, 12),
                 TextData::new(ui_ctrl.get_help_text_src())));
@@ -539,7 +547,7 @@ LMB = Left Mouse Button, RMB = Right Mouse Button, MMB = Middle Mouse Button
         tdata.add(
             "About",
             wbox!(
-                wt_help_txt.clone(),
+                wt_help_txt,
                 AtomId::new(node_id, HELP_TEXT_ABOUT_ID),
                 center(12, 12),
                 TextData::new(about_text)));
@@ -558,7 +566,7 @@ LMB = Left Mouse Button, RMB = Right Mouse Button, MMB = Middle Mouse Button
                 show_help: false,
                 ui_ctrl: ui_ctrl.clone(),
                 hex_grid: WidgetData::new_tl_box(
-                    wt_hexgrid.clone(),
+                    wt_hexgrid,
                     AtomId::new(node_id, HEX_GRID_ID),
                     HexGridData::new(matrix_model.clone())),
                 hex_menu: WidgetData::new_tl_box(
@@ -574,7 +582,7 @@ LMB = Left Mouse Button, RMB = Right Mouse Button, MMB = Middle Mouse Button
                     UtilPanel::new_ref(),
                     AtomId::new(node_id, UTIL_PANEL_ID),
                     center(12, 12),
-                    UtilPanelData::new(ui_ctrl.clone()))),
+                    UtilPanelData::new(ui_ctrl))),
                 help_text,
                 hex_menu_id,
                 matrix_model,
