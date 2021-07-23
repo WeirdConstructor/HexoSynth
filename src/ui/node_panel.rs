@@ -119,8 +119,6 @@ impl GenericNodeUI {
         let param_id = self.dsp_node_id.param_by_idx(idx)?;
         let param_name = param_id.name();
 
-        println!("BUILD ATOM INPUT: {:?} | {}", param_id, param_name);
-
         match param_id.as_atom_def() {
             SAtom::Param(_) => {
                 // FIXME: Widget type should be determined by the Atom enum!
@@ -141,7 +139,6 @@ impl GenericNodeUI {
                 }
             },
             SAtom::Setting(_) => {
-                println!("CREATE BUTTON: {}, {}", self.model_node_id, idx);
                 Some(wbox!(
                     self.wt_btn.clone(),
                     AtomId::new(self.model_node_id, idx as u32),
@@ -358,7 +355,6 @@ impl WidgetType for NodePanel {
         data.with(|data: &mut NodePanelData| {
             let mut node_ui = data.node_ui.borrow_mut();
             if let Some(cont) = &mut node_ui.cont {
-                println!("CONT EVENT NODE PANEL: {:?}", ev);
                 cont.event(ui, ev);
             }
         });

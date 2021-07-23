@@ -346,8 +346,6 @@ impl Menu {
 
                     let mut cell_dir = None;
 
-                    println!("CLICK CD {},{:?}", idx, state);
-
                     match idx {
                         0 => { *pa.borrow_mut() = PostAction::close(); },
                         1 => { cell_dir = Some(CellDir::T); },
@@ -532,7 +530,6 @@ impl MenuControl for Menu {
     }
 
     fn open_select_cell_dir(&mut self, cell: Cell, node_info: NodeInfo) {
-        println!("OSCD");
         self.activate_init_state(
             MenuState::CellDir {
                 cell,

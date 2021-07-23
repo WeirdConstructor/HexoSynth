@@ -49,7 +49,6 @@
 !@export move_mouse_hex_dir = {
     hx:query_state[];
     !next_pos = hex_dir_pos HEX_WH hx:mouse_pos[] _;
-    std:displayln "MOVE:" HEX_WH next_pos;
     hx:mouse_move next_pos;
 };
 
@@ -60,7 +59,6 @@
     !x = HEX_INIT_POS.x + 0.75 * pos.x * HEX_WH.x;
     !y =
         if pos.x % 2 == 0 {
-            std:displayln "OFOFOFEOEO" HEX_INIT_POS pos HEX_WH;
             HEX_INIT_POS.y + pos.y * HEX_WH.y;
         } {
             HEX_INIT_POS.y + (0.5 + pos.y) * HEX_WH.y;

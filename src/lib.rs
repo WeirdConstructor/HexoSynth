@@ -281,10 +281,10 @@ impl UIParams {
         *self.matrix_gen.borrow_mut() =
             self.ui_ctrl.with_matrix(|m| {
                 m.for_each_atom(|unique_idx, param_id, satom, modamt| {
-                    println!(
-                        "NODEID: {} => idx={}",
-                        param_id.node_id(),
-                        unique_idx);
+                    //d// println!(
+                    //d//     "NODEID: {} => idx={}",
+                    //d//     param_id.node_id(),
+                    //d//     unique_idx);
 
                     new_hm.insert(
                         AtomId::new(unique_idx as u32, param_id.inp() as u32),
@@ -494,7 +494,6 @@ impl AtomDataModel for UIParams {
     }
 
     fn set(&mut self, id: AtomId, v: Atom) {
-        println!("SET: {:?} = {:?}", id, v);
         self.set_param(id, v);
     }
 
@@ -510,16 +509,16 @@ impl AtomDataModel for UIParams {
     }
 
     fn change_start(&mut self, id: AtomId) {
-        println!("CHANGE START: {}", id);
+        //d// println!("CHANGE START: {}", id);
     }
 
     fn change(&mut self, id: AtomId, v: f32, single: bool, res: ChangeRes) {
-        println!("CHANGE: {},{} ({})", id, v, single);
+        //d// println!("CHANGE: {},{} ({})", id, v, single);
         if let Some((pid, _)) = self.get_param(id) {
             if let Some(((min, max), _)) = pid.param_min_max() {
-                println!(
-                    "CHANGE: {},{} ({}), min={}, max={}",
-                    id, v, single, min, max);
+                //d// println!(
+                //d//     "CHANGE: {},{} ({}), min={}, max={}",
+                //d//     id, v, single, min, max);
                 let v =
                     match res {
                         ChangeRes::Coarse => pid.round(v.clamp(min, max), true),
@@ -534,7 +533,7 @@ impl AtomDataModel for UIParams {
     }
 
     fn change_end(&mut self, id: AtomId, v: f32, res: ChangeRes) {
-        println!("CHANGE END: {},{}", id, v);
+        //d// println!("CHANGE END: {},{}", id, v);
         if let Some((pid, _)) = self.get_param(id) {
             if let Some(((min, max), _)) = pid.param_min_max() {
                 let v =
@@ -549,7 +548,7 @@ impl AtomDataModel for UIParams {
     }
 
     fn step_next(&mut self, id: AtomId) {
-        println!("STEP NEXT!!!: {}", id);
+        //d// println!("STEP NEXT!!!: {}", id);
 
         if let Some((pid, atom)) = self.get_param(id) {
             if let Atom::Setting(i) = atom {

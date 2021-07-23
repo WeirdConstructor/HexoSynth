@@ -189,9 +189,6 @@ impl HexGridModel for MatrixUIModel {
     fn height(&self) -> usize { self.h }
 
     fn cell_click(&self, x: usize, y: usize, btn: MButton, modkey: bool) {
-
-        println!("MATRIX CLICK CELL: {},{}: {:?}", x, y, btn);
-
         let mut menu = self.menu.menu.borrow_mut();
 
         if menu.is_open() {
@@ -650,8 +647,8 @@ impl WidgetType for NodeMatrix {
     fn event(&self, ui: &mut dyn WidgetUI, data: &mut WidgetData, ev: &UIEvent) {
         match ev {
             UIEvent::Click { id, x, y, button, .. } => {
-                println!("EV: {:?} id={}, btn={:?}, data.id={}",
-                         ev, *id, button, data.id());
+                // println!("EV: {:?} id={}, btn={:?}, data.id={}",
+                //          ev, *id, button, data.id());
 
                 data.with(|data: &mut NodeMatrixData| {
                     if data.show_help {

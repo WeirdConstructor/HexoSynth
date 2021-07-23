@@ -409,8 +409,6 @@ impl UICtrlRef {
     /// variables register.
     pub fn set_event(&self, ui_params: &mut UIParams, id: AtomId, atom: Atom) -> bool {
         if id.node_id() == Self::ATNID_SAMPLE_LOAD_ID {
-            println!("SET SAMPLE={:?}", atom);
-
             let idx = atom.i() as usize;
 
             let mut load_file = None;
@@ -442,7 +440,6 @@ impl UICtrlRef {
             if let Some(file) = load_file {
                 if let Some(path_str) = file.to_str() {
                     let load_id = self.0.borrow().sample_load_id;
-                    println!("SET SAMPLE PARAM: {} = {}", load_id, path_str);
                     ui_params.set(load_id, Atom::audio_unloaded(path_str));
                 }
             }
