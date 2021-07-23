@@ -445,6 +445,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     Ctrl + Shift + Drag LMB Up/Down - Fine adjustment of parameters with
                                       disabled parameter snap.
     MMB                             - Reset Parameter to it's default value.
+    MMB (Knob fine adj. area)       - Reset Parameter to it's default value
+                                      and remove modulation amount.
     Hover over Knob + Enter         - Open the direct value entry.
     or:                               Coarse adjustment area will edit the
     Ctrl + RMB                        denormalized value. Fine adjustment

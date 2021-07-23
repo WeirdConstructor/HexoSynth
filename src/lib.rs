@@ -648,7 +648,7 @@ pub fn open_hexosynth(
     use crate::ui::matrix::NodeMatrixData;
 
     open_window(
-        "HexoSynth", 1400, 700,
+        "HexoSynth", 1400, 787,
         parent,
         Box::new(move || {
             let dialog_model = Rc::new(RefCell::new(DialogModel::new()));
@@ -676,7 +676,7 @@ pub fn open_hexosynth(
                         AtomId::new(DIALOG_ID, DIALOG_OK_ID),
                         dialog_model))),
                 Box::new(UIParams::new(ui_ctrl)),
-                (1400.0, 700.0),
+                (1400.0, 787.0),
             )))
     }));
 
@@ -686,7 +686,7 @@ impl PluginUI for HexoSynth {
     type Handle = u32;
 
     fn ui_size() -> (i16, i16) {
-        (1400, 700)
+        (1400, 787)
     }
 
     fn ui_open(parent: &impl HasRawWindowHandle, ctx: &HexoSynthShared) -> WindowOpenResult<Self::Handle> {
