@@ -601,6 +601,10 @@ impl NodeMatrix {
     }
 }
 
+impl Default for NodeMatrix {
+    fn default() -> Self { Self::new() }
+}
+
 impl WidgetType for NodeMatrix {
     fn draw(&self, ui: &mut dyn WidgetUI, data: &mut WidgetData, p: &mut dyn Painter, pos: Rect) {
         data.with(|data: &mut NodeMatrixData| {

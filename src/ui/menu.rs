@@ -236,13 +236,13 @@ impl Menu {
                                 *pa.borrow_mut() =
                                     PostAction::next_state(
                                         MenuState::CellDir {
-                                            cell:      cell.clone(),
+                                            cell:      *cell,
                                             node_info: node_info.clone(),
                                             dirs:      vec![],
                                         });
                             },
                             2 => {
-                                hdl.clear_cell_ports(cell.clone());
+                                hdl.clear_cell_ports(*cell);
                                 *pa.borrow_mut() = PostAction::close();
                             },
                             _ => (),
@@ -322,7 +322,7 @@ impl Menu {
 
                                 if let Some(node_id) = out_node_id {
                                     hdl.assign_cell_new_node(
-                                        cell.clone(), node_id);
+                                        cell, node_id);
                                 }
                                 *pa.borrow_mut() = PostAction::close();
                             }
@@ -362,7 +362,7 @@ impl Menu {
                         if let MenuState::CellDir { cell, node_info, .. } = state {
                             let ms =
                                 MenuState::AssignPort {
-                                    cell:      cell.clone(),
+                                    cell:      *cell,
                                     node_info: node_info.clone(),
                                     offset:    0,
                                     cell_dir,
@@ -424,48 +424,42 @@ impl Menu {
                     match idx {
                         0 => { *pa.borrow_mut() = PostAction::back(); },
                         _ => {
-                            match state {
-                                MenuState::AssignPort {
-                                    cell, cell_dir, offset, node_info, ..
-                                } => {
-                                    let cur_idx = (idx - 1) + offset;
+                            if let MenuState::AssignPort {
+                                cell, cell_dir, offset, node_info, ..
+                            } = state
+                            {
+                                let cur_idx = (idx - 1) + offset;
 
-                                    if idx == 6 {
-                                        let max =
-                                            if cell_dir.is_output() {
-                                                node_info.out_count()
-                                            } else {
-                                                node_info.in_count()
-                                            };
-
-                                        let next_idx = cur_idx + 1;
-
-                                        if next_idx < max {
-                                            *pa.borrow_mut() =
-                                                PostAction::next_state(
-                                                    MenuState::AssignPort {
-                                                        cell:      cell.clone(),
-                                                        node_info: node_info.clone(),
-                                                        cell_dir:  cell_dir.clone(),
-                                                        offset:    cur_idx,
-                                                    });
+                                if idx == 6 {
+                                    let max =
+                                        if cell_dir.is_output() {
+                                            node_info.out_count()
                                         } else {
-                                            hdl.assign_cell_port(
-                                                cell.clone(),
-                                                cell_dir.clone(),
-                                                Some(cur_idx));
-                                            *pa.borrow_mut() = PostAction::close();
-                                        }
+                                            node_info.in_count()
+                                        };
 
+                                    let next_idx = cur_idx + 1;
+
+                                    if next_idx < max {
+                                        *pa.borrow_mut() =
+                                            PostAction::next_state(
+                                                MenuState::AssignPort {
+                                                    cell:      *cell,
+                                                    node_info: node_info.clone(),
+                                                    cell_dir:  *cell_dir,
+                                                    offset:    cur_idx,
+                                                });
                                     } else {
                                         hdl.assign_cell_port(
-                                            cell.clone(),
-                                            cell_dir.clone(),
-                                            Some(cur_idx));
+                                            *cell, *cell_dir, Some(cur_idx));
                                         *pa.borrow_mut() = PostAction::close();
                                     }
-                                },
-                                _ => ()
+
+                                } else {
+                                    hdl.assign_cell_port(
+                                        *cell, *cell_dir, Some(cur_idx));
+                                    *pa.borrow_mut() = PostAction::close();
+                                }
                             }
                         },
                     }
@@ -511,11 +505,7 @@ impl MenuControl for Menu {
     }
 
     fn is_open(&self) -> bool {
-        if let MenuState::None = self.cur {
-            false
-        } else {
-            true
-        }
+        !matches!(self.cur, MenuState::None)
     }
 
     fn open_select_node_category(&mut self, cell: Cell) {

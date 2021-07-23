@@ -263,6 +263,7 @@ pub struct NodePanelData {
     prev_focus: Cell,
 }
 
+#[allow(clippy::new_ret_no_self)]
 impl NodePanelData {
     pub fn new(ui_ctrl: UICtrlRef, node_id: u32) -> Box<dyn std::any::Any> {
         let node_ui = Rc::new(RefCell::new(GenericNodeUI::new(ui_ctrl.clone())));

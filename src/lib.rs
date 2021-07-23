@@ -318,7 +318,7 @@ impl UIParams {
             }
 
         } else if id.node_id() > PARAM_VARIABLES_SPACE {
-            self.variables.insert(id, (ParamId::none(), atom.clone()));
+            self.variables.insert(id, (ParamId::none(), atom));
 
         } else {
             let pid =
@@ -340,7 +340,7 @@ impl UIParams {
                 };
 
             self.params.insert(id, (pid, atom.clone()));
-            self.ui_ctrl.with_matrix(move |m| m.set_param(pid, atom.clone().into()));
+            self.ui_ctrl.with_matrix(move |m| m.set_param(pid, atom.into()));
         }
     }
 
@@ -410,7 +410,7 @@ impl AtomDataModel for UIParams {
     }
 
     fn enabled(&self, id: AtomId) -> bool {
-        if let Some(_) = self.get_param_modamt(id) {
+        if self.get_param_modamt(id).is_some() {
             true
         } else if let Some((pid, _)) = self.params.get(&id) {
             self.ui_ctrl.with_matrix(|m|
@@ -550,36 +550,32 @@ impl AtomDataModel for UIParams {
     fn step_next(&mut self, id: AtomId) {
         //d// println!("STEP NEXT!!!: {}", id);
 
-        if let Some((pid, atom)) = self.get_param(id) {
-            if let Atom::Setting(i) = atom {
-                if let Some((min, max)) = pid.setting_min_max() {
-                    let new = i + 1;
-                    let new =
-                        if new > max { min }
-                        else { new };
+        if let Some((pid, Atom::Setting(i))) = self.get_param(id) {
+            if let Some((min, max)) = pid.setting_min_max() {
+                let new = i + 1;
+                let new =
+                    if new > max { min }
+                    else { new };
 
-                    self.set(id, Atom::setting(new));
-                }
+                self.set(id, Atom::setting(new));
             }
         }
     }
 
     fn step_prev(&mut self, id: AtomId) {
-        if let Some((pid, atom)) = self.get_param(id) {
-            if let Atom::Setting(i) = atom {
-                if let Some((min, max)) = pid.setting_min_max() {
-                    let new = i - 1;
-                    let new =
-                        if new < min { max }
-                        else { new };
+        if let Some((pid, Atom::Setting(i))) = self.get_param(id) {
+            if let Some((min, max)) = pid.setting_min_max() {
+                let new = i - 1;
+                let new =
+                    if new < min { max }
+                    else { new };
 
-                    self.set(id, Atom::setting(new));
-                }
+                self.set(id, Atom::setting(new));
             }
         }
     }
 
-    fn fmt_norm<'a>(&self, id: AtomId, buf: &'a mut [u8]) -> usize {
+    fn fmt_norm(&self, id: AtomId, buf: &mut [u8]) -> usize {
         let mut bw = std::io::BufWriter::new(buf);
 
         if let Some((_, atom)) = self.get_param(id) {
@@ -593,7 +589,7 @@ impl AtomDataModel for UIParams {
         }
     }
 
-    fn fmt_mod<'a>(&self, id: AtomId, buf: &'a mut [u8]) -> usize {
+    fn fmt_mod(&self, id: AtomId, buf: &mut [u8]) -> usize {
         let modamt =
             if let Some(ma) = self.get_mod_amt(id) {
                 ma
@@ -613,7 +609,7 @@ impl AtomDataModel for UIParams {
         }
     }
 
-    fn fmt<'a>(&self, id: AtomId, buf: &'a mut [u8]) -> usize {
+    fn fmt(&self, id: AtomId, buf: &mut [u8]) -> usize {
         let mut bw = std::io::BufWriter::new(buf);
 
         if let Some((pid, atom)) = self.get_param(id) {
@@ -678,9 +674,9 @@ pub fn open_hexosynth(
                     DialogData::new(
                         DIALOG_ID,
                         AtomId::new(DIALOG_ID, DIALOG_OK_ID),
-                        dialog_model.clone()))),
+                        dialog_model))),
                 Box::new(UIParams::new(ui_ctrl)),
-                (1400 as f64, 700 as f64),
+                (1400.0, 700.0),
             )))
     }));
 

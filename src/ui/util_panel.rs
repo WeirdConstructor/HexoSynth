@@ -55,6 +55,7 @@ fn cur_tseq_idx(ui_ctrl: &UICtrlRef) -> Option<usize> {
 }
 
 impl PatternViewData {
+    #[allow(clippy::new_ret_no_self)]
     pub fn new(ui_ctrl: UICtrlRef)
         -> Box<dyn std::any::Any>
     {
@@ -95,6 +96,7 @@ pub struct UtilPanelData {
 }
 
 impl UtilPanelData {
+    #[allow(clippy::new_ret_no_self)]
     pub fn new(ui_ctrl: UICtrlRef)
         -> Box<dyn std::any::Any>
     {
@@ -141,7 +143,7 @@ impl UtilPanelData {
                 wt_vers_text,
                 AtomId::new(crate::UTIL_PANEL_VER_ID as u32, 0),
                 center(2, 12),
-                TextData::new(txtsrc.clone())));
+                TextData::new(txtsrc)));
 
         Box::new(Self {
             ui_ctrl,

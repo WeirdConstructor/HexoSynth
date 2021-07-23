@@ -44,16 +44,16 @@ impl GraphMinMaxSource for MonitorsSource {
         self.ui_ctrl.with_matrix(|m| {
             let cell = m.monitored_cell();
             if !cell.has_dir_set(sigidx2celldir(self.idx)) {
-                for i in 0..buf.len() {
-                    buf[i] = (0.0, 0.0);
+                for b in buf.iter_mut() {
+                    *b = (0.0, 0.0);
                 }
                 return;
             }
 
             let mimbuf = m.get_minmax_monitor_samples(self.idx);
-            for i in 0..buf.len() {
+            for (i, b) in buf.iter_mut().enumerate() {
                 let mm = mimbuf.at(i);
-                buf[i] = (mm.0 as f64, mm.1 as f64);
+                *b = (mm.0 as f64, mm.1 as f64);
             }
         });
     }

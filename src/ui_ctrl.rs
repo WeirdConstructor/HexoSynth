@@ -94,7 +94,7 @@ impl UICtrlRef {
                 path_browse_list:   vec![],
                 sample_dir:
                     std::env::current_dir()
-                        .unwrap_or(std::path::PathBuf::from(".")),
+                        .unwrap_or_else(|_| std::path::PathBuf::from(".")),
                 sample_browse_list: ListItems::new(45),
                 sample_load_id:     AtomId::from(99999),
                 focus_cell:         Cell::empty(NodeId::Nop),
@@ -134,20 +134,18 @@ impl UICtrlRef {
         let mut dir_contents = vec![];
 
         if let Ok(rd) = std::fs::read_dir(&this.sample_dir) {
-            for entry in rd {
-                if let Ok(dir) = entry {
-                    let pb = dir.path();
+            for dir in rd.flatten() {
+                let pb = dir.path();
 
-                    if pb.is_dir() {
-                        if let Some(Some(s)) = pb.file_name().map(|s| s.to_str()) {
-                            dir_contents.push((true, s.to_string() + "/", pb));
-                        }
-                    } else {
-                        if let Some(Some(ext)) = pb.extension().map(|s| s.to_str()) {
-                            if ext == "wav" {
-                                if let Some(Some(s)) = pb.file_name().map(|s| s.to_str()) {
-                                    dir_contents.push((false, s.to_string(), pb));
-                                }
+                if pb.is_dir() {
+                    if let Some(Some(s)) = pb.file_name().map(|s| s.to_str()) {
+                        dir_contents.push((true, s.to_string() + "/", pb));
+                    }
+                } else {
+                    if let Some(Some(ext)) = pb.extension().map(|s| s.to_str()) {
+                        if ext == "wav" {
+                            if let Some(Some(s)) = pb.file_name().map(|s| s.to_str()) {
+                                dir_contents.push((false, s.to_string(), pb));
                             }
                         }
                     }
@@ -187,9 +185,7 @@ impl UICtrlRef {
         where F: FnOnce(&mut Matrix) -> R
     {
         let mut lock = self.1.lock().expect("matrix lockable");
-        let res = fun(&mut *lock);
-
-        res
+        fun(&mut *lock)
     }
 
     pub fn clear_cell_ports(&self, mut cell: Cell) {
@@ -285,7 +281,7 @@ impl UICtrlRef {
                     Err(e) => Err(PatchSaveError {
                         path:  "init.hxy".to_string(),
                         error: e
-                    })?,
+                    }.into()),
                 }
             });
         });
@@ -505,12 +501,12 @@ pub fn catch_err_dialog<F>(dialog: Rc<RefCell<DialogModel>>, mut f: F)
             match err {
                 MatrixError::CycleDetected => {
                     dialog.borrow_mut().open(
-                        &format!("Cycle Detected!\n\
+                        &"Cycle Detected!\n\
                             HexoSynth does not allow to create cyclic configurations.\n\
                             \n\
                             For feedback please use the nodes:\n\
                             * 'FbWr' (Feedback Writer)\n\
-                            * 'FbRd' (Feedback Reader)"),
+                            * 'FbRd' (Feedback Reader)",
                         Box::new(|_| ()));
                 },
                 MatrixError::DuplicatedInput { output1, output2 } => {
