@@ -128,7 +128,7 @@ impl UtilPanelData {
 
         let wt_cont = Rc::new(Container::new());
         let mut top_cont = ContainerData::new();
-        let wt_vers_text = Rc::new(Text::new(8.0));
+        let wt_vers_text = Rc::new(Text::new(7.0));
         let txtsrc = Rc::new(TextSourceRef::new(20));
         txtsrc.set(&format!("v{}", crate::VERSION));
 
@@ -137,12 +137,12 @@ impl UtilPanelData {
            .add(wbox!(
                 wt_btn,
                 AtomId::new(UICtrlRef::ATNID_HELP_BUTTON as u32, 0),
-                left(10, 12),
+                left(9, 12),
                 ButtonData::new_setting_click("Help")))
            .add(wbox!(
                 wt_vers_text,
                 AtomId::new(crate::UTIL_PANEL_VER_ID as u32, 0),
-                center(2, 12),
+                center(3, 12),
                 TextData::new(txtsrc)));
 
         Box::new(Self {

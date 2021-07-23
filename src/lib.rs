@@ -707,5 +707,5 @@ impl PluginUI for HexoSynth {
     }
 }
 
-#[cfg(not(test))]
-baseplug::vst2!(HexoSynth, b"HxsY");
+//#[cfg(not(test))]
+//baseplug::vst2!(HexoSynth, b"HxsY");
