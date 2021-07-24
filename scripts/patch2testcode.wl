@@ -11,7 +11,7 @@ if len[@@.0] == 0 {
 
 !patch = std:deser:json ~ std:io:file:read_text @@.0;
 
-#d# std:displayln ~ std:ser:json patch;
+std:displayln ~ std:ser:json patch;
 
 iter cell patch.cells {
     !(typ, inst, x, y, ins, outs) = cell;
@@ -38,7 +38,7 @@ iter cell patch.cells {
         };
 
         if port >= 0 {
-            .s = s varname "." vardir "(" str[port] ")";
+            .s = s varname "." vardir "(\"" str[port] "\")";
         } {
             .s = s "None";
         };
@@ -50,7 +50,7 @@ iter cell patch.cells {
 iter cell patch.cells {
     !(typ, inst, x, y, ins, outs) = cell;
 
-    !varname = std:str:cat typ inst + 1;
+    !varname = std:str:cat typ "_" inst + 1;
 
     !s = $F "matrix.place({}, {},\n    Cell::empty({})"
             x y varname;
