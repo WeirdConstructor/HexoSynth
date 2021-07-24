@@ -1,3 +1,6 @@
 /target
 _attic
 *.history
+vst2/target/
+jack_standalone/target/
+Cargo.lock

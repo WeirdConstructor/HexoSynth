@@ -7,6 +7,8 @@ via the VST2 API. Confirmed to work in Ardour 6.
 * Change: Middle mouse button in fine adj area removes modulation amount.
 * Change: Resized the window from 1400x700 to 1400x787 to fit into the
 Full HD aspect.
+* Project: Added two sub crates: jack\_standalone and vst2
+
 
 0.1.0-alpha-1 (2021-07-23)
 ==========================

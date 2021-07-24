@@ -123,7 +123,7 @@ impl jack::NotificationHandler for Notifications {
 }
 
 
-fn start_backend<F: FnMut()>(shared: Arc<HexoSynthShared>, mut f: F) {
+fn start_backend<F: FnMut()>(node_exec: NodeExecutor, mut f: F) {
     let (client, _status) =
         jack::Client::new("HexoSynth", jack::ClientOptions::NO_START_SERVER)
         .unwrap();
@@ -141,7 +141,6 @@ fn start_backend<F: FnMut()>(shared: Arc<HexoSynthShared>, mut f: F) {
         client.register_port("hexosynth_out2", jack::AudioOut::default())
             .unwrap();
 
-    let node_exec = shared.node_exec.borrow_mut().take().unwrap();
     let ne        = Arc::new(Mutex::new(node_exec));
     let ne2       = ne.clone();
 
@@ -233,9 +232,11 @@ fn start_backend<F: FnMut()>(shared: Arc<HexoSynthShared>, mut f: F) {
 }
 
 fn main() {
-    let shared = Arc::new(HexoSynthShared::new());
 
-    start_backend(shared.clone(), move || {
-        open_hexosynth(None, None, shared.matrix.clone());
+    let (matrix, node_exec) = init_hexosynth();
+    let matrix = Arc::new(Mutex::new(matrix));
+
+    start_backend(node_exec, move || {
+        open_hexosynth(None, None, matrix.clone());
     });
 }

@@ -1,5 +1,5 @@
 [package]
-name        = "hexosynth"
+name        = "hexosynth_vst"
 version     = "0.1.0-alpha-2"
 authors     = ["Weird Constructor <weirdconstructor@m8geil.de>"]
 license     = "AGPL-3.0-or-later"
@@ -7,25 +7,14 @@ edition     = "2018"
 description = "HexoSynth - A hexagonal modular synthesizer plugin"
 
 [dependencies]
+hexosynth  = { path = ".." }
 hexodsp    = { git = "https://github.com/WeirdConstructor/HexoDSP.git" }
-#hexodsp    = { path = "../hexodsp" }
 hexotk     = { git = "https://github.com/WeirdConstructor/HexoTK.git", features=["driver"] }
-#hexotk     = { path = "../hexotk", features=["driver"] }
 raw-window-handle  = "0.3"
-serde      = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-ringbuf    = "0.2.2"
+baseplug   = { git = "https://github.com/WeirdConstructor/baseplug.git", branch = "plugin_context" }
 keyboard-types = { version = "0.5.0", default-features = false }
-triple_buffer = "5.0.6"
-
-[dev-dependencies]
-microfft    = "0.3.1"
-num-complex = "0.2"
-hound       = "3.4.0"
-jack        = "0.6.6"
-wlambda     = { path = "../wlambda" }
-rustyline   = { version = "6.1.2" }
+serde      = { version = "1.0", features = ["derive"] }
 
 [lib]
-name="hexosynth"
+name="hexosynth_vst"
 crate-type = ["cdylib", "lib"]

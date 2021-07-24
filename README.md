@@ -40,15 +40,12 @@ with new modules.
 - Add audio inputs for receiving audio from the DAW
 - Comment the code for easier maintenance.
 
-## Running the Standalone Example:
+## Building and Dependencies
 
 You need nightly rust:
 
     rustup toolchain install nightly
 
-To run the example:
-
-    cargo +nightly run --release --example standalone
 
 You might need following dependencies (Ubuntu Linux):
 
@@ -64,11 +61,35 @@ These might work on Debian too:
 
     sudo apt install libjack0 libjack-dev libx11-xcb-dev libxcb-icccm4-dev libxcb-dri2-dev
 
+### Compiling the VST plugin
+
+Enter the `vst2` subdirectory:
+
+    hexosynth/$ cd vst2
+
+Compile:
+
+    hexosynth/vst2/$ cargo +nightly build --release
+
+Install:
+
+    heyosynth/vst2/$ cp target/release/libhexosynth_vst.so ~/.vst/
+
+### Running the Standalone Example
+
+Enter the `jack_standalone` subdirectory:
+
+    hexosynth/$ cd jack_standalone
+
+Compile and run:
+
+    hexosynth/jack_standlone/$ cargo +nightly run --release --example standalone
+
 ## Running the Automated Testsuite:
 
 There exists an automate test suite for the DSP and backend code:
 
-    cargo test
+    cargo test --release -- --nocapture
 
 ## DAW Compatibility
 

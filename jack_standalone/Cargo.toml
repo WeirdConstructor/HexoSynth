@@ -1,0 +1,14 @@
+[package]
+name        = "hexosynth_jack"
+version     = "0.1.0-alpha-2"
+authors     = ["Weird Constructor <weirdconstructor@m8geil.de>"]
+license     = "AGPL-3.0-or-later"
+edition     = "2018"
+description = "HexoSynth - A hexagonal modular synthesizer plugin"
+
+[dependencies]
+hexosynth  = { path = ".." }
+hexodsp    = { git = "https://github.com/WeirdConstructor/HexoDSP.git" }
+hexotk     = { git = "https://github.com/WeirdConstructor/HexoTK.git", features=["driver"] }
+raw-window-handle  = "0.3"
+jack       = "0.6.6"

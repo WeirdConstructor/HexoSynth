@@ -21,10 +21,9 @@ use wlambda::set_vval_method;
 
 use rustyline;
 
-fn start_backend(shared: Arc<HexoSynthShared>) {
-    let node_exec = shared.node_exec.borrow_mut().take().unwrap();
-    let ne        = Arc::new(Mutex::new(node_exec));
-    let ne2       = ne.clone();
+fn start_backend(node_exec: NodeExecutor) {
+    let ne  = Arc::new(Mutex::new(node_exec));
+    let ne2 = ne.clone();
 
     let mut in_a  = [0.0; hexodsp::dsp::MAX_BLOCK_SIZE];
     let mut in_b  = [0.0; hexodsp::dsp::MAX_BLOCK_SIZE];
@@ -33,6 +32,7 @@ fn start_backend(shared: Arc<HexoSynthShared>) {
 
     let us_per_frame =
         (1000000.0 * (hexodsp::dsp::MAX_BLOCK_SIZE as f32)) / 44100.0;
+    let us_per_frame = us_per_frame as u128;
 
     std::thread::spawn(move || {
         let nframes = hexodsp::dsp::MAX_BLOCK_SIZE;
@@ -65,7 +65,12 @@ fn start_backend(shared: Arc<HexoSynthShared>) {
 
             let mut us_passed = i1.elapsed().as_micros();
             us_passed += us_last_sleep_extra;
-            let mut us_remaining = us_per_frame as u128 - us_passed;
+            let mut us_remaining =
+                if us_passed > us_per_frame {
+                    us_per_frame - us_passed
+                } else {
+                    0
+                };
 
             i2 = std::time::Instant::now();
             std::thread::sleep(
@@ -686,12 +691,10 @@ fn start_driver(matrix: Arc<Mutex<Matrix>>) -> Driver {
 fn main_gui() {
     use hexotk::widgets::{Dialog, DialogData, DialogModel};
 
-    println!("INIT");
-    let shared = Arc::new(HexoSynthShared::new());
+    let (matrix, node_exec) = init_hexosynth();
+    let matrix = Arc::new(Mutex::new(matrix));
 
-    start_backend(shared.clone());
-    let matrix = shared.matrix.clone();
-
+    start_backend(node_exec);
     let drv = start_driver(matrix.clone());
 
     open_hexosynth(None, Some(drv), matrix);
