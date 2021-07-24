@@ -1,4 +1,4 @@
-0.1.0-alpha-2 (unreleased)
+0.1.0-alpha-2 (2021-07-24)
 ==========================
 
 * Bugfix: Keyboard events should now be properly forwarded from the Host
