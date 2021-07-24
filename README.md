@@ -14,6 +14,10 @@ predefined modules.
 Hosting plugins (VST, LV2, ...) is out of the scope of this project.
 The goal is rather to have a good set of predefined modules.
 
+Here is a screenshot of how it looks:
+
+![HexoSynth Screenshot from 2021-07-24](https://github.com/WeirdConstructor/HexoSynth/raw/30d04e0b386f89e4783f2ea057d2d3369760956f/screenshots/2021-07-24_14-59.png)
+
 ## State of Development
 
 This project is still (2021-06-22) under heavy development and is considered
