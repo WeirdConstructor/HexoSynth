@@ -1,6 +1,11 @@
 0.1.0-alpha-3 (unreleased)
 ==========================
 
+* Feature: New node added: 'Mix3' a simple 3 channel mixer node
+to sum 3 signals.
+* Change: The patch file format now stores input/output port names
+now instead of indices. Current format with port indices is still
+loaded correctly.
 * Bugfix: Note columns in the tracker did not show the note name.
 * Project: GUI test suite can now place matrix cells directly.
 
