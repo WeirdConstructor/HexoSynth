@@ -101,9 +101,14 @@ impl Default for HexoSynthModel {
     }
 }
 
+pub enum HostEvent {
+    KeyboardEvent(KeyboardEvent),
+}
+
 pub struct HexoSynthShared {
-    pub matrix:    Arc<Mutex<Matrix>>,
-    pub node_exec: Rc<RefCell<Option<NodeExecutor>>>,
+    pub matrix:         Arc<Mutex<Matrix>>,
+    pub driver_queue:   Arc<Mutex<Vec<DriverRequest>>>,
+    pub node_exec:      Rc<RefCell<Option<NodeExecutor>>>,
 }
 
 unsafe impl Send for HexoSynthShared {}
@@ -137,8 +142,9 @@ impl PluginContext<HexoSynth> for HexoSynthShared {
         let _ = matrix.sync();
 
         Self {
-            matrix:    Arc::new(Mutex::new(matrix)),
-            node_exec: Rc::new(RefCell::new(Some(node_exec))),
+            matrix:       Arc::new(Mutex::new(matrix)),
+            node_exec:    Rc::new(RefCell::new(Some(node_exec))),
+            driver_queue: Arc::new(Mutex::new(vec![])),
         }
     }
 }
@@ -699,7 +705,13 @@ impl PluginUI for HexoSynth {
                 let _ = write!(w, "DAW UI thread logger initialized"); });
         }
 
-        open_hexosynth(Some(parent.raw_window_handle()), None, ctx.matrix.clone());
+        let (mut drv, _drv_frontend) = Driver::new();
+        drv.set_sync_queue(ctx.driver_queue.clone());
+
+        open_hexosynth(
+            Some(parent.raw_window_handle()),
+            Some(drv),
+            ctx.matrix.clone());
 
         Ok(42)
     }
@@ -715,22 +727,28 @@ impl PluginUI for HexoSynth {
         // TODO: Close window!
     }
 
-    fn ui_key_down(_handle: Self::Handle, _ctx: &HexoSynthShared, ev: KeyboardEvent) -> bool {
+    fn ui_key_down(ctx: &HexoSynthShared, ev: KeyboardEvent) -> bool {
         hexodsp::log(|w| {
             let _ = write!(w, "VST KeyDown: {:?}", ev);
         });
         println!("VSTEVDW: {:?}", ev);
+        if let Ok(mut queue) = ctx.driver_queue.lock() {
+            queue.push(DriverRequest::KeyDown { key: ev.key });
+        }
         true
     }
 
-    fn ui_key_up(_handle: Self::Handle, _ctx: &HexoSynthShared, ev: KeyboardEvent) -> bool {
+    fn ui_key_up(ctx: &HexoSynthShared, ev: KeyboardEvent) -> bool {
         hexodsp::log(|w| {
             let _ = write!(w, "VST KeyUp: {:?}", ev);
         });
         println!("VSTEVUP: {:?}", ev);
+        if let Ok(mut queue) = ctx.driver_queue.lock() {
+            queue.push(DriverRequest::KeyUp { key: ev.key });
+        }
         true
     }
 }
 
-#[cfg(not(test))]
-baseplug::vst2!(HexoSynth, b"HxsY");
+//#[cfg(not(test))]
+//baseplug::vst2!(HexoSynth, b"HxsY");

@@ -372,6 +372,7 @@ impl NodeMatrixData {
         let wt_cont         = Rc::new(Container::new());
         let wt_text         = Rc::new(Text::new(12.0));
         let wt_help_txt     = Rc::new(Text::new(14.0));
+        let wt_log_txt      = Rc::new(Text::new(9.0));
 
         let hex_menu_id = AtomId::new(node_id, HEX_MENU_ID);
         let mut hex_menu = ContainerData::new();
@@ -549,7 +550,7 @@ LMB = Left Mouse Button, RMB = Right Mouse Button, MMB = Middle Mouse Button
         tdata.add(
             "Log",
             wbox!(
-                wt_help_txt,
+                wt_log_txt,
                 AtomId::new(node_id, HELP_TEXT_ID),
                 center(12, 12),
                 TextData::new(ui_ctrl.get_log_src())));

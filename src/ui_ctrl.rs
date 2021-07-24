@@ -77,19 +77,20 @@ impl UIControl {
         self.help_text_src.set(help_txt);
     }
 
+    pub fn update_log(&mut self) {
+        let mut log = self.log.clone();
+        log.push("HexoSynth Log".to_string());
+        log.reverse();
+        self.log_src.set(&log.join("\n"));
+    }
+
     pub fn log(&mut self, source: &str, msg: &str) {
-        println!("LOGPUSH: {}/{}", source, msg);
         self.log.push(format!("[{}] {}", source, msg));
 
         while self.log.len() > MAX_LOG_LINES {
             self.log.remove(0);
         }
 
-        self.log.push("HexoSynth Log".to_string());
-        self.log.reverse();
-
-        let s = self.log.join("\n");
-        self.log_src.set(&s);
     }
 }
 
@@ -418,8 +419,15 @@ impl UICtrlRef {
 
         {
             use hexodsp::log::retrieve_log_messages;
-            retrieve_log_messages(|name, s|
-                self.0.borrow_mut().log(name, s));
+            let mut new_msg = false;
+            retrieve_log_messages(|name, s| {
+                new_msg = true;
+                self.0.borrow_mut().log(name, s)
+            });
+
+            if new_msg {
+                self.0.borrow_mut().update_log();
+            }
         }
 
     }
