@@ -1,4 +1,5 @@
 /target
+/release
 _attic
 *.history
 vst2/target/

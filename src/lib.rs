@@ -443,7 +443,7 @@ pub fn init_hexosynth() -> (Matrix, NodeExecutor) {
                        .input(None, None, Some(0)));
 
     let gain_p = NodeId::Amp(0).inp_param("gain").unwrap();
-    matrix.set_param(gain_p, gain_p.norm(0.09).into());
+    matrix.set_param(gain_p, gain_p.norm(0.06).into());
 
     if let Err(e) = load_patch_from_file(&mut matrix, "init.hxy") {
         println!("Error loading init.hxy: {:?}", e);

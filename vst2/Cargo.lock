@@ -11,37 +11,15 @@ checksum = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
 [[package]]
 name = "baseplug"
 version = "0.1.0"
-dependencies = [
- "baseplug-derive 0.1.0",
- "keyboard-types",
- "num-traits",
- "raw-window-handle",
- "serde",
- "serde_json",
- "vst2-sys",
-]
-
-[[package]]
-name = "baseplug"
-version = "0.1.0"
 source = "git+https://github.com/WeirdConstructor/baseplug.git?branch=plugin_context#173d5f21a1f640c8b1d6576c0a1c3633f55c2f6b"
 dependencies = [
- "baseplug-derive 0.1.0 (git+https://github.com/WeirdConstructor/baseplug.git?branch=plugin_context)",
+ "baseplug-derive",
  "keyboard-types",
  "num-traits",
  "raw-window-handle",
  "serde",
  "serde_json",
  "vst2-sys",
-]
-
-[[package]]
-name = "baseplug-derive"
-version = "0.1.0"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
 ]
 
 [[package]]
@@ -315,7 +293,6 @@ dependencies = [
 name = "hexosynth"
 version = "0.1.0-alpha-2"
 dependencies = [
- "baseplug 0.1.0",
  "hexodsp",
  "hexotk",
  "keyboard-types",
@@ -330,7 +307,7 @@ dependencies = [
 name = "hexosynth_vst"
 version = "0.1.0-alpha-2"
 dependencies = [
- "baseplug 0.1.0 (git+https://github.com/WeirdConstructor/baseplug.git?branch=plugin_context)",
+ "baseplug",
  "hexodsp",
  "hexosynth",
  "hexotk",
