@@ -1,1 +1,1 @@
-cargo build --release && cp target/release/libhexosynth.so /home/weictr/.vst/
+cargo build --release && cp target/release/libhexosynth.so $HOME/.vst/

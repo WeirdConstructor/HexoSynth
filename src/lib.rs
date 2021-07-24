@@ -24,6 +24,7 @@ use std::rc::Rc;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::cell::RefCell;
+use std::io::Write;
 
 use keyboard_types::KeyboardEvent;
 
@@ -161,6 +162,8 @@ impl Plugin for HexoSynth {
         let mut node_exec = shared.node_exec.borrow_mut();
         let node_exec     = node_exec.as_mut().unwrap();
         node_exec.set_sample_rate(sample_rate);
+
+        hexodsp::log::init_thread_logger("init");
 
         Self { }
     }
@@ -581,7 +584,6 @@ impl AtomDataModel for UIParams {
         let mut bw = std::io::BufWriter::new(buf);
 
         if let Some((_, atom)) = self.get_param(id) {
-            use std::io::Write;
             match write!(bw, "{:6.4}", atom.f()) {
                 Ok(_)  => bw.buffer().len(),
                 Err(_) => 0,
@@ -692,6 +694,11 @@ impl PluginUI for HexoSynth {
     }
 
     fn ui_open(parent: &impl HasRawWindowHandle, ctx: &HexoSynthShared) -> WindowOpenResult<Self::Handle> {
+        if hexodsp::log::init_thread_logger("ui") {
+            hexodsp::log(|w| {
+                let _ = write!(w, "DAW UI thread logger initialized"); });
+        }
+
         open_hexosynth(Some(parent.raw_window_handle()), None, ctx.matrix.clone());
 
         Ok(42)
@@ -704,16 +711,22 @@ impl PluginUI for HexoSynth {
     ) {
     }
 
-    fn ui_close(mut _handle: Self::Handle, ctx: &HexoSynthShared) {
+    fn ui_close(mut _handle: Self::Handle, _ctx: &HexoSynthShared) {
         // TODO: Close window!
     }
 
-    fn ui_key_down(_handle: Self::Handle, ctx: &HexoSynthShared, ev: KeyboardEvent) -> bool {
+    fn ui_key_down(_handle: Self::Handle, _ctx: &HexoSynthShared, ev: KeyboardEvent) -> bool {
+        hexodsp::log(|w| {
+            let _ = write!(w, "VST KeyDown: {:?}", ev);
+        });
         println!("VSTEVDW: {:?}", ev);
         true
     }
 
-    fn ui_key_up(_handle: Self::Handle, ctx: &HexoSynthShared, ev: KeyboardEvent) -> bool {
+    fn ui_key_up(_handle: Self::Handle, _ctx: &HexoSynthShared, ev: KeyboardEvent) -> bool {
+        hexodsp::log(|w| {
+            let _ = write!(w, "VST KeyUp: {:?}", ev);
+        });
         println!("VSTEVUP: {:?}", ev);
         true
     }

@@ -21,6 +21,8 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::path::Path;
 
+const MAX_LOG_LINES : usize = 40;
+
 /// Common operations that can be done with the matrix
 pub enum UICellTrans {
     /// Swap two cells
@@ -40,6 +42,8 @@ pub enum UICellTrans {
 pub struct UIControl {
     dialog_model:       Rc<RefCell<DialogModel>>,
     help_text_src:      Rc<TextSourceRef>,
+    log_src:            Rc<TextSourceRef>,
+    log:                Vec<String>,
 
     sample_dir:         std::path::PathBuf,
     path_browse_list:   Vec<std::path::PathBuf>,
@@ -72,6 +76,21 @@ impl UIControl {
         let help_txt = self.focus_node_info.help();
         self.help_text_src.set(help_txt);
     }
+
+    pub fn log(&mut self, source: &str, msg: &str) {
+        println!("LOGPUSH: {}/{}", source, msg);
+        self.log.push(format!("[{}] {}", source, msg));
+
+        while self.log.len() > MAX_LOG_LINES {
+            self.log.remove(0);
+        }
+
+        self.log.push("HexoSynth Log".to_string());
+        self.log.reverse();
+
+        let s = self.log.join("\n");
+        self.log_src.set(&s);
+    }
 }
 
 #[derive(Clone)]
@@ -90,17 +109,21 @@ impl UICtrlRef {
                 help_text_src:
                     Rc::new(TextSourceRef::new(
                         crate::ui::UI_MAIN_HELP_TEXT_WIDTH)),
-                dialog_model,
-                path_browse_list:   vec![],
+                log_src:
+                    Rc::new(TextSourceRef::new(
+                        crate::ui::UI_MAIN_HELP_TEXT_WIDTH)),
                 sample_dir:
                     std::env::current_dir()
                         .unwrap_or_else(|_| std::path::PathBuf::from(".")),
+                log:                vec![],
+                path_browse_list:   vec![],
                 sample_browse_list: ListItems::new(45),
                 sample_load_id:     AtomId::from(99999),
                 focus_cell:         Cell::empty(NodeId::Nop),
                 focus_node_info:    NodeInfo::from_node_id(NodeId::Nop),
                 sample_dir_from:    None,
                 toggle_help:        false,
+                dialog_model,
             })),
             matrix)
     }
@@ -113,6 +136,10 @@ impl UICtrlRef {
 
     pub fn get_help_text_src(&self) -> Rc<TextSourceRef> {
         self.0.borrow().help_text_src.clone()
+    }
+
+    pub fn get_log_src(&self) -> Rc<TextSourceRef> {
+        self.0.borrow().log_src.clone()
     }
 
     #[allow(clippy::collapsible_else_if)]
@@ -388,6 +415,13 @@ impl UICtrlRef {
                 }
             }
         }
+
+        {
+            use hexodsp::log::retrieve_log_messages;
+            retrieve_log_messages(|name, s|
+                self.0.borrow_mut().log(name, s));
+        }
+
     }
 
     pub fn set_sample_load_id(&self, id: AtomId) {

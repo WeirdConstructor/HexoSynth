@@ -547,6 +547,14 @@ LMB = Left Mouse Button, RMB = Right Mouse Button, MMB = Middle Mouse Button
                 TextData::new(ui_ctrl.get_help_text_src())));
 
         tdata.add(
+            "Log",
+            wbox!(
+                wt_help_txt,
+                AtomId::new(node_id, HELP_TEXT_ID),
+                center(12, 12),
+                TextData::new(ui_ctrl.get_log_src())));
+
+        tdata.add(
             "About",
             wbox!(
                 wt_help_txt,
