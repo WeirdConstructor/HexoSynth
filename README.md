@@ -97,10 +97,13 @@ There exists an automate test suite for the DSP and backend code:
 
 ## DAW Compatibility
 
-As of 2021-06-22 HexoSynth has been tested with:
+As of 2021-07-24 HexoSynth has been tested with:
 
     - Windows 10 and Ableton Live: It starts, and you can use it via the mouse.
       The keyboard handling is not working properly though.
+    - Windows 10 and Renoise: It starts. But keyboard handling does not work.
+    - Ubuntu Linux 20.04 and Renoise: Works
+    - Ubuntu Linux 20.04 and Ardour: Works
     - Ubuntu Linux 20.04 and Carla: Works
     - Ubuntu Linux 20.04 and Bitwig: Works
 
