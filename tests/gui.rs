@@ -320,8 +320,6 @@ fn setup_hx_module() -> wlambda::SymbolTable {
         "query_state", |env: &mut Env, argc: usize| {
         env.with_user_do(|ctx: &mut Ctx| {
             ctx.drv.query_state();
-//            println!("ZONES: {:#?}", ctx.drv.zones);
-//            println!("TEXTS: {:?}", ctx.drv.texts);
             Ok(VVal::None)
         })
     }, Some(0), Some(0), false);
@@ -650,38 +648,6 @@ fn start_driver(matrix: Arc<Mutex<Matrix>>) -> Driver {
         }
 
         drvctx.borrow_mut().drv.exit();
-
-//            {
-//                let mut m = matrix.lock().unwrap();
-//                m.place(3, 3, Cell::empty(NodeId::TSeq(0)));
-//                m.sync();
-//            }
-//            std::thread::sleep(
-//                std::time::Duration::from_millis(1000));
-
-//                println!("{:#?}", drv_frontend.get_text_dump());
-
-//                    println!("ZONES: {:#?}",
-//                        drv_frontend.query_zones(
-//                            6.into()).unwrap());
-
-//                    let pos =
-//                        drv_frontend.get_zone_pos(
-//                            6.into(), DBGID_KNOB_FINE)
-//                        .unwrap();
-
-//            drv_frontend.move_mouse(142.0, 49.0);
-//            drv_frontend.query_state();
-//            println!("mp: {:?}", drv_frontend.mouse_pos);
-
-//                let z = drv_frontend.query_hover().unwrap().unwrap();
-//                println!("z: {:#?}", z);
-
-//                assert_eq!(
-//                    drv_frontend.get_text(
-//                        z.id, DBGID_KNOB_NAME).unwrap(),
-//                    "det");
-//        }
     });
 
     driver
