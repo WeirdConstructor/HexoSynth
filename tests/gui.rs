@@ -291,6 +291,30 @@ fn new_pattern_obj(pat: Arc<Mutex<PatternData>>) -> VVal {
     obj
 }
 
+fn cell_set_port(cell: &mut Cell, v: VVal, dir: CellDir) -> bool {
+    if v.is_none() {
+        return true;
+    }
+    let name = v.s_raw();
+    let node_id = cell.node_id();
+
+    if dir.is_input() {
+        if let Some(i) = node_id.inp(&name) {
+            cell.set_io_dir(dir, i as usize);
+            true
+        } else {
+            false
+        }
+    } else {
+        if let Some(i) = node_id.out(&name) {
+            cell.set_io_dir(dir, i as usize);
+            true
+        } else {
+            false
+        }
+    }
+}
+
 fn cell_port2vval(cell: Cell, dir: CellDir) -> VVal {
     let node_id = cell.node_id();
 
@@ -522,6 +546,41 @@ fn setup_hx_module() -> wlambda::SymbolTable {
     }, Some(3), Some(3), false);
 
     st.fun(
+        "set_cell", |env: &mut Env, argc: usize| {
+        let pos  = env.arg(0);
+        let cell = env.arg(1);
+
+        let cell_node_id = cell.v_k("node_id");
+        let node_id =
+            cell_node_id.v_(0).with_s_ref(|s| NodeId::from_str(s));
+        let node_id =
+            node_id.to_instance(cell_node_id.v_i(1) as usize);
+
+        let mut m_cell = Cell::empty(node_id);
+
+        let x = pos.v_ik("x") as usize;
+        let y = pos.v_ik("y") as usize;
+
+        let ports = cell.v_k("ports");
+
+        cell_set_port(&mut m_cell, ports.v_(0), CellDir::T);
+        cell_set_port(&mut m_cell, ports.v_(1), CellDir::TL);
+        cell_set_port(&mut m_cell, ports.v_(2), CellDir::BL);
+        cell_set_port(&mut m_cell, ports.v_(3), CellDir::TR);
+        cell_set_port(&mut m_cell, ports.v_(4), CellDir::BR);
+        cell_set_port(&mut m_cell, ports.v_(5), CellDir::B);
+
+        env.with_user_do(|ctx: &mut Ctx| {
+            let mut m = ctx.matrix.lock().unwrap();
+            m.place(x, y, m_cell);
+            let _ = m.sync();
+        });
+
+        Ok(VVal::None)
+    }, Some(2), Some(2), false);
+
+
+    st.fun(
         "get_cell", |env: &mut Env, argc: usize| {
         let pos = env.arg(0);
         env.with_user_do(|ctx: &mut Ctx| {
@@ -598,6 +657,8 @@ fn start_driver(matrix: Arc<Mutex<Matrix>>) -> Driver {
 
         files.sort();
 
+        let mut error = false;
+
         for f in files.iter() {
             let path = std::path::Path::new(f);
             let name = path.file_name().unwrap().to_str().unwrap();
@@ -613,38 +674,41 @@ fn start_driver(matrix: Arc<Mutex<Matrix>>) -> Driver {
                 },
                 Err(e) => {
                     println!("*** ERROR: {}\n    {}", name, e);
+                    error = true;
                     break;
                 },
             }
         }
 
-        let mut rl = rustyline::Editor::<()>::new();
-        if rl.load_history("gui_wlambda.history").is_ok() {
-            println!("Loaded history from 'gui_wlambda.history' file.");
-        }
-
-        drvctx.borrow_mut().drv.be_quiet();
-
-        eprintln!("HexoSynth Version {}", VERSION);
-        loop {
-            let readline = rl.readline(">> ");
-            match readline {
-                Ok(line) => {
-                    rl.add_history_entry(line.as_str());
-
-                    match ctx.eval(&line) {
-                        Ok(v)  => {
-                            println!("> {}", v.s());
-                            ctx.set_global_var("@@", &v);
-                        },
-                        Err(e) => { println!("*** {}", e); }
-                    }
-                },
-                Err(_) => { break; },
+        if error {
+            let mut rl = rustyline::Editor::<()>::new();
+            if rl.load_history("gui_wlambda.history").is_ok() {
+                println!("Loaded history from 'gui_wlambda.history' file.");
             }
-        }
-        if rl.save_history("gui_wlambda.history").is_ok() {
-            println!("Saved history to 'gui_wlambda.history'");
+
+            drvctx.borrow_mut().drv.be_quiet();
+
+            eprintln!("HexoSynth Version {}", VERSION);
+            loop {
+                let readline = rl.readline(">> ");
+                match readline {
+                    Ok(line) => {
+                        rl.add_history_entry(line.as_str());
+
+                        match ctx.eval(&line) {
+                            Ok(v)  => {
+                                println!("> {}", v.s());
+                                ctx.set_global_var("@@", &v);
+                            },
+                            Err(e) => { println!("*** {}", e); }
+                        }
+                    },
+                    Err(_) => { break; },
+                }
+            }
+            if rl.save_history("gui_wlambda.history").is_ok() {
+                println!("Saved history to 'gui_wlambda.history'");
+            }
         }
 
         drvctx.borrow_mut().drv.exit();

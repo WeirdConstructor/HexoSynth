@@ -1,3 +1,9 @@
+0.1.0-alpha-3 (unreleased)
+==========================
+
+* Bugfix: Note columns in the tracker did not show the note name.
+* Project: GUI test suite can now place matrix cells directly.
+
 0.1.0-alpha-2 (2021-07-24)
 ==========================
 
