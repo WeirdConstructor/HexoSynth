@@ -29,6 +29,11 @@ pub trait MenuControl {
     fn open_select_cell_dir(&mut self, cell: Cell, node_info: NodeInfo);
     fn open_assign_port(
         &mut self, cell: Cell, node_info: NodeInfo, cell_dir: CellDir);
+    fn open_assign_out_in_port(
+        &mut self,
+        out_cell: Cell, out_node_info: NodeInfo,
+        in_cell: Cell, in_node_info: NodeInfo,
+        cell_dir: CellDir);
     fn close(&mut self);
 }
 
@@ -37,28 +42,56 @@ enum MenuState {
     None,
     NodeCategory {
         cell:   Cell,
+        next:   Option<Box<MenuState>>,
     },
     NodeContext {
         cell:       Cell,
         node_info:  Rc<NodeInfo>,
+        next:   Option<Box<MenuState>>,
     },
     SubCategory {
         cell:   Cell,
         cat:    UICategory,
         offset: usize,
         count:  usize,
+        next:   Option<Box<MenuState>>,
     },
     CellDir {
         cell:       Cell,
         node_info:  Rc<NodeInfo>,
         dirs:       Vec<CellDir>,
+        next:       Option<Box<MenuState>>,
     },
     AssignPort {
         cell:       Cell,
         cell_dir:   CellDir,
         node_info:  Rc<NodeInfo>,
         offset:     usize,
+        next:       Option<Box<MenuState>>,
     },
+}
+
+impl MenuState {
+    pub fn next(&self) -> Option<Box<MenuState>> {
+        match self {
+            MenuState::None                      => None,
+            MenuState::NodeCategory { next, .. } => next.clone(),
+            MenuState::NodeContext  { next, .. } => next.clone(),
+            MenuState::SubCategory  { next, .. } => next.clone(),
+            MenuState::CellDir      { next, .. } => next.clone(),
+            MenuState::AssignPort   { next, .. } => next.clone(),
+        }
+    }
+
+    pub fn follow_up_action(&self) -> PostAction {
+        let next_state = self.next();
+
+        if let Some(next_state) = next_state {
+            PostAction::NextState(*next_state)
+        } else {
+            PostAction::Close
+        }
+    }
 }
 
 enum PostAction {
@@ -143,7 +176,7 @@ impl Menu {
                 self.lbl_fun = Box::new(|_idx, _help, _state| { None });
                 self.act_fun = Box::new(|_idx, _state, _hdl| ());
             }
-            MenuState::NodeCategory { cell } => {
+            MenuState::NodeCategory { cell, .. } => {
                 self.lbl_fun = Box::new(|idx, help, _state| {
                     if help {
                         match idx {
@@ -169,7 +202,7 @@ impl Menu {
                         }
                     }
                 });
-                self.act_fun = Box::new(move |idx, _state, _hdl| {
+                self.act_fun = Box::new(move |idx, state, _hdl| {
                     match idx {
                         0 => { *pa.borrow_mut() = PostAction::close(); },
                         1 | 2 | 3 | 4 | 5 | 6 => {
@@ -194,6 +227,7 @@ impl Menu {
                                         cat,
                                         count,
                                         offset: 0,
+                                        next:   state.next(),
                                     });
                         },
                         _ => (),
@@ -229,7 +263,7 @@ impl Menu {
                     }
                 });
                 self.act_fun = Box::new(move |idx, state, hdl| {
-                    if let MenuState::NodeContext { cell, node_info } = state {
+                    if let MenuState::NodeContext { cell, node_info, .. } = state {
                         match idx {
                             0 => { *pa.borrow_mut() = PostAction::close(); },
                             1 => {
@@ -239,18 +273,19 @@ impl Menu {
                                             cell:      *cell,
                                             node_info: node_info.clone(),
                                             dirs:      vec![],
+                                            next:      state.next(),
                                         });
                             },
                             2 => {
                                 hdl.clear_cell_ports(*cell);
-                                *pa.borrow_mut() = PostAction::close();
+                                *pa.borrow_mut() = state.follow_up_action();
                             },
                             _ => (),
                         }
                     }
                 });
             },
-            MenuState::SubCategory { cell, cat, offset, count } => {
+            MenuState::SubCategory { cell, cat, offset, count, .. } => {
                 self.lbl_fun = Box::new(move |idx, help, _state| {
                     match idx {
                         0 => Some("<Back"),
@@ -287,7 +322,7 @@ impl Menu {
                         }
                     }
                 });
-                self.act_fun = Box::new(move |idx, _state, hdl| {
+                self.act_fun = Box::new(move |idx, state, hdl| {
                     match idx {
                         0 => { *pa.borrow_mut() = PostAction::back(); },
                         _ => {
@@ -309,6 +344,7 @@ impl Menu {
                                             cat,
                                             offset: cur_idx,
                                             count,
+                                            next:   state.next(),
                                         });
                             } else {
                                 let mut i = 0;
@@ -324,7 +360,7 @@ impl Menu {
                                     hdl.assign_cell_new_node(
                                         cell, node_id);
                                 }
-                                *pa.borrow_mut() = PostAction::close();
+                                *pa.borrow_mut() = state.follow_up_action();
                             }
                         },
                     }
@@ -348,7 +384,7 @@ impl Menu {
                     let mut cell_dir = None;
 
                     match idx {
-                        0 => { *pa.borrow_mut() = PostAction::close(); },
+                        0 => { *pa.borrow_mut() = state.follow_up_action(); },
                         1 => { cell_dir = Some(CellDir::T); },
                         2 => { cell_dir = Some(CellDir::TR); },
                         3 => { cell_dir = Some(CellDir::BR); },
@@ -366,6 +402,7 @@ impl Menu {
                                     node_info: node_info.clone(),
                                     offset:    0,
                                     cell_dir,
+                                    next:      state.next(),
                                 };
 
                             *pa.borrow_mut() = PostAction::next_state(ms);
@@ -448,17 +485,18 @@ impl Menu {
                                                     node_info: node_info.clone(),
                                                     cell_dir:  *cell_dir,
                                                     offset:    cur_idx,
+                                                    next:      state.next(),
                                                 });
                                     } else {
                                         hdl.assign_cell_port(
                                             *cell, *cell_dir, Some(cur_idx));
-                                        *pa.borrow_mut() = PostAction::close();
+                                        *pa.borrow_mut() = state.follow_up_action();
                                     }
 
                                 } else {
                                     hdl.assign_cell_port(
                                         *cell, *cell_dir, Some(cur_idx));
-                                    *pa.borrow_mut() = PostAction::close();
+                                    *pa.borrow_mut() = state.follow_up_action();
                                 }
                             }
                         },
@@ -510,12 +548,16 @@ impl MenuControl for Menu {
 
     fn open_select_node_category(&mut self, cell: Cell) {
         self.activate_init_state(
-            MenuState::NodeCategory { cell });
+            MenuState::NodeCategory { cell, next: None });
     }
 
     fn open_node_context(&mut self, cell: Cell, node_info: NodeInfo) {
         self.activate_init_state(
-            MenuState::NodeContext { cell, node_info: Rc::new(node_info) });
+            MenuState::NodeContext {
+                cell,
+                node_info: Rc::new(node_info),
+                next: None
+            });
     }
 
     fn open_select_cell_dir(&mut self, cell: Cell, node_info: NodeInfo) {
@@ -524,6 +566,7 @@ impl MenuControl for Menu {
                 cell,
                 node_info: Rc::new(node_info),
                 dirs: vec![],
+                next: None,
             });
     }
 
@@ -536,6 +579,29 @@ impl MenuControl for Menu {
                 node_info: Rc::new(node_info),
                 offset:    0,
                 cell_dir,
+                next: None,
+            });
+    }
+
+    fn open_assign_out_in_port(
+        &mut self,
+        out_cell: Cell, out_node_info: NodeInfo,
+        in_cell: Cell, in_node_info: NodeInfo,
+        cell_dir: CellDir
+    ) {
+        self.activate_init_state(
+            MenuState::AssignPort {
+                cell: out_cell,
+                node_info: Rc::new(out_node_info),
+                offset:    0,
+                cell_dir,
+                next: Some(Box::new(MenuState::AssignPort {
+                    cell:      in_cell,
+                    node_info: Rc::new(in_node_info),
+                    offset:    0,
+                    cell_dir:  cell_dir.flip(),
+                    next:      None,
+                })),
             });
     }
 
