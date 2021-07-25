@@ -3,6 +3,8 @@
 
 * Feature: New node added: 'Mix3' a simple 3 channel mixer node
 to sum 3 signals.
+* Feature: New node added: 'BOsc' a basic oscillator
+for sine, triangle, saw and pulse waveforms.
 * Change: The patch file format now stores input/output port names
 now instead of indices. Current format with port indices is still
 loaded correctly.
