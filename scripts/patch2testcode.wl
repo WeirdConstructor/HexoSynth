@@ -11,7 +11,7 @@ if len[@@.0] == 0 {
 
 !patch = std:deser:json ~ std:io:file:read_text @@.0;
 
-std:displayln ~ std:ser:json patch;
+#d# std:displayln ~ std:ser:json patch;
 
 iter cell patch.cells {
     !(typ, inst, x, y, ins, outs) = cell;
@@ -60,4 +60,13 @@ iter cell patch.cells {
 
     .s = s ");";
     std:displayln s;
+};
+
+iter param patch.params {
+    !(typ, inst, param, val) = param;
+
+    !varname = std:str:cat typ "_" inst + 1;
+    std:displayln ~
+        $F "pset_n(&mut matrix, {}, \"{}\", {:0.3});"
+            varname param val;
 };
