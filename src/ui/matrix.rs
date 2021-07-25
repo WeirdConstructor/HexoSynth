@@ -617,7 +617,10 @@ impl Default for NodeMatrix {
 }
 
 impl WidgetType for NodeMatrix {
-    fn draw(&self, ui: &mut dyn WidgetUI, data: &mut WidgetData, p: &mut dyn Painter, pos: Rect) {
+    fn draw(
+        &self, ui: &mut dyn WidgetUI,
+        data: &mut WidgetData, p: &mut dyn Painter, pos: Rect
+    ) {
         data.with(|data: &mut NodeMatrixData| {
 
             data.ui_ctrl.with_matrix(|m| m.update_filters());
