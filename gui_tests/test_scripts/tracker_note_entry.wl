@@ -1,4 +1,4 @@
-!@import t = tests:test_lib;
+!@import t = wlambda_lib:test_lib;
 !@import hx;
 
 hx:query_state[];

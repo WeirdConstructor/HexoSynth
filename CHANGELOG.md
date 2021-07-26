@@ -8,8 +8,12 @@ for sine, triangle, saw and pulse waveforms.
 * Change: The patch file format now stores input/output port names
 now instead of indices. Current format with port indices is still
 loaded correctly.
+* Change: 'Sin' node now has a randomized initial phase, except for the
+very first instance 'Sin(0)'.
 * Bugfix: Note columns in the tracker did not show the note name.
 * Project: GUI test suite can now place matrix cells directly.
+* Project: Moved GUI tests suite to it's own sub directory 'gui\_tests'
+as separate application.
 
 0.1.0-alpha-2 (2021-07-24)
 ==========================

@@ -650,9 +650,27 @@ fn start_driver(matrix: Arc<Mutex<Matrix>>) -> Driver {
 
         let path = env!("CARGO_MANIFEST_DIR");
 
+        let mut a = std::env::args();
+        a.next();
+        let test_match = a.next();
+
         let mut files : Vec<String> =
-            std::fs::read_dir(path.to_string() + "/tests/gui/").unwrap().map(|e| {
-                e.unwrap().path().as_path().to_str().unwrap().to_string()
+            std::fs::read_dir(path.to_string() + "/test_scripts/").unwrap()
+            .filter(|e| {
+                let pth  = e.as_ref().unwrap().path();
+                let path = pth.as_path();
+
+                if let Some(name_substr) = &test_match {
+                    let s = path.file_name().unwrap().to_str().unwrap();
+                    s.contains(name_substr)
+                } else {
+                    true
+                }
+            })
+            .map(|e| {
+                let pth = e.unwrap().path();
+                let path = pth.as_path();
+                path.to_str().unwrap().to_string()
             }).collect();
 
         files.sort();
@@ -717,8 +735,7 @@ fn start_driver(matrix: Arc<Mutex<Matrix>>) -> Driver {
     driver
 }
 
-#[test]
-fn main_gui() {
+fn main() {
     use hexotk::widgets::{Dialog, DialogData, DialogModel};
 
     let (matrix, node_exec) = init_hexosynth();
