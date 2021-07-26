@@ -10,6 +10,8 @@ now instead of indices. Current format with port indices is still
 loaded correctly.
 * Change: 'Sin' node now has a randomized initial phase, except for the
 very first instance 'Sin(0)'.
+* Change: The signal scopes draw the center line no longer above the
+waveform.
 * Bugfix: Note columns in the tracker did not show the note name.
 * Project: GUI test suite can now place matrix cells directly.
 * Project: Moved GUI tests suite to it's own sub directory 'gui\_tests'
