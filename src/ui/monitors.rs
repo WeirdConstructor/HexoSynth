@@ -23,6 +23,9 @@ use crate::dsp::NodeId;
 struct MonitorsSource {
     ui_ctrl:    UICtrlRef,
     idx:        usize,
+    min:        f32,
+    max:        f32,
+    avg:        f32,
 }
 
 use crate::CellDir;
@@ -41,6 +44,10 @@ fn sigidx2celldir(idx: usize) -> CellDir {
 
 impl GraphMinMaxSource for MonitorsSource {
     fn read(&mut self, buf: &mut [(f64, f64)]) {
+        let (mut min, mut max, mut avg) =
+            (1000.0_f32, -1000.0_f32, 0.0_f32);
+
+
         self.ui_ctrl.with_matrix(|m| {
             let cell = m.monitored_cell();
             if !cell.has_dir_set(sigidx2celldir(self.idx)) {
@@ -53,9 +60,34 @@ impl GraphMinMaxSource for MonitorsSource {
             let mimbuf = m.get_minmax_monitor_samples(self.idx);
             for (i, b) in buf.iter_mut().enumerate() {
                 let mm = mimbuf.at(i);
+
+                min = min.min(mm.0);
+                max = max.max(mm.1);
+                avg += mm.1 + mm.0;
+
                 *b = (mm.0 as f64, mm.1 as f64);
             }
+
+            avg /= buf.len() as f32;
         });
+
+        if min > 999.0  { min = 0.0; }
+        if max < -999.0 { max = 0.0; }
+
+        self.avg = avg;
+        self.min = min;
+        self.max = max;
+    }
+
+    fn fmt_val(&mut self, buf: &mut[u8]) -> usize {
+        use std::io::Write;
+        let mut bw = std::io::BufWriter::new(buf);
+        match write!(bw, "{:6.3} | {:6.3} | {:6.3}",
+                     self.min, self.max, self.avg)
+        {
+            Ok(_)  => bw.buffer().len(),
+            Err(_) => 0,
+        }
     }
 }
 
@@ -68,8 +100,10 @@ pub struct MonitorsData {
 
 impl MonitorsData {
     pub fn new(id: AtomId, ui_ctrl: UICtrlRef) -> Self {
+        let w = crate::monitor::MONITOR_MINMAX_SAMPLES as f64;
+
         let wt_cont = Rc::new(Container::new());
-        let wt_gmm  = Rc::new(GraphMinMax::new(128.0, 64.0));
+        let wt_gmm  = Rc::new(GraphMinMax::new(w, 68.0));
 
         let mut cd = ContainerData::new();
 
@@ -84,12 +118,15 @@ impl MonitorsData {
 
         let build_minmaxdata = |idx: usize| -> Box<dyn std::any::Any> {
             GraphMinMaxData::new(
-                9.0,
+                10.0,
                 sig_labels[idx].clone(),
                 crate::monitor::MONITOR_MINMAX_SAMPLES,
                 Box::new(MonitorsSource {
                     ui_ctrl: ui_ctrl.clone(),
                     idx,
+                    min: 0.0,
+                    max: 0.0,
+                    avg: 0.0,
                     //d// cnt: 0,
                 }))
         };

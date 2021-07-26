@@ -12,6 +12,10 @@ loaded correctly.
 very first instance 'Sin(0)'.
 * Change: The signal scopes draw the center line no longer above the
 waveform.
+* Change: The min/max signal monitors are now wider and display 3 seconds
+of the signal instead of only 2.
+* Change: The min/max signal monitors also print the min/max/average values
+of the signal that is visible in the monitor.
 * Bugfix: Note columns in the tracker did not show the note name.
 * Project: GUI test suite can now place matrix cells directly.
 * Project: Moved GUI tests suite to it's own sub directory 'gui\_tests'
