@@ -6,7 +6,7 @@ use hexotk::{MButton};
 use hexotk::widgets::{
     DialogModel,
 };
-use hexodsp::{Matrix, CellDir};
+use hexodsp::{Matrix, CellDir, NodeId};
 use keyboard_types::Key;
 use hexodsp::matrix::MatrixError;
 use hexodsp::matrix_repr::save_patch_to_file;
@@ -52,11 +52,32 @@ impl Actions<'_, '_, '_> {
         }
     }
 
+    pub fn swap_cells(&mut self, pos_a: (usize, usize), pos_b: (usize, usize)) {
+        let (src_cell, dst_cell) = (
+            self.matrix.get_copy(pos_a.0, pos_a.1),
+            self.matrix.get_copy(pos_b.0, pos_b.1)
+        );
+
+        let src_cell =
+            if let Some(src_cell) = src_cell { src_cell }
+            else { return; };
+        let dst_cell =
+            if let Some(dst_cell) = dst_cell { dst_cell }
+            else { return; };
+
+        catch_err_dialog(self.dialog.clone(), || {
+            self.matrix.change_matrix(|m| {
+                m.place(pos_b.0, pos_b.1, src_cell);
+                m.place(pos_a.0, pos_a.1, dst_cell);
+            })?;
+            self.matrix.sync()?;
+            Ok(())
+        });
+    }
+
     pub fn map_messages_to_actions(&mut self, msg: &Msg) {
         match msg {
             Msg::CellDragged { btn, pos_a, pos_b } => {
-                // Left & pos_a exists & pos_b empty
-                //  => move/swap cell
                 // Left & pos_a empty & pos_b exists
                 //  => open cell selection dialog for one node
                 //  => connect the default input
@@ -117,15 +138,12 @@ impl Actions<'_, '_, '_> {
                     else { Some(dst_cell) };
 
                 match (*btn, src, dst, adjacent, src_is_output) {
-                      (MButton::Left, Some(_), None, _, _)
-                    | (MButton::Left, None, Some(_), _, _) => {
-                        catch_err_dialog(self.dialog.clone(), || {
-                            self.matrix.change_matrix(|m| {
-                                m.place(pos_b.0, pos_b.1, src_cell);
-                                m.place(pos_a.0, pos_a.1, dst_cell);
-                            })?;
-                            m.sync()?;
-                        });
+                    // Left & pos_a exists & pos_b empty
+                    //  => move/swap cell
+                    (MButton::Left, Some(_), None, _, _) => {
+                        self.swap_cells(*pos_a, *pos_b);
+                    },
+                    (MButton::Left, None, Some(_), _, _) => {
                     },
                     (MButton::Left, Some(src), Some(dst), Some(dir), io) => {
                         println!("OPEN MENU!!!!! {:?} aisout={}",
