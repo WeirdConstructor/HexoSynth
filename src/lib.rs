@@ -7,7 +7,7 @@
 
 pub mod ui;
 pub mod ui_ctrl;
-pub mod kortex;
+pub mod uimsg_queue;
 pub mod state;
 
 use ui_ctrl::{UICtrlRef, UICellTrans};
@@ -20,6 +20,7 @@ use std::sync::{Arc, Mutex};
 use std::cell::RefCell;
 use std::io::Write;
 
+pub use uimsg_queue::Msg;
 pub use hexodsp::*;
 pub use hexotk::*;
 
@@ -206,18 +207,14 @@ impl AtomDataModel for UIParams {
     }
 
     fn check_sync(&mut self) {
-        let (cur_gen, error) =
-            self.ui_ctrl.with_matrix(|m| {
-                (m.get_generation(), m.pop_error())
-            });
-
-        if let Some(error) = error {
-            self.ui_ctrl.ui_message(&error);
-        }
+        let cur_gen = self.ui_ctrl.with_matrix(|m| m.get_generation());
 
         if *self.matrix_gen.borrow() < cur_gen {
             self.sync_from_matrix();
         }
+
+        let ui_ctrl = self.ui_ctrl.clone();
+        ui_ctrl.ui_start_frame(self);
     }
 
     fn get(&self, id: AtomId) -> Option<&Atom> {

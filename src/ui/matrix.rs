@@ -2,7 +2,7 @@
 // This is a part of HexoSynth. Released under (A)GPLv3 or any later.
 // See README.md and COPYING for details.
 
-use crate::{UICtrlRef, UICellTrans};
+use crate::{UICtrlRef, Msg};
 use crate::matrix::*;
 use crate::dsp::NodeId;
 use crate::ui::menu::{Menu, MenuControl, MenuActionHandler};
@@ -622,27 +622,21 @@ impl WidgetType for NodeMatrix {
         data: &mut WidgetData, p: &mut dyn Painter, pos: Rect
     ) {
         data.with(|data: &mut NodeMatrixData| {
-
-            data.ui_ctrl.with_matrix(|m| m.update_filters());
-
-            if data.ui_ctrl.check_help_toggle() {
-                data.show_help = !data.show_help;
-            }
-
             let panel_pos = pos.resize(360.0, pos.h);
             let util_pos =
                 pos.resize(355.0, pos.h - 5.0)
                    .offs(pos.w - 360.0, 0.0);
 
             let hex_pos = pos.shrink(365.0, 0.0);
-            if !data.show_help {
+            let show_help = data.ui_ctrl.with_state(|s| s.show_help);
+            if !show_help {
                 (*data.hex_grid).draw(ui, p, hex_pos);
             }
 
             (*data.node_panel).draw(ui, p, panel_pos);
             (*data.util_panel).draw(ui, p, util_pos);
 
-            if data.show_help {
+            if show_help {
                 (*data.help_text).draw(ui, p, hex_pos);
             }
 
@@ -677,7 +671,9 @@ impl WidgetType for NodeMatrix {
                 //          ev, *id, button, data.id());
 
                 data.with(|data: &mut NodeMatrixData| {
-                    if data.show_help {
+                    let show_help = data.ui_ctrl.with_state(|s| s.show_help);
+
+                    if show_help {
                         data.help_text.event(ui, ev);
                         if *id == data.hex_menu_id {
                             data.hex_menu.event(ui, ev);
@@ -718,14 +714,8 @@ impl WidgetType for NodeMatrix {
             UIEvent::FieldDrag { id, button, src, dst, .. } => {
                 data.with(|data: &mut NodeMatrixData| {
                     if *id == data.hex_grid.id() {
-                        data.matrix_model.ui_ctrl.cell_transform(
-                            *src,
-                            *dst,
-                            match button {
-                                MButton::Left   => UICellTrans::Swap,
-                                MButton::Right  => UICellTrans::CopyTo,
-                                MButton::Middle => UICellTrans::Instanciate,
-                            });
+                        data.matrix_model.ui_ctrl.emit(
+                            Msg::cell_drag(*button, *src, *dst));
                     }
                 });
                 ui.queue_redraw();
@@ -737,14 +727,12 @@ impl WidgetType for NodeMatrix {
                     match key {
                         Key::F1 => {
                             data.with(|data: &mut NodeMatrixData| {
-                                data.show_help = !data.show_help;
+                                data.ui_ctrl.emit(Msg::key(key.clone()))
                             });
                         },
                         Key::Escape => {
                             data.with(|data: &mut NodeMatrixData| {
-                                if data.show_help {
-                                    data.show_help = false;
-                                }
+                                data.ui_ctrl.emit(Msg::key(key.clone()))
                             });
                         },
                         Key::F4 => {

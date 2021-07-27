@@ -1,4 +1,5 @@
 use crate::UICtrlRef;
+use crate::state::*;
 
 use hexotk::{UIPos, AtomId};
 use hexotk::{
@@ -119,7 +120,7 @@ impl UtilPanelData {
             "Samples",
             wbox!(
                 wt_sampl_list,
-                AtomId::new(UICtrlRef::ATNID_SAMPLE_LOAD_ID, 0),
+                AtomId::new(ATNID_SAMPLE_LOAD_ID, 0),
                 center(12, 12),
                 ListData::new(
                     "Sample:",
@@ -136,7 +137,7 @@ impl UtilPanelData {
         top_cont
            .add(wbox!(
                 wt_btn,
-                AtomId::new(UICtrlRef::ATNID_HELP_BUTTON as u32, 0),
+                AtomId::new(ATNID_HELP_BUTTON as u32, 0),
                 left(9, 12),
                 ButtonData::new_setting_click("Help")))
            .add(wbox!(

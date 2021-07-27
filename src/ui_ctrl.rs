@@ -3,7 +3,8 @@
 // See README.md and COPYING for details.
 
 use crate::UIParams;
-use crate::Kortex;
+use crate::uimsg_queue::{UIMsgQueue, Msg};
+use crate::state::State;
 
 use hexodsp::*;
 use hexodsp::matrix::MatrixError;
@@ -41,7 +42,7 @@ pub enum UICellTrans {
 /// It also provides helper functions for manipulating
 /// the [Matrix] and other state.
 pub struct UIControl {
-    kortex:             Kortex,
+    msg_q:              UIMsgQueue,
 
     dialog_model:       Rc<RefCell<DialogModel>>,
     help_text_src:      Rc<TextSourceRef>,
@@ -56,8 +57,6 @@ pub struct UIControl {
     focus_node_info:    NodeInfo,
 
     sample_dir_from:    Option<AtomId>,
-
-    toggle_help:        bool,
 }
 
 impl UIControl {
@@ -101,16 +100,13 @@ impl UIControl {
 pub struct UICtrlRef(Rc<RefCell<UIControl>>, Arc<Mutex<Matrix>>, Rc<RefCell<State>>);
 
 impl UICtrlRef {
-    pub const ATNID_SAMPLE_LOAD_ID : u32 = 190001;
-    pub const ATNID_HELP_BUTTON    : u32 = 190002;
-
     pub fn new(matrix: Arc<Mutex<Matrix>>,
                dialog_model: Rc<RefCell<DialogModel>>)
         -> UICtrlRef
     {
         UICtrlRef(
             Rc::new(RefCell::new(UIControl {
-                kortex: Kortex::new(),
+                msg_q: UIMsgQueue::new(),
                 help_text_src:
                     Rc::new(TextSourceRef::new(
                         crate::ui::UI_MAIN_HELP_TEXT_WIDTH)),
@@ -127,26 +123,20 @@ impl UICtrlRef {
                 focus_cell:         Cell::empty(NodeId::Nop),
                 focus_node_info:    NodeInfo::from_node_id(NodeId::Nop),
                 sample_dir_from:    None,
-                toggle_help:        false,
                 dialog_model,
             })),
-            matrix)
+            matrix,
+            Rc::new(RefCell::new(State::new())))
     }
 
-    pub fn emit(&mut self, msg: UIMsgEnv) {
-        self.0.borrow_mut().emit(msg);
+    pub fn emit(&self, msg: Msg) {
+        self.0.borrow_mut().msg_q.emit(msg);
     }
 
     pub fn with_state<F, R>(&self, mut f: F) -> R
-        where F: FnMut(&mut State) -> R
+        where F: FnMut(&State) -> R
     {
-        f(&mut *self.2.borrow_mut())
-    }
-
-    pub fn check_help_toggle(&mut self) -> bool {
-        let r = self.0.borrow().toggle_help;
-        self.0.borrow_mut().toggle_help = false;
-        r
+        f(&*self.2.borrow_mut())
     }
 
     pub fn get_help_text_src(&self) -> Rc<TextSourceRef> {
@@ -202,11 +192,6 @@ impl UICtrlRef {
             this.sample_browse_list.push((i + 1) as i64, filename);
             this.path_browse_list.push(pb);
         }
-    }
-
-    pub fn ui_message(&self, s: &str) {
-        self.0.borrow().dialog_model.borrow_mut().open(
-            s, Box::new(|_| ()));
     }
 
     pub fn get_sample_dir_list(&self) -> ListItems {
@@ -461,7 +446,7 @@ impl UICtrlRef {
     /// Should return true if the value should be saved in the
     /// variables register.
     pub fn set_event(&self, ui_params: &mut UIParams, id: AtomId, atom: Atom) -> bool {
-        if id.node_id() == Self::ATNID_SAMPLE_LOAD_ID {
+        if id.node_id() == crate::state::ATNID_SAMPLE_LOAD_ID {
             let idx = atom.i() as usize;
 
             let mut load_file = None;
@@ -496,14 +481,37 @@ impl UICtrlRef {
                     ui_params.set(load_id, Atom::audio_unloaded(path_str));
                 }
             }
-        } else if id.node_id() == Self::ATNID_HELP_BUTTON {
+
+        } else if id.node_id() == crate::state::ATNID_HELP_BUTTON {
             if atom.i() == 1 {
-                self.0.borrow_mut().toggle_help = true;
+                self.emit(Msg::ui_btn(id.node_id()));
             }
             return false;
         }
 
         true
+    }
+
+    pub fn ui_start_frame(&self, ui_params: &mut UIParams) {
+        let error = self.with_matrix(|m| m.pop_error());
+        if let Some(error) = error {
+            self.0.borrow().dialog_model.borrow_mut().open(
+                &error, Box::new(|_| ()));
+
+        }
+
+        self.with_matrix(|m| m.update_filters());
+
+        while self.0.borrow_mut().msg_q.has_new_messages() {
+            let events = self.0.borrow_mut().msg_q.start_work();
+            if let Some(events) = events {
+                for e in events.iter() {
+                    self.with_matrix(|m|
+                        self.2.borrow_mut().apply(ui_params, m, e));
+                }
+                self.0.borrow_mut().msg_q.end_work(events);
+            }
+        }
     }
 }
 
