@@ -4,4 +4,7 @@ _attic
 *.history
 vst2/target/
 jack_standalone/target/
+jack_standalone/*.hxy
+/*.hxy
 Cargo.lock
+gui_tests/target/
