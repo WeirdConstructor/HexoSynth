@@ -7,8 +7,9 @@
 
 pub mod ui;
 pub mod ui_ctrl;
-pub mod uimsg_queue;
-pub mod state;
+mod uimsg_queue;
+mod state;
+mod actions;
 
 use ui_ctrl::{UICtrlRef, UICellTrans};
 

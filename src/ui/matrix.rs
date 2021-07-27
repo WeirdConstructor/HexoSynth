@@ -737,7 +737,7 @@ impl WidgetType for NodeMatrix {
                         },
                         Key::F4 => {
                             data.with(|data: &mut NodeMatrixData| {
-                                data.matrix_model.ui_ctrl.save_patch();
+                                data.ui_ctrl.emit(Msg::key(key.clone()))
                             });
                         },
                         Key::Character(c) => {

@@ -6,6 +6,8 @@ use crate::UIParams;
 use crate::uimsg_queue::{UIMsgQueue, Msg};
 use crate::state::State;
 
+use crate::actions::catch_err_dialog;
+
 use hexodsp::*;
 use hexodsp::matrix::MatrixError;
 use hexodsp::matrix_repr::save_patch_to_file;
@@ -123,7 +125,7 @@ impl UICtrlRef {
                 focus_cell:         Cell::empty(NodeId::Nop),
                 focus_node_info:    NodeInfo::from_node_id(NodeId::Nop),
                 sample_dir_from:    None,
-                dialog_model,
+                dialog_model:       dialog_model.clone(),
             })),
             matrix,
             Rc::new(RefCell::new(State::new())))
@@ -295,22 +297,6 @@ impl UICtrlRef {
                 Ok(())
             });
 
-        });
-    }
-
-    pub fn save_patch(&self) {
-        let this = self.0.borrow();
-
-        self.with_matrix(|m| {
-            catch_err_dialog(this.dialog_model.clone(), || {
-                match save_patch_to_file(m, "init.hxy") {
-                    Ok(_) => Ok(()),
-                    Err(e) => Err(PatchSaveError {
-                        path:  "init.hxy".to_string(),
-                        error: e
-                    }.into()),
-                }
-            });
         });
     }
 
@@ -502,96 +488,27 @@ impl UICtrlRef {
 
         self.with_matrix(|m| m.update_filters());
 
+        let dialog = self.0.borrow().dialog_model.clone();
+
         while self.0.borrow_mut().msg_q.has_new_messages() {
-            let events = self.0.borrow_mut().msg_q.start_work();
-            if let Some(events) = events {
-                for e in events.iter() {
-                    self.with_matrix(|m|
-                        self.2.borrow_mut().apply(ui_params, m, e));
+            let messages = self.0.borrow_mut().msg_q.start_work();
+
+            if let Some(messages) = messages {
+                for msg in messages.iter() {
+                    self.with_matrix(|matrix| {
+                        let mut a = crate::actions::Actions {
+                            state: &mut *self.2.borrow_mut(),
+                            dialog: dialog.clone(),
+                            matrix,
+                            ui_params,
+                        };
+                        a.map_messages_to_actions(msg);
+                    });
                 }
-                self.0.borrow_mut().msg_q.end_work(events);
+
+                self.0.borrow_mut().msg_q.end_work(messages);
             }
         }
     }
 }
 
-pub struct PatchSaveError {
-    path:   String,
-    error:  std::io::Error,
-}
-
-pub enum DialogMessage {
-    MatrixError(MatrixError),
-    IOError(std::io::Error),
-    PatchSaveError(PatchSaveError),
-}
-
-impl From<MatrixError> for DialogMessage {
-    fn from(error: MatrixError) -> Self {
-        DialogMessage::MatrixError(error)
-    }
-}
-
-impl From<std::io::Error> for DialogMessage {
-    fn from(error: std::io::Error) -> Self {
-        DialogMessage::IOError(error)
-    }
-}
-
-impl From<PatchSaveError> for DialogMessage {
-    fn from(error: PatchSaveError) -> Self {
-        DialogMessage::PatchSaveError(error)
-    }
-}
-
-pub fn catch_err_dialog<F>(dialog: Rc<RefCell<DialogModel>>, mut f: F)
-    where F: FnMut() -> Result<(), DialogMessage>
-{
-    match f() {
-        Err(DialogMessage::PatchSaveError(err)) => {
-            dialog.borrow_mut().open(
-                &format!("Patch Saving failed!\n\
-                    Path: {}\n\
-                    Error: {}\n", err.path, err.error),
-                Box::new(|_| ()));
-        },
-        Err(DialogMessage::IOError(err)) => {
-            dialog.borrow_mut().open(
-                &format!("An Unknown I/O Error Occured!\n\
-                    Error: {}\n", err),
-                Box::new(|_| ()));
-        },
-        Err(DialogMessage::MatrixError(err)) => {
-            match err {
-                MatrixError::CycleDetected => {
-                    dialog.borrow_mut().open(
-                        &"Cycle Detected!\n\
-                            HexoSynth does not allow to create cyclic configurations.\n\
-                            \n\
-                            For feedback please use the nodes:\n\
-                            * 'FbWr' (Feedback Writer)\n\
-                            * 'FbRd' (Feedback Reader)",
-                        Box::new(|_| ()));
-                },
-                MatrixError::DuplicatedInput { output1, output2 } => {
-                    dialog.borrow_mut().open(
-                        &format!("Unjoined Outputs Detected!\n\
-                            It's not possible to assign to an input port twice.\n\
-                            Please use a mixer or some other kind of node to join the outputs.\n\
-                            \n\
-                            Conflicting Outputs:\n\
-                            * {} {}, port {}\n\
-                            * {} {}, port {}",
-                            output1.0.name(),
-                            output1.0.instance(),
-                            output1.0.out_name_by_idx(output1.1).unwrap_or("???"),
-                            output2.0.name(),
-                            output2.0.instance(),
-                            output2.0.out_name_by_idx(output2.1).unwrap_or("???")),
-                        Box::new(|_| ()));
-                }
-            }
-        },
-        Ok(_) => (),
-    }
-}
