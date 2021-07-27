@@ -130,8 +130,8 @@ of this project (AGPLv3 or later).
 ## Contact the Author
 
 You can reach me via Discord or Mastodon. I'm joined most public Rust Discord
-servers, especially the "Rust Audio" Discord server. I am also on freenode.net,
-for instance in the `#lad` channel (nick `weirdctr`).
+servers, especially the "Rust Audio" Discord server. I am also on IRC
+on the network [Libera.Chat](https://libera.chat/) in the `#lad` channel (nick `wct`).
 
 ## Support Development
 
