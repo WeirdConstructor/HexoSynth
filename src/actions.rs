@@ -2,10 +2,11 @@ use crate::uimsg_queue::{Msg};
 use crate::state::State;
 use crate::UIParams;
 
+use hexotk::{MButton};
 use hexotk::widgets::{
     DialogModel,
 };
-use hexodsp::Matrix;
+use hexodsp::{Matrix, CellDir};
 use keyboard_types::Key;
 use hexodsp::matrix::MatrixError;
 use hexodsp::matrix_repr::save_patch_to_file;
@@ -54,7 +55,38 @@ impl Actions<'_, '_, '_> {
     pub fn map_messages_to_actions(&mut self, msg: &Msg) {
         match msg {
             Msg::CellDragged { btn, pos_a, pos_b } => {
+                // Left & pos_a exists & pos_b exists and are adjacent
+                //  => open menu, let the user select two in/outputs
+                //     and assign them
+                // Left & pos_a exists & pos_b exists and are NOT adjacent
+                //  => swap cells
+                // Left & pos_a exists & pos_b empty
+                //  => move cell
+                // Right & pos_a exists & pos_b empty & NOT adjacent
+                //  => copy cell, but with empty ports
+                // Right & pos_a exists & pos_b empty & adjacent
+                //  => copy cell, but with empty ports, open port connection dialog
+                // Right & pos_a exists & pos_b exists
+                //  => swap cells
+                // Middle & pos_a exists & pos_b empty & NOT adjacent
+                //  => new instance with empty ports
+                // Middle & pos_a exists & pos_b empty & adjacent
+                //  => new instance, but with empty ports, open port connection dialog
+                let (src_cell, dst_cell) = (
+                    self.matrix.get_copy(pos_a.0, pos_a.1),
+                    self.matrix.get_copy(pos_b.0, pos_b.1)
+                );
+
+                let adjacent = CellDir::are_adjacent(*pos_a, *pos_b);
+
                 println!("DRAG CELL! {:?} {:?}", btn, msg);
+
+                match (*btn, src_cell, dst_cell, adjacent) {
+                    (MButton::Left, Some(src), Some(dst), 1) => {
+                        println!("OPEN MENU!!!!!");
+                    },
+                    (_, _, _, _) => (),
+                }
             },
             Msg::Key { key } => {
                 match key {
