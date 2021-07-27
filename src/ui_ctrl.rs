@@ -3,6 +3,7 @@
 // See README.md and COPYING for details.
 
 use crate::UIParams;
+use crate::Kortex;
 
 use hexodsp::*;
 use hexodsp::matrix::MatrixError;
@@ -40,6 +41,8 @@ pub enum UICellTrans {
 /// It also provides helper functions for manipulating
 /// the [Matrix] and other state.
 pub struct UIControl {
+    kortex:             Kortex,
+
     dialog_model:       Rc<RefCell<DialogModel>>,
     help_text_src:      Rc<TextSourceRef>,
     log_src:            Rc<TextSourceRef>,
@@ -95,7 +98,7 @@ impl UIControl {
 }
 
 #[derive(Clone)]
-pub struct UICtrlRef(Rc<RefCell<UIControl>>, Arc<Mutex<Matrix>>);
+pub struct UICtrlRef(Rc<RefCell<UIControl>>, Arc<Mutex<Matrix>>, Rc<RefCell<State>>);
 
 impl UICtrlRef {
     pub const ATNID_SAMPLE_LOAD_ID : u32 = 190001;
@@ -107,6 +110,7 @@ impl UICtrlRef {
     {
         UICtrlRef(
             Rc::new(RefCell::new(UIControl {
+                kortex: Kortex::new(),
                 help_text_src:
                     Rc::new(TextSourceRef::new(
                         crate::ui::UI_MAIN_HELP_TEXT_WIDTH)),
@@ -127,6 +131,16 @@ impl UICtrlRef {
                 dialog_model,
             })),
             matrix)
+    }
+
+    pub fn emit(&mut self, msg: UIMsgEnv) {
+        self.0.borrow_mut().emit(msg);
+    }
+
+    pub fn with_state<F, R>(&self, mut f: F) -> R
+        where F: FnMut(&mut State) -> R
+    {
+        f(&mut *self.2.borrow_mut())
     }
 
     pub fn check_help_toggle(&mut self) -> bool {

@@ -7,6 +7,8 @@
 
 pub mod ui;
 pub mod ui_ctrl;
+pub mod kortex;
+pub mod state;
 
 use ui_ctrl::{UICtrlRef, UICellTrans};
 
