@@ -81,11 +81,16 @@ impl Actions<'_, '_, '_> {
 
                 println!("DRAG CELL! {:?} {:?}", btn, msg);
 
-                match (*btn, src_cell, dst_cell, adjacent) {
-                    (MButton::Left, Some(src), Some(dst), 1) => {
-                        println!("OPEN MENU!!!!!");
+                let src_is_output =
+                    if let Some(dir) = adjacent { dir.is_output() }
+                    else { false };
+
+                match (*btn, src_cell, dst_cell, adjacent, src_is_output) {
+                    (MButton::Left, Some(src), Some(dst), Some(dir), io) => {
+                        println!("OPEN MENU!!!!! {:?} aisout={}",
+                            dir, io);
                     },
-                    (_, _, _, _) => (),
+                    (_, _, _, _, _) => (),
                 }
             },
             Msg::Key { key } => {
