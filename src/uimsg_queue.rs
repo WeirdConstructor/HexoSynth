@@ -11,8 +11,16 @@ use keyboard_types::Key;
 
 #[derive(Debug, Clone)]
 pub enum Msg {
-    Key     { key: Key },
-    UIBtn   { id: u32 },
+    Key         { key: Key },
+    UIBtn       { id: u32 },
+    MenuHover   { item_idx: usize },
+    MenuClick   { item_idx: usize },
+    MatrixClick { x: usize, y: usize, btn: MButton, modkey: bool },
+    MatrixMouseClick {
+        x: f64,
+        y: f64,
+        btn: MButton
+    },
     CellDragged {
         btn: MButton,
         pos_a: (usize, usize),
@@ -27,8 +35,18 @@ impl Msg {
 
     pub fn key(key: Key) -> Self { Msg::Key { key } }
 
-    pub fn ui_btn(id: u32) -> Self {
-        Msg::UIBtn { id }
+    pub fn ui_btn(id: u32) -> Self { Msg::UIBtn { id } }
+
+    pub fn menu_hover(item_idx: usize) -> Self { Msg::MenuHover { item_idx } }
+
+    pub fn menu_click(item_idx: usize) -> Self { Msg::MenuClick { item_idx } }
+
+    pub fn matrix_click(x: usize, y: usize, btn: MButton, modkey: bool) -> Self {
+        Msg::MatrixClick { x, y, btn, modkey }
+    }
+
+    pub fn matrix_mouse_click(x: f64, y: f64, btn: MButton) -> Self {
+        Msg::MatrixMouseClick { x, y, btn }
     }
 }
 

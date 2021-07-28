@@ -58,21 +58,14 @@ impl MenuActionHandler for MatrixActionHandler {
 }
 
 pub struct MatrixUIMenu {
-    menu: Rc<RefCell<dyn MenuControl>>,
+    ui_ctrl:    UICtrlRef,
 }
 
 impl MatrixUIMenu {
-    pub fn new(ui_ctrl: UICtrlRef,
-               help_txt: Rc<TextSourceRef>)
+    pub fn new(ui_ctrl: UICtrlRef, _help_txt: Rc<TextSourceRef>)
         -> Self
     {
-        Self {
-            menu: Rc::new(RefCell::new(
-                Menu::new(
-                    Box::new(MatrixActionHandler::new(
-                        ui_ctrl,
-                        help_txt))))),
-        }
+        Self { ui_ctrl, }
     }
 
     pub fn grid2index(&self, x: usize, y: usize) -> Option<usize> {
@@ -96,58 +89,40 @@ impl MatrixUIMenu {
     }
 }
 
-/* Menu Modes:
+pub fn get_matrix_size(ui_ctrl: &UICtrlRef) -> (usize, usize) {
+    let item_count = ui_ctrl.with_state(|s| s.menu_items.len());
 
-
-- Empty Cell
-  - {RMB} Paste
-  - New Instance (first categories in edges)
-    - <Category> (first sub categories in edges)
-      - <Sub Category> (first nodes in edges)
-        - <Nodes>
-          (Implicit Show UI)
-          - <In / Out Assign: 3 In, 3 Out, Ok, Cancel>
-  - Existing Instance
-    - <List of existing instances>
-      (Implicit Show UI)
-      - <In / Out Assign: 3 In, 3 Out, Ok, Cancel>
-  - Paste (Instance ID in edge label?)
-    - <In / Out Assign: 3 In, 3 Out, Ok, Cancel>
-
-- Filled Cell
-  - {RMB} Edge Config
-  - {MMB} Show UI
-  - {LMB} (implicit Show UI)
-      - Copy
-      - Paste
-      - Remove
-*/
+    match item_count {
+        0..=7   => (3, 3),
+        8..=16  => (4, 4),
+        17..=25 => (5, 5),
+        _       => (6, 6),
+    }
+}
 
 impl HexGridModel for MatrixUIMenu {
-    fn width(&self)  -> usize { 3 }
-    fn height(&self) -> usize { 3 }
+    fn width(&self)  -> usize { get_matrix_size(&self.ui_ctrl).0 }
+    fn height(&self) -> usize { get_matrix_size(&self.ui_ctrl).1 }
 
     fn cell_hover(&self, x: usize, y: usize) {
         if let Some(idx) = self.grid2index(x, y) {
-            self.menu.borrow_mut().set_hover_index(idx);
+            self.ui_ctrl.emit(Msg::menu_hover(idx));
         }
-        self.menu.borrow_mut().update();
     }
 
     fn cell_click(&self, x: usize, y: usize, _btn: MButton, _modkey: bool) {
         if let Some(idx) = self.grid2index(x, y) {
-            self.menu.borrow_mut().select(idx);
+            self.ui_ctrl.emit(Msg::menu_click(idx));
         }
-        self.menu.borrow_mut().update();
     }
 
     fn cell_empty(&self, x: usize, y: usize) -> bool {
-        if x >= 3 || y >= 3 { return true; }
+        if x >= self.width() || y >= self.height() { return true; }
         false
     }
 
     fn cell_visible(&self, x: usize, y: usize) -> bool {
-        if x >= 3 || y >= 3 { return false; }
+        if x >= self.width() || y >= self.height() { return false; }
         if (x == 0 || x == 2) && y == 0 { return false; }
         true
     }
@@ -155,21 +130,22 @@ impl HexGridModel for MatrixUIMenu {
     fn cell_label<'a>(&self, x: usize, y: usize, buf: &'a mut [u8])
         -> Option<HexCell<'a>>
     {
-        if x >= 3 || y >= 3 { return None; }
+        if x >= self.width() || y >= self.height() { return None; }
         let mut len = 0;
 
         if let Some(idx) = self.grid2index(x, y) {
-            let menu = self.menu.borrow_mut();
-            if let Some(lbl) = menu.label(idx) {
-                len = buf.len().min(lbl.as_bytes().len());
-                buf[0..len].copy_from_slice(&lbl.as_bytes()[0..len]);
-            }
+            self.ui_ctrl.with_state(|s| {
+                if let Some(item) = s.menu_items.get(idx) {
+                    len = buf.len().min(item.label.as_bytes().len());
+                    buf[0..len].copy_from_slice(&item.label.as_bytes()[0..len]);
+                }
+            });
         }
 
         if let Ok(s) = std::str::from_utf8(&buf[0..len]) {
             Some(HexCell {
                 label:     s,
-                hlight: HexHLight::Plain,
+                hlight:    HexHLight::Plain,
                 rg_colors: None
             })
         } else {
@@ -195,44 +171,7 @@ impl HexGridModel for MatrixUIModel {
     fn height(&self) -> usize { self.h }
 
     fn cell_click(&self, x: usize, y: usize, btn: MButton, modkey: bool) {
-        let mut menu = self.menu.menu.borrow_mut();
-
-        if menu.is_open() {
-            menu.close();
-
-        } else {
-            match btn {
-                MButton::Right => {
-                    self.ui_ctrl.with_matrix(|m| {
-                        if let Some(cell) = m.get_copy(x, y) {
-                            if let Some(node_info) = m.info_for(&cell.node_id()) {
-                                if modkey {
-                                    menu.open_select_cell_dir(cell, node_info);
-                                } else {
-                                    menu.open_node_context(cell, node_info);
-                                }
-                            } else {
-                                menu.open_select_node_category(cell);
-                            }
-                        }
-                    });
-                },
-                MButton::Left => {
-                    let cell = self.ui_ctrl.with_matrix(|m| m.get_copy(x, y));
-
-                    if let Some(cell) = cell {
-                        if cell.node_id() == NodeId::Nop {
-                            self.ui_ctrl.clear_focus();
-                        } else {
-                            self.ui_ctrl.set_focus(cell);
-                        }
-                    } else {
-                        self.ui_ctrl.clear_focus();
-                    }
-                },
-                _ => {},
-            }
-        }
+        self.ui_ctrl.emit(Msg::matrix_click(x, y, btn, modkey));
     }
 
     fn cell_empty(&self, x: usize, y: usize) -> bool {
@@ -322,8 +261,6 @@ pub struct NodeMatrixData {
 
     matrix_model: Rc<MatrixUIModel>,
     ui_ctrl:      UICtrlRef,
-
-    grid_click_pos: Option<(f64, f64)>,
 }
 
 const HEX_MATRIX_ID         : u32 = 1;
@@ -597,7 +534,6 @@ LMB = Left Mouse Button, RMB = Right Mouse Button, MMB = Middle Mouse Button
                 help_text,
                 hex_menu_id,
                 matrix_model,
-                grid_click_pos: None,
             }))
     }
 }
@@ -640,26 +576,25 @@ impl WidgetType for NodeMatrix {
                 (*data.help_text).draw(ui, p, hex_pos);
             }
 
-            if let Some(mouse_pos) = data.grid_click_pos {
-                if data.matrix_model.menu.menu.borrow().is_open() {
-                    let hex_w = 235.0;
-                    let txt_w = (hex_w / 6.0) * 6.0;
-                    let menu_w = hex_w + txt_w;
-                    let menu_h = 240.0 + UI_ELEM_TXT_H + 2.0 * UI_BORDER_WIDTH;
+            if data.ui_ctrl.with_state(|s| !s.menu_items.is_empty()) {
+                let menu_pos = data.ui_ctrl.with_state(|s| s.menu_pos);
+                let hex_w = 235.0;
+                let txt_w = (hex_w / 6.0) * 6.0;
+                let menu_w = hex_w + txt_w;
+                let menu_h = 240.0 + UI_ELEM_TXT_H + 2.0 * UI_BORDER_WIDTH;
 
-                    let menu_rect =
-                        Rect::from(
-                            mouse_pos.0 - (hex_w * 0.5),
-                            mouse_pos.1 - menu_h * 0.5,
-                            menu_w,
-                            menu_h)
-                        .move_into(&pos);
+                let menu_rect =
+                    Rect::from(
+                        menu_pos.0 - (hex_w * 0.5),
+                        menu_pos.1 - menu_h * 0.5,
+                        menu_w,
+                        menu_h)
+                    .move_into(&pos);
 
-                    let _hz = ui.hover_zone_for(data.hex_menu_id);
-                    //d// println!("HOVEER: {:?}", hz);
+                let _hz = ui.hover_zone_for(data.hex_menu_id);
+                //d// println!("HOVEER: {:?}", hz);
 
-                    (*data.hex_menu).draw(ui, p, menu_rect);
-                }
+                (*data.hex_menu).draw(ui, p, menu_rect);
             }
         });
     }
@@ -689,9 +624,10 @@ impl WidgetType for NodeMatrix {
                         match button {
                             MButton::Right => {
                                 if *id == data.hex_grid.id() {
-                                    data.grid_click_pos = Some((*x, *y));
+                                    data.ui_ctrl.emit(
+                                        Msg::matrix_mouse_click(
+                                            *x, *y, *button));
                                     data.hex_grid.event(ui, ev);
-                                    data.matrix_model.menu.menu.borrow_mut().update();
                                 } else {
                                     data.node_panel.event(ui, ev);
                                     data.util_panel.event(ui, ev);
@@ -742,33 +678,36 @@ impl WidgetType for NodeMatrix {
                         },
                         Key::Character(c) => {
                             data.with(|data: &mut NodeMatrixData| {
-                                let ui_ctrl   = &data.matrix_model.ui_ctrl;
-                                let cell      = ui_ctrl.get_recent_focus();
-                                let node_info = ui_ctrl.get_focus_node_info();
-
-                                let mut assign_port_dir = None;
-
-                                match &c[..] {
-                                    "w" => { assign_port_dir = Some(CellDir::T); },
-                                    "q" => { assign_port_dir = Some(CellDir::TL); },
-                                    "a" => { assign_port_dir = Some(CellDir::BL); },
-                                    "e" => { assign_port_dir = Some(CellDir::TR); },
-                                    "d" => { assign_port_dir = Some(CellDir::BR); },
-                                    "s" => { assign_port_dir = Some(CellDir::B); },
-                                    _ => {},
-                                }
-
-                                if let Some(dir) = assign_port_dir {
-                                    if cell.node_id() != NodeId::Nop {
-                                        data.matrix_model.menu.menu
-                                            .borrow_mut()
-                                            .open_assign_port(
-                                                cell, node_info, dir);
-                                        data.grid_click_pos = Some(*mouse_pos);
-                                        ui.queue_redraw();
-                                    }
-                                }
+                                data.ui_ctrl.emit(Msg::key(key.clone()))
                             });
+//                            data.with(|data: &mut NodeMatrixData| {
+//                                let ui_ctrl   = &data.matrix_model.ui_ctrl;
+//                                let cell      = ui_ctrl.get_recent_focus();
+//                                let node_info = ui_ctrl.get_focus_node_info();
+//
+//                                let mut assign_port_dir = None;
+//
+//                                match &c[..] {
+//                                    "w" => { assign_port_dir = Some(CellDir::T); },
+//                                    "q" => { assign_port_dir = Some(CellDir::TL); },
+//                                    "a" => { assign_port_dir = Some(CellDir::BL); },
+//                                    "e" => { assign_port_dir = Some(CellDir::TR); },
+//                                    "d" => { assign_port_dir = Some(CellDir::BR); },
+//                                    "s" => { assign_port_dir = Some(CellDir::B); },
+//                                    _ => {},
+//                                }
+//
+//                                if let Some(dir) = assign_port_dir {
+//                                    if cell.node_id() != NodeId::Nop {
+//                                        data.matrix_model.menu.menu
+//                                            .borrow_mut()
+//                                            .open_assign_port(
+//                                                cell, node_info, dir);
+//                                        data.grid_click_pos = Some(*mouse_pos);
+//                                        ui.queue_redraw();
+//                                    }
+//                                }
+//                            });
 
                             data.with(|data: &mut NodeMatrixData| {
                                 data.util_panel.event(ui, ev);

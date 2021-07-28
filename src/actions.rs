@@ -1,5 +1,5 @@
 use crate::uimsg_queue::{Msg};
-use crate::state::State;
+use crate::state::{State, ItemType, MenuItem};
 use crate::UIParams;
 
 use hexotk::{MButton};
@@ -9,6 +9,7 @@ use hexotk::widgets::{
 use hexodsp::{Matrix, CellDir, NodeId};
 use keyboard_types::Key;
 use hexodsp::matrix::MatrixError;
+use hexodsp::dsp::UICategory;
 use hexodsp::matrix_repr::save_patch_to_file;
 
 use std::rc::Rc;
@@ -167,7 +168,27 @@ impl Actions<'_, '_, '_> {
                     ATNID_HELP_BUTTON => self.toggle_help(),
                     _ => {}
                 }
-            }
+            },
+            Msg::MenuHover { item_idx } => {
+            },
+            Msg::MenuClick { item_idx } => {
+            },
+            Msg::MatrixClick { x, y, btn, modkey } => {
+            },
+            Msg::MatrixMouseClick { x, y, btn } => {
+                if *btn == MButton::Right {
+                    self.state.menu_pos = (*x, *y);
+                    self.state.menu_items = vec![
+                        MenuItem { typ: ItemType::Back, label: "<Back".to_string() },
+                        MenuItem { typ: ItemType::Category(UICategory::Osc), label: "OSC1".to_string() },
+                        MenuItem { typ: ItemType::Category(UICategory::Osc), label: "OSC2".to_string() },
+                        MenuItem { typ: ItemType::Category(UICategory::Osc), label: "OSC3".to_string() },
+                        MenuItem { typ: ItemType::Category(UICategory::Osc), label: "OSC4".to_string() },
+                        MenuItem { typ: ItemType::Category(UICategory::Osc), label: "OSC5".to_string() },
+                        MenuItem { typ: ItemType::Category(UICategory::Osc), label: "OSC6".to_string() },
+                    ];
+                }
+            },
         }
     }
 }
