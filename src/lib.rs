@@ -10,6 +10,7 @@ pub mod ui_ctrl;
 mod uimsg_queue;
 mod state;
 mod actions;
+mod menu;
 
 use ui_ctrl::{UICtrlRef, UICellTrans};
 

@@ -1,5 +1,5 @@
 use crate::uimsg_queue::{Msg};
-use crate::state::{State, ItemType, MenuItem};
+use crate::state::{State, ItemType, MenuItem, MenuState, UICategory};
 use crate::UIParams;
 
 use hexotk::{MButton};
@@ -9,20 +9,30 @@ use hexotk::widgets::{
 use hexodsp::{Matrix, CellDir, NodeId};
 use keyboard_types::Key;
 use hexodsp::matrix::MatrixError;
-use hexodsp::dsp::UICategory;
 use hexodsp::matrix_repr::save_patch_to_file;
 
 use std::rc::Rc;
 use std::cell::RefCell;
 
-pub struct Actions<'a, 'b, 'c> {
-    pub state:      &'a mut State,
-    pub dialog:     Rc<RefCell<DialogModel>>,
-    pub matrix:     &'b mut Matrix,
-    pub ui_params:  &'c mut UIParams,
+pub trait ActionHandler {
+    fn init(&mut self, actions: &mut ActionState) { }
+    fn step(&mut self, actions: &mut ActionState, msg: &Msg) -> bool { false }
+    fn menu_select(
+        &mut self, actions: &mut ActionState, ms: MenuState,
+        item_type: ItemType)
+    { }
+    fn is_finished(&self) -> bool { false }
 }
 
-impl Actions<'_, '_, '_> {
+pub struct ActionState<'a, 'b, 'c> {
+    pub state:          &'a mut State,
+    pub dialog:         Rc<RefCell<DialogModel>>,
+    pub matrix:         &'b mut Matrix,
+    pub ui_params:      &'c mut UIParams,
+    pub action_handler: Option<Box<dyn ActionHandler>>,
+}
+
+impl ActionState<'_, '_, '_> {
     pub fn save_patch(&mut self) {
         use hexodsp::matrix_repr::save_patch_to_file;
 
@@ -76,7 +86,97 @@ impl Actions<'_, '_, '_> {
         });
     }
 
-    pub fn map_messages_to_actions(&mut self, msg: &Msg) {
+    pub fn instanciate_node_at(
+        &mut self, pos: (usize, usize), node_id: NodeId
+    ) {
+        catch_err_dialog(self.dialog.clone(), || {
+            if let Some(mut cell) = self.matrix.get_copy(pos.0, pos.1) {
+                let unused_id =
+                    self.matrix.get_unused_instance_node_id(node_id);
+                cell.set_node_id(unused_id);
+                self.matrix.change_matrix(|m| {
+                    m.place(pos.0, pos.1, cell);
+                })?;
+                self.matrix.sync()?;
+            }
+            Ok(())
+        });
+    }
+
+    pub fn exec(&mut self, msg: &Msg) -> bool {
+        let ah = self.action_handler.take();
+
+        let mut handled = false;
+
+        if let Some(mut ah) = ah {
+            handled = ah.step(self, msg);
+
+            if !ah.is_finished() {
+                self.action_handler = Some(ah);
+            }
+        }
+
+        handled
+    }
+}
+
+struct ActionNewNodeAtCell {
+    x: usize,
+    y: usize,
+}
+
+impl ActionNewNodeAtCell {
+    pub fn new(x: usize, y: usize) -> Self {
+        Self { x, y }
+    }
+}
+
+impl ActionHandler for ActionNewNodeAtCell {
+    fn init(&mut self, a: &mut ActionState) {
+        a.state.menu_state = MenuState::SelectCategory;
+        a.state.menu_items = a.state.menu_state.to_items();
+    }
+
+    fn menu_select(&mut self, a: &mut ActionState, ms: MenuState, item_type: ItemType) {
+        match item_type {
+            ItemType::Category(category) => {
+                a.state.menu_state =
+                    MenuState::SelectNodeIdFromCat { category }
+            },
+            ItemType::NodeId(node_id) => {
+                if let MenuState::SelectNodeIdFromCat { category } = ms {
+                    a.instanciate_node_at((self.x, self.y), node_id);
+                }
+            },
+            _ => ()
+        }
+    }
+}
+
+pub struct DefaultActionHandler {
+    ui_action: Option<Box<dyn ActionHandler>>,
+}
+
+impl DefaultActionHandler {
+    pub fn new() -> Self {
+        Self {
+            ui_action: None
+        }
+    }
+}
+
+impl ActionHandler for DefaultActionHandler {
+    fn step(&mut self, a: &mut ActionState, msg: &Msg) -> bool {
+        if let Some(ah) = self.ui_action.take() {
+            a.action_handler = Some(ah);
+            let handled = a.exec(msg);
+            self.ui_action = a.action_handler.take();
+
+            if handled {
+                return true;
+            }
+        }
+
         match msg {
             Msg::CellDragged { btn, pos_a, pos_b } => {
                 // Left & pos_a empty & pos_b exists
@@ -111,17 +211,17 @@ impl Actions<'_, '_, '_> {
                 //  => open connection dialog for out => inp
 
                 let (src_cell, dst_cell) = (
-                    self.matrix.get_copy(pos_a.0, pos_a.1),
-                    self.matrix.get_copy(pos_b.0, pos_b.1)
+                    a.matrix.get_copy(pos_a.0, pos_a.1),
+                    a.matrix.get_copy(pos_b.0, pos_b.1)
                 );
 
                 // get_copy returns None for cells outside the matrix
                 let src_cell =
                     if let Some(src_cell) = src_cell { src_cell }
-                    else { return; };
+                    else { return false; };
                 let dst_cell =
                     if let Some(dst_cell) = dst_cell { dst_cell }
-                    else { return; };
+                    else { return false; };
 
                 let adjacent = CellDir::are_adjacent(*pos_a, *pos_b);
 
@@ -142,7 +242,7 @@ impl Actions<'_, '_, '_> {
                     // Left & pos_a exists & pos_b empty
                     //  => move/swap cell
                     (MButton::Left, Some(_), None, _, _) => {
-                        self.swap_cells(*pos_a, *pos_b);
+                        a.swap_cells(*pos_a, *pos_b);
                     },
                     (MButton::Left, None, Some(_), _, _) => {
                     },
@@ -155,9 +255,9 @@ impl Actions<'_, '_, '_> {
             },
             Msg::Key { key } => {
                 match key {
-                    Key::F1 => self.toggle_help(),
-                    Key::F4 => { self.save_patch(); },
-                    Key::Escape => { self.escape_dialogs(); },
+                    Key::F1 => a.toggle_help(),
+                    Key::F4 => { a.save_patch(); },
+                    Key::Escape => { a.escape_dialogs(); },
                     _ => {
                         println!("UNHANDLED KEY: {:?}", key);
                     }
@@ -165,31 +265,47 @@ impl Actions<'_, '_, '_> {
             },
             Msg::UIBtn { id } => {
                 match *id {
-                    ATNID_HELP_BUTTON => self.toggle_help(),
+                    ATNID_HELP_BUTTON => a.toggle_help(),
                     _ => {}
                 }
             },
             Msg::MenuHover { item_idx } => {
+                if *item_idx < a.state.menu_items.len() {
+                    a.state.menu_help_text.set(
+                        &a.state.menu_items[*item_idx].help);
+                }
             },
             Msg::MenuClick { item_idx } => {
+                if *item_idx < a.state.menu_items.len() {
+                    let item_type = a.state.menu_items[*item_idx].typ.clone();
+                    let ms =
+                        std::mem::replace(
+                            &mut a.state.menu_state,
+                            MenuState::None);
+
+                    if let Some(mut ah) = self.ui_action.take() {
+                        ah.menu_select(a, ms, item_type);
+                        self.ui_action = Some(ah);
+                    }
+
+                    a.state.menu_items = a.state.menu_state.to_items();
+                }
             },
             Msg::MatrixClick { x, y, btn, modkey } => {
+                if *btn == MButton::Left {
+                    let mut ah = Box::new(ActionNewNodeAtCell::new(*x, *y));
+                    ah.init(a);
+                    self.ui_action = Some(ah);
+                }
             },
             Msg::MatrixMouseClick { x, y, btn } => {
-                if *btn == MButton::Right {
-                    self.state.menu_pos = (*x, *y);
-                    self.state.menu_items = vec![
-                        MenuItem { typ: ItemType::Back, label: "<Back".to_string() },
-                        MenuItem { typ: ItemType::Category(UICategory::Osc), label: "OSC1".to_string() },
-                        MenuItem { typ: ItemType::Category(UICategory::Osc), label: "OSC2".to_string() },
-                        MenuItem { typ: ItemType::Category(UICategory::Osc), label: "OSC3".to_string() },
-                        MenuItem { typ: ItemType::Category(UICategory::Osc), label: "OSC4".to_string() },
-                        MenuItem { typ: ItemType::Category(UICategory::Osc), label: "OSC5".to_string() },
-                        MenuItem { typ: ItemType::Category(UICategory::Osc), label: "OSC6".to_string() },
-                    ];
+                if *btn == MButton::Left {
+                    a.state.menu_pos = (*x, *y);
                 }
             },
         }
+
+        false
     }
 }
 

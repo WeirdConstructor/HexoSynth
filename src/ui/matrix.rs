@@ -284,9 +284,8 @@ impl NodeMatrixData {
     {
         let wt_nmatrix  = Rc::new(NodeMatrix::new());
 
-        let size = ui_ctrl.with_matrix(|m| m.size());
-
-        let txtsrc = Rc::new(TextSourceRef::new(30));
+        let size   = ui_ctrl.with_matrix(|m| m.size());
+        let txtsrc = ui_ctrl.with_state(|s| s.menu_help_text.clone());
 
         let menu_model =
             Rc::new(MatrixUIMenu::new(
@@ -635,6 +634,9 @@ impl WidgetType for NodeMatrix {
                             },
                             _ => {
                                 if *id == data.hex_grid.id() {
+                                    data.ui_ctrl.emit(
+                                        Msg::matrix_mouse_click(
+                                            *x, *y, *button));
                                     data.hex_grid.event(ui, ev);
                                 } else {
                                     data.node_panel.event(ui, ev);

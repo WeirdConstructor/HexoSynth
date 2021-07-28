@@ -5,8 +5,15 @@
 pub const ATNID_SAMPLE_LOAD_ID : u32 = 190001;
 pub const ATNID_HELP_BUTTON    : u32 = 190002;
 
+pub use crate::menu::MenuState;
 use hexodsp::{NodeId, CellDir};
-use hexodsp::dsp::UICategory;
+pub use hexodsp::dsp::UICategory;
+
+use hexotk::widgets::{
+    TextSourceRef
+};
+
+use std::rc::Rc;
 
 #[derive(Debug, Clone)]
 pub enum ItemType {
@@ -20,23 +27,28 @@ pub enum ItemType {
 pub struct MenuItem {
     pub typ:    ItemType,
     pub label:  String,
+    pub help:   String,
 }
 
 #[derive(Debug, Clone)]
 pub struct State {
     pub show_help:          bool,
-    pub menu_help_text:     String,
+
+    pub menu_help_text:     Rc<TextSourceRef>,
     pub menu_items:         Vec<MenuItem>,
     pub menu_pos:           (f64, f64),
+
+    pub menu_state:         MenuState,
 }
 
 impl State {
     pub fn new() -> Self {
         Self {
             show_help:       false,
-            menu_help_text:  "Test Foobar\nfeiojfe wofweow eoif jweofowe\nfeofejwofjewof".to_string(),
+            menu_help_text:  Rc::new(TextSourceRef::new(30)),
             menu_items:      vec![],
             menu_pos:        (0.0, 0.0),
+            menu_state:      MenuState::None,
         }
     }
 

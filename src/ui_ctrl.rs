@@ -6,7 +6,7 @@ use crate::UIParams;
 use crate::uimsg_queue::{UIMsgQueue, Msg};
 use crate::state::State;
 
-use crate::actions::catch_err_dialog;
+use crate::actions::{DefaultActionHandler, ActionHandler, catch_err_dialog};
 
 use hexodsp::*;
 use hexodsp::matrix::MatrixError;
@@ -99,7 +99,12 @@ impl UIControl {
 }
 
 #[derive(Clone)]
-pub struct UICtrlRef(Rc<RefCell<UIControl>>, Arc<Mutex<Matrix>>, Rc<RefCell<State>>);
+pub struct UICtrlRef(
+    Rc<RefCell<UIControl>>,
+    Arc<Mutex<Matrix>>,
+    Rc<RefCell<State>>,
+    Rc<RefCell<Option<Box<dyn ActionHandler>>>>
+);
 
 impl UICtrlRef {
     pub fn new(matrix: Arc<Mutex<Matrix>>,
@@ -128,7 +133,8 @@ impl UICtrlRef {
                 dialog_model:       dialog_model.clone(),
             })),
             matrix,
-            Rc::new(RefCell::new(State::new())))
+            Rc::new(RefCell::new(State::new())),
+            Rc::new(RefCell::new(Some(Box::new(DefaultActionHandler::new())))))
     }
 
     pub fn emit(&self, msg: Msg) {
@@ -490,25 +496,31 @@ impl UICtrlRef {
 
         let dialog = self.0.borrow().dialog_model.clone();
 
+        let mut action_handler = self.3.borrow_mut().take();
+
         while self.0.borrow_mut().msg_q.has_new_messages() {
             let messages = self.0.borrow_mut().msg_q.start_work();
 
             if let Some(messages) = messages {
                 for msg in messages.iter() {
                     self.with_matrix(|matrix| {
-                        let mut a = crate::actions::Actions {
-                            state: &mut *self.2.borrow_mut(),
+                        let mut a = crate::actions::ActionState {
+                            state:  &mut *self.2.borrow_mut(),
                             dialog: dialog.clone(),
                             matrix,
                             ui_params,
+                            action_handler: action_handler.take(),
                         };
-                        a.map_messages_to_actions(msg);
+                        a.exec(msg);
+                        action_handler = a.action_handler.take();
                     });
                 }
 
                 self.0.borrow_mut().msg_q.end_work(messages);
             }
         }
+
+        *self.3.borrow_mut() = action_handler;
     }
 }
 
