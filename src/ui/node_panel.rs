@@ -68,8 +68,6 @@ impl<'a> GraphAtomData for GraphAtomDataAdapter<'a> {
 }
 
 pub struct GenericNodeUI {
-    ui_ctrl:        UICtrlRef,
-
     dsp_node_id:    NodeId,
     model_node_id:  u32,
     info:           Option<NodeInfo>,
@@ -85,7 +83,7 @@ pub struct GenericNodeUI {
 }
 
 impl GenericNodeUI {
-    pub fn new(ui_ctrl: UICtrlRef) -> Self {
+    pub fn new() -> Self {
         let wt_knob_01    = Rc::new(Knob::new(28.0, 12.0, 9.0));
         let wt_btn        = Rc::new(Button::new(62.0, 12.0));
         let wt_text       = Rc::new(Text::new(10.0));
@@ -93,7 +91,6 @@ impl GenericNodeUI {
         let wt_editview   = Rc::new(Entry::new_not_editable(70.0, 10.0, 13));
 
         Self {
-            ui_ctrl,
             dsp_node_id:    NodeId::Nop,
             model_node_id:  0,
             info:           None,
@@ -107,15 +104,20 @@ impl GenericNodeUI {
         }
     }
 
-    pub fn set_target(&mut self, dsp_node_id: NodeId, model_node_id: u32) {
+    pub fn set_target(
+        &mut self, dsp_node_id: NodeId, model_node_id: u32,
+        a: &mut crate::actions::ActionState)
+    {
         self.dsp_node_id   = dsp_node_id;
         self.model_node_id = model_node_id;
         self.info          = Some(NodeInfo::from_node_id(dsp_node_id));
 
-        self.rebuild();
+        self.rebuild(a);
     }
 
-    fn build_atom_input(&self, pos: (u8, u8), idx: usize) -> Option<WidgetData> {
+    fn build_atom_input(&self, pos: (u8, u8), idx: usize)
+        -> Option<WidgetData>
+    {
         let param_id = self.dsp_node_id.param_by_idx(idx)?;
         let param_name = param_id.name();
 
@@ -146,9 +148,6 @@ impl GenericNodeUI {
                     ButtonData::new_toggle(param_name)))
             },
             SAtom::AudioSample((_filename, _)) => {
-                self.ui_ctrl.set_sample_load_id(
-                    AtomId::new(self.model_node_id, idx as u32));
-
                 Some(wbox!(
                     self.wt_editview.clone(),
                     AtomId::new(self.model_node_id, idx as u32),
@@ -169,7 +168,7 @@ impl GenericNodeUI {
         }
     }
 
-    pub fn rebuild(&mut self) {
+    pub fn rebuild(&mut self, a: &mut crate::actions::ActionState) {
         let wt_cont = Rc::new(Container::new());
 
         let mut param_cd = ContainerData::new();
@@ -203,8 +202,7 @@ impl GenericNodeUI {
         if let Some(mut graph_fun) = self.dsp_node_id.graph_fun() {
             let node_id = self.dsp_node_id;
             let node_idx =
-                self.ui_ctrl.with_matrix(|m|
-                    m.unique_index_for(&node_id).unwrap_or(0) as u32);
+                a.matrix.unique_index_for(&node_id).unwrap_or(0) as u32;
 
             let graph_fun =
                 Box::new(move |ui: &dyn WidgetUI, init: bool, x: f64, xn: f64| -> f64 {
@@ -266,8 +264,9 @@ pub struct NodePanelData {
 #[allow(clippy::new_ret_no_self)]
 impl NodePanelData {
     pub fn new(ui_ctrl: UICtrlRef, node_id: u32) -> Box<dyn std::any::Any> {
-        let node_ui = Rc::new(RefCell::new(GenericNodeUI::new(ui_ctrl.clone())));
-        node_ui.borrow_mut().set_target(NodeId::Sin(0), 1);
+//        let node_ui = Rc::new(RefCell::new(GenericNodeUI::new(ui_ctrl.clone())));
+//        node_ui.borrow_mut().set_target(NodeId::Sin(0), 1);
+        let node_ui = ui_ctrl.with_state(|s| s.widgets.node_ui.clone());
 
         let wt_monitors = Rc::new(Monitors::new());
         let monitors =
@@ -287,27 +286,18 @@ impl NodePanelData {
         })
     }
 
-    fn check_focus_change(&mut self) {
-        let cur_focus = self.ui_ctrl.get_recent_focus();
-
-        if cur_focus != self.prev_focus {
-            self.prev_focus = cur_focus;
-
-            if cur_focus.node_id() != NodeId::Nop {
-                let (node_id, uniq_idx) =
-                    self.ui_ctrl.with_matrix(|m| {
-                        m.monitor_cell(cur_focus);
-                        (
-                            cur_focus.node_id(),
-                            m.unique_index_for(&cur_focus.node_id())
-                             .unwrap_or(0) as u32
-                        )
-                    });
-
-                self.node_ui.borrow_mut().set_target(node_id, uniq_idx);
-            }
-        }
-    }
+//    fn check_focus_change(&mut self) {
+//        if self.ui_ctrl.with_state(|s| s.node_panel_rebuild) {
+//            let (node_id, uniq_idx) =
+//                self.ui_ctrl.with_state(
+//                    |s| (s.focus_cell.node_id(), s.focus_uniq_node_idx));
+//
+//            self.node_ui.borrow_mut()
+//                .set_target(node_id, uniq_idx);
+//
+////            self.ui_ctrl.with_state(|s| { s.node_panel_rebuild = false; });
+//        }
+//    }
 }
 
 
@@ -326,8 +316,6 @@ impl WidgetType for NodePanel {
         let pos = pos.shrink(UI_PADDING, UI_PADDING);
 
         data.with(|data: &mut NodePanelData| {
-            data.check_focus_change();
-
             p.rect_fill(UI_BG_CLR, pos.x, pos.y, pos.w, pos.h);
 
             let mut node_ui = data.node_ui.borrow_mut();

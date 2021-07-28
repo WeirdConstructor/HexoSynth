@@ -6,7 +6,7 @@ use hexotk::{
     Rect, WidgetUI, Painter, WidgetData, WidgetType,
     UIEvent,
     wbox,
-    define_containing_widget,
+    define_containing_opt_shared_widget,
     define_containing_widget_v_split,
 };
 use hexotk::widgets::{
@@ -20,23 +20,24 @@ use hexotk::widgets::{
 use crate::dsp::NodeId;
 
 use std::rc::Rc;
+use std::cell::RefCell;
 
 pub struct PatternViewData {
-    cur_tseq:   Option<usize>,
     ui_ctrl:    UICtrlRef,
-    cont:       WidgetData,
+    cont:       Rc<RefCell<Option<WidgetData>>>,
 }
 
-fn create_pattern_edit(tseq_idx: usize, ui_ctrl: &UICtrlRef) -> WidgetData {
+pub fn create_pattern_edit(a: &mut crate::actions::ActionState) -> WidgetData {
+    let tseq_idx = a.state.current_tracker_idx;
+
     let data =
-        ui_ctrl.with_matrix(|m|
-            m.get_pattern_data(tseq_idx)
-             .unwrap());
+        a.matrix.get_pattern_data(tseq_idx)
+         .unwrap();
 
     let id = {
-        ui_ctrl.with_matrix(|m|
-            m.unique_index_for(&NodeId::TSeq(tseq_idx as u8))
-             .unwrap_or(crate::PATTERN_VIEW_ID))
+        a.matrix
+            .unique_index_for(&NodeId::TSeq(tseq_idx as u8))
+            .unwrap_or(crate::PATTERN_VIEW_ID)
     };
 
     wbox!(
@@ -46,48 +47,23 @@ fn create_pattern_edit(tseq_idx: usize, ui_ctrl: &UICtrlRef) -> WidgetData {
         PatternEditorData::new(data))
 }
 
-fn cur_tseq_idx(ui_ctrl: &UICtrlRef) -> Option<usize> {
-    let nid = ui_ctrl.get_focus_id();
-    if nid.to_instance(0) == NodeId::TSeq(0) {
-        Some(nid.instance())
-    } else {
-        None
-    }
-}
 
 impl PatternViewData {
     #[allow(clippy::new_ret_no_self)]
     pub fn new(ui_ctrl: UICtrlRef)
         -> Box<dyn std::any::Any>
     {
-        let tseq_idx = cur_tseq_idx(&ui_ctrl);
-        let idx =
-            if let Some(idx) = tseq_idx { idx }
-            else { 0 };
-
-        let cont = create_pattern_edit(idx, &ui_ctrl);
-
         Box::new(Self {
-            cur_tseq: tseq_idx,
+            cont: ui_ctrl.with_state(|s| s.widgets.patedit_ui.clone()),
             ui_ctrl,
-            cont,
         })
     }
 
     pub fn check_cont_update(&mut self, _ui: &mut dyn WidgetUI) {
-        let tseq_idx = cur_tseq_idx(&self.ui_ctrl);
-
-        if tseq_idx != self.cur_tseq {
-            self.cont     = create_pattern_edit(tseq_idx.unwrap_or(0), &self.ui_ctrl);
-            self.cur_tseq = tseq_idx;
-        }
-
-        self.ui_ctrl.with_matrix(|m|
-            m.check_pattern_data(self.cur_tseq.unwrap_or(0)));
     }
 }
 
-define_containing_widget!{PatternView, PatternViewData}
+define_containing_opt_shared_widget!{PatternView, PatternViewData}
 
 pub struct UtilPanelData {
     #[allow(dead_code)]
@@ -162,7 +138,6 @@ impl UtilPanelData {
     }
 
     pub fn check_cont_update(&mut self, ui: &mut dyn WidgetUI) {
-        self.ui_ctrl.check_atoms(ui.atoms());
     }
 }
 

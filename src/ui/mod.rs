@@ -3,9 +3,9 @@
 // See README.md and COPYING for details.
 
 pub mod matrix;
-mod node_panel;
+pub mod node_panel;
+pub mod util_panel;
 mod menu;
 mod monitors;
-mod util_panel;
 
 pub const UI_MAIN_HELP_TEXT_WIDTH : usize = 77;

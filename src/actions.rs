@@ -1,12 +1,13 @@
 use crate::uimsg_queue::{Msg};
 use crate::state::{State, ItemType, MenuItem, MenuState, UICategory};
 use crate::UIParams;
+use crate::dsp::SAtom;
 
-use hexotk::{MButton};
+use hexotk::{MButton, AtomId};
 use hexotk::widgets::{
     DialogModel,
 };
-use hexodsp::{Matrix, CellDir, NodeId};
+use hexodsp::{Matrix, CellDir, NodeId, Cell, NodeInfo};
 use keyboard_types::Key;
 use hexodsp::matrix::MatrixError;
 use hexodsp::matrix_repr::save_patch_to_file;
@@ -103,6 +104,76 @@ impl ActionState<'_, '_, '_> {
         });
     }
 
+    pub fn set_focus_at(&mut self, x: usize, y: usize) {
+        if let Some(cell) = self.matrix.get_copy(x, y) {
+            self.set_focus(cell);
+        }
+    }
+
+    fn update_sample_load_id(&mut self, node_id: NodeId) {
+        let mut idx = 0;
+        while let Some(param_id) = node_id.param_by_idx(idx) {
+            if let SAtom::AudioSample((_filename, _)) =
+                param_id.as_atom_def()
+            {
+                self.state.sample_load_id =
+                    AtomId::new(self.state.focus_uniq_node_idx, idx as u32);
+            }
+
+            idx += 1;
+        }
+    }
+
+    fn update_pattern_edit(&mut self) {
+        let patedit_ui = self.state.widgets.patedit_ui.clone();
+        let mut pe = patedit_ui.borrow_mut();
+        *pe = Some(crate::ui::util_panel::create_pattern_edit(self));
+    }
+
+    pub fn set_focus(&mut self, cell: Cell) {
+        let node_id = cell.node_id();
+
+        self.state.focus_cell      = cell;
+        self.state.focus_node_info = NodeInfo::from_node_id(node_id);
+
+        let help_txt = self.state.focus_node_info.help();
+        self.state.help_text_src.set(help_txt);
+
+        self.matrix.monitor_cell(cell);
+
+        self.state.focus_uniq_node_idx =
+            self.matrix
+                .unique_index_for(&node_id)
+                .unwrap_or(0) as u32;
+
+        self.update_sample_load_id(node_id);
+
+        if node_id.to_instance(0) == NodeId::Sampl(0) {
+            let uniq_id = self.state.focus_uniq_node_idx;
+
+            if let Some(pid) = node_id.inp_param("sample") {
+                self.state.sample_dir_from =
+                    Some(AtomId::new(uniq_id, pid.inp().into()));
+
+                println!("SET SAMPLE DIR FROM: {:?}", self.state.sample_dir_from);
+            }
+
+        } else if node_id.to_instance(0) == NodeId::TSeq(0) {
+            self.state.current_tracker_idx = node_id.instance();
+            self.update_pattern_edit();
+        }
+
+        let node_ui = self.state.widgets.node_ui.clone();
+        node_ui.borrow_mut().set_target(
+            cell.node_id(),
+            self.state.focus_uniq_node_idx,
+            self);
+    }
+
+    pub fn init(&mut self) {
+        self.update_pattern_edit();
+    }
+
     pub fn exec(&mut self, msg: &Msg) -> bool {
         let ah = self.action_handler.take();
 
@@ -146,6 +217,7 @@ impl ActionHandler for ActionNewNodeAtCell {
             ItemType::NodeId(node_id) => {
                 if let MenuState::SelectNodeIdFromCat { category } = ms {
                     a.instanciate_node_at((self.x, self.y), node_id);
+                    a.set_focus_at(self.x, self.y);
                 }
             },
             _ => ()
@@ -292,10 +364,16 @@ impl ActionHandler for DefaultActionHandler {
                 }
             },
             Msg::MatrixClick { x, y, btn, modkey } => {
-                if *btn == MButton::Left {
-                    let mut ah = Box::new(ActionNewNodeAtCell::new(*x, *y));
-                    ah.init(a);
-                    self.ui_action = Some(ah);
+                if let Some(cell) = a.matrix.get_copy(*x, *y) {
+                    if cell.is_empty() {
+                        if *btn == MButton::Left {
+                            let mut ah = Box::new(ActionNewNodeAtCell::new(*x, *y));
+                            ah.init(a);
+                            self.ui_action = Some(ah);
+                        }
+                    } else {
+                        a.set_focus(cell);
+                    }
                 }
             },
             Msg::MatrixMouseClick { x, y, btn } => {

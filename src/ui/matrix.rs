@@ -205,7 +205,7 @@ impl HexGridModel for MatrixUIModel {
         let label = cell.label(buf)?;
 
         let hl =
-            if self.ui_ctrl.is_cell_focussed(x, y) {
+            if self.ui_ctrl.with_state(|s| s.is_cell_focussed(x, y)) {
                 HexHLight::HLight
             } else {
                 HexHLight::Normal
@@ -481,7 +481,7 @@ LMB = Left Mouse Button, RMB = Right Mouse Button, MMB = Middle Mouse Button
                 wt_help_txt,
                 AtomId::new(node_id, HELP_TEXT_ID),
                 center(12, 12),
-                TextData::new(ui_ctrl.get_help_text_src())));
+                TextData::new(ui_ctrl.with_state(|s| s.help_text_src.clone()))));
 
         tdata.add(
             "Log",

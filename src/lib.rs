@@ -11,6 +11,7 @@ mod uimsg_queue;
 mod state;
 mod actions;
 mod menu;
+mod dyn_widgets;
 
 use ui_ctrl::{UICtrlRef, UICellTrans};
 
@@ -482,6 +483,10 @@ pub fn open_hexosynth(
 
             let ui_ctrl = UICtrlRef::new(matrix, dialog_model.clone());
 
+            let mut ui_params = UIParams::new(ui_ctrl.clone());
+
+            ui_ctrl.init(&mut ui_params);
+
             let drv =
                 if let Some(drv) = drv {
                     drv
@@ -501,7 +506,7 @@ pub fn open_hexosynth(
                         DIALOG_ID,
                         AtomId::new(DIALOG_ID, DIALOG_OK_ID),
                         dialog_model))),
-                Box::new(UIParams::new(ui_ctrl)),
+                Box::new(ui_params),
                 (1400.0, 787.0),
             )))
     }));

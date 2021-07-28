@@ -47,40 +47,17 @@ pub struct UIControl {
     msg_q:              UIMsgQueue,
 
     dialog_model:       Rc<RefCell<DialogModel>>,
-    help_text_src:      Rc<TextSourceRef>,
     log_src:            Rc<TextSourceRef>,
     log:                Vec<String>,
 
     sample_dir:         std::path::PathBuf,
     path_browse_list:   Vec<std::path::PathBuf>,
     sample_browse_list: ListItems,
-    sample_load_id:     AtomId,
-    focus_cell:         Cell,
-    focus_node_info:    NodeInfo,
 
     sample_dir_from:    Option<AtomId>,
 }
 
 impl UIControl {
-    pub fn is_cell_focussed(&self, x: usize, y: usize) -> bool {
-        let cell = self.focus_cell;
-
-        if cell.node_id() == NodeId::Nop {
-            return false;
-        }
-
-        let (cx, cy) = cell.pos();
-        cx == x && cy == y
-    }
-
-    pub fn set_focus(&mut self, cell: Cell) {
-        self.focus_cell = cell;
-        self.focus_node_info =
-            NodeInfo::from_node_id(cell.node_id());
-        let help_txt = self.focus_node_info.help();
-        self.help_text_src.set(help_txt);
-    }
-
     pub fn update_log(&mut self) {
         let mut log = self.log.clone();
         log.push("HexoSynth Log".to_string());
@@ -114,9 +91,6 @@ impl UICtrlRef {
         UICtrlRef(
             Rc::new(RefCell::new(UIControl {
                 msg_q: UIMsgQueue::new(),
-                help_text_src:
-                    Rc::new(TextSourceRef::new(
-                        crate::ui::UI_MAIN_HELP_TEXT_WIDTH)),
                 log_src:
                     Rc::new(TextSourceRef::new(
                         crate::ui::UI_MAIN_HELP_TEXT_WIDTH)),
@@ -126,9 +100,6 @@ impl UICtrlRef {
                 log:                vec![],
                 path_browse_list:   vec![],
                 sample_browse_list: ListItems::new(45),
-                sample_load_id:     AtomId::from(99999),
-                focus_cell:         Cell::empty(NodeId::Nop),
-                focus_node_info:    NodeInfo::from_node_id(NodeId::Nop),
                 sample_dir_from:    None,
                 dialog_model:       dialog_model.clone(),
             })),
@@ -145,10 +116,6 @@ impl UICtrlRef {
         where F: FnMut(&State) -> R
     {
         f(&*self.2.borrow_mut())
-    }
-
-    pub fn get_help_text_src(&self) -> Rc<TextSourceRef> {
-        self.0.borrow().help_text_src.clone()
     }
 
     pub fn get_log_src(&self) -> Rc<TextSourceRef> {
@@ -234,11 +201,11 @@ impl UICtrlRef {
                     matrix.place(pos.0, pos.1, cell);
                 })?;
 
-                if this.is_cell_focussed(pos.0, pos.1) {
-                    if let Some(cell) = m.get_copy(pos.0, pos.1) {
-                        this.set_focus(cell);
-                    }
-                }
+//                if this.is_cell_focussed(pos.0, pos.1) {
+//                    if let Some(cell) = m.get_copy(pos.0, pos.1) {
+//                        this.set_focus(cell);
+//                    }
+//                }
 
                 m.sync()?;
 
@@ -265,11 +232,11 @@ impl UICtrlRef {
                     matrix.place(pos.0, pos.1, cell);
                 })?;
 
-                if this.is_cell_focussed(pos.0, pos.1) {
-                    if let Some(cell) = m.get_copy(pos.0, pos.1) {
-                        this.set_focus(cell);
-                    }
-                }
+//                if this.is_cell_focussed(pos.0, pos.1) {
+//                    if let Some(cell) = m.get_copy(pos.0, pos.1) {
+//                        this.set_focus(cell);
+//                    }
+//                }
 
                 m.sync()?;
 
@@ -293,11 +260,11 @@ impl UICtrlRef {
                     matrix.place(pos.0, pos.1, cell);
                 })?;
 
-                if this.is_cell_focussed(pos.0, pos.1) {
-                    if let Some(cell) = m.get_copy(pos.0, pos.1) {
-                        this.set_focus(cell);
-                    }
-                }
+//                if this.is_cell_focussed(pos.0, pos.1) {
+//                    if let Some(cell) = m.get_copy(pos.0, pos.1) {
+//                        this.set_focus(cell);
+//                    }
+//                }
 
                 m.sync()?;
                 Ok(())
@@ -317,9 +284,9 @@ impl UICtrlRef {
                 ))
             })?;
 
-        if self.is_cell_focussed(src_pos.0, src_pos.1) {
-            self.set_focus(src_cell.with_pos_of(dst_cell));
-        }
+//        if self.is_cell_focussed(src_pos.0, src_pos.1) {
+//            self.set_focus(src_cell.with_pos_of(dst_cell));
+//        }
 
         let this = self.0.borrow();
 
@@ -357,43 +324,39 @@ impl UICtrlRef {
         Some(())
     }
 
-    pub fn get_recent_focus(&self) -> Cell {
-        self.0.borrow().focus_cell
-    }
+//    pub fn get_recent_focus(&self) -> Cell {
+//        self.0.borrow().focus_cell
+//    }
+//
+//    pub fn get_focus_node_info(&self) -> NodeInfo {
+//        self.0.borrow_mut().focus_node_info.clone()
+//    }
 
-    pub fn get_focus_node_info(&self) -> NodeInfo {
-        self.0.borrow_mut().focus_node_info.clone()
-    }
+//    pub fn get_focus_id(&self) -> NodeId {
+//        self.0.borrow().focus_cell.node_id()
+//    }
+//
+//    pub fn clear_focus(&self) {
+//        self.0.borrow_mut().focus_cell = Cell::empty(NodeId::Nop);
+//    }
 
-    pub fn get_focus_id(&self) -> NodeId {
-        self.0.borrow().focus_cell.node_id()
-    }
+//    pub fn set_focus(&self, cell: Cell) {
+//        let nid = cell.node_id();
+//        self.0.borrow_mut().set_focus(cell);
+//
+//        if nid.to_instance(0) == NodeId::Sampl(0) {
+//            let uniq_id =
+//                self.with_matrix(|m|
+//                    m.unique_index_for(&nid).unwrap_or(0) as u32);
+//
+//            if let Some(pid) = nid.inp_param("sample") {
+//                self.0.borrow_mut().sample_dir_from =
+//                    Some(AtomId::new(uniq_id, pid.inp().into()));
+//            }
+//        }
+//    }
 
-    pub fn is_cell_focussed(&self, x: usize, y: usize) -> bool {
-        self.0.borrow().is_cell_focussed(x, y)
-    }
-
-    pub fn clear_focus(&self) {
-        self.0.borrow_mut().focus_cell = Cell::empty(NodeId::Nop);
-    }
-
-    pub fn set_focus(&self, cell: Cell) {
-        let nid = cell.node_id();
-        self.0.borrow_mut().set_focus(cell);
-
-        if nid.to_instance(0) == NodeId::Sampl(0) {
-            let uniq_id =
-                self.with_matrix(|m|
-                    m.unique_index_for(&nid).unwrap_or(0) as u32);
-
-            if let Some(pid) = nid.inp_param("sample") {
-                self.0.borrow_mut().sample_dir_from =
-                    Some(AtomId::new(uniq_id, pid.inp().into()));
-            }
-        }
-    }
-
-    pub fn check_atoms(&mut self, atoms: &dyn AtomDataModel) {
+    pub fn check_atoms(&self, atoms: &dyn AtomDataModel) {
         let at_id_dir = self.0.borrow_mut().sample_dir_from.take();
 
         if let Some(at_id_dir) = at_id_dir {
@@ -423,11 +386,7 @@ impl UICtrlRef {
 
     }
 
-    pub fn set_sample_load_id(&self, id: AtomId) {
-        self.0.borrow_mut().sample_load_id = id;
-    }
-
-    pub fn navigate_sample_dir(&mut self, path: &Path) {
+    pub fn navigate_sample_dir(&self, path: &Path) {
         if path != self.0.borrow().sample_dir {
             self.0.borrow_mut().sample_dir = path.to_path_buf();
             self.reload_sample_dir_list();
@@ -469,7 +428,7 @@ impl UICtrlRef {
 
             if let Some(file) = load_file {
                 if let Some(path_str) = file.to_str() {
-                    let load_id = self.0.borrow().sample_load_id;
+                    let load_id = self.2.borrow().sample_load_id;
                     ui_params.set(load_id, Atom::audio_unloaded(path_str));
                 }
             }
@@ -491,6 +450,8 @@ impl UICtrlRef {
                 &error, Box::new(|_| ()));
 
         }
+
+        self.check_atoms(ui_params);
 
         self.with_matrix(|m| m.update_filters());
 
@@ -522,5 +483,21 @@ impl UICtrlRef {
 
         *self.3.borrow_mut() = action_handler;
     }
+
+    pub fn init(&self, ui_params: &mut UIParams) {
+        let dialog = self.0.borrow().dialog_model.clone();
+
+        self.with_matrix(|matrix| {
+            let mut a = crate::actions::ActionState {
+                state:  &mut *self.2.borrow_mut(),
+                dialog: dialog.clone(),
+                matrix,
+                ui_params,
+                action_handler: None,
+            };
+            a.init();
+        });
+    }
+
 }
 
