@@ -15,10 +15,11 @@ impl MenuState {
         match self {
             MenuState::None => vec![],
             MenuState::SelectCategory => {
+                let mut v =
                 vec![
                     MenuItem {
                         typ:    ItemType::Back,
-                        label:  "<Exit".to_string(),
+                        label:  "<Exit0".to_string(),
                         help:   "\nExit Menu".to_string(),
                     },
                     MenuItem {
@@ -51,7 +52,18 @@ impl MenuState {
                         label: "I/O".to_string(),
                         help: "I/O\nExternal connections:\n- Audio I/O\n- MIDI".to_string(),
                     },
-                ]
+                ];
+
+//                for i in 7..44 {
+//                    v.push(
+//                    MenuItem {
+//                        typ: ItemType::Category(UICategory::IOUtil),
+//                        label: format!("X {}", i),
+//                        help: "I/O\nExternal connections:\n- Audio I/O\n- MIDI".to_string(),
+//                    });
+//                }
+
+                v
             },
             MenuState::SelectNodeIdFromCat { category } => {
                 let mut items = vec![];

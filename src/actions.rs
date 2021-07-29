@@ -471,6 +471,12 @@ impl ActionHandler for DefaultActionHandler {
                             MenuState::None);
 
                     if let Some(mut ah) = self.ui_action.take() {
+                        if let Some(new_menu_pos) =
+                            a.state.next_menu_pos.take()
+                        {
+                            a.state.menu_pos = new_menu_pos;
+                        }
+
                         ah.menu_select(a, ms, item_type);
                         self.ui_action = Some(ah);
                     }
@@ -489,6 +495,11 @@ impl ActionHandler for DefaultActionHandler {
                     } else {
                         a.set_focus(cell);
                     }
+                }
+            },
+            Msg::MenuMouseClick { x, y, btn } => {
+                if *btn == MButton::Left {
+                    a.state.next_menu_pos = Some((*x, *y));
                 }
             },
             Msg::MatrixMouseClick { x, y, btn } => {

@@ -51,6 +51,7 @@ pub struct State {
     pub help_text_src:       Rc<TextSourceRef>,
     pub menu_items:          Vec<MenuItem>,
     pub menu_pos:            (f64, f64),
+    pub next_menu_pos:       Option<(f64, f64)>,
 
     pub menu_state:          MenuState,
 
@@ -67,6 +68,7 @@ impl State {
                     crate::ui::UI_MAIN_HELP_TEXT_WIDTH)),
             menu_items:             vec![],
             menu_pos:               (0.0, 0.0),
+            next_menu_pos:          None,
             menu_state:             MenuState::None,
             focus_cell:             Cell::empty(NodeId::Nop),
             focus_node_info:        NodeInfo::from_node_id(NodeId::Nop),

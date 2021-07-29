@@ -69,22 +69,96 @@ impl MatrixUIMenu {
     }
 
     pub fn grid2index(&self, x: usize, y: usize) -> Option<usize> {
-        match (x, y) {
-            // Center
-            (1, 1) => Some(0),
-            // TR
-            (2, 1) => Some(2),
-            // BR
-            (2, 2) => Some(3),
-            // B
-            (1, 2) => Some(4),
-            // BL
-            (0, 2) => Some(5),
-            // TL
-            (0, 1) => Some(6),
-            // T
-            (1, 0) => Some(1),
-            _      => None,
+        let size = self.width() * self.height();
+
+        if x % 2 == 0 && y == 0 { return None; }
+
+        let w0 = self.width() - 1;
+        let w1 = self.width();
+
+        if size <= 9 {
+            match (x, y) {
+                // Center
+                (1, 1) => Some(0),
+                // TR
+                (2, 1) => Some(2),
+                // BR
+                (2, 2) => Some(3),
+                // B
+                (1, 2) => Some(4),
+                // BL
+                (0, 2) => Some(5),
+                // TL
+                (0, 1) => Some(6),
+                // T
+                (1, 0) => Some(1),
+                _      => None,
+            }
+
+        } else if size <= 4 * 4 {
+            if x < 4 && y < 4 {
+                match x {
+                    0 => Some(y - 1),
+                    1 => Some(w0 + y),
+                    2 => Some(w0 + w1 + y - 1),
+                    3 => Some(w0 + w1 + w0 + y),
+                    _ => None,
+                }
+            } else {
+                None
+            }
+
+        } else if size <= 5 * 5 {
+            if x < 5 && y < 5 {
+
+                match x {
+                    0 => Some(y - 1),
+                    1 => Some(w0 + y),
+                    2 => Some(w0 + w1 + y - 1),
+                    3 => Some(w0 + w1 + w0 + y),
+                    4 => Some(w0 + w1 + w0 + w1 + y - 1),
+                    _ => None,
+                }
+            } else {
+                None
+            }
+
+        } else if size <= 6 * 6 {
+            if x < 6 && y < 6 {
+
+                match x {
+                    0 => Some(y - 1),
+                    1 => Some(w0 + y),
+                    2 => Some(w0 + w1 + y - 1),
+                    3 => Some(w0 + w1 + w0 + y),
+                    4 => Some(w0 + w1 + w0 + w1 + y - 1),
+                    5 => Some(w0 + w1 + w0 + w1 + w0 + y),
+                    _ => None,
+                }
+            } else {
+                None
+            }
+
+        } else if size <= 7 * 7 {
+            if x < 7 && y < 7 {
+
+                match x {
+                    0 => Some(y - 1),
+                    1 => Some(w0 + y),
+                    2 => Some(w0 + w1 + y - 1),
+                    3 => Some(w0 + w1 + w0 + y),
+                    4 => Some(w0 + w1 + w0 + w1 + y - 1),
+                    5 => Some(w0 + w1 + w0 + w1 + w0 + y),
+                    6 => Some(w0 + w1 + w0 + w1 + w0 + w1 + y - 1),
+                    _ => None,
+                }
+            } else {
+                None
+            }
+
+
+        } else {
+            None
         }
     }
 }
@@ -94,10 +168,29 @@ pub fn get_matrix_size(ui_ctrl: &UICtrlRef) -> (usize, usize) {
 
     match item_count {
         0..=7   => (3, 3),
-        8..=16  => (4, 4),
-        17..=25 => (5, 5),
-        _       => (6, 6),
+        8..=14  => (4, 4),
+        13..=22 => (5, 5),
+        22..=33 => (6, 6),
+        _       => (7, 7),
     }
+}
+
+pub fn get_matrix_size_px(ui_ctrl: &UICtrlRef) -> (f64, f64) {
+    let item_count = ui_ctrl.with_state(|s| s.menu_items.len());
+    let (w, h) = get_matrix_size(ui_ctrl);
+    let w = w as f64;
+    let h = h as f64;
+
+    let (w, h) =
+        match item_count {
+            0..=7   => (235.0, 240.0),
+            8..=14  => (w * (78.0 + 9.0)       + 5.0, h * 78.0 + 5.0),
+            14..=22 => (w * (78.0 + 2.0 * 9.0) + 5.0, h * 78.0 + 5.0),
+            22..=33 => (w * (78.0 + 3.0 * 9.0) + 5.0, h * 78.0 + 5.0),
+            _       => (w * (78.0 + 3.5 * 9.0) + 5.0, h * 78.0 + 5.0),
+        };
+
+    (w.floor(), h.floor())
 }
 
 impl HexGridModel for MatrixUIMenu {
@@ -123,7 +216,7 @@ impl HexGridModel for MatrixUIMenu {
 
     fn cell_visible(&self, x: usize, y: usize) -> bool {
         if x >= self.width() || y >= self.height() { return false; }
-        if (x == 0 || x == 2) && y == 0 { return false; }
+        if (x % 2 == 0) && y == 0 { return false; }
         true
     }
 
@@ -577,10 +670,12 @@ impl WidgetType for NodeMatrix {
 
             if data.ui_ctrl.with_state(|s| !s.menu_items.is_empty()) {
                 let menu_pos = data.ui_ctrl.with_state(|s| s.menu_pos);
-                let hex_w = 235.0;
-                let txt_w = (hex_w / 6.0) * 6.0;
+                let (w, h) = get_matrix_size_px(&data.ui_ctrl);
+                let hex_w = w;
+                let txt_w = 235.0;
                 let menu_w = hex_w + txt_w;
-                let menu_h = 240.0 + UI_ELEM_TXT_H + 2.0 * UI_BORDER_WIDTH;
+                let menu_h = h + UI_ELEM_TXT_H + 2.0 * UI_BORDER_WIDTH;
+
 
                 let menu_rect =
                     Rect::from(
@@ -623,6 +718,9 @@ impl WidgetType for NodeMatrix {
                         }
 
                     } else if *id == data.hex_menu_id {
+                        data.ui_ctrl.emit(
+                            Msg::menu_mouse_click(
+                                *x, *y, *button));
                         data.hex_menu.event(ui, ev);
 
                     } else if !menu_visible {

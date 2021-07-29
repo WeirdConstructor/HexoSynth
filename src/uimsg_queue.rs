@@ -16,6 +16,11 @@ pub enum Msg {
     MenuHover   { item_idx: usize },
     MenuClick   { item_idx: usize },
     MatrixClick { x: usize, y: usize, btn: MButton, modkey: bool },
+    MenuMouseClick {
+        x: f64,
+        y: f64,
+        btn: MButton
+    },
     MatrixMouseClick {
         x: f64,
         y: f64,
@@ -48,6 +53,10 @@ impl Msg {
 
     pub fn matrix_mouse_click(x: f64, y: f64, btn: MButton) -> Self {
         Msg::MatrixMouseClick { x, y, btn }
+    }
+
+    pub fn menu_mouse_click(x: f64, y: f64, btn: MButton) -> Self {
+        Msg::MenuMouseClick { x, y, btn }
     }
 }
 
