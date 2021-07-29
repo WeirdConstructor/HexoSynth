@@ -104,6 +104,35 @@ impl ActionState<'_, '_, '_> {
         });
     }
 
+    pub fn instanciate_node_at_with_connection(
+        &mut self, pos: (usize, usize), node_id: NodeId,
+        dir: CellDir, new_idx: Option<usize>, mut adj_cell: Cell, adj_idx: Option<usize>
+    ) {
+        //d// println!("Instance New {:?}, {:?}, {:?}",
+        //d//     node_id, new_idx, adj_idx);
+
+        catch_err_dialog(self.dialog.clone(), || {
+            if let Some(mut cell) = self.matrix.get_copy(pos.0, pos.1) {
+                let unused_id =
+                    self.matrix.get_unused_instance_node_id(node_id);
+                cell.set_node_id(unused_id);
+                if let Some(new_idx) = new_idx {
+                    cell.set_io_dir(dir, new_idx);
+                }
+                if let Some(adj_idx) = adj_idx {
+                    adj_cell.set_io_dir(dir.flip(), adj_idx);
+                }
+
+                self.matrix.change_matrix(|m| {
+                    m.place(pos.0, pos.1, cell);
+                    m.place(adj_cell.pos().0, adj_cell.pos().1, adj_cell);
+                })?;
+                self.matrix.sync()?;
+            }
+            Ok(())
+        });
+    }
+
     pub fn set_focus_at(&mut self, x: usize, y: usize) {
         if let Some(cell) = self.matrix.get_copy(x, y) {
             self.set_focus(cell);
@@ -242,24 +271,26 @@ impl ActionHandler for ActionNewNodeAtCell {
 }
 
 struct ActionNewNodeAndConnectionTo {
-    dir:         CellDir,
-    cell:        Cell,
-    x:           usize,
-    y:           usize,
-    new_node_id: Option<NodeId>,
-    category:    UICategory,
-    new_io:      Option<(bool, usize)>,
-    prev_ms:     Vec<(MenuState, String)>,
+    dir:            CellDir,
+    cell:           Cell,
+    x:              usize,
+    y:              usize,
+    new_node_id:    Option<NodeId>,
+    category:       UICategory,
+    new_io:         Option<usize>,
+    prev_ms:        Vec<(MenuState, String)>,
+    use_defaults:   bool,
 }
 
 impl ActionNewNodeAndConnectionTo {
-    pub fn new(x: usize, y: usize, cell: Cell, dir: CellDir) -> Self {
+    pub fn new(use_defaults: bool, x: usize, y: usize, cell: Cell, dir: CellDir) -> Self {
         Self {
             x, y, cell, dir,
             new_node_id: None,
             category:    UICategory::None,
             new_io:      None,
             prev_ms:     vec![],
+            use_defaults,
         }
     }
 }
@@ -267,21 +298,46 @@ impl ActionNewNodeAndConnectionTo {
 impl ActionNewNodeAndConnectionTo {
     fn select_old_node_io(&mut self, a: &mut ActionState) {
         let node_id = self.cell.node_id();
+        let node_info = NodeInfo::from_node_id(node_id);
 
         if self.dir.is_input() {
-            a.next_menu_state(
-                MenuState::SelectOutputParam {
-                    node_id,
-                    node_info: NodeInfo::from_node_id(node_id),
-                },
-                format!("Output of {}", node_id.label()));
+            if node_info.out_count() == 0 {
+                self.create_connection(None, a);
+
+            } else if node_info.out_count() == 1 || self.use_defaults {
+                if self.cell.has_dir_set(self.dir.flip()) {
+                    self.create_connection(None, a);
+                } else {
+                    self.create_connection(Some(0), a);
+                }
+
+            } else {
+                a.next_menu_state(
+                    MenuState::SelectOutputParam {
+                        node_id,
+                        node_info,
+                    },
+                    format!("Output of {}", node_id.label()));
+            }
         } else {
-            a.next_menu_state(
-                MenuState::SelectInputParam {
-                    node_id,
-                    node_info: NodeInfo::from_node_id(node_id),
-                },
-                format!("Input of {}", node_id.label()));
+            if node_info.in_count() == 0 {
+                self.create_connection(None, a);
+
+            } else if node_info.in_count() == 1 || self.use_defaults {
+                if self.cell.has_dir_set(self.dir.flip()) {
+                    self.create_connection(None, a);
+                } else {
+                    self.create_connection(Some(0), a);
+                }
+
+            } else {
+                a.next_menu_state(
+                    MenuState::SelectInputParam {
+                        node_id,
+                        node_info,
+                    },
+                    format!("Input of {}", node_id.label()));
+            }
         }
     }
 
@@ -289,16 +345,30 @@ impl ActionNewNodeAndConnectionTo {
         if let Some(node_id) = self.new_node_id {
             let node_info = NodeInfo::from_node_id(node_id);
 
-            if node_info.out_count() == 0 {
-                self.select_old_node_io(a);
-            } else {
-                if self.dir.is_input() {
+            if self.dir.is_input() {
+                if node_info.in_count() == 0 {
+                    self.select_old_node_io(a);
+
+                } else if node_info.in_count() == 1 || self.use_defaults {
+                    self.new_io = Some(0);
+                    self.select_old_node_io(a);
+
+                } else {
                     a.next_menu_state(
                         MenuState::SelectInputParam {
                             node_id,
                             node_info: NodeInfo::from_node_id(node_id),
                         },
                         format!("Input of {}", node_id.label()));
+                }
+            } else {
+                if node_info.out_count() == 0 {
+                    self.select_old_node_io(a);
+
+                } else if node_info.out_count() == 1 || self.use_defaults {
+                    self.new_io = Some(0);
+                    self.select_old_node_io(a);
+
                 } else {
                     a.next_menu_state(
                         MenuState::SelectOutputParam {
@@ -308,6 +378,18 @@ impl ActionNewNodeAndConnectionTo {
                         format!("Output of {}", node_id.label()));
                 }
             }
+        }
+    }
+
+    fn create_connection(&mut self, old_idx: Option<usize>, a: &mut ActionState) {
+        if let Some(new_node_id) = self.new_node_id {
+            // XXX: Reset the node instance shenanigans from below with the 999999
+            let new_node_id = new_node_id.to_instance(0);
+
+            a.instanciate_node_at_with_connection(
+                (self.x, self.y), new_node_id,
+                self.dir, self.new_io, self.cell, old_idx);
+            a.set_focus_at(self.x, self.y);
         }
     }
 }
@@ -342,32 +424,31 @@ impl ActionHandler for ActionNewNodeAndConnectionTo {
                     // TODO: To determine which is the right one, we need to
                     //       look at the self.dir CellDir!
                     //       First we need to select the output node_id!
-                    self.new_node_id = Some(node_id);
+                    // XXX: We use instance 999999 here, so it does not
+                    //      match any possibly existing node_id, in case we assign
+                    //      the same kind of node (eg. Amp(0) => Amp(...)).
+                    self.new_node_id = Some(node_id.to_instance(999999));
                     self.select_new_node_io(a);
                 }
             },
             ItemType::OutputIdx(out_idx) => {
                 if let MenuState::SelectOutputParam { node_id, node_info } = ms {
-                    if let Some(_) = self.new_io {
-                        println!("CONNECTION {} {:?} => {:?}",
-                            self.new_node_id.unwrap(),
-                            self.new_io,
-                            (false, out_idx));
+                    if node_id == self.cell.node_id() {
+                        self.create_connection(Some(out_idx), a);
+
                     } else {
-                        self.new_io = Some((false, out_idx));
+                        self.new_io = Some(out_idx);
                         self.select_old_node_io(a);
                     }
                 }
             },
             ItemType::InputIdx(in_idx) => {
                 if let MenuState::SelectInputParam { node_id, node_info } = ms {
-                    if let Some(_) = self.new_io {
-                        println!("CONNECTION {} {:?} => {:?}",
-                            self.new_node_id.unwrap(),
-                            self.new_io,
-                            (true, in_idx));
+                    if node_id == self.cell.node_id() {
+                        self.create_connection(Some(in_idx), a);
+
                     } else {
-                        self.new_io = Some((true, in_idx));
+                        self.new_io = Some(in_idx);
                         self.select_old_node_io(a);
                     }
                 }
@@ -414,7 +495,9 @@ impl ActionHandler for DefaultActionHandler {
                 //  => connect the default output to default input
                 //     default is always: first input, first output
                 // Left & pos_a exists & pos_b exists & adjacent
-                //  => open connection selection dialog for out => inp
+                //  => open connection selection dialog for the port of the
+                //     pos_a cell!
+                //     (Note: you can reassign both with the right mouse button)
                 // Left & pos_a exists & pos_b exists & NOT adjacent
                 //  => take pos_a as output, pos_b as input
                 //  => search an empty input for pos_b
@@ -471,10 +554,11 @@ impl ActionHandler for DefaultActionHandler {
                     (MButton::Left, Some(_), None, _, _) => {
                         a.swap_cells(*pos_a, *pos_b);
                     },
-                    (MButton::Left, None, Some(cell), Some(dir), _) => {
+                    (btn, None, Some(cell), Some(dir), _) => {
                         let mut ah =
                             Box::new(
                                 ActionNewNodeAndConnectionTo::new(
+                                    btn == MButton::Left,
                                     pos_a.0, pos_a.1, cell, dir));
                         ah.init(a);
                         self.ui_action = Some(ah);
@@ -517,11 +601,11 @@ impl ActionHandler for DefaultActionHandler {
                             MenuState::None);
 
                     if let Some(mut ah) = self.ui_action.take() {
-                        if let Some(new_menu_pos) =
-                            a.state.next_menu_pos.take()
-                        {
-                            a.state.menu_pos = new_menu_pos;
-                        }
+//                        if let Some(new_menu_pos) =
+//                            a.state.next_menu_pos.take()
+//                        {
+//                            a.state.menu_pos = new_menu_pos;
+//                        }
 
                         ah.menu_select(a, ms, item_type);
                         self.ui_action = Some(ah);

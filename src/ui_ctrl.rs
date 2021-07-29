@@ -453,7 +453,10 @@ impl UICtrlRef {
 
         self.check_atoms(ui_params);
 
-        self.with_matrix(|m| m.update_filters());
+        self.with_matrix(|m| {
+            m.check_pattern_data(self.2.borrow().current_tracker_idx);
+            m.update_filters()
+        });
 
         let dialog = self.0.borrow().dialog_model.clone();
 
