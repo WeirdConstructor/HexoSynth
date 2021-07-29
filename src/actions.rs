@@ -210,6 +210,14 @@ impl ActionHandler for ActionNewNodeAtCell {
 
     fn menu_select(&mut self, a: &mut ActionState, ms: MenuState, item_type: ItemType) {
         match item_type {
+            ItemType::Back => {
+                match ms {
+                    MenuState::SelectNodeIdFromCat { .. } => {
+                        a.state.menu_state = MenuState::SelectCategory;
+                    },
+                    _ => {},
+                }
+            },
             ItemType::Category(category) => {
                 a.state.menu_state =
                     MenuState::SelectNodeIdFromCat { category }
@@ -224,6 +232,75 @@ impl ActionHandler for ActionNewNodeAtCell {
         }
     }
 }
+
+struct ActionNewNodeAndConnectionTo {
+    dir:    CellDir,
+    cell:   Cell,
+    x:      usize,
+    y:      usize,
+    new_node_id: Option<NodeId>,
+    category: UICategory,
+}
+
+impl ActionNewNodeAndConnectionTo {
+    pub fn new(x: usize, y: usize, cell: Cell, dir: CellDir) -> Self {
+        Self { x, y, cell, dir, new_node_id: None, category: UICategory::None }
+    }
+}
+
+impl ActionHandler for ActionNewNodeAndConnectionTo {
+    fn init(&mut self, a: &mut ActionState) {
+        a.state.menu_state = MenuState::SelectCategory;
+        a.state.menu_items = a.state.menu_state.to_items();
+    }
+
+    fn menu_select(&mut self, a: &mut ActionState, ms: MenuState, item_type: ItemType) {
+        match item_type {
+            ItemType::Back => {
+                match ms {
+                    MenuState::SelectOutputParam { .. } => {
+                        a.state.menu_state =
+                            MenuState::SelectNodeIdFromCat {
+                                category: self.category
+                            };
+                    },
+                    MenuState::SelectNodeIdFromCat { category } => {
+                        a.state.menu_state = MenuState::SelectCategory;
+                    },
+                    _ => {},
+                }
+            },
+            ItemType::Category(category) => {
+                self.category = category;
+                a.state.menu_state =
+                    MenuState::SelectNodeIdFromCat { category }
+            },
+            ItemType::NodeId(node_id) => {
+                if let MenuState::SelectNodeIdFromCat { category } = ms {
+                    self.new_node_id = Some(node_id);
+
+                    let node_info = NodeInfo::from_node_id(node_id);
+                    if node_info.out_count() == 0 {
+                        // jump directly to the input selection!
+                    } else {
+                        a.state.menu_state =
+                            MenuState::SelectOutputParam {
+                                node_id,
+                                node_info: NodeInfo::from_node_id(node_id),
+                            };
+                    }
+                }
+            },
+            ItemType::OutputIdx(out_idx) => {
+                if let MenuState::SelectOutputParam { node_id, node_info } = ms {
+                    println!("SELECTED OUTIDX: {} {}", node_id, out_idx);
+                }
+            },
+            _ => ()
+        }
+    }
+}
+
 
 pub struct DefaultActionHandler {
     ui_action: Option<Box<dyn ActionHandler>>,
@@ -316,7 +393,13 @@ impl ActionHandler for DefaultActionHandler {
                     (MButton::Left, Some(_), None, _, _) => {
                         a.swap_cells(*pos_a, *pos_b);
                     },
-                    (MButton::Left, None, Some(_), _, _) => {
+                    (MButton::Left, None, Some(cell), Some(dir), _) => {
+                        let mut ah =
+                            Box::new(
+                                ActionNewNodeAndConnectionTo::new(
+                                    pos_a.0, pos_a.1, cell, dir));
+                        ah.init(a);
+                        self.ui_action = Some(ah);
                     },
                     (MButton::Left, Some(src), Some(dst), Some(dir), io) => {
                         println!("OPEN MENU!!!!! {:?} aisout={}",

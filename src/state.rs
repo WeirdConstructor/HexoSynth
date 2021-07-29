@@ -23,6 +23,8 @@ pub enum ItemType {
     Category(UICategory),
     NodeId(NodeId),
     Direction(CellDir),
+    OutputIdx(usize),
+    InputIdx(usize),
 }
 
 #[derive(Debug, Clone)]
