@@ -406,7 +406,7 @@ impl NodeMatrixData {
         let hex_menu_id = AtomId::new(node_id, HEX_MENU_ID);
         let mut hex_menu = ContainerData::new();
         hex_menu.contrast_border()
-           .title("Menu")
+           .title_text(ui_ctrl.with_state(|s| s.menu_title.clone()))
            .new_row()
            .add(wbox!(
                 wt_hexgrid_menu,

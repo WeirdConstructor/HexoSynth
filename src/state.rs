@@ -16,6 +16,7 @@ use hexotk::widgets::{
 };
 
 use std::rc::Rc;
+use std::cell::RefCell;
 
 #[derive(Debug, Clone)]
 pub enum ItemType {
@@ -47,6 +48,7 @@ pub struct State {
 
     pub current_tracker_idx: usize,
 
+    pub menu_title:          Rc<RefCell<String>>,
     pub menu_help_text:      Rc<TextSourceRef>,
     pub help_text_src:       Rc<TextSourceRef>,
     pub menu_items:          Vec<MenuItem>,
@@ -70,6 +72,7 @@ impl State {
             menu_pos:               (0.0, 0.0),
             next_menu_pos:          None,
             menu_state:             MenuState::None,
+            menu_title:             Rc::new(RefCell::new("?".to_string())),
             focus_cell:             Cell::empty(NodeId::Nop),
             focus_node_info:        NodeInfo::from_node_id(NodeId::Nop),
             focus_uniq_node_idx:    9999999,

@@ -124,6 +124,12 @@ impl ActionState<'_, '_, '_> {
         }
     }
 
+    pub fn next_menu_state(&mut self, ms: MenuState, title: String) {
+        self.state.menu_state = ms;
+        *self.state.menu_title.borrow_mut() = title;
+        self.state.menu_items = self.state.menu_state.to_items();
+    }
+
     fn update_pattern_edit(&mut self) {
         let patedit_ui = self.state.widgets.patedit_ui.clone();
         let mut pe = patedit_ui.borrow_mut();
@@ -154,8 +160,6 @@ impl ActionState<'_, '_, '_> {
             if let Some(pid) = node_id.inp_param("sample") {
                 self.state.sample_dir_from =
                     Some(AtomId::new(uniq_id, pid.inp().into()));
-
-                println!("SET SAMPLE DIR FROM: {:?}", self.state.sample_dir_from);
             }
 
         } else if node_id.to_instance(0) == NodeId::TSeq(0) {
@@ -204,8 +208,9 @@ impl ActionNewNodeAtCell {
 
 impl ActionHandler for ActionNewNodeAtCell {
     fn init(&mut self, a: &mut ActionState) {
-        a.state.menu_state = MenuState::SelectCategory;
-        a.state.menu_items = a.state.menu_state.to_items();
+        a.next_menu_state(
+            MenuState::SelectCategory,
+            "Category for new node".to_string());
     }
 
     fn menu_select(&mut self, a: &mut ActionState, ms: MenuState, item_type: ItemType) {
@@ -213,14 +218,17 @@ impl ActionHandler for ActionNewNodeAtCell {
             ItemType::Back => {
                 match ms {
                     MenuState::SelectNodeIdFromCat { .. } => {
-                        a.state.menu_state = MenuState::SelectCategory;
+                        a.next_menu_state(
+                            MenuState::SelectCategory,
+                            "Category for new node".to_string());
                     },
                     _ => {},
                 }
             },
             ItemType::Category(category) => {
-                a.state.menu_state =
-                    MenuState::SelectNodeIdFromCat { category }
+                a.next_menu_state(
+                    MenuState::SelectNodeIdFromCat { category },
+                    "Select new node".to_string());
             },
             ItemType::NodeId(node_id) => {
                 if let MenuState::SelectNodeIdFromCat { category } = ms {
@@ -240,8 +248,8 @@ struct ActionNewNodeAndConnectionTo {
     y:           usize,
     new_node_id: Option<NodeId>,
     category:    UICategory,
-    out_idx:     Option<usize>,
-    prev_ms:     Vec<MenuState>,
+    new_io:      Option<(bool, usize)>,
+    prev_ms:     Vec<(MenuState, String)>,
 }
 
 impl ActionNewNodeAndConnectionTo {
@@ -250,35 +258,55 @@ impl ActionNewNodeAndConnectionTo {
             x, y, cell, dir,
             new_node_id: None,
             category:    UICategory::None,
-            out_idx:     None,
+            new_io:      None,
             prev_ms:     vec![],
         }
     }
 }
 
 impl ActionNewNodeAndConnectionTo {
-    fn select_input_idx(&mut self, a: &mut ActionState) {
+    fn select_old_node_io(&mut self, a: &mut ActionState) {
         let node_id = self.cell.node_id();
 
-        a.state.menu_state =
-            MenuState::SelectInputParam {
-                node_id,
-                node_info: NodeInfo::from_node_id(node_id),
-            };
+        if self.dir.is_input() {
+            a.next_menu_state(
+                MenuState::SelectOutputParam {
+                    node_id,
+                    node_info: NodeInfo::from_node_id(node_id),
+                },
+                format!("Output of {}", node_id.label()));
+        } else {
+            a.next_menu_state(
+                MenuState::SelectInputParam {
+                    node_id,
+                    node_info: NodeInfo::from_node_id(node_id),
+                },
+                format!("Input of {}", node_id.label()));
+        }
     }
 
-    fn select_output_idx(&mut self, a: &mut ActionState) {
+    fn select_new_node_io(&mut self, a: &mut ActionState) {
         if let Some(node_id) = self.new_node_id {
             let node_info = NodeInfo::from_node_id(node_id);
 
             if node_info.out_count() == 0 {
-                self.select_input_idx(a);
+                self.select_old_node_io(a);
             } else {
-                a.state.menu_state =
-                    MenuState::SelectOutputParam {
-                        node_id,
-                        node_info: NodeInfo::from_node_id(node_id),
-                    };
+                if self.dir.is_input() {
+                    a.next_menu_state(
+                        MenuState::SelectInputParam {
+                            node_id,
+                            node_info: NodeInfo::from_node_id(node_id),
+                        },
+                        format!("Input of {}", node_id.label()));
+                } else {
+                    a.next_menu_state(
+                        MenuState::SelectOutputParam {
+                            node_id,
+                            node_info: NodeInfo::from_node_id(node_id),
+                        },
+                        format!("Output of {}", node_id.label()));
+                }
             }
         }
     }
@@ -286,25 +314,28 @@ impl ActionNewNodeAndConnectionTo {
 
 impl ActionHandler for ActionNewNodeAndConnectionTo {
     fn init(&mut self, a: &mut ActionState) {
-        a.state.menu_state = MenuState::SelectCategory;
-        a.state.menu_items = a.state.menu_state.to_items();
+        a.next_menu_state(
+            MenuState::SelectCategory,
+            "Category for new connected node".to_string());
     }
 
     fn menu_select(&mut self, a: &mut ActionState, ms: MenuState, item_type: ItemType) {
-        self.prev_ms.push(ms.clone());
+        self.prev_ms.push((ms.clone(), a.state.menu_title.borrow().clone()));
 
         match item_type {
             ItemType::Back => {
                 self.prev_ms.pop(); // discard the current menu state
 
-                if let Some(prev_ms) = self.prev_ms.pop() {
-                    a.state.menu_state = prev_ms;
+                if let Some((prev_ms, title)) = self.prev_ms.pop() {
+                    a.next_menu_state(prev_ms, title);
                 }
             },
             ItemType::Category(category) => {
                 self.category = category;
-                a.state.menu_state =
-                    MenuState::SelectNodeIdFromCat { category }
+                a.next_menu_state(
+                    MenuState::SelectNodeIdFromCat { category },
+                    "Select new connected node".to_string());
+
             },
             ItemType::NodeId(node_id) => {
                 if let MenuState::SelectNodeIdFromCat { category } = ms {
@@ -312,19 +343,34 @@ impl ActionHandler for ActionNewNodeAndConnectionTo {
                     //       look at the self.dir CellDir!
                     //       First we need to select the output node_id!
                     self.new_node_id = Some(node_id);
-                    self.select_output_idx(a);
+                    self.select_new_node_io(a);
                 }
             },
             ItemType::OutputIdx(out_idx) => {
                 if let MenuState::SelectOutputParam { node_id, node_info } = ms {
-                    self.out_idx = Some(out_idx);
-                    self.select_input_idx(a);
+                    if let Some(_) = self.new_io {
+                        println!("CONNECTION {} {:?} => {:?}",
+                            self.new_node_id.unwrap(),
+                            self.new_io,
+                            (false, out_idx));
+                    } else {
+                        self.new_io = Some((false, out_idx));
+                        self.select_old_node_io(a);
+                    }
                 }
             },
-            ItemType::InputIdx(out_idx) => {
-                // Todo instanciate new node
-                // assign port of new node
-                // assign port of destination node
+            ItemType::InputIdx(in_idx) => {
+                if let MenuState::SelectInputParam { node_id, node_info } = ms {
+                    if let Some(_) = self.new_io {
+                        println!("CONNECTION {} {:?} => {:?}",
+                            self.new_node_id.unwrap(),
+                            self.new_io,
+                            (true, in_idx));
+                    } else {
+                        self.new_io = Some((true, in_idx));
+                        self.select_old_node_io(a);
+                    }
+                }
             },
             _ => ()
         }
