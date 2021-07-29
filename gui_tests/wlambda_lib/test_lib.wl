@@ -2,6 +2,9 @@
 !@import std;
 !@import hx;
 
+!HEX_MENU_ID = $p(9999,5);
+!HEX_MAP_ID  = $p(9999,2);
+
 !@export mouse_click = {
     hx:mouse_down _;
     hx:mouse_up _;
@@ -22,9 +25,18 @@
 !HEX_WH = hex_wh[54.0];
 !HEX_INIT_POS = $f(424, 45);
 
+!hex_menu_pos = {
+    !hex_menu = filter { _.id.0 == HEX_MENU_ID } hx:zones[];
+    !hex_menu = hex_menu.0;
+    std:assert is_some[hex_menu] "Finding the hex menu";
+    hex_menu.pos
+};
+
 !set_hex_wh_from_hover = {
     hx:query_state[];
-    !tile_size = hx:hover[].zone.2;
+    !hex_map = filter { _.id.0 == HEX_MAP_ID } hx:zones[];
+    !hex_map = hex_map.0;
+    !tile_size = hex_map.zone.2;
     .HEX_WH = hex_wh tile_size;
 };
 
@@ -66,3 +78,17 @@
     !new_pos = $f(x, y);
     hx:mouse_move new_pos;
 };
+
+!@export menu_click_text {!(text, btn) = @;
+    hx:query_state[];
+
+    !menu_pos = hex_menu_pos[];
+
+    !pos = (filter { _.0.0 == HEX_MENU_ID } ~ hx:id_by_text text).0.1;
+    !x = (menu_pos.x + menu_pos.z * 0.5) + pos.x + pos.z * 0.5;
+    !y = (menu_pos.y + menu_pos.w * 0.5) + pos.y + pos.w * 0.5;
+
+    hx:mouse_move $f(x, y);
+    hx:mouse_down _1;
+    hx:mouse_up _1;
+}
