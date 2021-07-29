@@ -599,6 +599,11 @@ impl WidgetType for NodeMatrix {
     }
 
     fn event(&self, ui: &mut dyn WidgetUI, data: &mut WidgetData, ev: &UIEvent) {
+        let menu_visible =
+            data.with(|data: &mut NodeMatrixData| {
+                data.ui_ctrl.with_state(|s| !s.menu_items.is_empty())
+            }).unwrap_or(false);
+
         match ev {
             UIEvent::Click { id, x, y, button, .. } => {
                 // println!("EV: {:?} id={}, btn={:?}, data.id={}",
@@ -609,6 +614,7 @@ impl WidgetType for NodeMatrix {
 
                     if show_help {
                         data.help_text.event(ui, ev);
+
                         if *id == data.hex_menu_id {
                             data.hex_menu.event(ui, ev);
                         } else {
@@ -619,7 +625,7 @@ impl WidgetType for NodeMatrix {
                     } else if *id == data.hex_menu_id {
                         data.hex_menu.event(ui, ev);
 
-                    } else {
+                    } else if !menu_visible {
                         match button {
                             MButton::Right => {
                                 if *id == data.hex_grid.id() {
@@ -649,11 +655,11 @@ impl WidgetType for NodeMatrix {
                     ui.queue_redraw();
                 });
             },
-            UIEvent::FieldDrag { id, button, src, dst, .. } => {
+            UIEvent::FieldDrag { id, button, src, dst, mouse_pos, .. } => {
                 data.with(|data: &mut NodeMatrixData| {
-                    if *id == data.hex_grid.id() {
+                    if !menu_visible && *id == data.hex_grid.id() {
                         data.matrix_model.ui_ctrl.emit(
-                            Msg::cell_drag(*button, *src, *dst));
+                            Msg::cell_drag(*button, *src, *dst, *mouse_pos));
                     }
                 });
                 ui.queue_redraw();

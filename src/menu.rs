@@ -7,6 +7,7 @@ pub enum MenuState {
     SelectCategory,
     SelectNodeIdFromCat { category: UICategory },
     SelectOutputParam { node_id: NodeId, node_info: NodeInfo },
+    SelectInputParam { node_id: NodeId, node_info: NodeInfo },
 }
 
 impl MenuState {
@@ -85,6 +86,26 @@ impl MenuState {
                             typ:    ItemType::OutputIdx(out_idx),
                             label:  node_info.out_name(out_idx).unwrap_or("?").to_string(),
                             help:   node_info.out_help(out_idx).unwrap_or("?").to_string(),
+                        },
+                    );
+                }
+
+                items
+            },
+            MenuState::SelectInputParam { node_id, node_info } => {
+                let mut items = vec![];
+                items.push(MenuItem {
+                    typ:    ItemType::Back,
+                    label:  "<Back".to_string(),
+                    help:   "\nBack to previous menu".to_string(),
+                });
+
+                for out_idx in 0..node_info.in_count() {
+                    items.push(
+                        MenuItem {
+                            typ:    ItemType::InputIdx(out_idx),
+                            label:  node_info.in_name(out_idx).unwrap_or("?").to_string(),
+                            help:   node_info.in_help(out_idx).unwrap_or("?").to_string(),
                         },
                     );
                 }

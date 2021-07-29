@@ -25,12 +25,13 @@ pub enum Msg {
         btn: MButton,
         pos_a: (usize, usize),
         pos_b: (usize, usize),
+        mouse_pos: (f64, f64),
     },
 }
 
 impl Msg {
-    pub fn cell_drag(btn: MButton, pos_a: (usize, usize), pos_b: (usize, usize)) -> Self {
-        Msg::CellDragged { btn, pos_a, pos_b }
+    pub fn cell_drag(btn: MButton, pos_a: (usize, usize), pos_b: (usize, usize), mouse_pos: (f64, f64)) -> Self {
+        Msg::CellDragged { btn, pos_a, pos_b, mouse_pos }
     }
 
     pub fn key(key: Key) -> Self { Msg::Key { key } }

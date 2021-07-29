@@ -234,17 +234,53 @@ impl ActionHandler for ActionNewNodeAtCell {
 }
 
 struct ActionNewNodeAndConnectionTo {
-    dir:    CellDir,
-    cell:   Cell,
-    x:      usize,
-    y:      usize,
+    dir:         CellDir,
+    cell:        Cell,
+    x:           usize,
+    y:           usize,
     new_node_id: Option<NodeId>,
-    category: UICategory,
+    category:    UICategory,
+    out_idx:     Option<usize>,
+    prev_ms:     Vec<MenuState>,
 }
 
 impl ActionNewNodeAndConnectionTo {
     pub fn new(x: usize, y: usize, cell: Cell, dir: CellDir) -> Self {
-        Self { x, y, cell, dir, new_node_id: None, category: UICategory::None }
+        Self {
+            x, y, cell, dir,
+            new_node_id: None,
+            category:    UICategory::None,
+            out_idx:     None,
+            prev_ms:     vec![],
+        }
+    }
+}
+
+impl ActionNewNodeAndConnectionTo {
+    fn select_input_idx(&mut self, a: &mut ActionState) {
+        let node_id = self.cell.node_id();
+
+        a.state.menu_state =
+            MenuState::SelectInputParam {
+                node_id,
+                node_info: NodeInfo::from_node_id(node_id),
+            };
+    }
+
+    fn select_output_idx(&mut self, a: &mut ActionState) {
+        if let Some(node_id) = self.new_node_id {
+            let node_info = NodeInfo::from_node_id(node_id);
+
+            if node_info.out_count() == 0 {
+                self.select_input_idx(a);
+            } else {
+                a.state.menu_state =
+                    MenuState::SelectOutputParam {
+                        node_id,
+                        node_info: NodeInfo::from_node_id(node_id),
+                    };
+            }
+        }
     }
 }
 
@@ -255,19 +291,14 @@ impl ActionHandler for ActionNewNodeAndConnectionTo {
     }
 
     fn menu_select(&mut self, a: &mut ActionState, ms: MenuState, item_type: ItemType) {
+        self.prev_ms.push(ms.clone());
+
         match item_type {
             ItemType::Back => {
-                match ms {
-                    MenuState::SelectOutputParam { .. } => {
-                        a.state.menu_state =
-                            MenuState::SelectNodeIdFromCat {
-                                category: self.category
-                            };
-                    },
-                    MenuState::SelectNodeIdFromCat { category } => {
-                        a.state.menu_state = MenuState::SelectCategory;
-                    },
-                    _ => {},
+                self.prev_ms.pop(); // discard the current menu state
+
+                if let Some(prev_ms) = self.prev_ms.pop() {
+                    a.state.menu_state = prev_ms;
                 }
             },
             ItemType::Category(category) => {
@@ -277,24 +308,23 @@ impl ActionHandler for ActionNewNodeAndConnectionTo {
             },
             ItemType::NodeId(node_id) => {
                 if let MenuState::SelectNodeIdFromCat { category } = ms {
+                    // TODO: To determine which is the right one, we need to
+                    //       look at the self.dir CellDir!
+                    //       First we need to select the output node_id!
                     self.new_node_id = Some(node_id);
-
-                    let node_info = NodeInfo::from_node_id(node_id);
-                    if node_info.out_count() == 0 {
-                        // jump directly to the input selection!
-                    } else {
-                        a.state.menu_state =
-                            MenuState::SelectOutputParam {
-                                node_id,
-                                node_info: NodeInfo::from_node_id(node_id),
-                            };
-                    }
+                    self.select_output_idx(a);
                 }
             },
             ItemType::OutputIdx(out_idx) => {
                 if let MenuState::SelectOutputParam { node_id, node_info } = ms {
-                    println!("SELECTED OUTIDX: {} {}", node_id, out_idx);
+                    self.out_idx = Some(out_idx);
+                    self.select_input_idx(a);
                 }
+            },
+            ItemType::InputIdx(out_idx) => {
+                // Todo instanciate new node
+                // assign port of new node
+                // assign port of destination node
             },
             _ => ()
         }
@@ -327,7 +357,9 @@ impl ActionHandler for DefaultActionHandler {
         }
 
         match msg {
-            Msg::CellDragged { btn, pos_a, pos_b } => {
+            Msg::CellDragged { btn, pos_a, pos_b, mouse_pos } => {
+                a.state.menu_pos = *mouse_pos;
+
                 // Left & pos_a empty & pos_b exists
                 //  => open cell selection dialog for one node
                 //  => connect the default input
