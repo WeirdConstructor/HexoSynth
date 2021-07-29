@@ -50,8 +50,10 @@ reset[];
 hx:set_cell $i(1, 0) ${ node_id = "tseq" => 0 };
 drag_hex_from_to $i(0, 0) $i(1, 0);
 
-t:menu_click_text "CV"   :left;
-t:menu_click_text "TSeq" :left;
+t:matrix_wait {
+    t:menu_click_text "CV"   :left;
+    t:menu_click_text "TSeq" :left;
+};
 
 !tseq1 = hx:get_cell $i(0, 0);
 !tseq0 = hx:get_cell $i(1, 0);
@@ -63,8 +65,10 @@ reset[];
 hx:set_cell $i(1, 0) ${ node_id = "tseq" => 0 };
 drag_hex_from_to $i(2, 1) $i(1, 0);
 
-t:menu_click_text "CV"   :left;
-t:menu_click_text "TSeq" :left;
+t:matrix_wait {
+    t:menu_click_text "CV"   :left;
+    t:menu_click_text "TSeq" :left;
+};
 
 !tseq1 = hx:get_cell $i(2, 1);
 !tseq0 = hx:get_cell $i(1, 0);
@@ -76,10 +80,12 @@ reset[];
 hx:set_cell $i(1, 0) ${ node_id = "tseq" => 0 };
 drag_hex_from_to $i(2, 1) $i(1, 0) :right;
 
-t:menu_click_text "CV"    :left;
-t:menu_click_text "TSeq"  :left;
-t:menu_click_text "trig"  :left;
-t:menu_click_text "trk2"  :left;
+t:matrix_wait {
+    t:menu_click_text "CV"    :left;
+    t:menu_click_text "TSeq"  :left;
+    t:menu_click_text "trig"  :left;
+    t:menu_click_text "trk2"  :left;
+};
 
 !tseq1 = hx:get_cell $i(2, 1);
 !tseq0 = hx:get_cell $i(1, 0);
@@ -91,10 +97,12 @@ reset[];
 hx:set_cell $i(1, 0) ${ node_id = "tseq" => 0 };
 drag_hex_from_to $i(0, 0) $i(1, 0) :right;
 
-t:menu_click_text "CV"    :left;
-t:menu_click_text "TSeq"  :left;
-t:menu_click_text "trk3"  :left;
-t:menu_click_text "clock" :left;
+t:matrix_wait {
+    t:menu_click_text "CV"    :left;
+    t:menu_click_text "TSeq"  :left;
+    t:menu_click_text "trk3"  :left;
+    t:menu_click_text "clock" :left;
+};
 
 !tseq1 = hx:get_cell $i(0, 0);
 !tseq0 = hx:get_cell $i(1, 0);
@@ -106,8 +114,10 @@ reset[];
 hx:set_cell $i(1, 0) ${ node_id = "fbrd" => 0 };
 drag_hex_from_to $i(0, 0) $i(1, 0) :right;
 
-t:menu_click_text "I/O"   :left;
-t:menu_click_text "FbWr"  :left;
+t:matrix_wait {
+    t:menu_click_text "I/O"   :left;
+    t:menu_click_text "FbWr"  :left;
+};
 
 !fbwr = hx:get_cell $i(0, 0);
 !fbrd = hx:get_cell $i(1, 0);
@@ -119,8 +129,10 @@ reset[];
 hx:set_cell $i(1, 0) ${ node_id = "fbwr" => 0 };
 drag_hex_from_to $i(2, 1) $i(1, 0) :right;
 
-t:menu_click_text "I/O"   :left;
-t:menu_click_text "FbRd"  :left;
+t:matrix_wait {
+    t:menu_click_text "I/O"   :left;
+    t:menu_click_text "FbRd"  :left;
+};
 
 !fbrd = hx:get_cell $i(2, 1);
 !fbwr = hx:get_cell $i(1, 0);
@@ -132,10 +144,14 @@ reset[];
 hx:set_cell $i(1, 0) ${ node_id = "sin" => 0 };
 drag_hex_from_to $i(2, 1) $i(1, 0) :right;
 
-t:menu_click_text "I/O"  :left;
-t:menu_click_text "FbRd" :left;
+t:matrix_wait {
+    t:menu_click_text "I/O"  :left;
+    t:menu_click_text "FbRd" :left;
+};
 
 !fbrd = hx:get_cell $i(2, 1);
 !fbwr = hx:get_cell $i(1, 0);
 std:assert_eq fbwr.ports.4 "sig";
 std:assert_eq fbrd.ports.1 "atv";
+
+############################################################################

@@ -6,15 +6,17 @@ t:set_hex_wh_from_hover[];
 
 t:move_mouse_hex_dir :B => 3;
 
-# open hex menu
-t:mouse_click :left;
-t:set_hex_wh_from_hover[];
-# open "osc" sub menu
-t:move_mouse_hex_dir :T;
-t:mouse_click :left;
-# select "sin"
-t:move_mouse_hex_dir :BR;
-t:mouse_click :left;
+t:matrix_wait {
+    # open hex menu
+    t:mouse_click :left;
+    t:set_hex_wh_from_hover[];
+    # open "osc" sub menu
+    t:move_mouse_hex_dir :T;
+    t:mouse_click :left;
+    # select "sin"
+    t:move_mouse_hex_dir :BR;
+    t:mouse_click :left;
+};
 
 !cell = hx:get_cell $i(0, 3);
 

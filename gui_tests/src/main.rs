@@ -579,6 +579,14 @@ fn setup_hx_module() -> wlambda::SymbolTable {
         Ok(VVal::None)
     }, Some(2), Some(2), false);
 
+    st.fun(
+        "matrix_generation", |env: &mut Env, argc: usize| {
+        let pos = env.arg(0);
+        env.with_user_do(|ctx: &mut Ctx| {
+            let m = ctx.matrix.lock().unwrap();
+            Ok(VVal::Int(m.get_generation() as i64))
+        })
+    }, Some(0), Some(0), false);
 
     st.fun(
         "get_cell", |env: &mut Env, argc: usize| {

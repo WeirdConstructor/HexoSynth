@@ -91,4 +91,14 @@
     hx:mouse_move $f(x, y);
     hx:mouse_down _1;
     hx:mouse_up _1;
-}
+};
+
+!@export matrix_wait {!(fun) = @;
+    !gen1 = hx:matrix_generation[];
+    fun[];
+    !gen2 = hx:matrix_generation[];
+    while gen1 == gen2 {
+        std:thread:sleep :ms => 10;
+        .gen2 = hx:matrix_generation[];
+    };
+};
