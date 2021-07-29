@@ -689,6 +689,8 @@ fn start_driver(matrix: Arc<Mutex<Matrix>>) -> Driver {
             let path = std::path::Path::new(f);
             let name = path.file_name().unwrap().to_str().unwrap();
 
+            println!("{}...", name);
+
             {
                 let mut m = clear_matrix.lock().unwrap();
                 m.clear();

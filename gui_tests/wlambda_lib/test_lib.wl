@@ -25,7 +25,19 @@
 !HEX_WH = hex_wh[54.0];
 !HEX_INIT_POS = $f(424, 45);
 
+!wait_for_hex_menu = {
+    hx:query_state[];
+    !hex_menu = filter { _.id.0 == HEX_MENU_ID } hx:zones[];
+    while is_none[hex_menu.0] {
+        hx:query_state[];
+        .hex_menu = filter { _.id.0 == HEX_MENU_ID } hx:zones[];
+        std:thread:sleep :ms => 10;
+    };
+};
+
 !hex_menu_pos = {
+    wait_for_hex_menu[];
+
     !hex_menu = filter { _.id.0 == HEX_MENU_ID } hx:zones[];
     !hex_menu = hex_menu.0;
     std:assert is_some[hex_menu] "Finding the hex menu";
@@ -80,7 +92,7 @@
 };
 
 !@export menu_click_text {!(text, btn) = @;
-    hx:query_state[];
+    wait_for_hex_menu[];
 
     !menu_pos = hex_menu_pos[];
 

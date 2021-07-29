@@ -462,11 +462,16 @@ impl UICtrlRef {
 
         let mut action_handler = self.3.borrow_mut().take();
 
+//        std::thread::sleep(
+//            std::time::Duration::from_millis(100));
+
         while self.0.borrow_mut().msg_q.has_new_messages() {
             let messages = self.0.borrow_mut().msg_q.start_work();
 
             if let Some(messages) = messages {
+                //d// println!("CHECK UI MSGS {}", messages.len());
                 for msg in messages.iter() {
+                    //d// println!("CHECK UI MSG {:?}", msg);
                     self.with_matrix(|matrix| {
                         let mut a = crate::actions::ActionState {
                             state:  &mut *self.2.borrow_mut(),
@@ -480,9 +485,11 @@ impl UICtrlRef {
                     });
                 }
 
+                //d// println!("CHECK UI MSGS END {}", messages.len());
                 self.0.borrow_mut().msg_q.end_work(messages);
             }
         }
+        //d// println!("CHECK UI MSGS END REALLY");
 
         *self.3.borrow_mut() = action_handler;
     }

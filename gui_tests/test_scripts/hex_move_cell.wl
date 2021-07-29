@@ -46,6 +46,7 @@ hx:query_state[];
 #       - 4: Old select param
 
 # Test 1: New Node with Default Output
+std:displayln "- test 1";
 reset[];
 hx:set_cell $i(1, 0) ${ node_id = "tseq" => 0 };
 drag_hex_from_to $i(0, 0) $i(1, 0);
@@ -61,6 +62,7 @@ std:assert_eq tseq1.ports.4 "trk1";
 std:assert_eq tseq0.ports.1 "clock";
 
 # Test 2: New Node with Default Input
+std:displayln "- test 2";
 reset[];
 hx:set_cell $i(1, 0) ${ node_id = "tseq" => 0 };
 drag_hex_from_to $i(2, 1) $i(1, 0);
@@ -76,6 +78,7 @@ std:assert_eq tseq1.ports.1 "clock";
 std:assert_eq tseq0.ports.4 "trk1";
 
 # Test 3: New Node with Select I/O
+std:displayln "- test 3";
 reset[];
 hx:set_cell $i(1, 0) ${ node_id = "tseq" => 0 };
 drag_hex_from_to $i(2, 1) $i(1, 0) :right;
@@ -93,6 +96,7 @@ std:assert_eq tseq1.ports.1 "trig";
 std:assert_eq tseq0.ports.4 "trk2";
 
 # Test 4: New Node with Select I/O
+std:displayln "- test 4";
 reset[];
 hx:set_cell $i(1, 0) ${ node_id = "tseq" => 0 };
 drag_hex_from_to $i(0, 0) $i(1, 0) :right;
@@ -110,6 +114,7 @@ std:assert_eq tseq1.ports.4 "trk3";
 std:assert_eq tseq0.ports.1 "clock";
 
 # Test 5: New out count 0, old in count 1
+std:displayln "- test 5";
 reset[];
 hx:set_cell $i(1, 0) ${ node_id = "fbrd" => 0 };
 drag_hex_from_to $i(0, 0) $i(1, 0) :right;
@@ -125,6 +130,7 @@ std:assert_str_eq fbwr.ports $[$n,$n,$n,$n,$n,$n];
 std:assert_eq fbrd.ports.1 "atv";
 
 # Test 6: New in count 1, old out count 0
+std:displayln "- test 6";
 reset[];
 hx:set_cell $i(1, 0) ${ node_id = "fbwr" => 0 };
 drag_hex_from_to $i(2, 1) $i(1, 0) :right;
@@ -140,6 +146,7 @@ std:assert_str_eq fbwr.ports $[$n,$n,$n,$n,$n,$n];
 std:assert_eq fbrd.ports.1 "atv";
 
 # Test 7: New in count 1, old out count 1
+std:displayln "- test 7";
 reset[];
 hx:set_cell $i(1, 0) ${ node_id = "sin" => 0 };
 drag_hex_from_to $i(2, 1) $i(1, 0) :right;
