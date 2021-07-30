@@ -687,7 +687,7 @@ impl ActionHandler for DefaultActionHandler {
                 //  => open cell selection dialog for two NodeIds
                 //  => connect the default output to default input
                 //     default is always: first input, first output
-                // Left & pos_a exists & pos_b exists & adjacent
+                // DONE: Left & pos_a exists & pos_b exists & adjacent
                 //  => open connection selection dialog for the port of the
                 //     pos_a cell!
                 //     (Note: you can reassign both with the right mouse button)
@@ -699,10 +699,23 @@ impl ActionHandler for DefaultActionHandler {
 
                 // Right & pos_a exists & pos_b empty & NOT adjacent
                 //  => copy cell, but with empty ports
-                // Right & pos_a exists & pos_b empty & adjacent
-                //  => copy cell, but with empty ports, open port connection dialog
                 // Right & pos_a exists & pos_b exists & adjacent
-                //  => open connection menu for both
+                //  => Split the current cluster into 2
+                //     move the destination cell-tail into direction of the drag
+                //     To do this:
+                //      - flood fill the two connected cells to make two
+                //        cell collections. (flood fill must mark which cells were
+                //        already visited to prevent any circles!)
+                //        - the second flood fill should check if there
+                //          is an intersection between the two flood fills,
+                //          and issue an error that there are cycles that can't
+                //          be broken!
+                //      - remove the to be moved collection
+                //      - insert the moved collection with the direction offset
+                //      - check for each cell if there already exists one.
+                //        - If so, reinsert the given cells into the graph.
+                //          - And open a dialog box with an error message.
+                //        - Otherwise everything done
                 // Right & pos_a empty & pos_b empty & adjacent
                 //  => ????
                 // Right & pos_a empty & pos_b exists
