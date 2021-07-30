@@ -160,5 +160,3 @@ t:matrix_wait {
 !fbwr = hx:get_cell $i(1, 0);
 std:assert_eq fbwr.ports.4 "sig";
 std:assert_eq fbrd.ports.1 "atv";
-
-############################################################################
