@@ -153,8 +153,26 @@ impl ActionState<'_, '_, '_> {
         }
     }
 
+    pub fn clear_menu_history(&mut self) {
+        self.state.menu_history.clear();
+    }
+
+    pub fn push_menu_history(&mut self, ms: MenuState, title: String) {
+        self.state.menu_history.push((ms, title));
+        println!("PUSH MENU HIS: {:?}", self.state.menu_history);
+    }
+
+    pub fn menu_back(&mut self) {
+        // Clicking on "Back" creates a new history entry, so we
+        // skip that one here:
+        self.state.menu_history.pop();
+        if let Some((ms, title)) = self.state.menu_history.pop() {
+            self.next_menu_state(ms, title);
+        }
+    }
+
     pub fn next_menu_state(&mut self, ms: MenuState, title: String) {
-        self.state.menu_state = ms;
+        self.state.menu_state = ms.clone();
         *self.state.menu_title.borrow_mut() = title;
         self.state.menu_items = self.state.menu_state.to_items();
     }
@@ -237,6 +255,7 @@ impl ActionNewNodeAtCell {
 
 impl ActionHandler for ActionNewNodeAtCell {
     fn init(&mut self, a: &mut ActionState) {
+        a.clear_menu_history();
         a.next_menu_state(
             MenuState::SelectCategory,
             "Category for new node".to_string());
@@ -245,14 +264,7 @@ impl ActionHandler for ActionNewNodeAtCell {
     fn menu_select(&mut self, a: &mut ActionState, ms: MenuState, item_type: ItemType) {
         match item_type {
             ItemType::Back => {
-                match ms {
-                    MenuState::SelectNodeIdFromCat { .. } => {
-                        a.next_menu_state(
-                            MenuState::SelectCategory,
-                            "Category for new node".to_string());
-                    },
-                    _ => {},
-                }
+                a.menu_back();
             },
             ItemType::Category(category) => {
                 a.next_menu_state(
@@ -278,7 +290,6 @@ struct ActionNewNodeAndConnectionTo {
     new_node_id:    Option<NodeId>,
     category:       UICategory,
     new_io:         Option<usize>,
-    prev_ms:        Vec<(MenuState, String)>,
     use_defaults:   bool,
 }
 
@@ -289,7 +300,6 @@ impl ActionNewNodeAndConnectionTo {
             new_node_id: None,
             category:    UICategory::None,
             new_io:      None,
-            prev_ms:     vec![],
             use_defaults,
         }
     }
@@ -396,21 +406,16 @@ impl ActionNewNodeAndConnectionTo {
 
 impl ActionHandler for ActionNewNodeAndConnectionTo {
     fn init(&mut self, a: &mut ActionState) {
+        a.clear_menu_history();
         a.next_menu_state(
             MenuState::SelectCategory,
             "Category for new connected node".to_string());
     }
 
     fn menu_select(&mut self, a: &mut ActionState, ms: MenuState, item_type: ItemType) {
-        self.prev_ms.push((ms.clone(), a.state.menu_title.borrow().clone()));
-
         match item_type {
             ItemType::Back => {
-                self.prev_ms.pop(); // discard the current menu state
-
-                if let Some((prev_ms, title)) = self.prev_ms.pop() {
-                    a.next_menu_state(prev_ms, title);
-                }
+                a.menu_back();
             },
             ItemType::Category(category) => {
                 self.category = category;
@@ -459,6 +464,7 @@ impl ActionHandler for ActionNewNodeAndConnectionTo {
 }
 
 
+
 pub struct DefaultActionHandler {
     ui_action: Option<Box<dyn ActionHandler>>,
 }
@@ -468,6 +474,15 @@ impl DefaultActionHandler {
         Self {
             ui_action: None
         }
+    }
+
+    pub fn set_action_handler(
+        &mut self, mut ah: Box<dyn ActionHandler>,
+        a: &mut ActionState
+    ) {
+        a.clear_menu_history();
+        ah.init(a);
+        self.ui_action = Some(ah);
     }
 }
 
@@ -487,7 +502,7 @@ impl ActionHandler for DefaultActionHandler {
             Msg::CellDragged { btn, pos_a, pos_b, mouse_pos } => {
                 a.state.menu_pos = *mouse_pos;
 
-                // Left & pos_a empty & pos_b exists
+                // DONE: Left & pos_a empty & pos_b exists
                 //  => open cell selection dialog for one node
                 //  => connect the default input
                 // Left & pos_a empty & pos_b empty & adjacent
@@ -560,8 +575,7 @@ impl ActionHandler for DefaultActionHandler {
                                 ActionNewNodeAndConnectionTo::new(
                                     btn == MButton::Left,
                                     pos_a.0, pos_a.1, cell, dir));
-                        ah.init(a);
-                        self.ui_action = Some(ah);
+                        self.set_action_handler(ah, a);
                     },
                     (MButton::Left, Some(src), Some(dst), Some(dir), io) => {
                         println!("OPEN MENU!!!!! {:?} aisout={}",
@@ -607,6 +621,8 @@ impl ActionHandler for DefaultActionHandler {
 //                            a.state.menu_pos = new_menu_pos;
 //                        }
 
+                        let title = a.state.menu_title.borrow().clone();
+                        a.push_menu_history(ms.clone(), title);
                         ah.menu_select(a, ms, item_type);
                         self.ui_action = Some(ah);
                     }
@@ -619,8 +635,7 @@ impl ActionHandler for DefaultActionHandler {
                     if cell.is_empty() {
                         if *btn == MButton::Left {
                             let mut ah = Box::new(ActionNewNodeAtCell::new(*x, *y));
-                            ah.init(a);
-                            self.ui_action = Some(ah);
+                            self.set_action_handler(ah, a);
                         }
                     } else {
                         a.set_focus(cell);

@@ -55,6 +55,7 @@ pub struct State {
     pub menu_pos:            (f64, f64),
     pub next_menu_pos:       Option<(f64, f64)>,
 
+    pub menu_history:        Vec<(MenuState, String)>,
     pub menu_state:          MenuState,
 
     pub widgets:             DynamicWidgets,
@@ -71,6 +72,7 @@ impl State {
             menu_items:             vec![],
             menu_pos:               (0.0, 0.0),
             next_menu_pos:          None,
+            menu_history:           vec![],
             menu_state:             MenuState::None,
             menu_title:             Rc::new(RefCell::new("?".to_string())),
             focus_cell:             Cell::empty(NodeId::Nop),
