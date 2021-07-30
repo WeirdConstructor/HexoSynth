@@ -1,23 +1,8 @@
 !@import t = wlambda_lib:test_lib;
 !@import hx;
+!@import h = wlambda_lib:hex_lib;
 
-hx:query_state[];
-
-!drag_hex_from_to = {|2<3| !(from, to, btn) = @;
-    !btn = ? is_none[btn] :left btn;
-    t:move_to_hex from;
-    hx:mouse_down btn;
-    t:move_to_hex to;
-    hx:mouse_up btn;
-};
-
-!reset = {
-    iter x 0 => 10 {
-        iter y 0 => 10 {
-            hx:set_cell $i(x, y) ${ node_id = "nop" => 0 };
-        };
-    };
-};
+!tests = $[];
 
 # This is the test plan:
 #
@@ -45,118 +30,120 @@ hx:query_state[];
 #     - 4: Select Param
 #       - 4: Old select param
 
-# Test 1: New Node with Default Output
-std:displayln "- test 1";
-reset[];
-hx:set_cell $i(1, 0) ${ node_id = "tseq" => 0 };
-drag_hex_from_to $i(0, 0) $i(1, 0);
+std:push tests "test_1_new_node_with_def_out" => {
+    h:reset10x10[];
+    hx:set_cell $i(1, 0) ${ node_id = "tseq" => 0 };
+    h:drag_hex_from_to $i(0, 0) $i(1, 0);
 
-t:matrix_wait {
-    t:menu_click_text "CV"   :left;
-    t:menu_click_text "TSeq" :left;
+    t:matrix_wait {
+        t:menu_click_text "CV"   :left;
+        t:menu_click_text "TSeq" :left;
+    };
+
+    !tseq1 = hx:get_cell $i(0, 0);
+    !tseq0 = hx:get_cell $i(1, 0);
+    std:assert_eq tseq1.ports.4 "trk1";
+    std:assert_eq tseq0.ports.1 "clock";
 };
 
-!tseq1 = hx:get_cell $i(0, 0);
-!tseq0 = hx:get_cell $i(1, 0);
-std:assert_eq tseq1.ports.4 "trk1";
-std:assert_eq tseq0.ports.1 "clock";
+std:push tests "test_2_new_node_with_def_inp" => {
+    h:reset10x10[];
+    hx:set_cell $i(1, 0) ${ node_id = "tseq" => 0 };
+    h:drag_hex_from_to $i(2, 1) $i(1, 0);
 
-# Test 2: New Node with Default Input
-std:displayln "- test 2";
-reset[];
-hx:set_cell $i(1, 0) ${ node_id = "tseq" => 0 };
-drag_hex_from_to $i(2, 1) $i(1, 0);
+    t:matrix_wait {
+        t:menu_click_text "CV"   :left;
+        t:menu_click_text "TSeq" :left;
+    };
 
-t:matrix_wait {
-    t:menu_click_text "CV"   :left;
-    t:menu_click_text "TSeq" :left;
+    !tseq1 = hx:get_cell $i(2, 1);
+    !tseq0 = hx:get_cell $i(1, 0);
+    std:assert_eq tseq1.ports.1 "clock";
+    std:assert_eq tseq0.ports.4 "trk1";
 };
 
-!tseq1 = hx:get_cell $i(2, 1);
-!tseq0 = hx:get_cell $i(1, 0);
-std:assert_eq tseq1.ports.1 "clock";
-std:assert_eq tseq0.ports.4 "trk1";
+std:push tests "test_3_new_node_with_select_io" => {
+    h:reset10x10[];
+    hx:set_cell $i(1, 0) ${ node_id = "tseq" => 0 };
+    h:drag_hex_from_to $i(2, 1) $i(1, 0) :right;
 
-# Test 3: New Node with Select I/O
-std:displayln "- test 3";
-reset[];
-hx:set_cell $i(1, 0) ${ node_id = "tseq" => 0 };
-drag_hex_from_to $i(2, 1) $i(1, 0) :right;
+    t:matrix_wait {
+        t:menu_click_text "CV"    :left;
+        t:menu_click_text "TSeq"  :left;
+        t:menu_click_text "trig"  :left;
+        t:menu_click_text "trk2"  :left;
+    };
 
-t:matrix_wait {
-    t:menu_click_text "CV"    :left;
-    t:menu_click_text "TSeq"  :left;
-    t:menu_click_text "trig"  :left;
-    t:menu_click_text "trk2"  :left;
+    !tseq1 = hx:get_cell $i(2, 1);
+    !tseq0 = hx:get_cell $i(1, 0);
+    std:assert_eq tseq1.ports.1 "trig";
+    std:assert_eq tseq0.ports.4 "trk2";
 };
 
-!tseq1 = hx:get_cell $i(2, 1);
-!tseq0 = hx:get_cell $i(1, 0);
-std:assert_eq tseq1.ports.1 "trig";
-std:assert_eq tseq0.ports.4 "trk2";
+std:push tests "test_4_new_node_with_select_io_old" => {
+    h:reset10x10[];
+    hx:set_cell $i(1, 0) ${ node_id = "tseq" => 0 };
+    h:drag_hex_from_to $i(0, 0) $i(1, 0) :right;
 
-# Test 4: New Node with Select I/O
-std:displayln "- test 4";
-reset[];
-hx:set_cell $i(1, 0) ${ node_id = "tseq" => 0 };
-drag_hex_from_to $i(0, 0) $i(1, 0) :right;
+    t:matrix_wait {
+        t:menu_click_text "CV"    :left;
+        t:menu_click_text "TSeq"  :left;
+        t:menu_click_text "trk3"  :left;
+        t:menu_click_text "clock" :left;
+    };
 
-t:matrix_wait {
-    t:menu_click_text "CV"    :left;
-    t:menu_click_text "TSeq"  :left;
-    t:menu_click_text "trk3"  :left;
-    t:menu_click_text "clock" :left;
+    !tseq1 = hx:get_cell $i(0, 0);
+    !tseq0 = hx:get_cell $i(1, 0);
+    std:assert_eq tseq1.ports.4 "trk3";
+    std:assert_eq tseq0.ports.1 "clock";
 };
 
-!tseq1 = hx:get_cell $i(0, 0);
-!tseq0 = hx:get_cell $i(1, 0);
-std:assert_eq tseq1.ports.4 "trk3";
-std:assert_eq tseq0.ports.1 "clock";
+std:push tests "test_5_new_node_out_cnt_0_old_in_1" => {
+    h:reset10x10[];
+    hx:set_cell $i(1, 0) ${ node_id = "fbrd" => 0 };
+    h:drag_hex_from_to $i(0, 0) $i(1, 0) :right;
 
-# Test 5: New out count 0, old in count 1
-std:displayln "- test 5";
-reset[];
-hx:set_cell $i(1, 0) ${ node_id = "fbrd" => 0 };
-drag_hex_from_to $i(0, 0) $i(1, 0) :right;
+    t:matrix_wait {
+        t:menu_click_text "I/O"   :left;
+        t:menu_click_text "FbWr"  :left;
+    };
 
-t:matrix_wait {
-    t:menu_click_text "I/O"   :left;
-    t:menu_click_text "FbWr"  :left;
+    !fbwr = hx:get_cell $i(0, 0);
+    !fbrd = hx:get_cell $i(1, 0);
+    std:assert_str_eq fbwr.ports $[$n,$n,$n,$n,$n,$n];
+    std:assert_eq fbrd.ports.1 "atv";
 };
 
-!fbwr = hx:get_cell $i(0, 0);
-!fbrd = hx:get_cell $i(1, 0);
-std:assert_str_eq fbwr.ports $[$n,$n,$n,$n,$n,$n];
-std:assert_eq fbrd.ports.1 "atv";
+std:push tests "test_6_new_node_in_1_old_out_0" => {
+    h:reset10x10[];
+    hx:set_cell $i(1, 0) ${ node_id = "fbwr" => 0 };
+    h:drag_hex_from_to $i(2, 1) $i(1, 0) :right;
 
-# Test 6: New in count 1, old out count 0
-std:displayln "- test 6";
-reset[];
-hx:set_cell $i(1, 0) ${ node_id = "fbwr" => 0 };
-drag_hex_from_to $i(2, 1) $i(1, 0) :right;
+    t:matrix_wait {
+        t:menu_click_text "I/O"   :left;
+        t:menu_click_text "FbRd"  :left;
+    };
 
-t:matrix_wait {
-    t:menu_click_text "I/O"   :left;
-    t:menu_click_text "FbRd"  :left;
+    !fbrd = hx:get_cell $i(2, 1);
+    !fbwr = hx:get_cell $i(1, 0);
+    std:assert_str_eq fbwr.ports $[$n,$n,$n,$n,$n,$n];
+    std:assert_eq fbrd.ports.1 "atv";
 };
 
-!fbrd = hx:get_cell $i(2, 1);
-!fbwr = hx:get_cell $i(1, 0);
-std:assert_str_eq fbwr.ports $[$n,$n,$n,$n,$n,$n];
-std:assert_eq fbrd.ports.1 "atv";
+std:push tests "test_6_new_node_in_1_old_out_1" => {
+    h:reset10x10[];
+    hx:set_cell $i(1, 0) ${ node_id = "sin" => 0 };
+    h:drag_hex_from_to $i(2, 1) $i(1, 0) :right;
 
-# Test 7: New in count 1, old out count 1
-std:displayln "- test 7";
-reset[];
-hx:set_cell $i(1, 0) ${ node_id = "sin" => 0 };
-drag_hex_from_to $i(2, 1) $i(1, 0) :right;
+    t:matrix_wait {
+        t:menu_click_text "I/O"  :left;
+        t:menu_click_text "FbRd" :left;
+    };
 
-t:matrix_wait {
-    t:menu_click_text "I/O"  :left;
-    t:menu_click_text "FbRd" :left;
+    !fbrd = hx:get_cell $i(2, 1);
+    !fbwr = hx:get_cell $i(1, 0);
+    std:assert_eq fbwr.ports.4 "sig";
+    std:assert_eq fbrd.ports.1 "atv";
 };
 
-!fbrd = hx:get_cell $i(2, 1);
-!fbwr = hx:get_cell $i(1, 0);
-std:assert_eq fbwr.ports.4 "sig";
-std:assert_eq fbrd.ports.1 "atv";
+tests

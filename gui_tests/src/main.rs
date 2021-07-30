@@ -664,17 +664,6 @@ fn start_driver(matrix: Arc<Mutex<Matrix>>) -> Driver {
 
         let mut files : Vec<String> =
             std::fs::read_dir(path.to_string() + "/test_scripts/").unwrap()
-            .filter(|e| {
-                let pth  = e.as_ref().unwrap().path();
-                let path = pth.as_path();
-
-                if let Some(name_substr) = &test_match {
-                    let s = path.file_name().unwrap().to_str().unwrap();
-                    s.contains(name_substr)
-                } else {
-                    true
-                }
-            })
             .map(|e| {
                 let pth = e.unwrap().path();
                 let path = pth.as_path();
@@ -689,8 +678,6 @@ fn start_driver(matrix: Arc<Mutex<Matrix>>) -> Driver {
             let path = std::path::Path::new(f);
             let name = path.file_name().unwrap().to_str().unwrap();
 
-            println!("{}...", name);
-
             {
                 let mut m = clear_matrix.lock().unwrap();
                 m.clear();
@@ -698,7 +685,33 @@ fn start_driver(matrix: Arc<Mutex<Matrix>>) -> Driver {
 
             match ctx.eval_file(&f) {
                 Ok(v) => {
-                    println!("*** OK: {}", name);
+                    println!("[{} has {} tests]", name, v.len());
+                    for (v, _) in v.iter() {
+                        let tname = v.v_s_raw(0);
+                        let fun   = v.v_(1);
+
+                        let combined = name.to_string() + "_" + &tname;
+
+                        let exec_test =
+                            if let Some(name_substr) = &test_match {
+                                combined.contains(name_substr)
+                            } else {
+                                true
+                            };
+
+                        if exec_test {
+                            match ctx.call(&fun, &[]) {
+                                Ok(v) => {
+                                    println!("    - OK: {}", tname);
+                                },
+                                Err(e) => {
+                                    println!("*** ERROR: {}\n    {}", combined, e);
+                                    error = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
                 },
                 Err(e) => {
                     println!("*** ERROR: {}\n    {}", name, e);

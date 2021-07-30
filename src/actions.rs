@@ -183,7 +183,6 @@ impl ActionState<'_, '_, '_> {
 
     pub fn push_menu_history(&mut self, ms: MenuState, title: String) {
         self.state.menu_history.push((ms, title));
-        println!("PUSH MENU HIS: {:?}", self.state.menu_history);
     }
 
     pub fn menu_back(&mut self) {
@@ -729,7 +728,7 @@ impl ActionHandler for DefaultActionHandler {
 
                 let adjacent = CellDir::are_adjacent(*pos_a, *pos_b);
 
-                println!("DRAG CELL! {:?} {:?}", btn, msg);
+                //d// println!("DRAG CELL! {:?} {:?}", btn, msg);
 
                 let src_is_output =
                     if let Some(dir) = adjacent { dir.is_output() }
