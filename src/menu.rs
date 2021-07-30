@@ -6,8 +6,8 @@ pub enum MenuState {
     None,
     SelectCategory,
     SelectNodeIdFromCat { category: UICategory },
-    SelectOutputParam { node_id: NodeId, node_info: NodeInfo },
-    SelectInputParam { node_id: NodeId, node_info: NodeInfo },
+    SelectOutputParam { node_id: NodeId, node_info: NodeInfo, user_state: i64 },
+    SelectInputParam { node_id: NodeId, node_info: NodeInfo, user_state: i64 },
 }
 
 impl MenuState {
@@ -84,7 +84,7 @@ impl MenuState {
                 });
                 items
             },
-            MenuState::SelectOutputParam { node_id, node_info } => {
+            MenuState::SelectOutputParam { node_id, node_info, .. } => {
                 let mut items = vec![];
                 items.push(MenuItem {
                     typ:    ItemType::Back,
@@ -104,7 +104,7 @@ impl MenuState {
 
                 items
             },
-            MenuState::SelectInputParam { node_id, node_info } => {
+            MenuState::SelectInputParam { node_id, node_info, .. } => {
                 let mut items = vec![];
                 items.push(MenuItem {
                     typ:    ItemType::Back,

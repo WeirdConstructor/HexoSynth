@@ -104,30 +104,6 @@ impl ActionState<'_, '_, '_> {
         });
     }
 
-    pub fn set_connection(
-        &mut self,
-        dir: CellDir, mut cell_a: Cell, cell_a_io: Option<usize>,
-        mut cell_b: Cell, cell_b_io: Option<usize>)
-    {
-        catch_err_dialog(self.dialog.clone(), || {
-            if let Some(cell_a_io) = cell_a_io {
-                cell_a.set_io_dir(dir, cell_a_io);
-            }
-
-            if let Some(cell_b_io) = cell_b_io {
-                cell_b.set_io_dir(dir.flip(), cell_b_io);
-            }
-
-            self.matrix.change_matrix(|m| {
-                m.place(cell_a.pos().0, cell_a.pos().1, cell_a);
-                m.place(cell_b.pos().0, cell_b.pos().1, cell_b);
-            })?;
-
-            self.matrix.sync()?;
-            Ok(())
-        });
-    }
-
     pub fn instanciate_node_at_with_connection(
         &mut self, pos: (usize, usize), node_id: NodeId,
         dir: CellDir, new_idx: Option<usize>, mut adj_cell: Cell, adj_idx: Option<usize>
@@ -286,7 +262,9 @@ impl ActionHandler for ActionNewNodeAtCell {
 
     fn menu_select(&mut self, a: &mut ActionState, ms: MenuState, item_type: ItemType) {
         match item_type {
-            ItemType::Back => { a.menu_back(); },
+            ItemType::Back => {
+                a.menu_back();
+            },
             ItemType::Category(category) => {
                 a.next_menu_state(
                     MenuState::SelectNodeIdFromCat { category },
@@ -347,7 +325,6 @@ impl ActionNewNodeAndConnectionTo {
                     MenuState::SelectOutputParam {
                         node_id,
                         node_info,
-                        user_state: 1,
                     },
                     format!("Output of {}", node_id.label()));
             }
@@ -367,7 +344,6 @@ impl ActionNewNodeAndConnectionTo {
                     MenuState::SelectInputParam {
                         node_id,
                         node_info,
-                        user_state: 1,
                     },
                     format!("Input of {}", node_id.label()));
             }
@@ -391,7 +367,6 @@ impl ActionNewNodeAndConnectionTo {
                         MenuState::SelectInputParam {
                             node_id,
                             node_info: NodeInfo::from_node_id(node_id),
-                            user_state: 0,
                         },
                         format!("Input of {}", node_id.label()));
                 }
@@ -408,7 +383,6 @@ impl ActionNewNodeAndConnectionTo {
                         MenuState::SelectOutputParam {
                             node_id,
                             node_info: NodeInfo::from_node_id(node_id),
-                            user_state: 0,
                         },
                         format!("Output of {}", node_id.label()));
                 }
@@ -438,7 +412,9 @@ impl ActionHandler for ActionNewNodeAndConnectionTo {
 
     fn menu_select(&mut self, a: &mut ActionState, ms: MenuState, item_type: ItemType) {
         match item_type {
-            ItemType::Back => { a.menu_back(); },
+            ItemType::Back => {
+                a.menu_back();
+            },
             ItemType::Category(category) => {
                 self.category = category;
                 a.next_menu_state(
@@ -459,10 +435,8 @@ impl ActionHandler for ActionNewNodeAndConnectionTo {
                 }
             },
             ItemType::OutputIdx(out_idx) => {
-                if let MenuState::SelectOutputParam {
-                    node_id, node_info, user_state
-                } = ms {
-                    if user_state == 1 {
+                if let MenuState::SelectOutputParam { node_id, node_info } = ms {
+                    if node_id == self.cell.node_id() {
                         self.create_node(Some(out_idx), a);
 
                     } else {
@@ -472,10 +446,8 @@ impl ActionHandler for ActionNewNodeAndConnectionTo {
                 }
             },
             ItemType::InputIdx(in_idx) => {
-                if let MenuState::SelectInputParam {
-                    node_id, node_info, user_state
-                } = ms {
-                    if user_state == 1 {
+                if let MenuState::SelectInputParam { node_id, node_info } = ms {
+                    if node_id == self.cell.node_id() {
                         self.create_node(Some(in_idx), a);
 
                     } else {
@@ -510,41 +482,45 @@ impl ActionConnectCells {
 }
 
 impl ActionConnectCells {
-    fn select_cell_b(&mut self, a: &mut ActionState) {
+    fn select_cell_b_io(&mut self, a: &mut ActionState) {
         let node_id   = self.cell_b.node_id();
         let node_info = NodeInfo::from_node_id(node_id);
 
         if self.dir.is_input() {
             if node_info.out_count() == 0 {
-                self.create_connection(a);
+                self.create_connection(None, a);
 
             } else if node_info.out_count() == 1 {
-                self.cell_b_io = Some(0);
-                self.create_connection(a);
+                if self.cell.has_dir_set(self.dir.flip()) {
+                    self.create_connection(None, a);
+                } else {
+                    self.create_connection(Some(0), a);
+                }
 
             } else {
                 a.next_menu_state(
                     MenuState::SelectOutputParam {
                         node_id,
                         node_info,
-                        user_state: 1,
                     },
                     format!("Output of {}", node_id.label()));
             }
         } else {
             if node_info.in_count() == 0 {
-                self.create_connection(a);
+                self.create_connection(None, a);
 
-            } else if node_info.in_count() == 1 {
-                self.cell_b_io = Some(0);
-                self.create_connection(a);
+            } else if node_info.in_count() == 1 || self.use_defaults {
+                if self.cell.has_dir_set(self.dir.flip()) {
+                    self.create_connection(None, a);
+                } else {
+                    self.create_connection(Some(0), a);
+                }
 
             } else {
                 a.next_menu_state(
                     MenuState::SelectInputParam {
                         node_id,
                         node_info,
-                        user_state: 1,
                     },
                     format!("Input of {}", node_id.label()));
             }
@@ -568,7 +544,6 @@ impl ActionConnectCells {
                     MenuState::SelectInputParam {
                         node_id,
                         node_info: NodeInfo::from_node_id(node_id),
-                        user_state: 0,
                     },
                     format!("Input of {}", node_id.label()));
             }
@@ -577,7 +552,7 @@ impl ActionConnectCells {
                 self.select_cell_b(a);
 
             } else if node_info.out_count() == 1 {
-                self.cell_a_io = Some(0);
+                self.new_io = Some(0);
                 self.select_cell_b(a);
 
             } else {
@@ -585,55 +560,71 @@ impl ActionConnectCells {
                     MenuState::SelectOutputParam {
                         node_id,
                         node_info: NodeInfo::from_node_id(node_id),
-                        user_state: 0,
                     },
                     format!("Output of {}", node_id.label()));
             }
         }
     }
 
-    fn create_connection(&mut self, a: &mut ActionState) {
+    fn create_connection(&mut self, old_idx: Option<usize>, a: &mut ActionState) {
         a.set_connection(
             self.dir,
             self.cell_a, self.cell_a_io,
             self.cell_b, self.cell_b_io);
-        a.set_focus_at(self.cell_a.pos().0, self.cell_a.pos().1);
+        a.set_focus_at(self.x, self.y);
     }
 }
 
 impl ActionHandler for ActionConnectCells {
     fn init(&mut self, a: &mut ActionState) {
-        self.select_cell_a(a);
+        a.next_menu_state(
+            MenuState::SelectCategory,
+            "Category for new connected node".to_string());
     }
 
     fn menu_select(&mut self, a: &mut ActionState, ms: MenuState, item_type: ItemType) {
         match item_type {
-            ItemType::Back => { a.menu_back(); },
+            ItemType::Back => {
+                a.menu_back();
+            },
+            ItemType::Category(category) => {
+                self.category = category;
+                a.next_menu_state(
+                    MenuState::SelectNodeIdFromCat { category },
+                    "Select new connected node".to_string());
+
+            },
+            ItemType::NodeId(node_id) => {
+                if let MenuState::SelectNodeIdFromCat { category } = ms {
+                    // TODO: To determine which is the right one, we need to
+                    //       look at the self.dir CellDir!
+                    //       First we need to select the output node_id!
+                    // XXX: We use instance 999999 here, so it does not
+                    //      match any possibly existing node_id, in case we assign
+                    //      the same kind of node (eg. Amp(0) => Amp(...)).
+                    self.new_node_id = Some(node_id.to_instance(999999));
+                    self.select_new_node_io(a);
+                }
+            },
             ItemType::OutputIdx(out_idx) => {
-                if let MenuState::SelectOutputParam {
-                    node_id, node_info, user_state
-                } = ms {
-                    if user_state == 1 {
-                        self.cell_b_io = Some(out_idx);
-                        self.create_connection(a);
+                if let MenuState::SelectOutputParam { node_id, node_info } = ms {
+                    if node_id == self.cell.node_id() {
+                        self.create_connection(Some(out_idx), a);
 
                     } else {
-                        self.cell_a_io = Some(out_idx);
-                        self.select_cell_b(a);
+                        self.new_io = Some(out_idx);
+                        self.select_old_node_io(a);
                     }
                 }
             },
             ItemType::InputIdx(in_idx) => {
-                if let MenuState::SelectInputParam {
-                    node_id, node_info, user_state
-                } = ms {
-                    if user_state == 1 {
-                        self.cell_b_io = Some(in_idx);
-                        self.create_connection(a);
+                if let MenuState::SelectInputParam { node_id, node_info } = ms {
+                    if node_id == self.cell.node_id() {
+                        self.create_connection(Some(in_idx), a);
 
                     } else {
-                        self.cell_a_io = Some(in_idx);
-                        self.select_cell_b(a);
+                        self.new_io = Some(in_idx);
+                        self.select_old_node_io(a);
                     }
                 }
             },
@@ -748,12 +739,6 @@ impl ActionHandler for DefaultActionHandler {
                     (MButton::Left, Some(_), None, _, _) => {
                         a.swap_cells(*pos_a, *pos_b);
                     },
-                    (MButton::Left, Some(cell_a), Some(cell_b), Some(dir), _) => {
-                        let mut ah =
-                            Box::new(
-                                ActionConnectCells::new(cell_a, cell_b, dir));
-                        self.set_action_handler(ah, a);
-                    },
                     (btn, None, Some(cell), Some(dir), _) => {
                         let mut ah =
                             Box::new(
@@ -761,6 +746,10 @@ impl ActionHandler for DefaultActionHandler {
                                     btn == MButton::Left,
                                     pos_a.0, pos_a.1, cell, dir));
                         self.set_action_handler(ah, a);
+                    },
+                    (MButton::Left, Some(src), Some(dst), Some(dir), io) => {
+                        println!("OPEN MENU!!!!! {:?} aisout={}",
+                            dir, io);
                     },
                     (_, _, _, _, _) => (),
                 }
