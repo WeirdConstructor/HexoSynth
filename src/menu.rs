@@ -141,6 +141,11 @@ impl MenuState {
                         label:  "Delete".to_string(),
                         help:   "Delete\nDeletes/clears the matrix cell.".to_string(),
                     },
+                    MenuItem {
+                        typ:    ItemType::ClearPorts,
+                        label:  "Clear Ports".to_string(),
+                        help:   "Clear Ports\nClear unused inputs & outputs of this cell.".to_string(),
+                    },
                 ]
             },
         }

@@ -22,6 +22,7 @@ use std::cell::RefCell;
 pub enum ItemType {
     Back,
     Delete,
+    ClearPorts,
     Category(UICategory),
     NodeId(NodeId),
     Direction(CellDir),

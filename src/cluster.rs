@@ -52,16 +52,10 @@ impl Cluster {
                 if !cell.is_empty() {
                     for edge in 0..6 {
                         let dir = CellDir::from(edge);
-                        if cell.has_dir_set(dir) {
-                            if let Some(new_pos) = dir.offs_pos(pos) {
-                                if let Some(dst_cell) =
-                                    m.get_copy(new_pos.0, new_pos.1)
-                                {
-                                    if dst_cell.has_dir_set(dir.flip()) {
-                                        stack.push(new_pos);
-                                    }
-                                }
-                            }
+                        if let Some(new_pos) =
+                            cell.is_port_dir_connected(m, dir)
+                        {
+                            stack.push(new_pos);
                         }
                     }
 

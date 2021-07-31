@@ -114,6 +114,24 @@ impl ActionState<'_, '_, '_> {
         });
     }
 
+    pub fn clear_unused_at(&mut self, pos: (usize, usize)) {
+        catch_err_dialog(self.dialog.clone(), || {
+            self.matrix.change_matrix(|m| {
+                if let Some(mut cell) = m.get_copy(pos.0, pos.1) {
+                    for e in 0..6 {
+                        let dir = CellDir::from(e);
+                        if cell.is_port_dir_connected(m, dir).is_none() {
+                            cell.clear_io_dir(dir);
+                        }
+                    }
+                    m.place_cell(cell);
+                }
+            })?;
+            self.matrix.sync()?;
+            Ok(())
+        });
+    }
+
     pub fn set_connection(
         &mut self,
         dir: CellDir, mut cell_a: Cell, cell_a_io: Option<usize>,
@@ -129,8 +147,8 @@ impl ActionState<'_, '_, '_> {
             }
 
             self.matrix.change_matrix(|m| {
-                m.place(cell_a.pos().0, cell_a.pos().1, cell_a);
-                m.place(cell_b.pos().0, cell_b.pos().1, cell_b);
+                m.place_cell(cell_a);
+                m.place_cell(cell_b);
             })?;
 
             self.matrix.sync()?;
@@ -159,7 +177,7 @@ impl ActionState<'_, '_, '_> {
 
                 self.matrix.change_matrix(|m| {
                     m.place(pos.0, pos.1, cell);
-                    m.place(adj_cell.pos().0, adj_cell.pos().1, adj_cell);
+                    m.place_cell(adj_cell);
                 })?;
                 self.matrix.sync()?;
             }
@@ -189,6 +207,33 @@ impl ActionState<'_, '_, '_> {
 
             Ok(())
         });
+    }
+
+    pub fn split_cluster_at(
+        &mut self, pos_a: (usize, usize), pos_b: (usize, usize))
+    {
+        let path = CellDir::path_from_to(pos_a, pos_b);
+
+        if let Some(dir) = CellDir::are_adjacent(pos_a, pos_b) {
+            catch_err_dialog(self.dialog.clone(), || {
+                let mut cluster = crate::cluster::Cluster::new();
+
+                self.matrix.change_matrix_err(|m| {
+                    cluster.ignore_pos(pos_b);
+                    cluster.add_cluster_at(m, pos_a);
+
+                    cluster.remove_cells(m);
+                    cluster.move_cluster_cells_dir_path(&[dir.flip()])?;
+                    cluster.place(m)?;
+
+                    Ok(())
+                })?;
+
+                self.matrix.sync()?;
+
+                Ok(())
+            });
+        }
     }
 
     pub fn set_focus_at(&mut self, x: usize, y: usize) {
@@ -371,6 +416,10 @@ impl ActionHandler for ActionContextMenu {
             ItemType::Back => { a.menu_back(); },
             ItemType::Delete => {
                 a.clear_cell_at((self.x, self.y));
+                a.set_focus_at(self.x, self.y);
+            },
+            ItemType::ClearPorts => {
+                a.clear_unused_at((self.x, self.y));
                 a.set_focus_at(self.x, self.y);
             },
             _ => ()
@@ -849,6 +898,10 @@ impl ActionHandler for DefaultActionHandler {
                     (MButton::Right, Some(cell), None, _, _) => {
                         a.move_cluster_from_to(*pos_a, *pos_b);
                         a.set_focus_at(pos_b.0, pos_b.1);
+                    },
+                    (MButton::Right, Some(_), Some(_), Some(dir), _) => {
+                        a.split_cluster_at(*pos_b, *pos_a);
+//                        a.set_focus_at(pos_b.0, pos_b.1);
                     },
                     (btn, None, Some(cell), Some(dir), _) => {
                         let mut ah =
