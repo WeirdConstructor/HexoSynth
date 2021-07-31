@@ -9,6 +9,19 @@ for band-limited sine, triangle, saw and pulse waveforms.
 to quickly compose gates and values in your sequences.
 * Feature: The min/max signal monitors also print the min/max/average values
 of the signal that is visible in the monitor.
+* Feature: Completely overhauled cell interaction in the matrix.
+  - Left mouse click creates new cell.
+  - Left mouse drag from empty cell to adjacent filled cell lets you create
+    a new node with default ports.
+  - Left mouse drag from filled cell to empty moves the cell.
+  - Right mouse drag from empty cell to adjacent filled cell lets you create
+    a new node with default ports.
+  - Right mouse drag of filled cell to an empty will move the entire cluster
+    of connected cells.
+  - Right mouse drag of filled cell to adjacent connected cell will
+    split the connected cluster and make room for a new node.
+* Feature: Delete a node/cell is now in the context menu.
+* Feature: Clear unused ports of a cell can be found in the context menu too.
 * Change: The min/max signal monitors are now wider and display 3 seconds
 of the signal instead of only 2.
 * Change: The patch file format now stores input/output port names
