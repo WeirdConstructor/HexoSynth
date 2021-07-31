@@ -167,6 +167,30 @@ impl ActionState<'_, '_, '_> {
         });
     }
 
+    pub fn move_cluster_from_to(
+        &mut self, pos_a: (usize, usize), pos_b: (usize, usize))
+    {
+        let path = CellDir::path_from_to(pos_a, pos_b);
+
+        catch_err_dialog(self.dialog.clone(), || {
+            let mut cluster = crate::cluster::Cluster::new();
+
+            self.matrix.change_matrix_err(|m| {
+                cluster.add_cluster_at(m, pos_a);
+
+                cluster.remove_cells(m);
+                cluster.move_cluster_cells_dir_path(&path)?;
+                cluster.place(m)?;
+
+                Ok(())
+            })?;
+
+            self.matrix.sync()?;
+
+            Ok(())
+        });
+    }
+
     pub fn set_focus_at(&mut self, x: usize, y: usize) {
         if let Some(cell) = self.matrix.get_copy(x, y) {
             self.set_focus(cell);
@@ -347,6 +371,7 @@ impl ActionHandler for ActionContextMenu {
             ItemType::Back => { a.menu_back(); },
             ItemType::Delete => {
                 a.clear_cell_at((self.x, self.y));
+                a.set_focus_at(self.x, self.y);
             },
             _ => ()
         }
@@ -806,11 +831,14 @@ impl ActionHandler for DefaultActionHandler {
                     if dst_cell.node_id() == NodeId::Nop { None }
                     else { Some(dst_cell) };
 
+                println!("ACTDRAG: {:?}",
+                    (*btn, src, dst, adjacent, src_is_output));
                 match (*btn, src, dst, adjacent, src_is_output) {
                     // Left & pos_a exists & pos_b empty
                     //  => move/swap cell
                     (MButton::Left, Some(_), None, _, _) => {
                         a.swap_cells(*pos_a, *pos_b);
+                        a.set_focus_at(pos_b.0, pos_b.1);
                     },
                     (MButton::Left, Some(cell_a), Some(cell_b), Some(dir), _) => {
                         let mut ah =
@@ -818,7 +846,9 @@ impl ActionHandler for DefaultActionHandler {
                                 ActionConnectCells::new(cell_a, cell_b, dir));
                         self.set_action_handler(ah, a);
                     },
-                    (MButton::Right, None, Some(cell), _, _) => {
+                    (MButton::Right, Some(cell), None, _, _) => {
+                        a.move_cluster_from_to(*pos_a, *pos_b);
+                        a.set_focus_at(pos_b.0, pos_b.1);
                     },
                     (btn, None, Some(cell), Some(dir), _) => {
                         let mut ah =
@@ -944,12 +974,30 @@ pub fn catch_err_dialog<F>(dialog: Rc<RefCell<DialogModel>>, mut f: F) -> bool
                             Conflicting Outputs:\n\
                             * {} {}, port {}\n\
                             * {} {}, port {}",
-                            output1.0.name(),
+                            output1.0.label(),
                             output1.0.instance(),
                             output1.0.out_name_by_idx(output1.1).unwrap_or("???"),
-                            output2.0.name(),
+                            output2.0.label(),
                             output2.0.instance(),
                             output2.0.out_name_by_idx(output2.1).unwrap_or("???")),
+                        Box::new(|_| ()));
+                },
+                MatrixError::NonEmptyCell { cell } => {
+                    dialog.borrow_mut().open(
+                        &format!("Filled cell in the way!\n\
+                            You can't move this over an existing cell:\n\
+                            \n\
+                            Node: {} {} at {},{}",
+                            cell.node_id().label(),
+                            cell.node_id().instance(),
+                            cell.pos().0,
+                            cell.pos().1),
+                        Box::new(|_| ()));
+                }
+                MatrixError::PosOutOfRange => {
+                    dialog.borrow_mut().open(
+                        &format!("Moved out of Range!\n\
+                            You can't move things outside of the matrix!"),
                         Box::new(|_| ()));
                 }
             }
