@@ -7,6 +7,7 @@
 
 pub mod ui;
 pub mod ui_ctrl;
+mod cluster;
 mod uimsg_queue;
 mod state;
 mod actions;

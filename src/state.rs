@@ -21,6 +21,7 @@ use std::cell::RefCell;
 #[derive(Debug, Clone)]
 pub enum ItemType {
     Back,
+    Delete,
     Category(UICategory),
     NodeId(NodeId),
     Direction(CellDir),

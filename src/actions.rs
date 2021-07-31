@@ -104,6 +104,16 @@ impl ActionState<'_, '_, '_> {
         });
     }
 
+    pub fn clear_cell_at(&mut self, pos: (usize, usize)) {
+        catch_err_dialog(self.dialog.clone(), || {
+            self.matrix.change_matrix(|m| {
+                m.place(pos.0, pos.1, Cell::empty(NodeId::Nop));
+            })?;
+            self.matrix.sync()?;
+            Ok(())
+        });
+    }
+
     pub fn set_connection(
         &mut self,
         dir: CellDir, mut cell_a: Cell, cell_a_io: Option<usize>,
@@ -301,6 +311,48 @@ impl ActionHandler for ActionNewNodeAtCell {
         }
     }
 }
+
+struct ActionContextMenu {
+    x: usize,
+    y: usize,
+}
+
+impl ActionContextMenu {
+    pub fn new(x: usize, y: usize) -> Self {
+        Self { x, y }
+    }
+
+    pub fn get_cell(&self, a: &mut ActionState) -> Cell {
+        a.matrix.get_copy(self.x, self.y)
+            .unwrap_or_else(|| Cell::empty(NodeId::Nop))
+    }
+}
+
+impl ActionHandler for ActionContextMenu {
+    fn init(&mut self, a: &mut ActionState) {
+        let cell      = self.get_cell(a);
+        let node_id   = cell.node_id();
+        let node_info = NodeInfo::from_node_id(node_id);
+
+        a.next_menu_state(
+            MenuState::ContextAction { cell, node_id, node_info },
+            format!("Context Action for {} at {},{}",
+                node_id.label(),
+                cell.pos().0,
+                cell.pos().1));
+    }
+
+    fn menu_select(&mut self, a: &mut ActionState, ms: MenuState, item_type: ItemType) {
+        match item_type {
+            ItemType::Back => { a.menu_back(); },
+            ItemType::Delete => {
+                a.clear_cell_at((self.x, self.y));
+            },
+            _ => ()
+        }
+    }
+}
+
 
 struct ActionNewNodeAndConnectionTo {
     dir:            CellDir,
@@ -697,8 +749,8 @@ impl ActionHandler for DefaultActionHandler {
                 //  => copy cell at pos_a to that empty cell
                 //  => open connection dialog for out => inp
 
-                // Right & pos_a exists & pos_b empty & NOT adjacent
-                //  => copy cell, but with empty ports
+                // Right & pos_a exists & pos_b empty
+                //  => move cluster
                 // Right & pos_a exists & pos_b exists & adjacent
                 //  => Split the current cluster into 2
                 //     move the destination cell-tail into direction of the drag
@@ -719,7 +771,7 @@ impl ActionHandler for DefaultActionHandler {
                 // Right & pos_a empty & pos_b empty & adjacent
                 //  => ????
                 // Right & pos_a empty & pos_b exists
-                //  => Delete pos_b
+                //  => Copy cell at pos_b to pos_a, delete the inputs/outputs
                 // Right & pos_a exists & pos_b exists & NOT adjacent
                 //  => take pos_a as output, pos_b as input
                 //  => search an empty input for pos_b
@@ -765,6 +817,8 @@ impl ActionHandler for DefaultActionHandler {
                             Box::new(
                                 ActionConnectCells::new(cell_a, cell_b, dir));
                         self.set_action_handler(ah, a);
+                    },
+                    (MButton::Right, None, Some(cell), _, _) => {
                     },
                     (btn, None, Some(cell), Some(dir), _) => {
                         let mut ah =
@@ -831,19 +885,20 @@ impl ActionHandler for DefaultActionHandler {
                             self.set_action_handler(ah, a);
                         }
                     } else {
-                        a.set_focus(cell);
+                        if *btn == MButton::Left {
+                            a.set_focus(cell);
+                        } else {
+                            let mut ah = Box::new(ActionContextMenu::new(*x, *y));
+                            self.set_action_handler(ah, a);
+                        }
                     }
                 }
             },
             Msg::MenuMouseClick { x, y, btn } => {
-                if *btn == MButton::Left {
-                    a.state.next_menu_pos = Some((*x, *y));
-                }
+                a.state.next_menu_pos = Some((*x, *y));
             },
             Msg::MatrixMouseClick { x, y, btn } => {
-                if *btn == MButton::Left {
-                    a.state.menu_pos = (*x, *y);
-                }
+                a.state.menu_pos = (*x, *y);
             },
         }
 

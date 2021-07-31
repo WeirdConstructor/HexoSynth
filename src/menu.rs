@@ -1,5 +1,5 @@
 use crate::state::{ItemType, MenuItem, UICategory};
-use hexodsp::{NodeInfo, NodeId};
+use hexodsp::{NodeInfo, NodeId, Cell};
 
 #[derive(Debug, Clone)]
 pub enum MenuState {
@@ -8,6 +8,11 @@ pub enum MenuState {
     SelectNodeIdFromCat { category: UICategory },
     SelectOutputParam { node_id: NodeId, node_info: NodeInfo, user_state: i64 },
     SelectInputParam { node_id: NodeId, node_info: NodeInfo, user_state: i64 },
+    ContextAction {
+        cell: Cell,
+        node_id: NodeId,
+        node_info: NodeInfo
+    },
 }
 
 impl MenuState {
@@ -123,6 +128,20 @@ impl MenuState {
                 }
 
                 items
+            },
+            MenuState::ContextAction { cell, .. } => {
+                vec![
+                    MenuItem {
+                        typ:    ItemType::Back,
+                        label:  "<Back".to_string(),
+                        help:   "\nBack to previous menu".to_string(),
+                    },
+                    MenuItem {
+                        typ:    ItemType::Delete,
+                        label:  "Delete".to_string(),
+                        help:   "Delete\nDeletes/clears the matrix cell.".to_string(),
+                    },
+                ]
             },
         }
     }
