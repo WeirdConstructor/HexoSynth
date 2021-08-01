@@ -2,10 +2,7 @@
 // This file is a part of HexoSynth. Released under GPL-3.0-or-later.
 // See README.md and COPYING for details.
 
-use crate::ui_ctrl::UICtrlRef;
-
-use hexodsp::{Cell, CellDir, NodeId, ParamId};
-use hexotk::{MButton};
+use hexotk::MButton;
 
 use keyboard_types::Key;
 

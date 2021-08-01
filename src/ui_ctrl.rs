@@ -10,7 +10,6 @@ use crate::actions::{DefaultActionHandler, ActionHandler, catch_err_dialog};
 
 use hexodsp::*;
 use hexodsp::matrix::MatrixError;
-use hexodsp::matrix_repr::save_patch_to_file;
 
 use hexotk::{AtomId, Atom, AtomDataModel};
 use hexotk::widgets::{

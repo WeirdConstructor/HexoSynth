@@ -5,7 +5,7 @@
 use crate::{UICtrlRef, Msg};
 use crate::matrix::*;
 use crate::dsp::NodeId;
-use crate::ui::menu::{Menu, MenuControl, MenuActionHandler};
+use crate::ui::menu::MenuActionHandler;
 use crate::ui::node_panel::{NodePanel, NodePanelData};
 use crate::ui::util_panel::{UtilPanel, UtilPanelData};
 
@@ -21,7 +21,6 @@ use hexotk::widgets::{
 };
 
 use std::rc::Rc;
-use std::cell::RefCell;
 
 pub struct MatrixActionHandler {
     ui_ctrl:      UICtrlRef,
@@ -169,8 +168,8 @@ pub fn get_matrix_size(ui_ctrl: &UICtrlRef) -> (usize, usize) {
     match item_count {
         0..=7   => (3, 3),
         8..=14  => (4, 4),
-        13..=22 => (5, 5),
-        22..=33 => (6, 6),
+        15..=22 => (5, 5),
+        23..=33 => (6, 6),
         _       => (7, 7),
     }
 }
@@ -185,8 +184,8 @@ pub fn get_matrix_size_px(ui_ctrl: &UICtrlRef) -> (f64, f64) {
         match item_count {
             0..=7   => (235.0, 240.0),
             8..=14  => (w * (78.0 + 9.0)       + 5.0, h * 78.0 + 5.0),
-            14..=22 => (w * (78.0 + 2.0 * 9.0) + 5.0, h * 78.0 + 5.0),
-            22..=33 => (w * (78.0 + 3.0 * 9.0) + 5.0, h * 78.0 + 5.0),
+            15..=22 => (w * (78.0 + 2.0 * 9.0) + 5.0, h * 78.0 + 5.0),
+            23..=33 => (w * (78.0 + 3.0 * 9.0) + 5.0, h * 78.0 + 5.0),
             _       => (w * (78.0 + 3.5 * 9.0) + 5.0, h * 78.0 + 5.0),
         };
 

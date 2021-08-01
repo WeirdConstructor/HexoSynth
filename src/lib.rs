@@ -14,7 +14,7 @@ mod actions;
 mod menu;
 mod dyn_widgets;
 
-use ui_ctrl::{UICtrlRef, UICellTrans};
+use ui_ctrl::UICtrlRef;
 
 use raw_window_handle::RawWindowHandle;
 

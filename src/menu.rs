@@ -19,13 +19,21 @@ impl MenuState {
     pub fn to_items(&self) -> Vec<MenuItem> {
         match self {
             MenuState::None => vec![],
-            MenuState::SelectCategory { .. } => {
+            MenuState::SelectCategory { user_state } => {
                 let mut v =
                 vec![
-                    MenuItem {
-                        typ:    ItemType::Back,
-                        label:  "<Exit".to_string(),
-                        help:   "\nExit Menu".to_string(),
+                    if *user_state > 0 {
+                        MenuItem {
+                            typ:    ItemType::Back,
+                            label:  "<Back".to_string(),
+                            help:   "Back\nBack to previous menu".to_string(),
+                        }
+                    } else {
+                        MenuItem {
+                            typ:    ItemType::Back,
+                            label:  "<Exit".to_string(),
+                            help:   "\nExit Menu".to_string(),
+                        }
                     },
                     MenuItem {
                         typ:    ItemType::Category(UICategory::Osc),
