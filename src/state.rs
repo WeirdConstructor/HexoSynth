@@ -19,6 +19,13 @@ use std::rc::Rc;
 use std::cell::RefCell;
 
 #[derive(Debug, Clone)]
+pub enum IOSpecifier {
+    Any,
+    Input,
+    Output
+}
+
+#[derive(Debug, Clone)]
 pub enum ItemType {
     Back,
     Delete,
@@ -28,6 +35,8 @@ pub enum ItemType {
     Direction(CellDir),
     OutputIdx(usize),
     InputIdx(usize),
+    SubMenu { menu_state: Box<MenuState>, title: String },
+    RandomNode(IOSpecifier),
 }
 
 #[derive(Debug, Clone)]

@@ -1,7 +1,8 @@
 use crate::uimsg_queue::{Msg};
 use crate::state::{State, ItemType, MenuState, ATNID_HELP_BUTTON};
 use crate::UIParams;
-use crate::dsp::SAtom;
+use crate::dsp::{SAtom, ALL_NODE_IDS};
+use crate::dsp::helpers::SplitMix64;
 
 use hexotk::{MButton, AtomId};
 use hexotk::widgets::{
@@ -464,6 +465,9 @@ impl ActionHandler for ActionContextMenu {
     fn menu_select(&mut self, a: &mut ActionState, ms: MenuState, item_type: ItemType) {
         match item_type {
             ItemType::Back => { a.menu_back(); },
+            ItemType::SubMenu { menu_state, title } => {
+                a.next_menu_state(*menu_state, title);
+            },
             ItemType::Delete => {
                 a.clear_cell_at((self.x, self.y));
                 a.set_focus_at(self.x, self.y);
@@ -471,6 +475,19 @@ impl ActionHandler for ActionContextMenu {
             ItemType::ClearPorts => {
                 a.clear_unused_at((self.x, self.y));
                 a.set_focus_at(self.x, self.y);
+            },
+            ItemType::RandomNode(_) => {
+                if let MenuState::ContextRandomSubMenu { cell } = ms {
+                    let ret = cell.find_all_adjacent_free(a.matrix, CellDir::C);
+                    if ret.len() > 0 {
+                        let mut sm = SplitMix64::new_time_seed();
+                        let sel = ret[sm.next_u64() as usize % ret.len()];
+                        let node_ids = ALL_NODE_IDS;
+                        let node_id = node_ids[sm.next_u64() as usize % node_ids.len()];
+
+                        a.instanciate_node_at(sel.1, node_id);
+                    }
+                }
             },
             _ => ()
         }
@@ -1038,9 +1055,9 @@ impl ActionHandler for DefaultActionHandler {
                         a.set_focus_at(pos_b.0, pos_b.1);
                     },
                     (btn, Some(cell_a), Some(cell_b), None, _) => {
-                        if let Some((dir, inp_idx)) =
-                            cell_b.find_adjacent_free_input(a.matrix)
-                        {
+                        let adj_free =
+                            cell_b.find_first_adjacent_free(a.matrix, CellDir::T);
+                        if let Some((dir, inp_idx)) = adj_free {
                             if let Some(pos) = dir.offs_pos(cell_b.pos()) {
                                 match btn {
                                     MButton::Left =>

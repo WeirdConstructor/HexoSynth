@@ -1,4 +1,4 @@
-use crate::state::{ItemType, MenuItem, UICategory};
+use crate::state::{ItemType, MenuItem, IOSpecifier, UICategory};
 use hexodsp::{NodeInfo, NodeId, Cell};
 
 #[derive(Debug, Clone)]
@@ -12,6 +12,9 @@ pub enum MenuState {
         cell: Cell,
         node_id: NodeId,
         node_info: NodeInfo
+    },
+    ContextRandomSubMenu {
+        cell: Cell,
     },
 }
 
@@ -153,6 +156,35 @@ impl MenuState {
                         typ:    ItemType::ClearPorts,
                         label:  "Clear Ports".to_string(),
                         help:   "Clear Ports\nClear unused inputs & outputs of this cell.".to_string(),
+                    },
+                    MenuItem {
+                        typ: ItemType::SubMenu {
+                            menu_state:
+                                Box::new(
+                                    MenuState::ContextRandomSubMenu {
+                                        cell: *cell
+                                    }),
+                            title: "Randomized Stuff".to_string(),
+                        },
+                        label:  "Rand>".to_string(),
+                        help:   "Rand>\nAccess to all kinds of random actions with the current cell.".to_string(),
+                    },
+                ]
+            },
+            MenuState::ContextRandomSubMenu { cell } => {
+                vec![
+                    MenuItem {
+                        typ:    ItemType::Back,
+                        label:  "<Back".to_string(),
+                        help:   "\nBack to previous menu".to_string(),
+                    },
+                    MenuItem {
+                        typ:    ItemType::RandomNode(IOSpecifier::Any),
+                        label:  "Rand Node".to_string(),
+                        help:   "Rand Node\nSpawn a random node adjacent to \
+                                 the current cell. Use this either as a \
+                                 challenge to make use of the spawned node or \
+                                 as inspiration.".to_string(),
                     },
                 ]
             },
