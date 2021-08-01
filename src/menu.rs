@@ -4,8 +4,8 @@ use hexodsp::{NodeInfo, NodeId, Cell};
 #[derive(Debug, Clone)]
 pub enum MenuState {
     None,
-    SelectCategory,
-    SelectNodeIdFromCat { category: UICategory },
+    SelectCategory { user_state: i64 },
+    SelectNodeIdFromCat { category: UICategory, user_state: i64 },
     SelectOutputParam { node_id: NodeId, node_info: NodeInfo, user_state: i64 },
     SelectInputParam { node_id: NodeId, node_info: NodeInfo, user_state: i64 },
     ContextAction {
@@ -19,12 +19,12 @@ impl MenuState {
     pub fn to_items(&self) -> Vec<MenuItem> {
         match self {
             MenuState::None => vec![],
-            MenuState::SelectCategory => {
+            MenuState::SelectCategory { .. } => {
                 let mut v =
                 vec![
                     MenuItem {
                         typ:    ItemType::Back,
-                        label:  "<Exit0".to_string(),
+                        label:  "<Exit".to_string(),
                         help:   "\nExit Menu".to_string(),
                     },
                     MenuItem {
@@ -70,7 +70,7 @@ impl MenuState {
 
                 v
             },
-            MenuState::SelectNodeIdFromCat { category } => {
+            MenuState::SelectNodeIdFromCat { category, .. } => {
                 let mut items = vec![];
                 items.push(MenuItem {
                     typ:    ItemType::Back,
