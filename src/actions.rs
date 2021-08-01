@@ -205,7 +205,7 @@ impl ActionState<'_, '_, '_> {
     }
 
     pub fn instanciate_node_at_with_connection(
-        &mut self, pos: (usize, usize), node_id: NodeId,
+        &mut self, pos: (usize, usize), node_id: NodeId, copy: bool,
         dir: CellDir, new_idx: Option<usize>, mut adj_cell: Cell, adj_idx: Option<usize>
     ) {
         //d// println!("Instance New {:?}, {:?}, {:?}",
@@ -213,9 +213,11 @@ impl ActionState<'_, '_, '_> {
 
         catch_err_dialog(self.dialog.clone(), || {
             if let Some(mut cell) = self.matrix.get_copy(pos.0, pos.1) {
-                let unused_id =
-                    self.matrix.get_unused_instance_node_id(node_id);
-                cell.set_node_id(unused_id);
+                let node_id =
+                    if copy { node_id }
+                    else { self.matrix.get_unused_instance_node_id(node_id) };
+
+                cell.set_node_id(node_id);
                 if let Some(new_idx) = new_idx {
                     cell.set_io_dir(dir, new_idx);
                 }
@@ -510,7 +512,9 @@ impl ActionNewNodeAndConnectionTo {
                 if self.cell.has_dir_set(self.dir.flip()) {
                     self.create_node(None, a);
                 } else {
-                    self.create_node(Some(0), a);
+                    self.create_node(
+                        node_info.default_output().map(|i| i as usize),
+                        a);
                 }
 
             } else {
@@ -530,7 +534,9 @@ impl ActionNewNodeAndConnectionTo {
                 if self.cell.has_dir_set(self.dir.flip()) {
                     self.create_node(None, a);
                 } else {
-                    self.create_node(Some(0), a);
+                    self.create_node(
+                        node_info.default_input().map(|i| i as usize),
+                        a);
                 }
 
             } else {
@@ -554,7 +560,7 @@ impl ActionNewNodeAndConnectionTo {
                     self.select_old_node_io(a);
 
                 } else if node_info.in_count() == 1 || self.use_defaults {
-                    self.new_io = Some(0);
+                    self.new_io = node_info.default_input().map(|i| i as usize);
                     self.select_old_node_io(a);
 
                 } else {
@@ -571,7 +577,7 @@ impl ActionNewNodeAndConnectionTo {
                     self.select_old_node_io(a);
 
                 } else if node_info.out_count() == 1 || self.use_defaults {
-                    self.new_io = Some(0);
+                    self.new_io = node_info.default_output().map(|i| i as usize);
                     self.select_old_node_io(a);
 
                 } else {
@@ -590,7 +596,7 @@ impl ActionNewNodeAndConnectionTo {
     fn create_node(&mut self, old_idx: Option<usize>, a: &mut ActionState) {
         if let Some(new_node_id) = self.new_node_id {
             a.instanciate_node_at_with_connection(
-                (self.x, self.y), new_node_id,
+                (self.x, self.y), new_node_id, false,
                 self.dir, self.new_io, self.cell, old_idx);
             a.set_focus_at(self.x, self.y);
         }
@@ -779,7 +785,7 @@ impl ActionConnectCells {
                 self.finish(a);
 
             } else if node_info.out_count() == 1 || self.use_defaults {
-                self.cell_b_io = Some(0);
+                self.cell_b_io = node_info.default_output().map(|i| i as usize);
                 self.finish(a);
 
             } else {
@@ -796,7 +802,7 @@ impl ActionConnectCells {
                 self.finish(a);
 
             } else if node_info.in_count() == 1 || self.use_defaults {
-                self.cell_b_io = Some(0);
+                self.cell_b_io = node_info.default_input().map(|i| i as usize);
                 self.finish(a);
 
             } else {
@@ -820,7 +826,7 @@ impl ActionConnectCells {
                 self.select_cell_b(a);
 
             } else if node_info.in_count() == 1 || self.use_defaults {
-                self.cell_a_io = Some(0);
+                self.cell_a_io = node_info.default_input().map(|i| i as usize);
                 self.select_cell_b(a);
 
             } else {
@@ -837,7 +843,7 @@ impl ActionConnectCells {
                 self.select_cell_b(a);
 
             } else if node_info.out_count() == 1 || self.use_defaults {
-                self.cell_a_io = Some(0);
+                self.cell_a_io = node_info.default_output().map(|i| i as usize);
                 self.select_cell_b(a);
 
             } else {
@@ -952,7 +958,11 @@ impl ActionHandler for DefaultActionHandler {
                 //     (Note: you can reassign both with the right mouse button)
                 // DONE: Left & pos_a empty & pos_b exists & NOT adjacent
                 //  => Copy cell from pos_b, without I/O
-                // Left & pos_a exists & pos_b exists & NOT adjacent
+                // Left/Right & pos_a exists & pos_b exists & NOT adjacent
+                //  - pos_a output is determined by: either use the first
+                //    assigned one, or the default one
+                //  - pos_b input is determined by: left mouse uses the default
+                //    right mouse lets you select the to be modulated input
                 //  => take pos_a as output, pos_b as input
                 //  => search an empty input for pos_b
                 //  => copy cell at pos_a to that empty cell
@@ -1026,6 +1036,23 @@ impl ActionHandler for DefaultActionHandler {
                     (MButton::Left, Some(_), None, _, _) => {
                         a.move_cluster_from_to(*pos_a, *pos_b);
                         a.set_focus_at(pos_b.0, pos_b.1);
+                    },
+                    (btn, Some(cell_a), Some(cell_b), None, _) => {
+                        if let Some((dir, inp_idx)) =
+                            cell_b.find_adjacent_free_input(a.matrix)
+                        {
+                            if let Some(pos) = dir.offs_pos(cell_b.pos()) {
+                                match btn {
+                                    MButton::Left =>
+                                        a.make_copy_at(
+                                            pos, cell_a.node_id()),
+                                    MButton::Right | _ =>
+                                        a.instanciate_node_at(
+                                            pos, cell_a.node_id()),
+                                }
+                                a.set_focus_at(pos.0, pos.1);
+                            }
+                        }
                     },
                     (MButton::Left, Some(cell_a), Some(cell_b), Some(dir), _) => {
                         let mut ah =
