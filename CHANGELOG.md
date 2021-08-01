@@ -11,15 +11,22 @@ to quickly compose gates and values in your sequences.
 of the signal that is visible in the monitor.
 * Feature: Completely overhauled cell interaction in the matrix.
   - Left mouse click creates new cell.
-  - Left mouse drag from filled cell to empty moves the cell.
-  - Left mouse drag from empty cell to adjacent filled cell lets you create
-    a new node with default ports.
-  - Right mouse drag from empty cell to adjacent filled cell lets you create
-    a new node with explicitly selected ports.
+  - Right mouse click opens a context menu.
   - Right mouse drag of filled cell to an empty will move the entire cluster
     of connected cells.
+  - Left mouse drag from empty cell to adjacent filled cell lets you create
+    a new node with default ports.
+  - Right mouse drag from filled cell to empty moves the cell.
+  - Right mouse drag from empty cell to adjacent filled cell lets you create
+    a new node with explicitly selected ports.
   - Right mouse drag of filled cell to adjacent connected cell will
     split the connected cluster and make room for a new node.
+  - Left mouse drag of between two adjacent empty cells lets you instanciate
+    two new nodes with default input/outputs.
+  - Right mouse drag of between two adjacent empty cells lets you instanciate
+    two new nodes with explicitly selected input/outputs.
+  - Left mouse drag from empty to non adjacent filled cell creates a linked copy.
+  - Right mouse drag from empty to non adjacent filled cell creates a new node instance.
 * Feature: Delete a node/cell is now in the context menu.
 * Feature: Clear unused ports of a cell can be found in the context menu too.
 * Change: The middle mouse button is now responsible for panning the matrix.
