@@ -712,6 +712,10 @@ fn start_driver(matrix: Arc<Mutex<Matrix>>) -> Driver {
                             }
                         }
                     }
+
+                    if error {
+                        break;
+                    }
                 },
                 Err(e) => {
                     println!("*** ERROR: {}\n    {}", name, e);
