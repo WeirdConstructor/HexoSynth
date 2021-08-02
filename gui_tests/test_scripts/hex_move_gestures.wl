@@ -132,4 +132,61 @@ std:push tests "drag_cluster_err" => {
     std:assert_eq id.0.0.1 "DBGID_TEXT_HEADER";
 };
 
+std:push tests "drag_split_cluster" => {
+    setup_sin_sin_cluster $i(1, 1) $i(2, 2);
+
+    t:matrix_wait {
+        h:drag_hex_from_to $i(1, 1) $i(2, 2) :right;
+    };
+
+    !(a, b) = $[
+        hx:get_cell $i(1, 1),
+        hx:get_cell $i(3, 2),
+    ];
+    std:assert_eq a.node_id.0 "Sin";
+    std:assert_eq b.node_id.0 "Sin";
+
+    std:assert_eq b.ports.1 "det";
+    std:assert_eq a.ports.4 "sig";
+
+    hx:query_state[];
+};
+
+std:push tests "drag_split_cluster_err" => {
+    setup_sin_sin_cluster $i(0, 0) $i(1, 0);
+
+    h:drag_hex_from_to $i(1, 0) $i(0, 0) :right;
+
+    hx:query_state[];
+
+    !id = hx:id_by_text_contains "out of Range";
+    std:assert_eq id.0.0.1 "DBGID_TEXT_HEADER";
+
+    hx:query_state[];
+};
+
+std:push tests "drag_empty_exist_adj_new" => {
+    h:reset10x10[];
+
+    hx:set_cell $i(1, 0) ${ node_id = "sin" => 3 };
+
+    t:matrix_wait {
+        h:drag_hex_from_to $i(0, 0) $i(1, 0) :left;
+        t:menu_click_text "CV"   :left;
+        t:menu_click_text "Ad"   :left;
+    };
+
+    !a = hx:get_cell $i(0, 0);
+
+    !(a, b) = $[
+        hx:get_cell $i(0, 0),
+        hx:get_cell $i(1, 0),
+    ];
+    std:assert_eq a.node_id.0 "Ad";
+    std:assert_eq b.node_id.0 "Sin";
+
+    std:assert_eq b.ports.1 "freq";
+    std:assert_eq a.ports.4 "sig";
+};
+
 tests
