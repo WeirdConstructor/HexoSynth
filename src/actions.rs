@@ -480,10 +480,10 @@ impl ActionHandler for ActionContextMenu {
                 if let MenuState::ContextRandomSubMenu { cell } = ms {
                     let ret = cell.find_all_adjacent_free(a.matrix, CellDir::C);
                     if ret.len() > 0 {
-                        let mut sm = SplitMix64::new_time_seed();
-                        let sel = ret[sm.next_u64() as usize % ret.len()];
+                        let mut sm   = SplitMix64::new_time_seed();
+                        let sel      = ret[sm.next_u64() as usize % ret.len()];
                         let node_ids = ALL_NODE_IDS;
-                        let node_id = node_ids[sm.next_u64() as usize % node_ids.len()];
+                        let node_id  = node_ids[sm.next_u64() as usize % node_ids.len()];
 
                         a.instanciate_node_at(sel.1, node_id);
                     }
