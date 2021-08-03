@@ -27,9 +27,15 @@ of the signal that is visible in the monitor.
     two new nodes with explicitly selected input/outputs.
   - Left mouse drag from empty to non adjacent filled cell creates a linked copy.
   - Right mouse drag from empty to non adjacent filled cell creates a new node instance.
+  - Left mouse drag from existing cell to a non adjacent existing cell
+    creates a linked copy around the destination cell.
+  - Right mouse drag from existing cell to a non adjacent existing cell
+    creates a new instance of the source cell node around the destination cell.
+* Feature: Context menus come with random node generation functionality.
 * Feature: Delete a node/cell is now in the context menu.
 * Feature: Clear unused ports of a cell can be found in the context menu too.
 * Change: The middle mouse button is now responsible for panning the matrix.
+* Change: The scroll wheel allows zooming in/out of the matrix.
 * Change: The min/max signal monitors are now wider and display 3 seconds
 of the signal instead of only 2.
 * Change: The patch file format now stores input/output port names
