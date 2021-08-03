@@ -77,7 +77,7 @@
     hx:mouse_move next_pos;
 };
 
-!@export move_to_hex {
+!move_to_hex = {
     !pos = _;
     set_hex_wh_from_hover[];
 
@@ -91,8 +91,18 @@
     !new_pos = $f(x, y);
     hx:mouse_move new_pos;
 };
+!@export move_to_hex = move_to_hex;
+
+!@export click_on_hex {|1<2| !(pos, btn) = @;
+    !btn = ? is_none[btn] :left btn;
+    move_to_hex pos;
+    hx:mouse_down btn;
+    hx:mouse_up btn;
+};
 
 !@export click_text_contains {!(text, btn) = @;
+    !btn = ? is_none[btn] :left btn;
+
     !pos = (hx:id_by_text_contains text).0.1;
     !x = pos.x + pos.z * 0.5;
     !y = pos.y + pos.w * 0.5;
@@ -102,7 +112,9 @@
     hx:mouse_up _1;
 };
 
-!@export menu_click_text {!(text, btn) = @;
+!@export menu_click_text {|1<2| !(text, btn) = @;
+    !btn = ? is_none[btn] :left btn;
+
     wait_for_hex_menu[];
 
     !menu_pos = hex_menu_pos[];
@@ -112,8 +124,8 @@
     !y = (menu_pos.y + menu_pos.w * 0.5) + pos.y + pos.w * 0.5;
 
     hx:mouse_move $f(x, y);
-    hx:mouse_down _1;
-    hx:mouse_up _1;
+    hx:mouse_down btn;
+    hx:mouse_up btn;
 };
 
 !@export matrix_wait {!(fun) = @;
@@ -124,4 +136,29 @@
         std:thread:sleep :ms => 10;
         .gen2 = hx:matrix_generation[];
     };
+};
+
+!hex_offs = {!(x, y, dir) = @;
+    !even = x % 2 == 0;
+
+    $i(x, y)
+    + (match dir
+        :TR => $i(1, ? even -1 0)
+        :BR => $i(1, ? even 0 1)
+        :B  => $i(0, 1)
+        :BL => $i(-1, ? even 0 1)
+        :TL => $i(-1, ? even -1 0)
+        :T  => $i(0, -1))
+};
+
+!@export get_all_adj = {!(pos) = @;
+    !out = $[];
+    iter dir $[:T, :B, :TR, :BR, :BL, :TL] {
+        !pos = hex_offs pos.0 pos.1 dir;
+        !cell = hx:get_cell pos;
+        if cell.node_id.0 != "Nop" {
+            std:push out ~ cell;
+        };
+    };
+    out
 };

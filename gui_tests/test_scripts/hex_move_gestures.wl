@@ -180,7 +180,27 @@ std:push tests "drag_empty_exist_adj_new" => {
         t:menu_click_text "Ad"   :left;
     };
 
-    !a = hx:get_cell $i(0, 0);
+    !(a, b) = $[
+        hx:get_cell $i(0, 0),
+        hx:get_cell $i(1, 0),
+    ];
+    std:assert_eq a.node_id.0 "Ad";
+    std:assert_eq b.node_id.0 "Sin";
+
+    std:assert_eq b.ports.1 "freq";
+    std:assert_eq a.ports.4 "sig";
+};
+
+std:push tests "drag_empty_exist_adj_new_io" => {
+    hx:set_cell $i(1, 0) ${ node_id = "sin" => 3 };
+
+    t:matrix_wait {
+        h:drag_hex_from_to $i(0, 0) $i(1, 0) :right;
+        t:menu_click_text "CV"   :left;
+        t:menu_click_text "Ad"   :left;
+        t:menu_click_text "sig"  :left;
+        t:menu_click_text "freq" :left;
+    };
 
     !(a, b) = $[
         hx:get_cell $i(0, 0),
@@ -191,6 +211,103 @@ std:push tests "drag_empty_exist_adj_new" => {
 
     std:assert_eq b.ports.1 "freq";
     std:assert_eq a.ports.4 "sig";
+};
+
+std:push tests "drag_empty_exist_copy" => {
+    hx:set_cell $i(1, 0) ${
+        node_id = "sin" => 3,
+        ports   = $["freq", "det", "det", "sig", "sig", "sig"],
+    };
+
+    t:matrix_wait {
+        h:drag_hex_from_to $i(3, 3) $i(1, 0) :left;
+    };
+
+    !a = hx:get_cell $i(3, 3);
+
+    std:assert_eq a.node_id.0 "Sin";
+    std:assert_eq a.node_id.1 3;
+    std:assert_str_eq a.ports $[$n,$n,$n,$n,$n,$n];
+};
+
+std:push tests "drag_exist_exist_copy" => {
+    hx:set_cell $i(1, 0) ${
+        node_id = "ad" => 0,
+        ports   = $[],
+    };
+
+    hx:set_cell $i(3, 3) ${
+        node_id = "tseq" => 0,
+        ports   = $[],
+    };
+
+    # first check if above:
+    t:matrix_wait {
+        h:drag_hex_from_to $i(1, 0) $i(3, 3) :left;
+    };
+
+    !a = hx:get_cell $i(3, 2);
+    std:assert_eq a.node_id.0 "Ad";
+    std:assert_eq a.node_id.1 0;
+    std:assert_str_eq a.ports $[$n,$n,$n,$n,$n,$n];
+
+    # second check if one left
+    t:matrix_wait {
+        h:drag_hex_from_to $i(1, 0) $i(3, 3) :left;
+    };
+
+    !a = hx:get_cell $i(2, 3);
+    std:assert_eq a.node_id.0 "Ad";
+    std:assert_eq a.node_id.1 0;
+
+    # second check if one more left
+    t:matrix_wait {
+        h:drag_hex_from_to $i(1, 0) $i(3, 3) :left;
+    };
+
+    !a = hx:get_cell $i(2, 4);
+    std:assert_eq a.node_id.0 "Ad";
+    std:assert_eq a.node_id.1 0;
+};
+
+std:push tests "drag_exist_exist_new" => {
+    hx:set_cell $i(1, 0) ${
+        node_id = "ad" => 0,
+        ports   = $[],
+    };
+
+    hx:set_cell $i(3, 3) ${
+        node_id = "tseq" => 0,
+        ports   = $[],
+    };
+
+    # first check if above:
+    t:matrix_wait {
+        h:drag_hex_from_to $i(1, 0) $i(3, 3) :right;
+    };
+
+    !a = hx:get_cell $i(3, 2);
+    std:assert_eq a.node_id.0 "Ad";
+    std:assert_eq a.node_id.1 1;
+    std:assert_str_eq a.ports $[$n,$n,$n,$n,$n,$n];
+
+    # second check if one left
+    t:matrix_wait {
+        h:drag_hex_from_to $i(1, 0) $i(3, 3) :right;
+    };
+
+    !a = hx:get_cell $i(2, 3);
+    std:assert_eq a.node_id.0 "Ad";
+    std:assert_eq a.node_id.1 2;
+
+    # second check if one more left
+    t:matrix_wait {
+        h:drag_hex_from_to $i(1, 0) $i(3, 3) :right;
+    };
+
+    !a = hx:get_cell $i(2, 4);
+    std:assert_eq a.node_id.0 "Ad";
+    std:assert_eq a.node_id.1 3;
 };
 
 tests
