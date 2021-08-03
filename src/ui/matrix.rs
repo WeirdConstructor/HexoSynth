@@ -225,6 +225,8 @@ impl HexGridModel for MatrixUIMenu {
         if x >= self.width() || y >= self.height() { return None; }
         let mut len = 0;
 
+        let mut hlight = HexHLight::Plain;
+
         if let Some(idx) = self.grid2index(x, y) {
             self.ui_ctrl.with_state(|s| {
                 if let Some(item) = s.menu_items.get(idx) {
@@ -232,12 +234,16 @@ impl HexGridModel for MatrixUIMenu {
                     buf[0..len].copy_from_slice(&item.label.as_bytes()[0..len]);
                 }
             });
+
+            if idx == 0 {
+                hlight = HexHLight::Accent;
+            }
         }
 
         if let Ok(s) = std::str::from_utf8(&buf[0..len]) {
             Some(HexCell {
                 label:     s,
-                hlight:    HexHLight::Plain,
+                hlight,
                 rg_colors: None
             })
         } else {
