@@ -16,11 +16,11 @@ use std::rc::Rc;
 use std::cell::RefCell;
 
 pub trait ActionHandler {
-    fn init(&mut self, actions: &mut ActionState) { }
-    fn step(&mut self, actions: &mut ActionState, msg: &Msg) -> bool { false }
+    fn init(&mut self, _actions: &mut ActionState) { }
+    fn step(&mut self, _actions: &mut ActionState, _msg: &Msg) -> bool { false }
     fn menu_select(
-        &mut self, actions: &mut ActionState, ms: MenuState,
-        item_type: ItemType)
+        &mut self, _actions: &mut ActionState, _ms: MenuState,
+        _item_type: ItemType)
     { }
     fn is_finished(&self) -> bool { false }
 }
@@ -263,8 +263,6 @@ impl ActionState<'_, '_, '_> {
     pub fn split_cluster_at(
         &mut self, pos_a: (usize, usize), pos_b: (usize, usize))
     {
-        let path = CellDir::path_from_to(pos_a, pos_b);
-
         if let Some(dir) = CellDir::are_adjacent(pos_a, pos_b) {
             catch_err_dialog(self.dialog.clone(), || {
                 let mut cluster = crate::cluster::Cluster::new();
@@ -422,7 +420,7 @@ impl ActionHandler for ActionNewNodeAtCell {
                     "Select new node".to_string());
             },
             ItemType::NodeId(node_id) => {
-                if let MenuState::SelectNodeIdFromCat { category, .. } = ms {
+                if let MenuState::SelectNodeIdFromCat { .. } = ms {
                     a.instanciate_node_at((self.x, self.y), node_id);
                     a.set_focus_at(self.x, self.y);
                 }
@@ -680,14 +678,14 @@ impl ActionHandler for ActionNewNodeAndConnectionTo {
 
             },
             ItemType::NodeId(node_id) => {
-                if let MenuState::SelectNodeIdFromCat { category, .. } = ms {
+                if let MenuState::SelectNodeIdFromCat { .. } = ms {
                     self.new_node_id = Some(node_id);
                     self.select_new_node_io(a);
                 }
             },
             ItemType::OutputIdx(out_idx) => {
                 if let MenuState::SelectOutputParam {
-                    node_id, node_info, user_state
+                    node_id: _, node_info: _, user_state
                 } = ms {
                     if user_state == 1 {
                         self.create_node(Some(out_idx), a);
@@ -700,7 +698,7 @@ impl ActionHandler for ActionNewNodeAndConnectionTo {
             },
             ItemType::InputIdx(in_idx) => {
                 if let MenuState::SelectInputParam {
-                    node_id, node_info, user_state
+                    node_id: _, node_info: _, user_state
                 } = ms {
                     if user_state == 1 {
                         self.create_node(Some(in_idx), a);
@@ -767,7 +765,7 @@ impl ActionHandler for ActionTwoNewConnectedNodes {
                 }
             },
             ItemType::NodeId(node_id) => {
-                if let MenuState::SelectNodeIdFromCat { category, user_state } = ms {
+                if let MenuState::SelectNodeIdFromCat { category: _, user_state } = ms {
                     if user_state == 0 {
                         self.node_id_a = Some(node_id);
                         a.next_menu_state(
@@ -933,7 +931,7 @@ impl ActionHandler for ActionConnectCells {
             ItemType::Back => { a.menu_back(); },
             ItemType::OutputIdx(out_idx) => {
                 if let MenuState::SelectOutputParam {
-                    node_id, node_info, user_state
+                    node_id: _, node_info: _, user_state
                 } = ms {
                     if user_state == 1 {
                         self.cell_b_io = Some(out_idx);
@@ -947,7 +945,7 @@ impl ActionHandler for ActionConnectCells {
             },
             ItemType::InputIdx(in_idx) => {
                 if let MenuState::SelectInputParam {
-                    node_id, node_info, user_state
+                    node_id: _, node_info: _, user_state
                 } = ms {
                     if user_state == 1 {
                         self.cell_b_io = Some(in_idx);
@@ -1086,7 +1084,7 @@ impl ActionHandler for DefaultActionHandler {
                     // Left & pos_a exists & pos_b empty
                     //  => move/swap cell
                     (btn, None, None, Some(dir), _) => {
-                        let mut ah =
+                        let ah =
                             Box::new(
                                 ActionTwoNewConnectedNodes::new(
                                     btn == MButton::Left,
@@ -1100,7 +1098,7 @@ impl ActionHandler for DefaultActionHandler {
                     (btn, Some(cell_a), Some(cell_b), None, _) => {
                         let adj_free =
                             cell_b.find_first_adjacent_free(a.matrix, CellDir::T);
-                        if let Some((dir, inp_idx)) = adj_free {
+                        if let Some((dir, _inp_idx)) = adj_free {
                             if let Some(pos) = dir.offs_pos(cell_b.pos()) {
                                 match btn {
                                     MButton::Left =>
@@ -1115,7 +1113,7 @@ impl ActionHandler for DefaultActionHandler {
                         }
                     },
                     (MButton::Left, Some(cell_a), Some(cell_b), Some(dir), _) => {
-                        let mut ah =
+                        let ah =
                             Box::new(
                                 ActionConnectCells::new(
                                     false,
@@ -1136,7 +1134,7 @@ impl ActionHandler for DefaultActionHandler {
                         a.swap_cells(*pos_a, *pos_b);
                         a.set_focus_at(pos_b.0, pos_b.1);
                     },
-                    (MButton::Right, Some(_), Some(_), Some(dir), _) => {
+                    (MButton::Right, Some(_), Some(_), Some(_), _) => {
                         a.split_cluster_at(*pos_b, *pos_a);
                         a.set_focus_at(pos_a.0, pos_a.1);
                     },
@@ -1149,7 +1147,7 @@ impl ActionHandler for DefaultActionHandler {
                         a.set_focus_at(pos_a.0, pos_a.1);
                     },
                     (btn, None, Some(cell), Some(dir), _) => {
-                        let mut ah =
+                        let ah =
                             Box::new(
                                 ActionNewNodeAndConnectionTo::new(
                                     btn == MButton::Left,
@@ -1190,12 +1188,6 @@ impl ActionHandler for DefaultActionHandler {
                             MenuState::None);
 
                     if let Some(mut ah) = self.ui_action.take() {
-//                        if let Some(new_menu_pos) =
-//                            a.state.next_menu_pos.take()
-//                        {
-//                            a.state.menu_pos = new_menu_pos;
-//                        }
-
                         let title = a.state.menu_title.borrow().clone();
                         a.push_menu_history(ms.clone(), title);
                         ah.menu_select(a, ms, item_type);
@@ -1205,14 +1197,14 @@ impl ActionHandler for DefaultActionHandler {
                     a.state.menu_items = a.state.menu_state.to_items();
                 }
             },
-            Msg::MatrixClick { x, y, btn, modkey } => {
+            Msg::MatrixClick { x, y, btn, modkey: _ } => {
                 if let Some(cell) = a.matrix.get_copy(*x, *y) {
                     if cell.is_empty() {
                         if *btn == MButton::Left {
-                            let mut ah = Box::new(ActionNewNodeAtCell::new(*x, *y));
+                            let ah = Box::new(ActionNewNodeAtCell::new(*x, *y));
                             self.set_action_handler(ah, a);
                         } else {
-                            let mut ah =
+                            let ah =
                                 Box::new(
                                     ActionContextMenu::new_empty_cell(*x, *y));
                             self.set_action_handler(ah, a);
@@ -1221,17 +1213,17 @@ impl ActionHandler for DefaultActionHandler {
                         if *btn == MButton::Left {
                             a.set_focus(cell);
                         } else {
-                            let mut ah =
+                            let ah =
                                 Box::new(ActionContextMenu::new(*x, *y));
                             self.set_action_handler(ah, a);
                         }
                     }
                 }
             },
-            Msg::MenuMouseClick { x, y, btn } => {
+            Msg::MenuMouseClick { x, y, btn: _ } => {
                 a.state.next_menu_pos = Some((*x, *y));
             },
-            Msg::MatrixMouseClick { x, y, btn } => {
+            Msg::MatrixMouseClick { x, y, btn: _ } => {
                 a.state.menu_pos = (*x, *y);
             },
         }

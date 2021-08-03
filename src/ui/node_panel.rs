@@ -3,7 +3,6 @@
 // See README.md and COPYING for details.
 
 use crate::UICtrlRef;
-use crate::matrix::Cell;
 use crate::dsp::{NodeId, NodeInfo, SAtom, GraphAtomData};
 use crate::ui::monitors::{Monitors, MonitorsData};
 
@@ -255,10 +254,8 @@ impl GenericNodeUI {
 }
 
 pub struct NodePanelData {
-    ui_ctrl:    UICtrlRef,
     node_ui:    Rc<RefCell<GenericNodeUI>>,
     monitors:   WidgetData,
-    prev_focus: Cell,
 }
 
 #[allow(clippy::new_ret_no_self)]
@@ -276,13 +273,11 @@ impl NodePanelData {
                 center(12, 12),
                 Box::new(MonitorsData::new(
                     AtomId::new(node_id, 101),
-                    ui_ctrl.clone())));
+                    ui_ctrl)));
 
         Box::new(Self {
-            ui_ctrl,
             node_ui,
             monitors,
-            prev_focus: Cell::empty(NodeId::Nop),
         })
     }
 

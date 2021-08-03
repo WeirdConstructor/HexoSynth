@@ -145,7 +145,7 @@ fn start_backend<F: FnMut()>(node_exec: NodeExecutor, mut f: F) {
     let ne2       = ne.clone();
 
     let oversample_simulation =
-        if let Some(arg) = std::env::args().skip(1).next() {
+        if let Some(arg) = std::env::args().nth(1) {
             arg == "4x"
         } else {
             false

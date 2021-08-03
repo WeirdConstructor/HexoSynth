@@ -21,6 +21,7 @@ impl Cluster {
         self.ignore_pos.insert(pos);
     }
 
+    #[allow(dead_code)]
     pub fn intersects_with(&self, other: &Cluster) -> bool {
         for p in self.poses.iter() {
             if other.poses.contains(p) {

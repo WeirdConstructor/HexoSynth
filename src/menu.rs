@@ -29,7 +29,6 @@ impl MenuState {
         match self {
             MenuState::None => vec![],
             MenuState::SelectCategory { user_state } => {
-                let mut v =
                 vec![
                     if *user_state > 0 {
                         MenuItem {
@@ -74,7 +73,7 @@ impl MenuState {
                         label: "I/O".to_string(),
                         help: "I/O\nExternal connections:\n- Audio I/O\n- MIDI".to_string(),
                     },
-                ];
+                ]
 
 //                for i in 7..44 {
 //                    v.push(
@@ -84,8 +83,6 @@ impl MenuState {
 //                        help: "I/O\nExternal connections:\n- Audio I/O\n- MIDI".to_string(),
 //                    });
 //                }
-
-                v
             },
             MenuState::SelectNodeIdFromCat { category, .. } => {
                 let mut items = vec![];
@@ -106,7 +103,7 @@ impl MenuState {
                 });
                 items
             },
-            MenuState::SelectOutputParam { node_id, node_info, .. } => {
+            MenuState::SelectOutputParam { node_id: _, node_info, .. } => {
                 let mut items = vec![];
                 items.push(MenuItem {
                     typ:    ItemType::Back,
@@ -126,7 +123,7 @@ impl MenuState {
 
                 items
             },
-            MenuState::SelectInputParam { node_id, node_info, .. } => {
+            MenuState::SelectInputParam { node_id: _, node_info, .. } => {
                 let mut items = vec![];
                 items.push(MenuItem {
                     typ:    ItemType::Back,
@@ -198,7 +195,7 @@ impl MenuState {
                     },
                 ]
             },
-            MenuState::ContextRandomSubMenu { cell } => {
+            MenuState::ContextRandomSubMenu { cell: _ } => {
                 vec![
                     MenuItem {
                         typ:    ItemType::Back,
@@ -215,7 +212,7 @@ impl MenuState {
                     },
                 ]
             },
-            MenuState::ContextRandomPosSubMenu { pos } => {
+            MenuState::ContextRandomPosSubMenu { pos: _ } => {
                 vec![
                     MenuItem {
                         typ:    ItemType::Back,

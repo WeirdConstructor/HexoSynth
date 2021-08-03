@@ -23,8 +23,7 @@ use std::rc::Rc;
 use std::cell::RefCell;
 
 pub struct PatternViewData {
-    ui_ctrl:    UICtrlRef,
-    cont:       Rc<RefCell<Option<WidgetData>>>,
+    cont: Rc<RefCell<Option<WidgetData>>>,
 }
 
 pub fn create_pattern_edit(a: &mut crate::actions::ActionState) -> WidgetData {
@@ -55,7 +54,6 @@ impl PatternViewData {
     {
         Box::new(Self {
             cont: ui_ctrl.with_state(|s| s.widgets.patedit_ui.clone()),
-            ui_ctrl,
         })
     }
 
@@ -67,7 +65,6 @@ define_containing_opt_shared_widget!{PatternView, PatternViewData}
 
 pub struct UtilPanelData {
     #[allow(dead_code)]
-    ui_ctrl:        UICtrlRef,
     cont_top:       WidgetData,
     cont_bottom:    WidgetData,
 }
@@ -123,7 +120,6 @@ impl UtilPanelData {
                 TextData::new(txtsrc)));
 
         Box::new(Self {
-            ui_ctrl,
             cont_top: wbox!(
                 wt_cont,
                 AtomId::new(crate::UTIL_PANEL_TOP_ID as u32, 0),
@@ -137,7 +133,7 @@ impl UtilPanelData {
         })
     }
 
-    pub fn check_cont_update(&mut self, ui: &mut dyn WidgetUI) {
+    pub fn check_cont_update(&mut self, _ui: &mut dyn WidgetUI) {
     }
 }
 

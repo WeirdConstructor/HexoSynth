@@ -3,9 +3,7 @@
 // See README.md and COPYING for details.
 
 use crate::{UICtrlRef, Msg};
-use crate::matrix::*;
 use crate::dsp::NodeId;
-use crate::ui::menu::MenuActionHandler;
 use crate::ui::node_panel::{NodePanel, NodePanelData};
 use crate::ui::util_panel::{UtilPanel, UtilPanelData};
 
@@ -21,40 +19,6 @@ use hexotk::widgets::{
 };
 
 use std::rc::Rc;
-
-pub struct MatrixActionHandler {
-    ui_ctrl:      UICtrlRef,
-    help_txt:     Rc<TextSourceRef>,
-}
-
-impl MatrixActionHandler {
-    pub fn new(ui_ctrl: UICtrlRef, help_txt: Rc<TextSourceRef>) -> Self {
-        Self {
-            ui_ctrl,
-            help_txt,
-        }
-    }
-}
-
-impl MenuActionHandler for MatrixActionHandler {
-    fn update_help_text(&mut self, txt: &str) {
-        self.help_txt.set(txt);
-    }
-
-    fn assign_cell_port(
-        &mut self, cell: Cell, cell_dir: CellDir, idx: Option<usize>)
-    {
-        self.ui_ctrl.assign_cell_port(cell, cell_dir, idx);
-    }
-
-    fn clear_cell_ports(&mut self, cell: Cell) {
-        self.ui_ctrl.clear_cell_ports(cell);
-    }
-
-    fn assign_cell_new_node(&mut self, cell: Cell, node_id: NodeId) {
-        self.ui_ctrl.assign_cell_new_node(cell, node_id);
-    }
-}
 
 pub struct MatrixUIMenu {
     ui_ctrl:    UICtrlRef,
@@ -258,8 +222,6 @@ impl HexGridModel for MatrixUIMenu {
 
 pub struct MatrixUIModel {
     ui_ctrl: UICtrlRef,
-    menu:   Rc<MatrixUIMenu>,
-
     w:      usize,
     h:      usize,
 }
@@ -355,7 +317,6 @@ pub struct NodeMatrixData {
     node_panel:   Box<WidgetData>,
     util_panel:   Box<WidgetData>,
     help_text:    Box<WidgetData>,
-    show_help:    bool,
 
     matrix_model: Rc<MatrixUIModel>,
     ui_ctrl:      UICtrlRef,
@@ -392,7 +353,6 @@ impl NodeMatrixData {
 
         let matrix_model = Rc::new(MatrixUIModel {
             ui_ctrl:        ui_ctrl.clone(),
-            menu:           menu_model.clone(),
             w:              size.0,
             h:              size.1,
         });
@@ -608,7 +568,6 @@ LMB = Left Mouse Button, RMB = Right Mouse Button, MMB = Middle Mouse Button
             AtomId::new(node_id, HEX_MATRIX_ID),
             pos,
             Box::new(Self {
-                show_help: false,
                 ui_ctrl: ui_ctrl.clone(),
                 hex_grid: WidgetData::new_tl_box(
                     wt_hexgrid,
@@ -767,7 +726,7 @@ impl WidgetType for NodeMatrix {
                 });
                 ui.queue_redraw();
             },
-            UIEvent::Key { id, key, mouse_pos, .. } => {
+            UIEvent::Key { id, key, .. } => {
                 use keyboard_types::Key;
 
                 if *id == data.id() {
@@ -787,38 +746,10 @@ impl WidgetType for NodeMatrix {
                                 data.ui_ctrl.emit(Msg::key(key.clone()))
                             });
                         },
-                        Key::Character(c) => {
+                        Key::Character(_) => {
                             data.with(|data: &mut NodeMatrixData| {
                                 data.ui_ctrl.emit(Msg::key(key.clone()))
                             });
-//                            data.with(|data: &mut NodeMatrixData| {
-//                                let ui_ctrl   = &data.matrix_model.ui_ctrl;
-//                                let cell      = ui_ctrl.get_recent_focus();
-//                                let node_info = ui_ctrl.get_focus_node_info();
-//
-//                                let mut assign_port_dir = None;
-//
-//                                match &c[..] {
-//                                    "w" => { assign_port_dir = Some(CellDir::T); },
-//                                    "q" => { assign_port_dir = Some(CellDir::TL); },
-//                                    "a" => { assign_port_dir = Some(CellDir::BL); },
-//                                    "e" => { assign_port_dir = Some(CellDir::TR); },
-//                                    "d" => { assign_port_dir = Some(CellDir::BR); },
-//                                    "s" => { assign_port_dir = Some(CellDir::B); },
-//                                    _ => {},
-//                                }
-//
-//                                if let Some(dir) = assign_port_dir {
-//                                    if cell.node_id() != NodeId::Nop {
-//                                        data.matrix_model.menu.menu
-//                                            .borrow_mut()
-//                                            .open_assign_port(
-//                                                cell, node_info, dir);
-//                                        data.grid_click_pos = Some(*mouse_pos);
-//                                        ui.queue_redraw();
-//                                    }
-//                                }
-//                            });
 
                             data.with(|data: &mut NodeMatrixData| {
                                 data.util_panel.event(ui, ev);
