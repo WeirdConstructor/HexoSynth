@@ -1,5 +1,5 @@
 use crate::uimsg_queue::{Msg};
-use crate::state::{State, ItemType, MenuState, ATNID_HELP_BUTTON};
+use crate::state::{State, ItemType, MenuState, RandSpecifier, ATNID_HELP_BUTTON};
 use crate::UIParams;
 use crate::dsp::{SAtom, ALL_NODE_IDS};
 use crate::dsp::helpers::SplitMix64;
@@ -435,11 +435,16 @@ impl ActionHandler for ActionNewNodeAtCell {
 struct ActionContextMenu {
     x: usize,
     y: usize,
+    empty_cell: bool,
 }
 
 impl ActionContextMenu {
     pub fn new(x: usize, y: usize) -> Self {
-        Self { x, y }
+        Self { x, y, empty_cell: false }
+    }
+
+    pub fn new_empty_cell(x: usize, y: usize) -> Self {
+        Self { x, y, empty_cell: true }
     }
 
     pub fn get_cell(&self, a: &mut ActionState) -> Cell {
@@ -454,12 +459,21 @@ impl ActionHandler for ActionContextMenu {
         let node_id   = cell.node_id();
         let node_info = NodeInfo::from_node_id(node_id);
 
-        a.next_menu_state(
-            MenuState::ContextAction { cell, node_id, node_info },
-            format!("Context Action for {} at {},{}",
-                node_id.label(),
-                cell.pos().0,
-                cell.pos().1));
+        if self.empty_cell {
+            a.next_menu_state(
+                MenuState::ContextActionPos { pos: (self.x, self.y) },
+                format!("Context Action for cell at {},{}",
+                    cell.pos().0,
+                    cell.pos().1));
+
+        } else {
+            a.next_menu_state(
+                MenuState::ContextAction { cell, node_id, node_info },
+                format!("Context Action for {} at {},{}",
+                    node_id.label(),
+                    cell.pos().0,
+                    cell.pos().1));
+        }
     }
 
     fn menu_select(&mut self, a: &mut ActionState, ms: MenuState, item_type: ItemType) {
@@ -476,7 +490,7 @@ impl ActionHandler for ActionContextMenu {
                 a.clear_unused_at((self.x, self.y));
                 a.set_focus_at(self.x, self.y);
             },
-            ItemType::RandomNode(_) => {
+            ItemType::RandomNode(spec) => {
                 if let MenuState::ContextRandomSubMenu { cell } = ms {
                     let ret = cell.find_all_adjacent_free(a.matrix, CellDir::C);
                     if ret.len() > 0 {
@@ -486,6 +500,37 @@ impl ActionHandler for ActionContextMenu {
                         let node_id  = node_ids[sm.next_u64() as usize % node_ids.len()];
 
                         a.instanciate_node_at(sel.1, node_id);
+                    }
+
+                } else if let MenuState::ContextRandomPosSubMenu { pos } = ms {
+                    let mut sm   = SplitMix64::new_time_seed();
+                    let node_ids = ALL_NODE_IDS;
+
+                    match spec {
+                        RandSpecifier::One => {
+                            let node_id =
+                                node_ids[sm.next_u64() as usize
+                                         % node_ids.len()];
+                            a.instanciate_node_at(pos, node_id);
+                        },
+                        RandSpecifier::Six => {
+                            for e in 0..6 {
+                                let dir = CellDir::from(e);
+
+                                if let Some(pos) = dir.offs_pos(pos) {
+                                    if let Some(cell) =
+                                        a.matrix.get(pos.0, pos.1)
+                                    {
+                                        if cell.is_empty() {
+                                            let node_id =
+                                                node_ids[sm.next_u64() as usize
+                                                         % node_ids.len()];
+                                            a.instanciate_node_at(pos, node_id);
+                                        }
+                                    }
+                                }
+                            }
+                        },
                     }
                 }
             },
@@ -1168,12 +1213,18 @@ impl ActionHandler for DefaultActionHandler {
                         if *btn == MButton::Left {
                             let mut ah = Box::new(ActionNewNodeAtCell::new(*x, *y));
                             self.set_action_handler(ah, a);
+                        } else {
+                            let mut ah =
+                                Box::new(
+                                    ActionContextMenu::new_empty_cell(*x, *y));
+                            self.set_action_handler(ah, a);
                         }
                     } else {
                         if *btn == MButton::Left {
                             a.set_focus(cell);
                         } else {
-                            let mut ah = Box::new(ActionContextMenu::new(*x, *y));
+                            let mut ah =
+                                Box::new(ActionContextMenu::new(*x, *y));
                             self.set_action_handler(ah, a);
                         }
                     }

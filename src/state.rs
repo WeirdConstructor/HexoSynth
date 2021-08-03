@@ -19,10 +19,9 @@ use std::rc::Rc;
 use std::cell::RefCell;
 
 #[derive(Debug, Clone)]
-pub enum IOSpecifier {
-    Any,
-    Input,
-    Output
+pub enum RandSpecifier {
+    One,
+    Six,
 }
 
 #[derive(Debug, Clone)]
@@ -36,7 +35,7 @@ pub enum ItemType {
     OutputIdx(usize),
     InputIdx(usize),
     SubMenu { menu_state: Box<MenuState>, title: String },
-    RandomNode(IOSpecifier),
+    RandomNode(RandSpecifier),
 }
 
 #[derive(Debug, Clone)]

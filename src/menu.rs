@@ -1,4 +1,4 @@
-use crate::state::{ItemType, MenuItem, IOSpecifier, UICategory};
+use crate::state::{ItemType, MenuItem, RandSpecifier, UICategory};
 use hexodsp::{NodeInfo, NodeId, Cell};
 
 #[derive(Debug, Clone)]
@@ -8,6 +8,9 @@ pub enum MenuState {
     SelectNodeIdFromCat { category: UICategory, user_state: i64 },
     SelectOutputParam { node_id: NodeId, node_info: NodeInfo, user_state: i64 },
     SelectInputParam { node_id: NodeId, node_info: NodeInfo, user_state: i64 },
+    ContextActionPos {
+        pos: (usize, usize),
+    },
     ContextAction {
         cell: Cell,
         node_id: NodeId,
@@ -15,6 +18,9 @@ pub enum MenuState {
     },
     ContextRandomSubMenu {
         cell: Cell,
+    },
+    ContextRandomPosSubMenu {
+        pos: (usize, usize),
     },
 }
 
@@ -140,6 +146,27 @@ impl MenuState {
 
                 items
             },
+            MenuState::ContextActionPos { pos } => {
+                vec![
+                    MenuItem {
+                        typ:    ItemType::Back,
+                        label:  "<Back".to_string(),
+                        help:   "\nBack to previous menu".to_string(),
+                    },
+                    MenuItem {
+                        typ: ItemType::SubMenu {
+                            menu_state:
+                                Box::new(
+                                    MenuState::ContextRandomPosSubMenu {
+                                        pos: *pos
+                                    }),
+                            title: "Randomized Stuff".to_string(),
+                        },
+                        label:  "Rand>".to_string(),
+                        help:   "Rand>\nAccess to all kinds of random actions with the current position.".to_string(),
+                    },
+                ]
+            },
             MenuState::ContextAction { cell, .. } => {
                 vec![
                     MenuItem {
@@ -179,12 +206,37 @@ impl MenuState {
                         help:   "\nBack to previous menu".to_string(),
                     },
                     MenuItem {
-                        typ:    ItemType::RandomNode(IOSpecifier::Any),
+                        typ:    ItemType::RandomNode(RandSpecifier::One),
                         label:  "Rand Node".to_string(),
                         help:   "Rand Node\nSpawn a random node adjacent to \
                                  the current cell. Use this either as a \
                                  challenge to make use of the spawned node or \
-                                 as inspiration.".to_string(),
+                                 just as an inspiration.".to_string(),
+                    },
+                ]
+            },
+            MenuState::ContextRandomPosSubMenu { pos } => {
+                vec![
+                    MenuItem {
+                        typ:    ItemType::Back,
+                        label:  "<Back".to_string(),
+                        help:   "\nBack to previous menu".to_string(),
+                    },
+                    MenuItem {
+                        typ:    ItemType::RandomNode(RandSpecifier::One),
+                        label:  "Rand Node".to_string(),
+                        help:   "Rand Node\nSpawn a random node adjacent to \
+                                 the current cell. Use this either as a \
+                                 challenge to make use of the spawned node or \
+                                 just as an inspiration.".to_string(),
+                    },
+                    MenuItem {
+                        typ:    ItemType::RandomNode(RandSpecifier::Six),
+                        label:  "Rand 6".to_string(),
+                        help:   "Rand 6\nSpawn 6 random nodes around this position.\
+                                 Use this either as a \
+                                 challenge to make use of the spawned nodes or \
+                                 just as an inspiration.".to_string(),
                     },
                 ]
             },
