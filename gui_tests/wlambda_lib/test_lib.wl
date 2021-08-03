@@ -2,8 +2,9 @@
 !@import std;
 !@import hx;
 
-!HEX_MENU_ID = $p(9999,5);
-!HEX_MAP_ID  = $p(9999,2);
+!DIALOG_BTN_ID = $p(90001,99);
+!HEX_MENU_ID   = $p(9999,5);
+!HEX_MAP_ID    = $p(9999,2);
 
 !@export mouse_click = {
     hx:mouse_down _;
@@ -89,6 +90,16 @@
         };
     !new_pos = $f(x, y);
     hx:mouse_move new_pos;
+};
+
+!@export click_text_contains {!(text, btn) = @;
+    !pos = (hx:id_by_text_contains text).0.1;
+    !x = pos.x + pos.z * 0.5;
+    !y = pos.y + pos.w * 0.5;
+
+    hx:mouse_move $f(x, y);
+    hx:mouse_down _1;
+    hx:mouse_up _1;
 };
 
 !@export menu_click_text {!(text, btn) = @;

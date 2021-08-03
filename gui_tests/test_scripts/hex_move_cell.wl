@@ -31,7 +31,6 @@
 #       - 4: Old select param
 
 std:push tests "test_1_new_node_with_def_out" => {
-    h:reset10x10[];
     hx:set_cell $i(1, 0) ${ node_id = "tseq" => 0 };
     h:drag_hex_from_to $i(0, 0) $i(1, 0);
 
@@ -47,7 +46,6 @@ std:push tests "test_1_new_node_with_def_out" => {
 };
 
 std:push tests "test_2_new_node_with_def_inp" => {
-    h:reset10x10[];
     hx:set_cell $i(1, 0) ${ node_id = "tseq" => 0 };
     h:drag_hex_from_to $i(2, 1) $i(1, 0);
 
@@ -63,7 +61,6 @@ std:push tests "test_2_new_node_with_def_inp" => {
 };
 
 std:push tests "test_3_new_node_with_select_io" => {
-    h:reset10x10[];
     hx:set_cell $i(1, 0) ${ node_id = "tseq" => 0 };
     h:drag_hex_from_to $i(2, 1) $i(1, 0) :right;
 
@@ -81,7 +78,6 @@ std:push tests "test_3_new_node_with_select_io" => {
 };
 
 std:push tests "test_4_new_node_with_select_io_old" => {
-    h:reset10x10[];
     hx:set_cell $i(1, 0) ${ node_id = "tseq" => 0 };
     h:drag_hex_from_to $i(0, 0) $i(1, 0) :right;
 
@@ -99,7 +95,6 @@ std:push tests "test_4_new_node_with_select_io_old" => {
 };
 
 std:push tests "test_5_new_node_out_cnt_0_old_in_1" => {
-    h:reset10x10[];
     hx:set_cell $i(1, 0) ${ node_id = "fbrd" => 0 };
     h:drag_hex_from_to $i(0, 0) $i(1, 0) :right;
 
@@ -115,7 +110,6 @@ std:push tests "test_5_new_node_out_cnt_0_old_in_1" => {
 };
 
 std:push tests "test_6_new_node_in_1_old_out_0" => {
-    h:reset10x10[];
     hx:set_cell $i(1, 0) ${ node_id = "fbwr" => 0 };
     h:drag_hex_from_to $i(2, 1) $i(1, 0) :right;
 
@@ -131,7 +125,6 @@ std:push tests "test_6_new_node_in_1_old_out_0" => {
 };
 
 std:push tests "test_6_new_node_in_1_old_out_1" => {
-    h:reset10x10[];
     hx:set_cell $i(1, 0) ${ node_id = "sin" => 0 };
     h:drag_hex_from_to $i(2, 1) $i(1, 0) :right;
 

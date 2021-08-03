@@ -13,8 +13,6 @@
 
 # Test 1B:  Connect with node with just 1 input 
 std:push tests "test_1b_con_just_1_input" => {
-    h:reset10x10[];
-
     hx:set_cell $i(1, 0) ${ node_id = "fbrd" => 0 };
     hx:set_cell $i(2, 1) ${ node_id = "fbwr" => 0 };
 
@@ -29,8 +27,6 @@ std:push tests "test_1b_con_just_1_input" => {
 };
 
 std:push tests "test_1c_con_no_out_1_in" => {
-    h:reset10x10[];
-
     hx:set_cell $i(1, 0) ${ node_id = "fbwr" => 0 };
     hx:set_cell $i(2, 1) ${ node_id = "fbrd" => 0 };
 
@@ -45,8 +41,6 @@ std:push tests "test_1c_con_no_out_1_in" => {
 };
 
 std:push tests "test_2b_con_1_out_1_in" => {
-    h:reset10x10[];
-
     hx:set_cell $i(1, 0) ${ node_id = "fbrd" => 0 };
     hx:set_cell $i(2, 1) ${ node_id = "fbwr" => 0 };
 
@@ -61,8 +55,6 @@ std:push tests "test_2b_con_1_out_1_in" => {
 };
 
 std:push tests "test_3b_con_1_in_mult_out" => {
-    h:reset10x10[];
-
     hx:set_cell $i(1, 0) ${ node_id = "ad" => 0 };
     hx:set_cell $i(2, 1) ${ node_id = "fbrd" => 0 };
 
@@ -78,8 +70,6 @@ std:push tests "test_3b_con_1_in_mult_out" => {
 };
 
 std:push tests "test_4b_con_1_out_mult_in" => {
-    h:reset10x10[];
-
     hx:set_cell $i(1, 0) ${ node_id = "sin" => 0 };
     hx:set_cell $i(2, 1) ${ node_id = "sin" => 1 };
 
@@ -95,8 +85,6 @@ std:push tests "test_4b_con_1_out_mult_in" => {
 };
 
 std:push tests "test_5b_con_mult_out_mult_in" => {
-    h:reset10x10[];
-
     hx:set_cell $i(1, 0) ${ node_id = "ad" => 0 };
     hx:set_cell $i(2, 1) ${ node_id = "sin" => 0 };
 

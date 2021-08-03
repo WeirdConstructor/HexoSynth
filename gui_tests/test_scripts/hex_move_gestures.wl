@@ -5,7 +5,6 @@
 !tests = $[];
 
 std:push tests "drag_empty_empty_default_pair" => {
-    h:reset10x10[];
     t:matrix_wait {
         h:drag_hex_from_to $i(2, 1) $i(1, 0) :left;
         t:menu_click_text "CV"   :left;
@@ -23,7 +22,6 @@ std:push tests "drag_empty_empty_default_pair" => {
 };
 
 std:push tests "drag_empty_empty_default_pair_rev" => {
-    h:reset10x10[];
     t:matrix_wait {
         h:drag_hex_from_to $i(1, 0) $i(2, 1) :left;
         t:menu_click_text "CV"   :left;
@@ -41,7 +39,6 @@ std:push tests "drag_empty_empty_default_pair_rev" => {
 };
 
 std:push tests "drag_empty_empty_set_io" => {
-    h:reset10x10[];
     t:matrix_wait {
         h:drag_hex_from_to $i(1, 0) $i(2, 1) :right;
         t:menu_click_text "CV"   :left;
@@ -62,7 +59,6 @@ std:push tests "drag_empty_empty_set_io" => {
 };
 
 std:push tests "drag_empty_empty_set_io_rev" => {
-    h:reset10x10[];
     t:matrix_wait {
         h:drag_hex_from_to $i(2, 1) $i(1, 0) :right;
         t:menu_click_text "CV"   :left;
@@ -83,8 +79,6 @@ std:push tests "drag_empty_empty_set_io_rev" => {
 };
 
 !setup_sin_sin_cluster = {!(a_pos, b_pos) = @;
-    h:reset10x10[];
-
     t:matrix_wait {
         hx:set_cell a_pos ${
             node_id = "sin" => 0,
@@ -130,6 +124,13 @@ std:push tests "drag_cluster_err" => {
 
     !id = hx:id_by_text_contains "out of Range";
     std:assert_eq id.0.0.1 "DBGID_TEXT_HEADER";
+
+    hx:query_state[];
+    t:click_text_contains "Ok" :left;
+
+    hx:query_state[];
+    !id = hx:id_by_text_contains "out of Range";
+    std:assert is_none[id];
 };
 
 std:push tests "drag_split_cluster" => {
@@ -163,11 +164,14 @@ std:push tests "drag_split_cluster_err" => {
     std:assert_eq id.0.0.1 "DBGID_TEXT_HEADER";
 
     hx:query_state[];
+    t:click_text_contains "Ok" :left;
+
+    hx:query_state[];
+    !id = hx:id_by_text_contains "out of Range";
+    std:assert is_none[id];
 };
 
 std:push tests "drag_empty_exist_adj_new" => {
-    h:reset10x10[];
-
     hx:set_cell $i(1, 0) ${ node_id = "sin" => 3 };
 
     t:matrix_wait {

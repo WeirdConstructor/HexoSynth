@@ -678,15 +678,15 @@ fn start_driver(matrix: Arc<Mutex<Matrix>>) -> Driver {
             let path = std::path::Path::new(f);
             let name = path.file_name().unwrap().to_str().unwrap();
 
-            {
-                let mut m = clear_matrix.lock().unwrap();
-                m.clear();
-            }
-
             match ctx.eval_file(&f) {
                 Ok(v) => {
                     println!("[{} has {} tests]", name, v.len());
                     for (v, _) in v.iter() {
+                        {
+                            let mut m = clear_matrix.lock().unwrap();
+                            m.clear();
+                        }
+
                         let tname = v.v_s_raw(0);
                         let fun   = v.v_(1);
 
