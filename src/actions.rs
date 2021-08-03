@@ -1,7 +1,7 @@
 use crate::uimsg_queue::{Msg};
 use crate::state::{State, ItemType, MenuState, RandSpecifier, ATNID_HELP_BUTTON};
 use crate::UIParams;
-use crate::dsp::{SAtom, ALL_NODE_IDS};
+use crate::dsp::{SAtom, get_rand_node_id, RandNodeSelector};
 use crate::dsp::helpers::SplitMix64;
 
 use hexotk::{MButton, AtomId};
@@ -494,26 +494,26 @@ impl ActionHandler for ActionContextMenu {
                 if let MenuState::ContextRandomSubMenu { cell } = ms {
                     let ret = cell.find_all_adjacent_free(a.matrix, CellDir::C);
                     if ret.len() > 0 {
-                        let mut sm   = SplitMix64::new_time_seed();
-                        let sel      = ret[sm.next_u64() as usize % ret.len()];
-                        let node_ids = ALL_NODE_IDS;
-                        let node_id  = node_ids[sm.next_u64() as usize % node_ids.len()];
-
-                        a.instanciate_node_at(sel.1, node_id);
+                        let mut sm = SplitMix64::new_time_seed();
+                        let sel    = ret[sm.next_u64() as usize % ret.len()];
+                        a.instanciate_node_at(
+                            sel.1,
+                            get_rand_node_id(1, RandNodeSelector::OnlyUseful)[0]);
                     }
 
                 } else if let MenuState::ContextRandomPosSubMenu { pos } = ms {
-                    let mut sm   = SplitMix64::new_time_seed();
-                    let node_ids = ALL_NODE_IDS;
-
                     match spec {
                         RandSpecifier::One => {
                             let node_id =
-                                node_ids[sm.next_u64() as usize
-                                         % node_ids.len()];
+                                get_rand_node_id(
+                                    1, RandNodeSelector::OnlyUseful)[0];
                             a.instanciate_node_at(pos, node_id);
                         },
                         RandSpecifier::Six => {
+                            let node_ids =
+                                get_rand_node_id(
+                                    6, RandNodeSelector::OnlyUseful);
+
                             for e in 0..6 {
                                 let dir = CellDir::from(e);
 
@@ -522,10 +522,8 @@ impl ActionHandler for ActionContextMenu {
                                         a.matrix.get(pos.0, pos.1)
                                     {
                                         if cell.is_empty() {
-                                            let node_id =
-                                                node_ids[sm.next_u64() as usize
-                                                         % node_ids.len()];
-                                            a.instanciate_node_at(pos, node_id);
+                                            a.instanciate_node_at(
+                                                pos, node_ids[e as usize]);
                                         }
                                     }
                                 }
