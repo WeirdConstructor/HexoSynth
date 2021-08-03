@@ -20,8 +20,8 @@ Here is a screenshot of how it looks:
 
 ## State of Development
 
-This project is still (2021-06-22) under heavy development and is considered
-pre alpha stage. There are only few nodes (aka modules) implemented yet. The
+This project is still (2021-08-03) under heavy development and is considered
+alpha stage. There are only few nodes (aka modules) implemented yet. The
 interface is mostly functional though. But not tested in all hosts yet and
 there are known bugs.
 
@@ -89,11 +89,13 @@ Compile and run:
 
     hexosynth/jack_standlone/$ cargo +nightly run --release --example standalone
 
-## Running the Automated Testsuite:
+## Running the Automated Testsuites:
 
-There exists an automate test suite for the DSP and backend code:
+Please consult HexoDSP for the DSP test suite, and the gui\_tests sub directory
+for the GUI related test suite:
 
-    cargo test --release -- --nocapture
+    hexosynth/$ cd gui_tests
+    hexosynth/gui_tests/$ cargo run --release
 
 ## DAW Compatibility
 
