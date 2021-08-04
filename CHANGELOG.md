@@ -9,7 +9,7 @@ for band-limited sine, triangle, saw and pulse waveforms.
 to quickly compose gates and values in your sequences.
 * Feature: The min/max signal monitors also print the min/max/average values
 of the signal that is visible in the monitor.
-* Feature: Completely overhauled cell interaction in the matrix.
+* Feature: **Completely new interaction with the matrix**.
   - Left mouse click creates new cell.
   - Right mouse click opens a context menu.
   - Right mouse drag of filled cell to an empty will move the entire cluster
@@ -34,6 +34,7 @@ of the signal that is visible in the monitor.
 * Feature: Context menus come with random node generation functionality.
 * Feature: Delete a node/cell is now in the context menu.
 * Feature: Clear unused ports of a cell can be found in the context menu too.
+* Change: Relicensed the whole project to **GPL-3.0-or-later**.
 * Change: The middle mouse button is now responsible for panning the matrix.
 * Change: The scroll wheel allows zooming in/out of the matrix.
 * Change: The min/max signal monitors are now wider and display 3 seconds
