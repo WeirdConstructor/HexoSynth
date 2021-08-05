@@ -5,6 +5,8 @@
 to sum 3 signals.
 * Feature: New node added: 'BOsc' a (B)asic (Osc)illator
 for band-limited sine, triangle, saw and pulse waveforms.
+* Feature: New node added: 'VOsc' a (V)ector Phase Shaping oscillator
+with overdrive and oversampling.
 * Feature: TSeq module documentation shows a value cheat sheet,
 to quickly compose gates and values in your sequences.
 * Feature: The min/max signal monitors also print the min/max/average values
