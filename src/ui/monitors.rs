@@ -63,7 +63,7 @@ impl GraphMinMaxSource for MonitorsSource {
 
                 min = min.min(mm.0);
                 max = max.max(mm.1);
-                avg += mm.1 + mm.0;
+                avg += mm.1 * 0.5 + mm.0 * 0.5;
 
                 *b = (mm.0 as f64, mm.1 as f64);
             }
@@ -81,11 +81,15 @@ impl GraphMinMaxSource for MonitorsSource {
 
     fn fmt_val(&mut self, buf: &mut[u8]) -> usize {
         use std::io::Write;
+        let max_len = buf.len();
         let mut bw = std::io::BufWriter::new(buf);
         match write!(bw, "{:6.3} | {:6.3} | {:6.3}",
                      self.min, self.max, self.avg)
         {
-            Ok(_)  => bw.buffer().len(),
+            Ok(_)  => {
+                if bw.buffer().len() > max_len { max_len }
+                else { bw.buffer().len() }
+            },
             Err(_) => 0,
         }
     }
