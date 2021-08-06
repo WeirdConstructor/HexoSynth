@@ -36,6 +36,8 @@ of the signal that is visible in the monitor.
 * Feature: Context menus come with random node generation functionality.
 * Feature: Delete a node/cell is now in the context menu.
 * Feature: Clear unused ports of a cell can be found in the context menu too.
+* Feature: Added context menu "Help" entry, to quickly jump to the help of
+the corresponding node.
 * Change: Relicensed the whole project to **GPL-3.0-or-later**.
 * Change: The middle mouse button is now responsible for panning the matrix.
 * Change: The scroll wheel allows zooming in/out of the matrix.

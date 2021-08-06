@@ -29,6 +29,7 @@ pub enum ItemType {
     Back,
     Delete,
     ClearPorts,
+    Help(NodeId),
     Category(UICategory),
     NodeId(NodeId),
     Direction(CellDir),
@@ -108,5 +109,9 @@ impl State {
 
     pub fn toggle_help(&mut self) {
         self.show_help = !self.show_help;
+    }
+
+    pub fn show_help(&mut self) {
+        self.show_help = true;
     }
 }

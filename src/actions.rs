@@ -488,6 +488,17 @@ impl ActionHandler for ActionContextMenu {
                 a.clear_cell_at((self.x, self.y));
                 a.set_focus_at(self.x, self.y);
             },
+            ItemType::Help(node_id) => {
+                let info = NodeInfo::from_node_id(node_id);
+                a.state.help_text_src.set(info.help());
+
+                use hexotk::AtomDataModel;
+                a.ui_params.set(
+                    hexotk::AtomId::new(crate::HELP_TABS_ID, 0),
+                    hexotk::Atom::Setting(2));
+
+                a.state.show_help();
+            },
             ItemType::ClearPorts => {
                 a.clear_unused_at((self.x, self.y));
                 a.set_focus_at(self.x, self.y);

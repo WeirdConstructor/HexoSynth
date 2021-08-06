@@ -322,16 +322,17 @@ pub struct NodeMatrixData {
     ui_ctrl:      UICtrlRef,
 }
 
-const HEX_MATRIX_ID         : u32 = 1;
-const HEX_GRID_ID           : u32 = 2;
-const HEX_MENU_CONT_ID      : u32 = 3;
-const HEX_MENU_HELP_TEXT_ID : u32 = 4;
-const HEX_MENU_ID           : u32 = 5;
-const NODE_PANEL_ID         : u32 = 11;
-const UTIL_PANEL_ID         : u32 = 12;
-const HELP_TEXT_ID          : u32 = 13;
-const HELP_TEXT_SHORTCUT_ID : u32 = 14;
-const HELP_TEXT_ABOUT_ID    : u32 = 15;
+pub const HEX_MATRIX_ID         : u32 = 1;
+pub const HEX_GRID_ID           : u32 = 2;
+pub const HEX_MENU_CONT_ID      : u32 = 3;
+pub const HEX_MENU_HELP_TEXT_ID : u32 = 4;
+pub const HEX_MENU_ID           : u32 = 5;
+pub const NODE_PANEL_ID         : u32 = 11;
+pub const UTIL_PANEL_ID         : u32 = 12;
+pub const HELP_TEXT_ID          : u32 = 13;
+pub const HELP_TEXT_SHORTCUT_ID : u32 = 14;
+pub const HELP_TEXT_ABOUT_ID    : u32 = 15;
+pub const LOG_ID                : u32 = 16;
 
 #[allow(clippy::new_ret_no_self)]
 impl NodeMatrixData {
@@ -534,7 +535,7 @@ LMB = Left Mouse Button, RMB = Right Mouse Button, MMB = Middle Mouse Button
 
 
         tdata.add(
-            "Module",
+            "Node",
             wbox!(
                 wt_help_txt,
                 AtomId::new(node_id, HELP_TEXT_ID),
@@ -545,7 +546,7 @@ LMB = Left Mouse Button, RMB = Right Mouse Button, MMB = Middle Mouse Button
             "Log",
             wbox!(
                 wt_log_txt,
-                AtomId::new(node_id, HELP_TEXT_ID),
+                AtomId::new(node_id, LOG_ID),
                 center(12, 12),
                 TextData::new(ui_ctrl.get_log_src())));
 

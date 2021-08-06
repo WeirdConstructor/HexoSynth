@@ -176,6 +176,12 @@ impl MenuState {
                         help:   "\nBack to previous menu".to_string(),
                     },
                     MenuItem {
+                        typ:    ItemType::Help(cell.node_id()),
+                        label:  "Help".to_string(),
+                        help:   "Node Help\nJumps directly to the 'Node' \
+                                 tab in the help screen for this node.".to_string(),
+                    },
+                    MenuItem {
                         typ:    ItemType::Delete,
                         label:  "Delete".to_string(),
                         help:   "Delete\nDeletes/clears the matrix cell.".to_string(),
