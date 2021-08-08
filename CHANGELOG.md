@@ -54,6 +54,9 @@ very first instance 'Sin(0)'.
 * Change: The signal scopes draw the center line no longer above the
 waveform.
 * Bugfix: Note columns in the tracker did not show the note name.
+* Bugfix: The all-pass filter of the AllP node had a bad all-pass implementation.
+* Bugfix: The delay line interpolation had an off-by-1 bug that lead to
+a very distorted sound when modulating the delay line.
 * Project: GUI test suite can now place matrix cells directly.
 * Project: Moved GUI tests suite to it's own sub directory 'gui\_tests'
 as separate application.

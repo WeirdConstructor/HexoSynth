@@ -198,6 +198,15 @@ impl GenericNodeUI {
             }
         }
 
+        if self.dsp_node_id.param_by_idx(12).is_some() {
+            param_cd.new_row();
+            for idx in 0..4 {
+                if let Some(wd) = self.build_atom_input((3, 3), 12 + idx) {
+                    param_cd.add(wd);
+                }
+            }
+        }
+
         if let Some(mut graph_fun) = self.dsp_node_id.graph_fun() {
             let node_id = self.dsp_node_id;
             let node_idx =
