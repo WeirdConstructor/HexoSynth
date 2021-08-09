@@ -418,17 +418,17 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
         let key_text =
             Rc::new(TextSourceRef::new(crate::ui::UI_MAIN_HELP_TEXT_WIDTH));
         key_text.set(r#"Parameter Knobs
-    Parameter knobs have two areas where you can grab them:
-    * Center/Value label is the coarse area.
-    * Name Label below center is the fine adjustment area.
-      The fine adjustment area will highlight and display the
-      raw signal value of the input parameter. This can be useful
-      if you want to build modulators that reach exactly a certain value.
+Parameter knobs have two areas where you can grab them:
+* Center/Value label is the coarse area.
+* Name Label below center is the fine adjustment area.
+  The fine adjustment area will highlight and display the
+  raw signal value of the input parameter. This can be useful
+  if you want to build modulators that reach exactly a certain value.
 
-    Parameter Knobs are greyed out when it's corresponding input
-    is connected to an output. That means, the parameter value is not
-    been used. You can still change it if you want though, it just wont
-    make a difference as long as the input is in use.
+Parameter Knobs are greyed out when it's corresponding input
+is connected to an output. That means, the parameter value is not
+been used. You can still change it if you want though, it just wont
+make a difference as long as the input is in use.
 
     Drag LMB Up/Down                - Adjust parameter.
     Drag RMB Up/Down                - Adjust parameter modulation amount.
@@ -450,26 +450,83 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
                                       -1..1 or 0..1 signal value. Hit 'Esc'
                                       to exit the value entry without change.
 
-    Combining the fine adjustment areas with the Shift key allows a freedom
-    of 4 resolutions to adjust parameters.
+Combining the fine adjustment areas with the Shift key allows a freedom
+of 4 resolutions to adjust parameters.
 
 LMB = Left Mouse Button, RMB = Right Mouse Button, MMB = Middle Mouse Button
 Next page: Hex Grid
 ---page---
-Hex Grid
+Hex Grid / Node Matrix
 
-    RMB         - Open context menu
-    Ctrl + RMB  - Assign edge menu to set inputs/outputs of clicked node.
+The hex tile grid consists of so "cells", each cell can be
+empty or contain a "node". A cell with a node has the following structure:
 
-    Drag LMB    - Move / Swap Nodes
-    Drag RMB    - Linked clone of dragged node
-    Drag MMB    - New instance of dragged node type
+      _____________
+     /    <i1>     \
+    /<i2>  (L)  <o1>\      (L)           - Status Led
+   /   <node type>   \     <i1> to <i3>  - 3 Input ports
+   \  <instance id>  /     <o1> to <o3>  - 3 Output ports
+    \<i3>       <o2>/      <node type>   - Type of the node
+     \     <o3>    /       <instance id> - Instance ID of the node
+      """""""""""""
 
-    Shift + Drag LMB Up/Down - Pan hex grid
-    Shift + Drag RMB Up/Down - Zoom Out/IN
+The input ports correspond to the parameters of the node. You can assign
+these to output ports of adjacent cells. A connection between cells
+does only work or exist if there is an output port assigned and to the
+adjacent cells edge a corresponding input port.
 
-    w, q, a     - Assign input port to input 1, 2 or 3
-    e, d, s     - Assign output port to output 1, 2 or 3
+You can have multiple independent instances of a node without problems.
+But you can also (linked) copy the instance of one cell to another with
+a mouse gesture (LMB drag from empty non adjacent node). This means:
+
+            ____
+      _____/    \_____      Two (linked) copies of a "Sin" oscialltor
+     / Sin \____/ Sin \     node with the same instance id (0).
+     \  0  /    \  0  /     These are handles to the same oscillator node.
+      """""\____/"""""
+
+Linked copies make it possible to connect more than 3 inputs or output
+of a node to other nodes.
+
+            ____
+      _____/    \_____      Two independent instances of a "Sin" oscillator.
+     / Sin \____/ Sin \     One has the instance id 0 and the other 1.
+     \  0  /    \  1  /     These are handles to different and independent
+      """""\____/"""""      oscillator nodes.
+
+Next page: Hex Grid Mouse Actions
+---page---
+Hex Grid Mouse Actions
+
+The most basic actions are:
+
+    LMB click on empty cell     - Open node selector menu.
+    RMB click on any cell       - Open context menu for the cell.
+    MMB drag grid               - Pan the grid around
+    Scrollwheel Down/Up         - Zoom the grid in/out
+
+Apart from these basics, there are multiple differnt mouse drag
+gestures to change the node graph layout of the node matrix in the hex grid.
+
+Some gestures do things with so called "node clusters". A "node cluster" is
+a tree of connected nodes.
+
+LMB Drag Actions:
+
+    Create two connected nodes with default ports:
+      .....
+     _^_  .    LMB Drag from empty to adjacent empty cell lets
+    /   \_.    you select two new nodes from the node selector menu.
+    \___/ v \  And connects these two nodes from their default output
+        \___/  port to the default input port of the other node.
+               (If you want to select the edges too, try dragging with RMB).
+
+    Move Cluster:
+      .....      .........
+     _^_  .     _^_     _._    LMB drag from cell with a node to any
+    /XXX\_._   /XXX\___/ v \   empty cell moves a whole cluster of nodes.
+    \___/ v \  \___/   \___/
+        \___/      \___/
 
 LMB = Left Mouse Button, RMB = Right Mouse Button, MMB = Middle Mouse Button
 "#);
