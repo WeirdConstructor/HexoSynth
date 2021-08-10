@@ -11,7 +11,7 @@
 std:push tests "drag_empty_empty_default_pair" => {
     t:matrix_wait {
         h:drag_hex_from_to $i(2, 1) $i(1, 0) :left;
-        t:menu_click_text "CV"   :left;
+        t:menu_click_text "Mod"  :left;
         t:menu_click_text "Ad"   :left;
         t:menu_click_text "CV"   :left;
         t:menu_click_text "TSeq" :left;
@@ -30,7 +30,7 @@ std:push tests "drag_empty_empty_default_pair_rev" => {
         h:drag_hex_from_to $i(1, 0) $i(2, 1) :left;
         t:menu_click_text "CV"   :left;
         t:menu_click_text "TSeq" :left;
-        t:menu_click_text "CV"   :left;
+        t:menu_click_text "Mod"  :left;
         t:menu_click_text "Ad"   :left;
     };
 
@@ -47,7 +47,7 @@ std:push tests "drag_empty_empty_set_io" => {
         h:drag_hex_from_to $i(1, 0) $i(2, 1) :right;
         t:menu_click_text "CV"   :left;
         t:menu_click_text "TSeq" :left;
-        t:menu_click_text "CV"   :left;
+        t:menu_click_text "Mod"  :left;
         t:menu_click_text "Ad"   :left;
         t:menu_click_text "trk3" :left;
         t:menu_click_text "trig" :left;
@@ -65,7 +65,7 @@ std:push tests "drag_empty_empty_set_io" => {
 std:push tests "drag_empty_empty_set_io_rev" => {
     t:matrix_wait {
         h:drag_hex_from_to $i(2, 1) $i(1, 0) :right;
-        t:menu_click_text "CV"   :left;
+        t:menu_click_text "Mod"  :left;
         t:menu_click_text "Ad"   :left;
         t:menu_click_text "CV"   :left;
         t:menu_click_text "TSeq" :left;
@@ -180,7 +180,7 @@ std:push tests "drag_empty_exist_adj_new" => {
 
     t:matrix_wait {
         h:drag_hex_from_to $i(0, 0) $i(1, 0) :left;
-        t:menu_click_text "CV"   :left;
+        t:menu_click_text "Mod"  :left;
         t:menu_click_text "Ad"   :left;
     };
 
@@ -195,12 +195,41 @@ std:push tests "drag_empty_exist_adj_new" => {
     std:assert_eq a.ports.4 "sig";
 };
 
+std:push tests "drag_empty_exist_adj_new_join_out" => {
+    hx:set_cell $i(1, 0) ${ node_id = "sin" => 3 };
+
+    t:matrix_wait {
+        h:drag_hex_from_to $i(0, 0) $i(1, 0) :left;
+        t:menu_click_text "Mod"  :left;
+        t:menu_click_text "Ad"   :left;
+    };
+
+    t:matrix_wait {
+        h:drag_hex_from_to $i(0, 1) $i(1, 0) :left;
+        t:menu_click_text "Mod"  :left;
+        t:menu_click_text "Ad"   :left;
+        t:menu_click_text "eoet" :left;
+        t:menu_click_text "det"  :left;
+    };
+
+    !(a, b) = $[
+        hx:get_cell $i(0, 1),
+        hx:get_cell $i(1, 0),
+    ];
+    std:assert_eq a.node_id.0 "Ad";
+    std:assert_eq b.node_id.0 "Sin";
+
+    std:assert_eq a.ports.3 "eoet";
+    std:assert_eq b.ports.1 "freq";
+    std:assert_eq b.ports.2 "det";
+};
+
 std:push tests "drag_empty_exist_adj_new_io" => {
     hx:set_cell $i(1, 0) ${ node_id = "sin" => 3 };
 
     t:matrix_wait {
         h:drag_hex_from_to $i(0, 0) $i(1, 0) :right;
-        t:menu_click_text "CV"   :left;
+        t:menu_click_text "Mod"  :left;
         t:menu_click_text "Ad"   :left;
         t:menu_click_text "sig"  :left;
         t:menu_click_text "freq" :left;

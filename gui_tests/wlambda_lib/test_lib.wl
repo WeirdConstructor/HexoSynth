@@ -120,6 +120,10 @@
     !menu_pos = hex_menu_pos[];
 
     !pos = (filter { _.0.0 == HEX_MENU_ID } ~ hx:id_by_text text).0.1;
+
+    if is_none[pos] { std:displayln ~ $F "Menu text '{}' not found!" text; };
+    std:assert is_some[pos];
+
     !x = (menu_pos.x + menu_pos.z * 0.5) + pos.x + pos.z * 0.5;
     !y = (menu_pos.y + menu_pos.w * 0.5) + pos.y + pos.w * 0.5;
 

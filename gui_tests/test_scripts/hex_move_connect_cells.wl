@@ -8,12 +8,12 @@
 
 !tests = $[];
 
-# Test 1B:  Connect with node with just 1 input to one with just 1 output
+# Test 1B: Connect with node with just 1 input to one with just 1 output
 # Test 1C: Connect one with no output with one with 1 input
-# Test 2B:  Connect with node with just 1 output to one with just 1 input
-# Test 3B:  Connect with node with just 1 input to one with multiple outputs
-# Test 4B:  Connect with node with just 1 output to one with multiple inputs
-# Test 5B:  Connect with node with multiple output to one with multiple inputs
+# Test 2B: Connect with node with just 1 output to one with just 1 input
+# Test 3B: Connect with node with just 1 input to one with multiple outputs
+# Test 4B: Connect with node with just 1 output to one with multiple inputs
+# Test 5B: Connect with node with multiple output to one with multiple inputs
 
 # Test 1B:  Connect with node with just 1 input 
 std:push tests "test_1b_con_just_1_input" => {

@@ -693,17 +693,27 @@ fn start_driver(matrix: Arc<Mutex<Matrix>>) -> Driver {
 
                         let tname = v.v_s_raw(0);
                         let fun   = v.v_(1);
+                        let mut print_name_before = false;
 
                         let combined = name.to_string() + "_" + &tname;
 
                         let exec_test =
                             if let Some(name_substr) = &test_match {
-                                combined.contains(name_substr)
+                                if name_substr == "#" {
+                                    print_name_before = true;
+                                    true
+                                } else {
+                                    combined.contains(name_substr)
+                                }
                             } else {
                                 true
                             };
 
                         if exec_test {
+                            if print_name_before {
+                                println!("    ({})", tname);
+                            }
+
                             match ctx.call(&fun, &[]) {
                                 Ok(v) => {
                                     println!("    - OK: {}", tname);
