@@ -539,6 +539,10 @@ LMB (Left Mouse Button) Drag Actions:
     /  X  \_.___/ => / XXX \_____/ menu. You can connect two previously not
     \__0__/ vY  \    \__0_O/I Y  \ connected nodes with this or reconnect
           \__0__/          \__0__/ existing adjacent nodes.
+---page---
+Hex Grid Mouse Actions (Part 2)
+
+LMB (Left Mouse Button) Drag Actions:
 
     (LMB) Move Cluster:
       .....      .........
@@ -547,10 +551,6 @@ LMB (Left Mouse Button) Drag Actions:
     \_1_/ v \  \_1_/   \___/ => \___/   \_1_/ whole cluster of nodes.
     /YYY\___/  /YYY\___/            \___/YYY\
     \_2_/      \_2_/                    \_2_/
-
-Next page: Hex Grid Mouse Actions (Part 2)
----page---
-Hex Grid Mouse Actions (Part 2)
 
     (LMB) Create Linked Copy close to destination:
       .........
@@ -582,13 +582,17 @@ RMB (Right Mouse Button) Drag Actions:
         \_0_/        \_0_/  select the input and output ports.
                             (If you want to use the default inputs/outputs
                              try dragging with LMB).
+---page---
+Hex Grid Mouse Actions (Part 2)
 
-    (RMB) Move Cell:
+RMB (Right Mouse Button) Drag Actions:
+
+    (RMB) Move node:
       .....      .........
      _^_  .     _^_     _._      ___     ___  RMB drag from cell with a node
     /XXX\_._   /XXX\___/ v \    /   \___/XXX\ to any empty cell moves only
-    \_1_/ v \  \_1_/   \___/ => \___/   \_1_/ the cell, ignoring any adjacent
-    /YYY\___/  /YYY\___/        /YYY\___/   \ connected nodes.
+    \_1_/ v \  \_1_/   \___/ => \___/   \_1_/ the cell, ignoring any
+    /YYY\___/  /YYY\___/        /YYY\___/   \ adjacent connected nodes.
     \_2_/      \_2_/            \_2_/   \___/
 
     (RMB) Create New Instance close to destination:
