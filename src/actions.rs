@@ -257,11 +257,13 @@ impl ActionState<'_, '_, '_> {
                     Ok(_)  => { ret = true; },
                 }
 
-                let res = self.matrix.sync();
-                match res {
-                    Err(MatrixError::DuplicatedInput { .. }) => { ret = false; },
-                    Err(e) => { return Err(DialogMessage::MatrixError(e)); },
-                    Ok(_)  => { ret = true; },
+                if ret {
+                    let res = self.matrix.sync();
+                    match res {
+                        Err(MatrixError::DuplicatedInput { .. }) => { ret = false; },
+                        Err(e) => { return Err(DialogMessage::MatrixError(e)); },
+                        Ok(_)  => { ret = true; },
+                    }
                 }
             }
             Ok(())
@@ -418,10 +420,7 @@ impl ActionState<'_, '_, '_> {
         if let Some(mut ah) = ah {
             handled = ah.step(self, msg);
 
-            if let Some(ah) = ah.get_followup_action(self) {
-                self.action_handler = Some(ah);
-
-            } else if !ah.is_finished() {
+            if !ah.is_finished() {
                 self.action_handler = Some(ah);
             }
         }
@@ -1072,7 +1071,14 @@ impl ActionHandler for DefaultActionHandler {
         if let Some(ah) = self.ui_action.take() {
             a.action_handler = Some(ah);
             let handled = a.exec(msg);
-            self.ui_action = a.action_handler.take();
+
+            if let Some(mut ah) = a.action_handler.take() {
+                if let Some(ah) = ah.get_followup_action(a) {
+                    self.set_action_handler(ah, a);
+                } else {
+                    self.ui_action = Some(ah);
+                }
+            }
 
             if handled {
                 return true;
@@ -1279,7 +1285,12 @@ impl ActionHandler for DefaultActionHandler {
                         let title = a.state.menu_title.borrow().clone();
                         a.push_menu_history(ms.clone(), title);
                         ah.menu_select(a, ms, item_type);
-                        self.ui_action = Some(ah);
+
+                        if let Some(ah) = ah.get_followup_action(a) {
+                            self.set_action_handler(ah, a);
+                        } else {
+                            self.ui_action = Some(ah);
+                        }
                     }
 
                     a.state.menu_items = a.state.menu_state.to_items();
