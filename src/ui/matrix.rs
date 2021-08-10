@@ -520,7 +520,17 @@ LMB (Left Mouse Button) Drag Actions:
     \___/ v \    \_0_/YYY\  menu. And connects these two nodes from their
         \___/        \_0_/  default output port to the default input port
                             of the other node.
-                            (If you want to select the edges too,
+                            (If you want to select the edges explicitly,
+                             try dragging with RMB).
+
+    (LMB) Create one new connected node with default ports:
+      .....
+     _^_  .       ___       LMB Drag from empty cell to adjacent node lets
+    /   \_._  => /XXX\___   you select one new node from the node selector
+    \___/YvY\    \_0_/YYY\  menu. And connects these two nodes from their
+        \_0_/        \_0_/  default output ports to the default input port
+                            of the other node.
+                            (If you want to select the edges explicitly,
                              try dragging with RMB).
 
     (LMB) (Re)Connect Adjacent Cells:
@@ -542,15 +552,54 @@ Next page: Hex Grid Mouse Actions (Part 2)
 ---page---
 Hex Grid Mouse Actions (Part 2)
 
-    (LMB) Create Linked Copy:
+    (LMB) Create Linked Copy close to destination:
       .........
      _^_     _._      ___     ___  LMB drag from cell with a node to any
     /XXX\___/ . \    /XXX\___/XXX\ other non adjacent cell with a
     \_0_/   \_._/ => \_0_/   \_0_/ node (YYY 1) creates a linked but
         \___/YvY\        \___/YvY\ unconnected copy of the dragged from
             \_1_/            \_1_/ node (XXX 0).
-                                   (If you want to select the edges too,
-                                   try dragging with RMB).
+                                   (If you want to create a new instance
+                                    instead, try dragging with RMB).
+
+RMB (Right Mouse Button) Drag Actions:
+
+    (RMB) Create two connected nodes with explicit port selection menu:
+      ..... <-- Drag Action
+     _^_  .       ___       RMB Drag from empty to adjacent empty cell lets
+    /   \_._  => /XXX\___   you select two new nodes from the node selector
+    \___/ v \    \_0_/YYY\  menu. After selecting the two nodes, you have
+        \___/        \_0_/  to explicitly choose which ports to connect
+                            (unless there is only one input or output port).
+                            (If you want to use the default inputs/outputs
+                             try dragging with LMB).
+
+    (RMB) Create one new connected node with explicit port selection menu:
+      .....
+     _^_  .       ___       RMB Drag from empty cell to adjacent node lets
+    /   \_._  => /XXX\___   you select one new node from the node selector
+    \___/YvY\    \_0_/YYY\  menu. And then requires you to explicitly
+        \_0_/        \_0_/  select the input and output ports.
+                            (If you want to use the default inputs/outputs
+                             try dragging with LMB).
+
+    (RMB) Move Cell:
+      .....      .........
+     _^_  .     _^_     _._      ___     ___  RMB drag from cell with a node
+    /XXX\_._   /XXX\___/ v \    /   \___/XXX\ to any empty cell moves only
+    \_1_/ v \  \_1_/   \___/ => \___/   \_1_/ the cell, ignoring any adjacent
+    /YYY\___/  /YYY\___/        /YYY\___/   \ connected nodes.
+    \_2_/      \_2_/            \_2_/   \___/
+
+    (RMB) Create New Instance close to destination:
+      .........
+     _^_     _._      ___     ___  RMB drag from cell with a node to any
+    /XXX\___/ . \    /XXX\___/XXX\ other non adjacent cell with a
+    \_0_/   \_._/ => \_0_/   \_1_/ node (YYY 1) creates an unconnected new
+        \___/YvY\        \___/YvY\ node instance with the same type as the
+            \_1_/            \_1_/ drag source.
+                                   (If you want to create a linked copy
+                                    instead, try dragging with LMB).
 "#);
 
         let tracker_key_text =

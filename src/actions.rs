@@ -27,6 +27,11 @@ pub trait ActionHandler {
         _item_type: ItemType)
     { }
     fn is_finished(&self) -> bool { false }
+    fn get_followup_action(&mut self, _actions: &mut ActionState)
+        -> Option<Box<dyn ActionHandler>>
+    {
+        None
+    }
 }
 
 pub struct ActionState<'a, 'b, 'c> {
@@ -209,12 +214,17 @@ impl ActionState<'_, '_, '_> {
         });
     }
 
+    /// Instanciates a node and tries to connect it to the adjacent cell.
+    /// If this fails due to the Two-Output-to-One-Input error case,
+    /// a false value is returned. Then the caller needs to find alternative
+    /// ways (eg. open the menu für explicit connection).
     pub fn instanciate_node_at_with_connection(
         &mut self, pos: (usize, usize), node_id: NodeId, copy: bool,
-        dir: CellDir, new_idx: Option<usize>, mut adj_cell: Cell, adj_idx: Option<usize>
-    ) {
+        dir: CellDir, new_idx: Option<usize>, mut adj_cell: Cell, adj_idx: Option<usize>,
+    ) -> bool {
         //d// println!("Instance New {:?}, {:?}, {:?}",
         //d//     node_id, new_idx, adj_idx);
+        let mut ret = true;
 
         catch_err_dialog(self.dialog.clone(), || {
             if let Some(mut cell) = self.matrix.get_copy(pos.0, pos.1) {
@@ -235,14 +245,29 @@ impl ActionState<'_, '_, '_> {
                     adj_cell.set_io_dir(dir.flip(), adj_idx);
                 }
 
-                self.matrix.change_matrix(|m| {
-                    m.place(pos.0, pos.1, cell);
-                    m.place_cell(adj_cell);
-                })?;
-                self.matrix.sync()?;
+                let edge_res =
+                    self.matrix.change_matrix(|m| {
+                        m.place(pos.0, pos.1, cell);
+                        m.place_cell(adj_cell);
+                    });
+
+                match edge_res {
+                    Err(MatrixError::DuplicatedInput { .. }) => { ret = false; },
+                    Err(e) => { return Err(DialogMessage::MatrixError(e)); },
+                    Ok(_)  => { ret = true; },
+                }
+
+                let res = self.matrix.sync();
+                match res {
+                    Err(MatrixError::DuplicatedInput { .. }) => { ret = false; },
+                    Err(e) => { return Err(DialogMessage::MatrixError(e)); },
+                    Ok(_)  => { ret = true; },
+                }
             }
             Ok(())
         });
+
+        ret
     }
 
     pub fn move_cluster_from_to(
@@ -393,7 +418,10 @@ impl ActionState<'_, '_, '_> {
         if let Some(mut ah) = ah {
             handled = ah.step(self, msg);
 
-            if !ah.is_finished() {
+            if let Some(ah) = ah.get_followup_action(self) {
+                self.action_handler = Some(ah);
+
+            } else if !ah.is_finished() {
                 self.action_handler = Some(ah);
             }
         }
@@ -564,6 +592,7 @@ struct ActionNewNodeAndConnectionTo {
     new_node_id:    Option<NodeId>,
     new_io:         Option<usize>,
     use_defaults:   bool,
+    followup:       Option<Box<dyn ActionHandler>>,
 }
 
 impl ActionNewNodeAndConnectionTo {
@@ -572,6 +601,7 @@ impl ActionNewNodeAndConnectionTo {
             x, y, cell, dir,
             new_node_id: None,
             new_io:      None,
+            followup:    None,
             use_defaults,
         }
     }
@@ -673,10 +703,36 @@ impl ActionNewNodeAndConnectionTo {
 
     fn create_node(&mut self, old_idx: Option<usize>, a: &mut ActionState) {
         if let Some(new_node_id) = self.new_node_id {
-            a.instanciate_node_at_with_connection(
-                (self.x, self.y), new_node_id, false,
-                self.dir, self.new_io, self.cell, old_idx);
-            a.set_focus_at(self.x, self.y);
+            let ret =
+                a.instanciate_node_at_with_connection(
+                    (self.x, self.y), new_node_id, false,
+                    self.dir, self.new_io, self.cell, old_idx);
+
+            if ret {
+                a.set_focus_at(self.x, self.y);
+            } else {
+                if let (Some(cell_a), cell_b) =
+                    (a.matrix.get_copy(self.x, self.y), self.cell)
+                {
+                    let dir = self.dir;
+                    if !cell_a.is_empty() && !self.cell.is_empty() {
+                        self.followup =
+                            Some(Box::new(
+                                ActionSelectCellsIO::new(
+                                    false,
+                                    cell_a.node_id(), cell_b.node_id(), dir,
+                                    Box::new(move |a, io_a, io_b| {
+                                        a.set_connection(
+                                            dir,
+                                            cell_a, io_a,
+                                            cell_b, io_b);
+                                        a.set_focus_at(
+                                            cell_a.pos().0,
+                                            cell_a.pos().1);
+                                    }))));
+                    }
+                }
+            }
         }
     }
 }
@@ -686,6 +742,12 @@ impl ActionHandler for ActionNewNodeAndConnectionTo {
         a.next_menu_state(
             MenuState::SelectCategory { user_state: 0 },
             "Category for new connected node".to_string());
+    }
+
+    fn get_followup_action(&mut self, _actions: &mut ActionState)
+        -> Option<Box<dyn ActionHandler>>
+    {
+        self.followup.take()
     }
 
     fn menu_select(&mut self, a: &mut ActionState, ms: MenuState, item_type: ItemType) {
@@ -740,7 +802,7 @@ struct ActionTwoNewConnectedNodes {
     pos_a:          (usize, usize),
     pos_b:          (usize, usize),
     dir:            CellDir,
-    connect:        Option<ActionConnectCells>,
+    connect:        Option<ActionSelectCellsIO>,
     use_defaults:   bool,
 }
 
@@ -801,7 +863,7 @@ impl ActionHandler for ActionTwoNewConnectedNodes {
                             let pos_b = self.pos_b;
                             let dir   = self.dir;
                             let mut ac =
-                                ActionConnectCells::new(
+                                ActionSelectCellsIO::new(
                                     self.use_defaults,
                                     node_a, node_b, self.dir,
                                     Box::new(move |a, io_a, io_b| {
@@ -825,7 +887,7 @@ impl ActionHandler for ActionTwoNewConnectedNodes {
     }
 }
 
-struct ActionConnectCells {
+struct ActionSelectCellsIO {
     dir:            CellDir,
     node_a:         NodeId,
     node_b:         NodeId,
@@ -835,7 +897,7 @@ struct ActionConnectCells {
     finish_cb:      Box<dyn FnMut(&mut ActionState, Option<usize>, Option<usize>)>,
 }
 
-impl ActionConnectCells {
+impl ActionSelectCellsIO {
     pub fn new(
         use_defaults: bool,
         node_a: NodeId, node_b: NodeId, dir: CellDir,
@@ -853,7 +915,7 @@ impl ActionConnectCells {
     }
 }
 
-impl ActionConnectCells {
+impl ActionSelectCellsIO {
     fn select_cell_b(&mut self, a: &mut ActionState) {
         let node_id   = self.node_b;
         let node_info = NodeInfo::from_node_id(node_id);
@@ -941,7 +1003,7 @@ impl ActionConnectCells {
     }
 }
 
-impl ActionHandler for ActionConnectCells {
+impl ActionHandler for ActionSelectCellsIO {
     fn init(&mut self, a: &mut ActionState) {
         self.select_cell_a(a);
     }
@@ -1103,7 +1165,7 @@ impl ActionHandler for DefaultActionHandler {
                 match (*btn, src, dst, adjacent, src_is_output) {
                     // Left & pos_a exists & pos_b empty
                     //  => move/swap cell
-                    // DONE: LMB DOC
+                    // DONE: LMB & RMB DOC
                     (btn, None, None, Some(dir), _) => {
                         let ah =
                             Box::new(
@@ -1117,7 +1179,7 @@ impl ActionHandler for DefaultActionHandler {
                         a.move_cluster_from_to(*pos_a, *pos_b);
                         a.set_focus_at(pos_b.0, pos_b.1);
                     },
-                    // DONE: LMB DOC
+                    // DONE: LMB & RMB DOC
                     (btn, Some(cell_a), Some(cell_b), None, _) => {
                         let adj_free =
                             cell_b.find_first_adjacent_free(a.matrix, CellDir::T);
@@ -1139,7 +1201,7 @@ impl ActionHandler for DefaultActionHandler {
                     (MButton::Left, Some(cell_a), Some(cell_b), Some(dir), _) => {
                         let ah =
                             Box::new(
-                                ActionConnectCells::new(
+                                ActionSelectCellsIO::new(
                                     false,
                                     cell_a.node_id(), cell_b.node_id(), dir,
                                     Box::new(move |a, io_a, io_b| {
@@ -1154,6 +1216,7 @@ impl ActionHandler for DefaultActionHandler {
 
                         self.set_action_handler(ah, a);
                     },
+                    // DONE: RMB DOC
                     (MButton::Right, Some(_), None, _, _) => {
                         a.swap_cells(*pos_a, *pos_b);
                         a.set_focus_at(pos_b.0, pos_b.1);
@@ -1170,7 +1233,7 @@ impl ActionHandler for DefaultActionHandler {
                         a.instanciate_node_at(*pos_a, cell.node_id());
                         a.set_focus_at(pos_a.0, pos_a.1);
                     },
-                    // DONE: LMB DOC
+                    // DONE: LMB & RMB DOC
                     (btn, None, Some(cell), Some(dir), _) => {
                         let ah =
                             Box::new(
