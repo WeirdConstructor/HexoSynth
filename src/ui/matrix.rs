@@ -494,9 +494,9 @@ of a node to other nodes.
      \  0  /    \  1  /     These are handles to different and independent
       """""\____/"""""      oscillator nodes.
 
-Next page: Hex Grid Mouse Actions
+Next page: Hex Grid Mouse Actions (Part 1)
 ---page---
-Hex Grid Mouse Actions
+Hex Grid Mouse Actions (Part 1)
 
 The most basic actions are:
 
@@ -511,24 +511,46 @@ gestures to change the node graph layout of the node matrix in the hex grid.
 Some gestures do things with so called "node clusters". A "node cluster" is
 a tree of connected nodes.
 
-LMB Drag Actions:
+LMB (Left Mouse Button) Drag Actions:
 
-    Create two connected nodes with default ports:
-      .....
-     _^_  .    LMB Drag from empty to adjacent empty cell lets
-    /   \_.    you select two new nodes from the node selector menu.
-    \___/ v \  And connects these two nodes from their default output
-        \___/  port to the default input port of the other node.
-               (If you want to select the edges too, try dragging with RMB).
+    (LMB) Create two connected nodes with default ports:
+      ..... <-- Drag Action
+     _^_  .       ___       LMB Drag from empty to adjacent empty cell lets
+    /   \_._  => /XXX\___   you select two new nodes from the node selector
+    \___/ v \    \_0_/YYY\  menu. And connects these two nodes from their
+        \___/        \_0_/  default output port to the default input port
+                            of the other node.
+                            (If you want to select the edges too,
+                             try dragging with RMB).
 
-    Move Cluster:
+    (LMB) (Re)Connect Adjacent Cells:
+       ......___            _____  Dragging a node to an adjacent node will
+     __.__/ .   \     _____/     \ open the output/input port selection
+    /  X  \_.___/ => / XXX \_____/ menu. You can connect two previously not
+    \__0__/ vY  \    \__0_O/I Y  \ connected nodes with this or reconnect
+          \__0__/          \__0__/ existing adjacent nodes.
+
+    (LMB) Move Cluster:
       .....      .........
-     _^_  .     _^_     _._    LMB drag from cell with a node to any
-    /XXX\_._   /XXX\___/ v \   empty cell moves a whole cluster of nodes.
-    \___/ v \  \___/   \___/
-        \___/      \___/
+     _^_  .     _^_     _._      ___     ___  LMB drag from cell with a node
+    /XXX\_._   /XXX\___/ v \    /   \___/XXX\ to any empty cell moves a
+    \_1_/ v \  \_1_/   \___/ => \___/   \_1_/ whole cluster of nodes.
+    /YYY\___/  /YYY\___/            \___/YYY\
+    \_2_/      \_2_/                    \_2_/
 
-LMB = Left Mouse Button, RMB = Right Mouse Button, MMB = Middle Mouse Button
+Next page: Hex Grid Mouse Actions (Part 2)
+---page---
+Hex Grid Mouse Actions (Part 2)
+
+    (LMB) Create Linked Copy:
+      .........
+     _^_     _._      ___     ___  LMB drag from cell with a node to any
+    /XXX\___/ . \    /XXX\___/XXX\ other non adjacent cell with a
+    \_0_/   \_._/ => \_0_/   \_0_/ node (YYY 1) creates a linked but
+        \___/YvY\        \___/YvY\ unconnected copy of the dragged from
+            \_1_/            \_1_/ node (XXX 0).
+                                   (If you want to select the edges too,
+                                   try dragging with RMB).
 "#);
 
         let tracker_key_text =

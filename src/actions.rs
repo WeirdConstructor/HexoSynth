@@ -223,6 +223,11 @@ impl ActionState<'_, '_, '_> {
                     else { self.matrix.get_unused_instance_node_id(node_id) };
 
                 cell.set_node_id(node_id);
+                self.matrix.change_matrix(|m| {
+                    m.place(pos.0, pos.1, cell);
+                })?;
+                self.matrix.sync()?;
+
                 if let Some(new_idx) = new_idx {
                     cell.set_io_dir(dir, new_idx);
                 }
@@ -1098,6 +1103,7 @@ impl ActionHandler for DefaultActionHandler {
                 match (*btn, src, dst, adjacent, src_is_output) {
                     // Left & pos_a exists & pos_b empty
                     //  => move/swap cell
+                    // DONE: LMB DOC
                     (btn, None, None, Some(dir), _) => {
                         let ah =
                             Box::new(
@@ -1106,10 +1112,12 @@ impl ActionHandler for DefaultActionHandler {
                                     *pos_a, *pos_b, dir));
                         self.set_action_handler(ah, a);
                     },
+                    // DONE: DOC
                     (MButton::Left, Some(_), None, _, _) => {
                         a.move_cluster_from_to(*pos_a, *pos_b);
                         a.set_focus_at(pos_b.0, pos_b.1);
                     },
+                    // DONE: LMB DOC
                     (btn, Some(cell_a), Some(cell_b), None, _) => {
                         let adj_free =
                             cell_b.find_first_adjacent_free(a.matrix, CellDir::T);
@@ -1127,6 +1135,7 @@ impl ActionHandler for DefaultActionHandler {
                             }
                         }
                     },
+                    // DONE: LMB DOC
                     (MButton::Left, Some(cell_a), Some(cell_b), Some(dir), _) => {
                         let ah =
                             Box::new(
@@ -1161,6 +1170,7 @@ impl ActionHandler for DefaultActionHandler {
                         a.instanciate_node_at(*pos_a, cell.node_id());
                         a.set_focus_at(pos_a.0, pos_a.1);
                     },
+                    // DONE: LMB DOC
                     (btn, None, Some(cell), Some(dir), _) => {
                         let ah =
                             Box::new(
