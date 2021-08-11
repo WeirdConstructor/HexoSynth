@@ -1089,55 +1089,6 @@ impl ActionHandler for DefaultActionHandler {
             Msg::CellDragged { btn, pos_a, pos_b, mouse_pos } => {
                 a.state.menu_pos = *mouse_pos;
 
-                // DONE: Left & pos_a exists & pos_b empty
-                //  => move cluster
-                // DONE: Left & pos_a empty & pos_b exists & adjacent
-                //  => open cell selection dialog for one node
-                //  => connect the default input
-                // DONE: Left & pos_a empty & pos_b empty & adjacent
-                //  => open cell selection dialog for two NodeIds
-                //  => connect the default output to default input
-                //     default is always: first input, first output
-                // DONE: Left & pos_a exists & pos_b exists & adjacent
-                //  => open connection selection dialog for the port of the
-                //     pos_a cell!
-                //     (Note: you can reassign both with the right mouse button)
-                // DONE: Left & pos_a empty & pos_b exists & NOT adjacent
-                //  => Copy cell from pos_b, without I/O
-                // Left/Right & pos_a exists & pos_b exists & NOT adjacent
-                //  - pos_a output is determined by: either use the first
-                //    assigned one, or the default one
-                //  - pos_b input is determined by: left mouse uses the default
-                //    right mouse lets you select the to be modulated input
-                //  => take pos_a as output, pos_b as input
-                //  => search an empty input for pos_b
-                //  => copy cell at pos_a to that empty cell
-                //  => open connection dialog for out => inp
-
-                // DONE: Right & pos_a exists & pos_b empty
-                //  => move cell
-                // DONE: Right & pos_a exists & pos_b exists & adjacent
-                //  => Split the current cluster into 2
-                //     move the destination cell-tail into direction of the drag
-                //     To do this:
-                //      - flood fill the two connected cells to make two
-                //        cell collections. (flood fill must mark which cells were
-                //        already visited to prevent any circles!)
-                //        - the second flood fill should check if there
-                //          is an intersection between the two flood fills,
-                //          and issue an error that there are cycles that can't
-                //          be broken!
-                //      - remove the to be moved collection
-                //      - insert the moved collection with the direction offset
-                //      - check for each cell if there already exists one.
-                //        - If so, reinsert the given cells into the graph.
-                //          - And open a dialog box with an error message.
-                //        - Otherwise everything done
-                // DONE: Right & pos_a empty & pos_b empty & adjacent
-                //  => same as with left but with explicit I/O
-                // DONE: Right & pos_a empty & pos_b exists & NOT adjacent
-                //  => New instance of NodeId at pos_b to pos_a
-
                 let (src_cell, dst_cell) = (
                     a.matrix.get_copy(pos_a.0, pos_a.1),
                     a.matrix.get_copy(pos_b.0, pos_b.1)
@@ -1171,7 +1122,6 @@ impl ActionHandler for DefaultActionHandler {
                 match (*btn, src, dst, adjacent, src_is_output) {
                     // Left & pos_a exists & pos_b empty
                     //  => move/swap cell
-                    // DONE: LMB & RMB DOC
                     (btn, None, None, Some(dir), _) => {
                         let ah =
                             Box::new(
@@ -1180,12 +1130,10 @@ impl ActionHandler for DefaultActionHandler {
                                     *pos_a, *pos_b, dir));
                         self.set_action_handler(ah, a);
                     },
-                    // DONE: DOC
                     (MButton::Left, Some(_), None, _, _) => {
                         a.move_cluster_from_to(*pos_a, *pos_b);
                         a.set_focus_at(pos_b.0, pos_b.1);
                     },
-                    // DONE: LMB & RMB DOC
                     (btn, Some(cell_a), Some(cell_b), None, _) => {
                         let adj_free =
                             cell_b.find_first_adjacent_free(a.matrix, CellDir::T);
@@ -1203,7 +1151,6 @@ impl ActionHandler for DefaultActionHandler {
                             }
                         }
                     },
-                    // DONE: LMB DOC
                     (MButton::Left, Some(cell_a), Some(cell_b), Some(dir), _) => {
                         let ah =
                             Box::new(
@@ -1222,17 +1169,14 @@ impl ActionHandler for DefaultActionHandler {
 
                         self.set_action_handler(ah, a);
                     },
-                    // DONE: RMB DOC
                     (MButton::Right, Some(_), None, _, _) => {
                         a.swap_cells(*pos_a, *pos_b);
                         a.set_focus_at(pos_b.0, pos_b.1);
                     },
-                    // DONE: DOC
                     (MButton::Right, Some(_), Some(_), Some(_), _) => {
                         a.split_cluster_at(*pos_b, *pos_a);
                         a.set_focus_at(pos_a.0, pos_a.1);
                     },
-                    // DONE: LMB DOC
                     (btn, None, Some(cell), None, _) => {
                         match btn {
                             MButton::Left => {
@@ -1246,7 +1190,6 @@ impl ActionHandler for DefaultActionHandler {
                             _ => {},
                         }
                     },
-                    // DONE: LMB & RMB DOC
                     (btn, None, Some(cell), Some(dir), _) => {
                         let ah =
                             Box::new(
