@@ -57,8 +57,13 @@ impl ActionState<'_, '_, '_> {
                 }.into()),
             }
         }) {
+            let cwd =
+                std::env::current_dir()
+                    .unwrap_or_else(|_| std::path::PathBuf::from("."));
+
             diag.borrow_mut().open(
-                &format!("Patch saved!\nPatch saved successful to 'init.hxy'!"),
+                &format!("Patch saved!\nPatch saved successful to 'init.hxy'!\nTo the directory: {}",
+                    cwd.to_str().unwrap_or("?")),
                 Box::new(|_| ()));
         }
     }
@@ -1203,8 +1208,8 @@ impl ActionHandler for DefaultActionHandler {
             },
             Msg::Key { key } => {
                 match key {
-                    Key::F1 => a.toggle_help(),
-                    Key::F4 => { a.save_patch(); },
+                    Key::F1     => a.toggle_help(),
+                    Key::F4     => a.save_patch(),
                     Key::Escape => { a.escape_dialogs(); },
                     _ => {
                         println!("UNHANDLED KEY: {:?}", key);
@@ -1214,6 +1219,7 @@ impl ActionHandler for DefaultActionHandler {
             Msg::UIBtn { id } => {
                 match *id {
                     ATNID_HELP_BUTTON => a.toggle_help(),
+                    ATNID_SAVE_BUTTON => a.save_patch(),
                     _ => (),
                 }
             },

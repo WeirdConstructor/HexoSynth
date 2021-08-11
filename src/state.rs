@@ -4,6 +4,7 @@
 
 pub const ATNID_SAMPLE_LOAD_ID : u32 = 190001;
 pub const ATNID_HELP_BUTTON    : u32 = 190002;
+pub const ATNID_SAVE_BUTTON    : u32 = 190003;
 
 use crate::dyn_widgets::DynamicWidgets;
 use hexodsp::{NodeId, CellDir, Cell, NodeInfo};

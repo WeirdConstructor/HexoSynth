@@ -115,8 +115,13 @@ impl UtilPanelData {
            .add(wbox!(
                 wt_btn,
                 AtomId::new(ATNID_HELP_BUTTON as u32, 0),
-                left(9, 12),
+                left(3, 12),
                 ButtonData::new_setting_click("Help")))
+           .add(wbox!(
+                wt_btn,
+                AtomId::new(ATNID_SAVE_BUTTON as u32, 0),
+                left(6, 12),
+                ButtonData::new_setting_click("Save")))
            .add(wbox!(
                 wt_vers_text,
                 AtomId::new(crate::UTIL_PANEL_VER_ID as u32, 0),

@@ -38,6 +38,7 @@ of the signal that is visible in the monitor.
 * Feature: Clear unused ports of a cell can be found in the context menu too.
 * Feature: Added context menu "Help" entry, to quickly jump to the help of
 the corresponding node.
+* Feature: Added temporary "Save" button to the UI.
 * Change: SFilter - removed the other Stilson/Moog variants (High/Band/Notch)
 and implemented a different low pass variant, that seems to be slightly more
 stable.

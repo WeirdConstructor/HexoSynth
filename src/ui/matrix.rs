@@ -613,11 +613,11 @@ RMB (Right Mouse Button) Drag Actions:
 
     (RMB) Split a cluster
        .....
-      _^_  .  ___       ___     ___  RMB drag between two connected nodes
-     /XXX\_._/   \     /XXX\___/   \ will split the cluster (tree of
-     \_1_/YvY\___/ =>  \_1_/   \___/ connected nodes) at that point and
-     /   \_2_/   \     /   \___/YYY\ will make space for inserting a
-     \___/   \___/     \___/   \_2_/ new node into that cluster.
+      _^_  .  ___      ___     ___  RMB drag between two connected nodes
+     /XXX\_._/   \    /XXX\___/   \ will split the cluster (tree of
+     \_1_/YvY\___/ => \_1_/   \___/ connected nodes) at that point and
+     /   \_2_/   \    /   \___/YYY\ will make space for inserting a
+     \___/   \___/    \___/   \_2_/ new node into that cluster.
 ---page---
 Hex Grid Mouse Actions (Part 3)
 RMB (Right Mouse Button) Drag Actions:

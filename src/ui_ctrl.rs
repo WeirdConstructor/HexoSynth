@@ -52,8 +52,6 @@ pub struct UIControl {
     sample_dir:         std::path::PathBuf,
     path_browse_list:   Vec<std::path::PathBuf>,
     sample_browse_list: ListItems,
-
-    sample_dir_from:    Option<AtomId>,
 }
 
 impl UIControl {
@@ -99,7 +97,6 @@ impl UICtrlRef {
                 log:                vec![],
                 path_browse_list:   vec![],
                 sample_browse_list: ListItems::new(45),
-                sample_dir_from:    None,
                 dialog_model:       dialog_model.clone(),
             })),
             matrix,
@@ -190,7 +187,7 @@ impl UICtrlRef {
     }
 
     pub fn check_atoms(&self, atoms: &dyn AtomDataModel) {
-        let at_id_dir = self.0.borrow_mut().sample_dir_from.take();
+        let at_id_dir = self.2.borrow_mut().sample_dir_from.take();
 
         if let Some(at_id_dir) = at_id_dir {
             let sampl = atoms.get(at_id_dir);
@@ -267,6 +264,12 @@ impl UICtrlRef {
             }
 
         } else if id.node_id() == crate::state::ATNID_HELP_BUTTON {
+            if atom.i() == 1 {
+                self.emit(Msg::ui_btn(id.node_id()));
+            }
+            return false;
+
+        } else if id.node_id() == crate::state::ATNID_SAVE_BUTTON {
             if atom.i() == 1 {
                 self.emit(Msg::ui_btn(id.node_id()));
             }
