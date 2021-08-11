@@ -1227,17 +1227,24 @@ impl ActionHandler for DefaultActionHandler {
                         a.swap_cells(*pos_a, *pos_b);
                         a.set_focus_at(pos_b.0, pos_b.1);
                     },
+                    // DONE: DOC
                     (MButton::Right, Some(_), Some(_), Some(_), _) => {
                         a.split_cluster_at(*pos_b, *pos_a);
                         a.set_focus_at(pos_a.0, pos_a.1);
                     },
-                    (MButton::Left, None, Some(cell), None, _) => {
-                        a.make_copy_at(*pos_a, cell.node_id());
-                        a.set_focus_at(pos_a.0, pos_a.1);
-                    },
-                    (MButton::Right, None, Some(cell), None, _) => {
-                        a.instanciate_node_at(*pos_a, cell.node_id());
-                        a.set_focus_at(pos_a.0, pos_a.1);
+                    // DONE: LMB DOC
+                    (btn, None, Some(cell), None, _) => {
+                        match btn {
+                            MButton::Left => {
+                                a.make_copy_at(*pos_a, cell.node_id());
+                                a.set_focus_at(pos_a.0, pos_a.1);
+                            },
+                            MButton::Right => {
+                                a.instanciate_node_at(*pos_a, cell.node_id());
+                                a.set_focus_at(pos_a.0, pos_a.1);
+                            },
+                            _ => {},
+                        }
                     },
                     // DONE: LMB & RMB DOC
                     (btn, None, Some(cell), Some(dir), _) => {

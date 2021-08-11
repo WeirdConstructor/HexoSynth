@@ -497,7 +497,6 @@ of a node to other nodes.
 Next page: Hex Grid Mouse Actions (Part 1)
 ---page---
 Hex Grid Mouse Actions (Part 1)
-
 The most basic actions are:
 
     LMB click on empty cell     - Open node selector menu.
@@ -541,16 +540,16 @@ LMB (Left Mouse Button) Drag Actions:
           \__0__/          \__0__/ existing adjacent nodes.
 ---page---
 Hex Grid Mouse Actions (Part 2)
-
 LMB (Left Mouse Button) Drag Actions:
 
     (LMB) Move Cluster:
-      .....      .........
-     _^_  .     _^_     _._      ___     ___  LMB drag from cell with a node
-    /XXX\_._   /XXX\___/ v \    /   \___/XXX\ to any empty cell moves a
-    \_1_/ v \  \_1_/   \___/ => \___/   \_1_/ whole cluster of nodes.
-    /YYY\___/  /YYY\___/            \___/YYY\
-    \_2_/      \_2_/                    \_2_/
+      .....      .........                    LMB drag from cell with a node
+     _^_  .     _^_     _._      ___     ___  to any empty cell moves a
+    /XXX\_._   /XXX\___/ v \    /   \___/XXX\ whole cluster of nodes. Keep
+    \_1_/ v \  \_1_/   \___/ => \___/   \_1_/ in mind: a cluster is a tree
+    /YYY\___/  /YYY\___/            \___/YYY\ of connected nodes. This will
+    \_2_/      \_2_/                    \_2_/ not move adjacent but
+                                              unconnected nodes!
 
     (LMB) Create Linked Copy close to destination:
       .........
@@ -561,6 +560,14 @@ LMB (Left Mouse Button) Drag Actions:
             \_1_/            \_1_/ node (XXX 0).
                                    (If you want to create a new instance
                                     instead, try dragging with RMB).
+
+    (LMB) Create Linked Copy at empty drag source:
+      .........
+     _._     _._      ___     ___  LMB drag from an empty non adjacent
+    /XvX\___/ . \    /XXX\___/   \ cell to a node will create a linked
+    \_1_/   \_._/ => \_1_/   \___/ copy of that node.
+        \___/ ^ \        \___/XXX\ (If you want to create a new instance
+            \___/            \_1_/ instead, try dragging with RMB).
 
 RMB (Right Mouse Button) Drag Actions:
 
@@ -573,6 +580,9 @@ RMB (Right Mouse Button) Drag Actions:
                             (unless there is only one input or output port).
                             (If you want to use the default inputs/outputs
                              try dragging with LMB).
+---page---
+Hex Grid Mouse Actions (Part 2)
+RMB (Right Mouse Button) Drag Actions:
 
     (RMB) Create one new connected node with explicit port selection menu:
       .....
@@ -582,10 +592,6 @@ RMB (Right Mouse Button) Drag Actions:
         \_0_/        \_0_/  select the input and output ports.
                             (If you want to use the default inputs/outputs
                              try dragging with LMB).
----page---
-Hex Grid Mouse Actions (Part 2)
-
-RMB (Right Mouse Button) Drag Actions:
 
     (RMB) Move node:
       .....      .........
@@ -604,6 +610,26 @@ RMB (Right Mouse Button) Drag Actions:
             \_1_/            \_1_/ drag source.
                                    (If you want to create a linked copy
                                     instead, try dragging with LMB).
+
+    (RMB) Split a cluster
+       .....
+      _^_  .  ___       ___     ___  RMB drag between two connected nodes
+     /XXX\_._/   \     /XXX\___/   \ will split the cluster (tree of
+     \_1_/YvY\___/ =>  \_1_/   \___/ connected nodes) at that point and
+     /   \_2_/   \     /   \___/YYY\ will make space for inserting a
+     \___/   \___/     \___/   \_2_/ new node into that cluster.
+---page---
+Hex Grid Mouse Actions (Part 3)
+RMB (Right Mouse Button) Drag Actions:
+
+    (RMB) Create a New Instance at empty drag source:
+      .........
+     _._     _._      ___     ___  RMB drag from an empty non adjacent
+    /XvX\___/ . \    /XXX\___/   \ cell to a node will create a new
+    \_1_/   \_._/ => \_1_/   \___/ node instance of the type of the
+        \___/ ^ \        \___/XXX\ drag destination node.
+            \___/            \_2_/ (If you want to create a new instance
+                                   instead, try dragging with RMB).
 "#);
 
         let tracker_key_text =
