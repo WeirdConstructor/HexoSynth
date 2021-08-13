@@ -2,6 +2,9 @@
 ==========================
 
 * ~~Feature: New node completed: 'PVerb'~~
+* Change: RndWk did not properly reflect back the overshoots.
+Now it behaves more in tune with the 'step' setting and does not
+suddenly jump to the 'min' anymore if exceeding the 'max'.
 
 0.1.0-alpha-3 (2021-08-13)
 ==========================
