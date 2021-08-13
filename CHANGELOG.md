@@ -7,6 +7,9 @@ to sum 3 signals.
 for band-limited sine, triangle, saw and pulse waveforms.
 * Feature: New node added: 'VOsc' a (V)ector Phase Shaping oscillator
 with overdrive and oversampling.
+* Feature: New node added: 'Comb' a Comb Filter.
+* Feature: New node added: 'TsLFO' a Triangle/Saw LFO with an adjustable
+waveform.
 * Feature: TSeq module documentation shows a value cheat sheet,
 to quickly compose gates and values in your sequences.
 * Feature: The min/max signal monitors also print the min/max/average values
@@ -54,6 +57,8 @@ loaded correctly.
 very first instance 'Sin(0)'.
 * Change: The signal scopes draw the center line no longer above the
 waveform.
+* Change: The font size of the node name inside the hex cells is automatically
+determined now.
 * Bugfix: Note columns in the tracker did not show the note name.
 * Bugfix: The all-pass filter of the AllP node had a bad all-pass implementation.
 * Bugfix: The delay line interpolation had an off-by-1 bug that lead to
