@@ -1,4 +1,4 @@
-0.1.0-alpha-3 (unreleased)
+0.1.0-alpha-3 (2021-08-13)
 ==========================
 
 * Feature: New node added: 'Mix3' a simple 3 channel mixer node
