@@ -1,3 +1,8 @@
+0.1.0-alpha-4 (unreleased)
+==========================
+
+* ~~Feature: New node completed: 'PVerb'~~
+
 0.1.0-alpha-3 (2021-08-13)
 ==========================
 
