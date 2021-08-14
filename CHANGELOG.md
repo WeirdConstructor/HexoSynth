@@ -8,6 +8,10 @@ suddenly jump to the 'min' anymore if exceeding the 'max'.
 * Change: Triggers react to 0.5 and not 0.75 now. This is because
 I wanted to have the same logic level for triggers as for other logic
 operations.
+* Documentation: 'PVerb' node now has a complete documentation.
+* Bugfix: Setting the 'PVerb' 'predly' parameter to 0.0 did not work
+correctly and acted as very very long delay.
+It will now just skip the delay entirely.
 
 0.1.0-alpha-3 (2021-08-13)
 ==========================
