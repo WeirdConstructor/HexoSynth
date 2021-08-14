@@ -432,8 +432,7 @@ make a difference as long as the input is in use.
 
     Drag LMB Up/Down                - Adjust parameter.
     Drag RMB Up/Down                - Adjust parameter modulation amount.
-    Hover over knob + Backspace     - Remove parameter modulation amount.
-    Hover over knob + Delete        - Remove parameter modulation amount.
+    Hover over knob + Mouse Wheel   - Adjust parameter.
     Shift + Drag LMB Up/Down        - Fine adjust parameter.
     Shift + Drag BMB Up/Down        - Fine adjust parameter mod. amount.
     Ctrl  + Drag LMB Up/Down        - Disable parameter snap. (eg. for the
@@ -443,6 +442,8 @@ make a difference as long as the input is in use.
     MMB                             - Reset Parameter to it's default value.
     MMB (Knob fine adj. area)       - Reset Parameter to it's default value
                                       and remove modulation amount.
+    Hover over knob + Backspace     - Remove parameter modulation amount.
+    Hover over knob + Delete        - Remove parameter modulation amount.
     Hover over Knob + Enter         - Open the direct value entry.
     or:                               Coarse adjustment area will edit the
     Ctrl + RMB                        denormalized value. Fine adjustment

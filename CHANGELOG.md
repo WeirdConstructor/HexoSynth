@@ -2,6 +2,7 @@
 ==========================
 
 * ~~Feature: New node completed: 'PVerb'~~
+* Feature: Mouse wheel now also moves knobs.
 * Change: RndWk did not properly reflect back the overshoots.
 Now it behaves more in tune with the 'step' setting and does not
 suddenly jump to the 'min' anymore if exceeding the 'max'.
@@ -12,6 +13,8 @@ operations.
 * Bugfix: Setting the 'PVerb' 'predly' parameter to 0.0 did not work
 correctly and acted as very very long delay.
 It will now just skip the delay entirely.
+* Bugfix: The Dattorro 'PVerb' tend to blow up if you set 'size' to a
+very small (<0.1) value!
 
 0.1.0-alpha-3 (2021-08-13)
 ==========================
@@ -41,9 +44,9 @@ of the signal that is visible in the monitor.
     a new node with explicitly selected ports.
   - Right mouse drag of filled cell to adjacent connected cell will
     split the connected cluster and make room for a new node.
-  - Left mouse drag of between two adjacent empty cells lets you instanciate
+  - Left mouse drag of between two adjacent empty cells lets you instantiate
     two new nodes with default input/outputs.
-  - Right mouse drag of between two adjacent empty cells lets you instanciate
+  - Right mouse drag of between two adjacent empty cells lets you instantiate
     two new nodes with explicitly selected input/outputs.
   - Left mouse drag from empty to non adjacent filled cell creates a linked copy.
   - Right mouse drag from empty to non adjacent filled cell creates a new node instance.
