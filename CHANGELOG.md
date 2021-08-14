@@ -5,6 +5,9 @@
 * Change: RndWk did not properly reflect back the overshoots.
 Now it behaves more in tune with the 'step' setting and does not
 suddenly jump to the 'min' anymore if exceeding the 'max'.
+* Change: Triggers react to 0.5 and not 0.75 now. This is because
+I wanted to have the same logic level for triggers as for other logic
+operations.
 
 0.1.0-alpha-3 (2021-08-13)
 ==========================
