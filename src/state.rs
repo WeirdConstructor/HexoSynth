@@ -77,7 +77,7 @@ impl State {
     pub fn new() -> Self {
         Self {
             show_help:       false,
-            menu_help_text:  Rc::new(TextSourceRef::new(30)),
+            menu_help_text:  Rc::new(TextSourceRef::new(32)),
             help_text_src:
                 Rc::new(TextSourceRef::new(
                     crate::ui::UI_MAIN_HELP_TEXT_WIDTH)),
