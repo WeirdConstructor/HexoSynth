@@ -29,6 +29,42 @@ Make sure to follow [Weird Constructors Mastodon
 account](https://mastodon.online/@weirdconstructor) or the releases of this
 project to be notified once I release a beta or stable release.
 
+### Implemented Features
+
+- A useable GUI with highly features parameter knobs and
+a hexagonal module/node matrix that is easily changeable with the mouse.
+- Serialization/Deserialization of patches (even though the UI for patch/preset
+management has not been implemented yet, except a "Save" button).
+- Signal monitors for the selected node.
+- Per node and output signal feedback LEDs.
+- A simple Tracker to edit "TSeq" sequences.
+- A primitive sample selection browser.
+
+And following DSP nodes:
+
+| Category | Name | Function |
+|-|-|-|
+| IO Util | Out         | Audio output (to DAW or Jack) |
+| Osc     | Sampl       | Sample player |
+| Osc     | Sin         | Sine oscillator |
+| Osc     | BOsc        | Basic bandlimited waveform oscillator (waveforms: Sin, Tri, Saw, Pulse/Square) |
+| Osc     | VOsc        | Vector phase shaping oscillator |
+| Osc     | Noise       | Noise oscillator |
+| Signal  | Amp         | Amplifier/Attenuator |
+| Signal  | SFilter     | Simple collection of filters, useable for synthesis |
+| Signal  | Delay       | Single tap signal delay |
+| Signal  | PVerb       | Reverb node, based on Dattorros plate reverb algorithm |
+| Signal  | AllP        | All-Pass filter based on internal delay line feedback |
+| Signal  | Comb        | Comb filter |
+| N-\>M   | Mix3        | 3 channel mixer |
+| CV      | SMap        | Simple control signal mapper |
+| CV      | Map         | Control signal mapper |
+| Mod     | TSeq        | Tracker/pattern sequencer |
+| Mod     | Ad          | Attack-Decay envelope |
+| Mod     | TsLFO       | Tri/Saw waveform low frequency oscillator (LFO) |
+| Mod     | RndWk       | Random walker, a Sample & Hold noise generator |
+| IO Util | FbWr / FbRd | Utility modules for feedback in patches |
+
 ### Road Map / TODO List
 
 I have a pretty detailed TODO list in my private notebook, but
@@ -38,7 +74,8 @@ this is the rough road map:
 with new modules.
 - DONE: Take a bit of care that there is online help.
 - DONE: Factor out the DSP code into it's own crate.
-- Add lots of modules (Oscillators, Filters, Envelopes, LFOs, Quantizers, ...).
+- Add preset/patch management to the UI.
+- Add lots (many more than above listed) of modules (Oscillators, Filters, Envelopes, LFOs, Quantizers, ...).
 - Add a MIDI-CV interface for receiving pitch CV, gate and clock from the DAW
 - Add parameter input node for receiving automation from the DAW
 - Add audio inputs for receiving audio from the DAW
@@ -132,8 +169,9 @@ of this project (AGPLv3 or later).
 ## Contact the Author
 
 You can reach me via Discord or Mastodon. I'm joined most public Rust Discord
-servers, especially the "Rust Audio" Discord server. I am also on IRC
-on the network [Libera.Chat](https://libera.chat/) in the `#lad` channel (nick `wct`).
+servers, especially the "Rust Audio" Discord server. You can meet me on Unfa's community
+Discord server too. And I am also on IRC on the network
+[Libera.Chat](https://libera.chat/) in the `#lad` channel (nick `wct`).
 
 ## Support Development
 
