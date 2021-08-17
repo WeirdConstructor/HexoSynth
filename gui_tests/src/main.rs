@@ -785,5 +785,9 @@ fn main() {
     start_backend(node_exec);
     let drv = start_driver(matrix.clone());
 
-    open_hexosynth(None, Some(drv), matrix);
+    open_hexosynth_with_config(
+        None, Some(drv), matrix,
+        OpenHexoSynthConfig {
+            show_cursor: true,
+        });
 }

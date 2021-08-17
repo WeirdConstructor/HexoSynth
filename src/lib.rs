@@ -457,6 +457,20 @@ pub fn init_hexosynth() -> (Matrix, NodeExecutor) {
     (matrix, node_exec)
 }
 
+/// Configuration structure for [open_hexosynth_with_config].
+#[derive(Debug, Clone, Default)]
+pub struct OpenHexoSynthConfig {
+    pub show_cursor: bool,
+}
+
+impl OpenHexoSynthConfig {
+    pub fn new() -> Self {
+        Self {
+            show_cursor: false,
+        }
+    }
+}
+
 /// Opens the HexoSynth GUI window and initializes the UI.
 ///
 /// * `parent` - The parent window, only used by the VST.
@@ -470,7 +484,22 @@ pub fn init_hexosynth() -> (Matrix, NodeExecutor) {
 pub fn open_hexosynth(
     parent: Option<RawWindowHandle>,
     drv:    Option<Driver>,
-    matrix: Arc<Mutex<Matrix>>
+    matrix: Arc<Mutex<Matrix>>)
+{
+    open_hexosynth_with_config(
+        parent,
+        drv,
+        matrix,
+        OpenHexoSynthConfig::default());
+}
+
+/// The same as [open_hexosynth] but with more configuration options, see also
+/// [OpenHexoSynthConfig].
+pub fn open_hexosynth_with_config(
+    parent: Option<RawWindowHandle>,
+    drv:    Option<Driver>,
+    matrix: Arc<Mutex<Matrix>>,
+    config: OpenHexoSynthConfig
 ) {
     use hexotk::widgets::{Dialog, DialogData};
     use crate::ui::matrix::NodeMatrixData;
@@ -496,19 +525,26 @@ pub fn open_hexosynth(
                     drv
                 };
 
-            (drv, Box::new(UI::new(
-                Box::new(NodeMatrixData::new(
-                    ui_ctrl.clone(),
-                    UIPos::center(12, 12),
-                    NODE_MATRIX_ID)),
-                Box::new(wbox!(
-                    wt_diag, 90000.into(), center(12, 12),
-                    DialogData::new(
-                        DIALOG_ID,
-                        AtomId::new(DIALOG_ID, DIALOG_OK_ID),
-                        dialog_model))),
-                Box::new(ui_params),
-                (1400.0, 787.0),
-            )))
+            let mut ui =
+                Box::new(UI::new(
+                    Box::new(NodeMatrixData::new(
+                        ui_ctrl.clone(),
+                        UIPos::center(12, 12),
+                        NODE_MATRIX_ID)),
+                    Box::new(wbox!(
+                        wt_diag, 90000.into(), center(12, 12),
+                        DialogData::new(
+                            DIALOG_ID,
+                            AtomId::new(DIALOG_ID, DIALOG_OK_ID),
+                            dialog_model))),
+                    Box::new(ui_params),
+                    (1400.0, 787.0),
+                ));
+
+            if config.show_cursor {
+                ui.enable_show_cursor();
+            }
+
+            (drv, ui)
     }));
 }
