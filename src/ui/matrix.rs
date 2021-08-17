@@ -796,7 +796,7 @@ impl WidgetType for NodeMatrix {
                 let menu_pos = data.ui_ctrl.with_state(|s| s.menu_pos);
                 let (w, h) = get_matrix_size_px(&data.ui_ctrl);
                 let hex_w = w;
-                let txt_w = 235.0;
+                let txt_w = 255.0;
                 let menu_w = hex_w + txt_w;
                 let menu_h = h + UI_ELEM_TXT_H + 2.0 * UI_BORDER_WIDTH;
 
