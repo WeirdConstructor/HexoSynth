@@ -39,7 +39,7 @@ std:push tests "test_1_new_node_with_def_out" => {
     h:drag_hex_from_to $i(0, 0) $i(1, 0);
 
     t:matrix_wait {
-        t:menu_click_text "CV"   :left;
+        t:menu_click_text "Mod"  :left;
         t:menu_click_text "TSeq" :left;
     };
 
@@ -54,7 +54,7 @@ std:push tests "test_2_new_node_with_def_inp" => {
     h:drag_hex_from_to $i(2, 1) $i(1, 0);
 
     t:matrix_wait {
-        t:menu_click_text "CV"   :left;
+        t:menu_click_text "Mod"  :left;
         t:menu_click_text "TSeq" :left;
     };
 
@@ -69,7 +69,7 @@ std:push tests "test_3_new_node_with_select_io" => {
     h:drag_hex_from_to $i(2, 1) $i(1, 0) :right;
 
     t:matrix_wait {
-        t:menu_click_text "CV"    :left;
+        t:menu_click_text "Mod"   :left;
         t:menu_click_text "TSeq"  :left;
         t:menu_click_text "trig"  :left;
         t:menu_click_text "trk2"  :left;
@@ -86,7 +86,7 @@ std:push tests "test_4_new_node_with_select_io_old" => {
     h:drag_hex_from_to $i(0, 0) $i(1, 0) :right;
 
     t:matrix_wait {
-        t:menu_click_text "CV"    :left;
+        t:menu_click_text "Mod"   :left;
         t:menu_click_text "TSeq"  :left;
         t:menu_click_text "trk3"  :left;
         t:menu_click_text "clock" :left;

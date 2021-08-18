@@ -100,6 +100,14 @@
     hx:mouse_up btn;
 };
 
+!@export move_text_contains {!(text) = @;
+    !pos = (hx:id_by_text_contains text).0.1;
+    !x = pos.x + pos.z * 0.5;
+    !y = pos.y + pos.w * 0.5;
+
+    hx:mouse_move $f(x, y);
+};
+
 !@export click_text_contains {!(text, btn) = @;
     !btn = ? is_none[btn] :left btn;
 

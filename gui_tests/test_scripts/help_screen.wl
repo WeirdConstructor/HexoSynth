@@ -38,3 +38,5 @@ std:push tests "open_close_f1_esc" => {
         hx:id_by_text_contains["Parameter Knobs"]
         $none;
 };
+
+tests

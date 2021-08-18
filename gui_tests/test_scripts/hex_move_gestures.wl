@@ -13,7 +13,7 @@ std:push tests "drag_empty_empty_default_pair" => {
         h:drag_hex_from_to $i(2, 1) $i(1, 0) :left;
         t:menu_click_text "Mod"  :left;
         t:menu_click_text "Ad"   :left;
-        t:menu_click_text "CV"   :left;
+        t:menu_click_text "Mod"  :left;
         t:menu_click_text "TSeq" :left;
     };
 
@@ -28,7 +28,7 @@ std:push tests "drag_empty_empty_default_pair" => {
 std:push tests "drag_empty_empty_default_pair_rev" => {
     t:matrix_wait {
         h:drag_hex_from_to $i(1, 0) $i(2, 1) :left;
-        t:menu_click_text "CV"   :left;
+        t:menu_click_text "Mod"  :left;
         t:menu_click_text "TSeq" :left;
         t:menu_click_text "Mod"  :left;
         t:menu_click_text "Ad"   :left;
@@ -45,7 +45,7 @@ std:push tests "drag_empty_empty_default_pair_rev" => {
 std:push tests "drag_empty_empty_set_io" => {
     t:matrix_wait {
         h:drag_hex_from_to $i(1, 0) $i(2, 1) :right;
-        t:menu_click_text "CV"   :left;
+        t:menu_click_text "Mod"  :left;
         t:menu_click_text "TSeq" :left;
         t:menu_click_text "Mod"  :left;
         t:menu_click_text "Ad"   :left;
@@ -67,7 +67,7 @@ std:push tests "drag_empty_empty_set_io_rev" => {
         h:drag_hex_from_to $i(2, 1) $i(1, 0) :right;
         t:menu_click_text "Mod"  :left;
         t:menu_click_text "Ad"   :left;
-        t:menu_click_text "CV"   :left;
+        t:menu_click_text "Mod"  :left;
         t:menu_click_text "TSeq" :left;
         t:menu_click_text "trig" :left;
         t:menu_click_text "trk3" :left;

@@ -496,6 +496,29 @@ fn setup_hx_module() -> wlambda::SymbolTable {
     }, Some(1), Some(1), false);
 
     st.fun(
+        "mouse_wheel", |env: &mut Env, argc: usize| {
+        let dir =
+            env.arg(0).with_s_ref(|s| {
+                match s {
+                    "up"      => Ok(1),
+                    "down"    => Ok(-1),
+                    _ => Err(
+                        StackAction::panic_msg(format!(
+                            "Unknown scroll dir: '{}'", s)))
+                }
+            })?;
+        env.with_user_do(|ctx: &mut Ctx| {
+            match ctx.drv.mouse_wheel(dir) {
+                Ok(_)  => Ok(VVal::None),
+                Err(e) => Err(
+                    StackAction::panic_msg(format!(
+                        "Driver error: {:?}", e)))
+            }
+        })
+    }, Some(1), Some(1), false);
+
+
+    st.fun(
         "key_down", |env: &mut Env, argc: usize| {
         let key = env.arg(0).with_s_ref(str2key)?;
         env.with_user_do(|ctx: &mut Ctx| {
