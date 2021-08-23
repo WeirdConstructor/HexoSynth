@@ -3,6 +3,7 @@
 
 * ~~Feature: New node completed: 'PVerb'~~
 * Feature: Mouse wheel now also moves knobs.
+* Feature: New node added: 'Mux9' a 9 channel multiplexer/switch.
 * Change: Moved 'TSeq' from the 'CV' to the 'Mod' category.
 * Change: RndWk did not properly reflect back the overshoots.
 Now it behaves more in tune with the 'step' setting and does not

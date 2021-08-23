@@ -57,6 +57,7 @@ And following DSP nodes:
 | Signal  | AllP        | All-Pass filter based on internal delay line feedback |
 | Signal  | Comb        | Comb filter |
 | N-\>M   | Mix3        | 3 channel mixer |
+| N-\>M   | Mux9        | 9 channel to 1 output multiplexer/switch |
 | CV      | SMap        | Simple control signal mapper |
 | CV      | Map         | Control signal mapper |
 | Mod     | TSeq        | Tracker/pattern sequencer |
