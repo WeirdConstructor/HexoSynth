@@ -123,7 +123,9 @@ impl GenericNodeUI {
         match param_id.as_atom_def() {
             SAtom::Param(_) => {
                 // FIXME: Widget type should be determined by the Atom enum!
-                if param_name == "trig" {
+                if param_name == "trig"
+                   || (param_name.len() >= 2 && &param_name[0..2] == "t_")
+                {
                     Some(wbox!(
                         self.wt_btn.clone(),
                         AtomId::new(self.model_node_id, idx as u32),
