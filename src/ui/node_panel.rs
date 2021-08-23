@@ -17,6 +17,7 @@ use hexotk::widgets::{
     Graph, GraphData,
     // List, ListData, ListItems, ListOutput,
     Entry, EntryData,
+    Keys, KeysData,
 };
 
 use std::rc::Rc;
@@ -77,6 +78,7 @@ pub struct GenericNodeUI {
     wt_text:       Rc<Text>,
     wt_graph:      Rc<Graph>,
     wt_editview:   Rc<Entry>,
+    wt_keys:       Rc<Keys>,
 
     help_txt:      Rc<TextSourceRef>,
 }
@@ -88,6 +90,7 @@ impl GenericNodeUI {
         let wt_text       = Rc::new(Text::new(10.0));
         let wt_graph      = Rc::new(Graph::new(240.0, 100.0));
         let wt_editview   = Rc::new(Entry::new_not_editable(70.0, 10.0, 13));
+        let wt_keys       = Rc::new(Keys::new(240.0, 100.0, 12.0));
 
         Self {
             dsp_node_id:    NodeId::Nop,
@@ -100,6 +103,7 @@ impl GenericNodeUI {
             wt_text,
             wt_graph,
             wt_editview,
+            wt_keys,
         }
     }
 
@@ -147,6 +151,9 @@ impl GenericNodeUI {
                     AtomId::new(self.model_node_id, idx as u32),
                     center(pos.0, pos.1),
                     ButtonData::new_toggle(param_name)))
+            },
+            SAtom::MicroSample(s) => {
+                None
             },
             SAtom::AudioSample((_filename, _)) => {
                 Some(wbox!(
@@ -205,6 +212,24 @@ impl GenericNodeUI {
             for idx in 0..4 {
                 if let Some(wd) = self.build_atom_input((3, 3), 12 + idx) {
                     param_cd.add(wd);
+                }
+            }
+        }
+
+        for idx in 0..16 {
+            if let Some(param_id) = self.dsp_node_id.param_by_idx(idx) {
+                let param_name = param_id.name();
+
+                if let SAtom::MicroSample(_) = param_id.as_atom_def() {
+                    if param_name == "keys" {
+                        param_cd.new_row()
+                            .add(wbox!(
+                                self.wt_keys.clone(),
+                                AtomId::new(self.model_node_id, idx as u32),
+                                center(12, 6),
+                                KeysData::new("TestKeys")));
+                        break;
+                    }
                 }
             }
         }
