@@ -11,6 +11,8 @@ suddenly jump to the 'min' anymore if exceeding the 'max'.
 I wanted to have the same logic level for triggers as for other logic
 operations.
 * Change: Removed the debug mouse cursor from the regular version.
+* Change: Presets now store the denormalized values, to have better
+compatibility in future if the parameter ranges or mapping changes.
 * Documentation: 'PVerb' node now has a complete documentation.
 * Bugfix: Setting the 'PVerb' 'predly' parameter to 0.0 did not work
 correctly and acted as very very long delay.
