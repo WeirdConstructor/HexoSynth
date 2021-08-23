@@ -146,11 +146,15 @@ impl GenericNodeUI {
                 }
             },
             SAtom::Setting(_) => {
-                Some(wbox!(
-                    self.wt_btn.clone(),
-                    AtomId::new(self.model_node_id, idx as u32),
-                    center(pos.0, pos.1),
-                    ButtonData::new_toggle(param_name)))
+                if param_name == "keys" {
+                    None
+                } else {
+                    Some(wbox!(
+                        self.wt_btn.clone(),
+                        AtomId::new(self.model_node_id, idx as u32),
+                        center(pos.0, pos.1),
+                        ButtonData::new_toggle(param_name)))
+                }
             },
             SAtom::MicroSample(s) => {
                 None
@@ -220,16 +224,14 @@ impl GenericNodeUI {
             if let Some(param_id) = self.dsp_node_id.param_by_idx(idx) {
                 let param_name = param_id.name();
 
-                if let SAtom::MicroSample(_) = param_id.as_atom_def() {
-                    if param_name == "keys" {
-                        param_cd.new_row()
-                            .add(wbox!(
-                                self.wt_keys.clone(),
-                                AtomId::new(self.model_node_id, idx as u32),
-                                center(12, 6),
-                                KeysData::new("TestKeys")));
-                        break;
-                    }
+                if param_name == "keys" {
+                    param_cd.new_row()
+                        .add(wbox!(
+                            self.wt_keys.clone(),
+                            AtomId::new(self.model_node_id, idx as u32),
+                            center(12, 6),
+                            KeysData::new("TestKeys")));
+                    break;
                 }
             }
         }
