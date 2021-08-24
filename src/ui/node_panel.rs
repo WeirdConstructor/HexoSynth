@@ -187,35 +187,15 @@ impl GenericNodeUI {
 
         param_cd.contrast_border().new_row();
 
-        for idx in 0..4 {
+        let mut row_fill = 0;
+
+        for idx in 0..16 {
             if let Some(wd) = self.build_atom_input((3, 3), idx) {
                 param_cd.add(wd);
-            }
-        }
-
-        if self.dsp_node_id.param_by_idx(4).is_some() {
-            param_cd.new_row();
-            for idx in 0..4 {
-                if let Some(wd) = self.build_atom_input((3, 3), 4 + idx) {
-                    param_cd.add(wd);
-                }
-            }
-        }
-
-        if self.dsp_node_id.param_by_idx(8).is_some() {
-            param_cd.new_row();
-            for idx in 0..4 {
-                if let Some(wd) = self.build_atom_input((3, 3), 8 + idx) {
-                    param_cd.add(wd);
-                }
-            }
-        }
-
-        if self.dsp_node_id.param_by_idx(12).is_some() {
-            param_cd.new_row();
-            for idx in 0..4 {
-                if let Some(wd) = self.build_atom_input((3, 3), 12 + idx) {
-                    param_cd.add(wd);
+                row_fill += 1;
+                if row_fill >= 4 {
+                    param_cd.new_row();
+                    row_fill = 0;
                 }
             }
         }
@@ -225,12 +205,14 @@ impl GenericNodeUI {
                 let param_name = param_id.name();
 
                 if param_name == "keys" {
-                    param_cd.new_row()
-                        .add(wbox!(
-                            self.wt_keys.clone(),
-                            AtomId::new(self.model_node_id, idx as u32),
-                            center(12, 6),
-                            KeysData::new("TestKeys")));
+                    if row_fill > 0 {
+                        param_cd.new_row();
+                    }
+                    param_cd.add(wbox!(
+                        self.wt_keys.clone(),
+                        AtomId::new(self.model_node_id, idx as u32),
+                        center(12, 6),
+                        KeysData::new(param_name)));
                     break;
                 }
             }
