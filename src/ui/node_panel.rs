@@ -213,6 +213,7 @@ impl GenericNodeUI {
                         AtomId::new(self.model_node_id, idx as u32),
                         center(12, 6),
                         KeysData::new(param_name)));
+                    row_fill += 1;
                     break;
                 }
             }
@@ -229,11 +230,16 @@ impl GenericNodeUI {
                     graph_fun(&gd, init, x as f32, xn as f32) as f64
                 });
 
-            param_cd.new_row()
+            if row_fill > 0 {
+                param_cd.new_row();
+                row_fill = 0;
+            }
+            param_cd
               .add(wbox!(self.wt_graph,
                    AtomId::new(crate::NODE_PANEL_ID, PANEL_GRAPH_ID),
                    center(12, 6),
                    GraphData::new(160, graph_fun)));
+            row_fill += 1;
         }
 
 
