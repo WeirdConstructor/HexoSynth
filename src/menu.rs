@@ -58,9 +58,9 @@ impl MenuState {
                         help:  "Signal\nSignal shapers:\n- Filters\n- Waveshapers\n- Delays".to_string(),
                     },
                     MenuItem {
-                        typ: ItemType::Category(UICategory::CV),
-                        label: "CV".to_string(),
-                        help: "CV\nControl voltage shapers:\n- CV converters\n- Quantizers\n- Sample & Hold\n- Slew".to_string(),
+                        typ: ItemType::Category(UICategory::Ctrl),
+                        label: "Ctrl".to_string(),
+                        help: "Ctrl\nControl signal shapers:\n- Ctrl converters\n- Quantizers\n- Sample & Hold\n- Slew".to_string(),
                     },
                     MenuItem {
                         typ: ItemType::Category(UICategory::Mod),

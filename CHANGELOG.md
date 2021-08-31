@@ -14,12 +14,16 @@ operations.
 * Change: Removed the debug mouse cursor from the regular version.
 * Change: Presets now store the denormalized values, to have better
 compatibility in future if the parameter ranges or mapping changes.
+* Change: Renamed CV to Ctrl (aka Control Signal) for more consistency
+within HexoSynth.
 * Documentation: 'PVerb' node now has a complete documentation.
 * Bugfix: Setting the 'PVerb' 'predly' parameter to 0.0 did not work
 correctly and acted as very very long delay.
 It will now just skip the delay entirely.
 * Bugfix: The Dattorro 'PVerb' tend to blow up if you set 'size' to a
 very small (<0.1) value!
+* Bugfix: The low pass filter for oversampling did a slightly wrong Q
+calculation. Was not audible though.
 
 0.1.0-alpha-3 (2021-08-13)
 ==========================
