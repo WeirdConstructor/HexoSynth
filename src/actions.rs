@@ -8,7 +8,7 @@ use crate::UIParams;
 use crate::dsp::{SAtom, get_rand_node_id, RandNodeSelector};
 use crate::dsp::helpers::SplitMix64;
 
-use hexotk::{MButton, AtomId};
+use hexotk::{MButton, AtomId, AtomDataModel};
 use hexotk::widgets::{
     DialogModel,
 };
@@ -405,6 +405,10 @@ impl ActionState<'_, '_, '_> {
             self.state.current_tracker_idx = node_id.instance();
             self.update_pattern_edit();
         }
+
+        self.ui_params.set_var(
+            hexotk::AtomId::new(crate::state::ATNID_CLR_SELECT, 0),
+            hexotk::Atom::Setting(node_id.ui_category().default_color_idx() as i64));
 
         let node_ui = self.state.widgets.node_ui.clone();
         node_ui.borrow_mut().set_target(
@@ -1069,6 +1073,14 @@ impl DefaultActionHandler {
         ah.init(a);
         self.ui_action = Some(ah);
     }
+
+    pub fn close_menu(&mut self, a: &mut ActionState) {
+        let ms =
+            std::mem::replace(
+                &mut a.state.menu_state,
+                MenuState::None);
+        a.state.menu_items = a.state.menu_state.to_items();
+    }
 }
 
 impl ActionHandler for DefaultActionHandler {
@@ -1223,6 +1235,10 @@ impl ActionHandler for DefaultActionHandler {
                     _ => (),
                 }
             },
+            Msg::ClrSelect { clr } => {
+                println!("SELECT IN COLOR: {:?}", clr);
+                self.close_menu(a);
+            },
             Msg::MenuHover { item_idx } => {
                 if *item_idx < a.state.menu_items.len() {
                     a.state.menu_help_text.set(
@@ -1265,9 +1281,9 @@ impl ActionHandler for DefaultActionHandler {
                             self.set_action_handler(ah, a);
                         }
                     } else {
-                        if *btn == MButton::Left {
-                            a.set_focus(cell);
-                        } else {
+                        a.set_focus(cell);
+
+                        if *btn == MButton::Right {
                             let ah =
                                 Box::new(ActionContextMenu::new(*x, *y));
                             self.set_action_handler(ah, a);

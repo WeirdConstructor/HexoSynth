@@ -4,7 +4,7 @@ This project aims to create a modular synthesizer. Like those encountered
 in projects like VCVRack or Bitwigs Polygrid.
 
 The core idea is having a hexagonal tile map for laying out module
-instances and connect them at the edges to route audio signals and CV signals
+instances and connect them at the edges to route audio signals and control signals
 to inputs of other modules.
 
 A goal is to provide a simple wireless environment to build
@@ -58,8 +58,8 @@ And following DSP nodes:
 | Signal  | Comb        | Comb filter |
 | N-\>M   | Mix3        | 3 channel mixer |
 | N-\>M   | Mux9        | 9 channel to 1 output multiplexer/switch |
-| CV      | SMap        | Simple control signal mapper |
-| CV      | Map         | Control signal mapper |
+| Ctrl    | SMap        | Simple control signal mapper |
+| Ctrl    | Map         | Control signal mapper |
 | Mod     | TSeq        | Tracker/pattern sequencer |
 | Mod     | Ad          | Attack-Decay envelope |
 | Mod     | TsLFO       | Tri/Saw waveform low frequency oscillator (LFO) |
@@ -77,7 +77,7 @@ with new modules.
 - DONE: Factor out the DSP code into it's own crate.
 - Add preset/patch management to the UI.
 - Add lots (many more than above listed) of modules (Oscillators, Filters, Envelopes, LFOs, Quantizers, ...).
-- Add a MIDI-CV interface for receiving pitch CV, gate and clock from the DAW
+- Add a MIDI-Ctrl interface for receiving pitch control signals, gate and clock from the DAW
 - Add parameter input node for receiving automation from the DAW
 - Add audio inputs for receiving audio from the DAW
 - Comment the code for easier maintenance.

@@ -99,6 +99,12 @@ impl UIParams {
         }
     }
 
+    pub fn set_var(&mut self, id: AtomId, atom: Atom) {
+        if id.node_id() > PARAM_VARIABLES_SPACE {
+            self.variables.insert(id, (ParamId::none(), atom));
+        }
+    }
+
     pub fn set_param(&mut self, id: AtomId, atom: Atom) {
         if id.node_id() > UI_CTRL_SPACE {
             let ui_ctrl = self.ui_ctrl.clone();

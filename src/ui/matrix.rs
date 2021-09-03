@@ -16,6 +16,7 @@ use hexotk::widgets::{
     Container, ContainerData,
     Text, TextSourceRef, TextData,
     Tabs, TabsData,
+    ClrArray, ClrArrayData,
 };
 
 use std::rc::Rc;
@@ -339,6 +340,8 @@ pub const HEX_GRID_ID           : u32 = 2;
 pub const HEX_MENU_CONT_ID      : u32 = 3;
 pub const HEX_MENU_HELP_TEXT_ID : u32 = 4;
 pub const HEX_MENU_ID           : u32 = 5;
+pub const HEX_MENU_TXT_CONT_ID  : u32 = 6;
+pub const HEX_MENU_CLR_ID       : u32 = 7;
 pub const NODE_PANEL_ID         : u32 = 11;
 pub const UTIL_PANEL_ID         : u32 = 12;
 pub const HELP_TEXT_ID          : u32 = 13;
@@ -380,8 +383,22 @@ impl NodeMatrixData {
         let wt_text         = Rc::new(Text::new(12.0));
         let wt_help_txt     = Rc::new(Text::new(14.0));
         let wt_log_txt      = Rc::new(Text::new(9.0));
+        let wt_clrarray     = Rc::new(ClrArray::new());
 
         let hex_menu_id = AtomId::new(node_id, HEX_MENU_ID);
+
+        let mut txt_clr = ContainerData::new();
+        txt_clr.new_row()
+            .add(wbox!(wt_text,
+                AtomId::new(node_id, HEX_MENU_HELP_TEXT_ID),
+                center(12, 10),
+                TextData::new(txtsrc)))
+            .new_row()
+            .add(wbox!(wt_clrarray,
+                AtomId::new(crate::state::ATNID_CLR_SELECT, 0),
+                center(12, 2),
+                ClrArrayData::new(true)));
+
         let mut hex_menu = ContainerData::new();
         hex_menu.contrast_border()
            .title_text(ui_ctrl.with_state(|s| s.menu_title.clone()))
@@ -391,10 +408,11 @@ impl NodeMatrixData {
                 hex_menu_id,
                 center(6, 12),
                 HexGridData::new(menu_model)))
-           .add(wbox!(wt_text,
-                AtomId::new(node_id, HEX_MENU_HELP_TEXT_ID),
+           .add(wbox!(
+                wt_cont,
+                AtomId::new(node_id, HEX_MENU_TXT_CONT_ID),
                 center(6, 12),
-                TextData::new(txtsrc)));
+                txt_clr));
 
         let mut tdata = TabsData::new();
 
@@ -837,8 +855,8 @@ impl WidgetType for NodeMatrix {
 
         match ev {
             UIEvent::Click { id, x, y, button, .. } => {
-                // println!("EV: {:?} id={}, btn={:?}, data.id={}",
-                //          ev, *id, button, data.id());
+                println!("EV: {:?} id={}, btn={:?}, data.id={}",
+                         ev, *id, button, data.id());
 
                 data.with(|data: &mut NodeMatrixData| {
                     let show_help = data.ui_ctrl.with_state(|s| s.show_help);
@@ -853,7 +871,10 @@ impl WidgetType for NodeMatrix {
                             data.util_panel.event(ui, ev);
                         }
 
-                    } else if *id == data.hex_menu_id {
+                    } else if
+                        *id == data.hex_menu_id
+                     || *id == AtomId::new(crate::state::ATNID_CLR_SELECT, 0)
+                    {
                         data.ui_ctrl.emit(
                             Msg::menu_mouse_click(
                                 *x, *y, *button));

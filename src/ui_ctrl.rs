@@ -274,6 +274,10 @@ impl UICtrlRef {
                 self.emit(Msg::ui_btn(id.node_id()));
             }
             return false;
+
+        } else if id.node_id() == crate::state::ATNID_CLR_SELECT {
+            self.emit(Msg::clr_sel(atom.i()));
+            return true;
         }
 
         true

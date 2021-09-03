@@ -10,6 +10,7 @@ use keyboard_types::Key;
 pub enum Msg {
     Key         { key: Key },
     UIBtn       { id: u32 },
+    ClrSelect   { clr: i64 },
     MenuHover   { item_idx: usize },
     MenuClick   { item_idx: usize },
     MatrixClick { x: usize, y: usize, btn: MButton, modkey: bool },
@@ -39,6 +40,8 @@ impl Msg {
     pub fn key(key: Key) -> Self { Msg::Key { key } }
 
     pub fn ui_btn(id: u32) -> Self { Msg::UIBtn { id } }
+
+    pub fn clr_sel(clr: i64) -> Self { Msg::ClrSelect { clr } }
 
     pub fn menu_hover(item_idx: usize) -> Self { Msg::MenuHover { item_idx } }
 
