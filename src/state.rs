@@ -8,7 +8,7 @@ pub const ATNID_SAVE_BUTTON    : u32 = 190003;
 pub const ATNID_CLR_SELECT     : u32 = 190004;
 
 use crate::dyn_widgets::DynamicWidgets;
-use hexodsp::{NodeId, CellDir, Cell, NodeInfo};
+use hexodsp::{NodeId, CellDir, Cell, NodeInfo, Matrix, SAtom};
 use hexotk::AtomId;
 pub use crate::menu::MenuState;
 pub use hexodsp::dsp::UICategory;
@@ -19,6 +19,7 @@ use hexotk::widgets::{
 
 use std::rc::Rc;
 use std::cell::RefCell;
+use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub enum RandSpecifier {
@@ -72,6 +73,8 @@ pub struct State {
     pub menu_state:          MenuState,
 
     pub widgets:             DynamicWidgets,
+
+    pub node_colors:         HashMap<NodeId, u8>,
 }
 
 impl State {
@@ -95,6 +98,46 @@ impl State {
             sample_dir_from:        None,
             current_tracker_idx:    0,
             widgets:                DynamicWidgets::new(),
+            node_colors:            HashMap::new(),
+        }
+    }
+
+    pub fn sync_to_matrix(&self, m: &mut Matrix) {
+        let mut entries = vec![];
+
+        for (k, v) in self.node_colors.iter() {
+            entries.push(format!("{},{},{}",
+                k.name(),
+                k.instance(),
+                v));
+        }
+
+        m.set_prop("node_colors", SAtom::str(&entries.join(";")));
+    }
+
+    pub fn sync_from_matrix(&mut self, m: &mut Matrix) {
+        println!("SYNC FROM");
+        if let Some(SAtom::Str(s)) = m.get_prop("node_colors") {
+            println!("SYNC FROM {}", s);
+
+            for entry in s.split(";") {
+                let entry : Vec<&str> = entry.split(",").collect();
+
+                let node_id = NodeId::from_str(entry[0]);
+                let inst = entry[1].parse::<usize>().unwrap_or(0);
+                let node_id = node_id.to_instance(inst);
+                let color = entry[2].parse::<u8>().unwrap_or(0);
+
+                self.node_colors.insert(node_id, color);
+            }
+        }
+    }
+
+    pub fn color_for_node(&self, node_id: NodeId) -> u8 {
+        if let Some(clr) = self.node_colors.get(&node_id) {
+            *clr
+        } else {
+            node_id.ui_category().default_color_idx()
         }
     }
 

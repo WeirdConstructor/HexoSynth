@@ -253,12 +253,12 @@ impl HexGridModel for MatrixUIModel {
     fn cell_color(&self, x: usize, y: usize) -> u8 {
         if x >= self.w || y >= self.h { return 0; }
 
-        self.ui_ctrl.with_matrix(|m| {
-            Some(
-                m.get(x, y)?
-                 .node_id()
-                 .ui_category()
-                 .default_color_idx())
+        let node_id : Option<NodeId> =
+            self.ui_ctrl.with_matrix(|m| Some(m.get(x, y)?.node_id()));
+
+        self.ui_ctrl.with_state(|s| {
+            let node_id = node_id?;
+            Some(s.color_for_node(node_id))
         }).unwrap_or(0)
     }
 

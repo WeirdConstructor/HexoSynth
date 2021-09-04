@@ -346,6 +346,15 @@ impl ActionState<'_, '_, '_> {
         }
     }
 
+    pub fn set_node_color(&mut self, node_id: NodeId, clr: i64) {
+        if clr > 255 {
+            self.state.node_colors.remove(&node_id);
+        } else {
+            self.state.node_colors.insert(node_id, clr as u8);
+        }
+        self.state.sync_to_matrix(self.matrix);
+    }
+
     pub fn clear_menu_history(&mut self) {
         self.state.menu_history.clear();
     }
@@ -408,7 +417,7 @@ impl ActionState<'_, '_, '_> {
 
         self.ui_params.set_var(
             hexotk::AtomId::new(crate::state::ATNID_CLR_SELECT, 0),
-            hexotk::Atom::Setting(node_id.ui_category().default_color_idx() as i64));
+            hexotk::Atom::Setting(self.state.color_for_node(node_id) as i64));
 
         let node_ui = self.state.widgets.node_ui.clone();
         node_ui.borrow_mut().set_target(
@@ -1237,6 +1246,7 @@ impl ActionHandler for DefaultActionHandler {
             },
             Msg::ClrSelect { clr } => {
                 println!("SELECT IN COLOR: {:?}", clr);
+                a.set_node_color(a.state.focus_cell.node_id(), *clr);
                 self.close_menu(a);
             },
             Msg::MenuHover { item_idx } => {

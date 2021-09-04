@@ -283,6 +283,11 @@ impl UICtrlRef {
         true
     }
 
+    pub fn sync_from_matrix(&self, ui_params: &mut UIParams) {
+        let state = &mut *self.2.borrow_mut();
+        self.with_matrix(|m| state.sync_from_matrix(m));
+    }
+
     pub fn ui_start_frame(&self, ui_params: &mut UIParams) {
         let error = self.with_matrix(|m| m.pop_error());
         if let Some(error) = error {

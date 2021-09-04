@@ -89,6 +89,9 @@ impl UIParams {
 
         self.params  = new_hm;
         self.modamts = new_ma;
+
+        let ui_ctrl = self.ui_ctrl.clone();
+        ui_ctrl.sync_from_matrix(self);
     }
 
     pub fn get_param(&self, id: AtomId) -> Option<&(ParamId, Atom)> {
@@ -219,11 +222,12 @@ impl AtomDataModel for UIParams {
     fn check_sync(&mut self) {
         let cur_gen = self.ui_ctrl.with_matrix(|m| m.get_generation());
 
+        let ui_ctrl = self.ui_ctrl.clone();
+
         if *self.matrix_gen.borrow() < cur_gen {
             self.sync_from_matrix();
         }
 
-        let ui_ctrl = self.ui_ctrl.clone();
         ui_ctrl.ui_start_frame(self);
     }
 
