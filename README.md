@@ -60,6 +60,7 @@ And following DSP nodes:
 | N-\>M   | Mux9        | 9 channel to 1 output multiplexer/switch |
 | Ctrl    | SMap        | Simple control signal mapper |
 | Ctrl    | Map         | Control signal mapper |
+| Ctrl    | CQnt        | Control signal pitch quantizer |
 | Mod     | TSeq        | Tracker/pattern sequencer |
 | Mod     | Ad          | Attack-Decay envelope |
 | Mod     | TsLFO       | Tri/Saw waveform low frequency oscillator (LFO) |
