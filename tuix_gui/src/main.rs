@@ -1,22 +1,28 @@
 use tuix::*;
+use femtovg::FontId;
 
-fn color_paint(color: (f64, f64, f64)) -> femtovg::Paint {
-    femtovg::Paint::color(
-        femtovg::Color::rgbf(
-            color.0 as f32,
-            color.1 as f32,
-            color.2 as f32))
-}
+mod painter;
+use painter::FemtovgPainter;
 
 #[derive(Default)]
 struct HexGrid {
     id: usize,
+    font: Option<FontId>,
+    font_mono: Option<FontId>,
 }
 
 impl HexGrid {
     pub fn new(id: usize) -> Self {
-        HexGrid { id }
+        HexGrid {
+            id,
+            font: None,
+            font_mono: None,
+        }
     }
+}
+
+fn hex_size2wh(size: f64) -> (f64, f64) {
+    (2.0_f64 * size, (3.0_f64).sqrt() * size)
 }
 
 impl Widget for HexGrid {
@@ -42,20 +48,45 @@ impl Widget for HexGrid {
 
     fn on_draw(&mut self, state: &mut State, entity: Entity, canvas: &mut Canvas) {
         let mut transform = state.data.get_transform(entity);
+        canvas.save();
 
+        if self.font.is_none() {
+            self.font      = Some(canvas.add_font_mem(std::include_bytes!("font.ttf")).expect("can load font"));
+            self.font_mono = Some(canvas.add_font_mem(std::include_bytes!("font_mono.ttf")).expect("can load font"));
+        }
 
         let bounds = state.data.get_bounds(entity);
 
-//        let mut clip_region = state.data.get_clip_region(entity);
-//        canvas.scissor(
-//            clip_region.x,
-//            clip_region.y,
-//            clip_region.w,
-//            clip_region.h,
-//        );
+        canvas.scissor(
+            bounds.x,
+            bounds.y,
+            bounds.w,
+            bounds.h,
+        );
 //
-        canvas.save();
 //        canvas.set_transform(transform[0], transform[1], transform[2], transform[3], transform[4], transform[5]);
+
+        let p = &mut FemtovgPainter {
+            canvas:     canvas,
+            font:       self.font.unwrap(),
+            font_mono:  self.font_mono.unwrap(),
+        };
+
+        let x = bounds.x as f64 + 100.0;
+        let y = bounds.y as f64 + 100.0;
+        let (w, h) = hex_size2wh(60.0);
+
+        p.path_stroke(
+            3.0,
+            (1.0, 0.0, 1.0),
+            &mut ([
+                (x - 0.50 * w, y          ),
+                (x - 0.25 * w, y - 0.5 * h),
+                (x + 0.25 * w, y - 0.5 * h),
+                (x + 0.50 * w, y          ),
+                (x + 0.25 * w, y + 0.5 * h),
+                (x - 0.25 * w, y + 0.5 * h),
+            ].iter().copied().map(|p| (p.0.floor(), p.1.floor()))), true);
 
         let segments = [
             (0.0, 0.0),
@@ -63,30 +94,6 @@ impl Widget for HexGrid {
             (20.0, 20.0),
             (100.0, 400.0),
         ];
-
-        let mut p = femtovg::Path::new();
-
-        let mut paint = color_paint((1.0, 0.0, 0.0));
-
-        paint.set_line_join(femtovg::LineJoin::Round);
-        paint.set_line_width(2.0);
-
-        let mut first = true;
-        for s in segments {
-            if first {
-                p.move_to(bounds.x + s.0 as f32, bounds.y + s.1 as f32);
-                first = false;
-            } else {
-                p.line_to(bounds.x + s.0 as f32, bounds.y + s.1 as f32);
-            }
-        }
-
-        let closed = true;
-
-        if closed { p.close(); }
-
-        canvas.stroke_path(&mut p, paint);
-
 
         canvas.restore();
     }
