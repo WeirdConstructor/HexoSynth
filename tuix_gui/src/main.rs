@@ -31,6 +31,7 @@ impl Widget for HexGrid {
 
     fn on_build(&mut self, state: &mut State, entity: Entity) -> Self::Ret {
         entity.set_position_type(state, PositionType::ParentDirected)
+              .set_clip_widget(state, entity)
     }
 
     fn on_event(&mut self, state: &mut State, entity: Entity, event: &mut Event) {
@@ -47,24 +48,12 @@ impl Widget for HexGrid {
     }
 
     fn on_draw(&mut self, state: &mut State, entity: Entity, canvas: &mut Canvas) {
-        let mut transform = state.data.get_transform(entity);
-        canvas.save();
-
         if self.font.is_none() {
             self.font      = Some(canvas.add_font_mem(std::include_bytes!("font.ttf")).expect("can load font"));
             self.font_mono = Some(canvas.add_font_mem(std::include_bytes!("font_mono.ttf")).expect("can load font"));
         }
 
         let bounds = state.data.get_bounds(entity);
-
-        canvas.scissor(
-            bounds.x,
-            bounds.y,
-            bounds.w,
-            bounds.h,
-        );
-//
-//        canvas.set_transform(transform[0], transform[1], transform[2], transform[3], transform[4], transform[5]);
 
         let p = &mut FemtovgPainter {
             canvas:     canvas,
@@ -87,15 +76,6 @@ impl Widget for HexGrid {
                 (x + 0.25 * w, y + 0.5 * h),
                 (x - 0.25 * w, y + 0.5 * h),
             ].iter().copied().map(|p| (p.0.floor(), p.1.floor()))), true);
-
-        let segments = [
-            (0.0, 0.0),
-            (20.0 + 10.0 * self.id as f32, 0.0),
-            (20.0, 20.0),
-            (100.0, 400.0),
-        ];
-
-        canvas.restore();
     }
 }
 
