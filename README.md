@@ -61,6 +61,7 @@ And following DSP nodes:
 | Ctrl    | SMap        | Simple control signal mapper |
 | Ctrl    | Map         | Control signal mapper |
 | Ctrl    | CQnt        | Control signal pitch quantizer |
+| Ctrl    | Quant       | Pitch signal quantizer |
 | Mod     | TSeq        | Tracker/pattern sequencer |
 | Mod     | Ad          | Attack-Decay envelope |
 | Mod     | TsLFO       | Tri/Saw waveform low frequency oscillator (LFO) |
