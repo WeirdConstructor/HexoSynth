@@ -10,7 +10,7 @@ mod hexgrid;
 mod rect;
 
 use painter::FemtovgPainter;
-use hexgrid::{HexGrid, HexGridModel, HexCell, HexDir, HexEdge};
+use hexgrid::{HexGrid, HexGridModel, HexCell, HexDir, HexEdge, HexHLight};
 use hexo_consts::MButton;
 
 use std::rc::Rc;
@@ -27,8 +27,8 @@ impl TestGridModel {
 }
 
 impl HexGridModel for TestGridModel {
-    fn width(&self) -> usize { 16 }
-    fn height(&self) -> usize { 16 }
+    fn width(&self) -> usize { 3 }
+    fn height(&self) -> usize { 3 }
     fn cell_visible(&self, x: usize, y: usize) -> bool {
         x < self.width() && y < self.height()
     }
@@ -39,14 +39,48 @@ impl HexGridModel for TestGridModel {
     fn cell_label<'a>(&self, x: usize, y: usize, out: &'a mut [u8])
         -> Option<HexCell<'a>>
     {
-        None
+        let w = self.width();
+        let h = self.height();
+        if x >= w || y >= h { return None; }
+
+        use std::io::Write;
+        let mut cur = std::io::Cursor::new(out);
+        match write!(cur, "{}x{}", x, y) {
+            Ok(_)  => {
+                let len = cur.position() as usize;
+                Some(HexCell {
+                    label:
+                        std::str::from_utf8(&(cur.into_inner())[0..len])
+                        .unwrap(),
+                    hlight: HexHLight::Normal,
+                    rg_colors: Some(( 1.0, 1.0,)),
+                })
+            },
+            Err(_) => None,
+        }
     }
 
     /// Edge: 0 top-right, 1 bottom-right, 2 bottom, 3 bottom-left, 4 top-left, 5 top
     fn cell_edge<'a>(&self, x: usize, y: usize, edge: HexDir, out: &'a mut [u8])
         -> Option<(&'a str, HexEdge)>
     {
-        None
+        let w = self.width();
+        let h = self.height();
+        if x >= w || y >= h { return None; }
+
+        use std::io::Write;
+        let mut cur = std::io::Cursor::new(out);
+        match write!(cur, "{:?}", edge) {
+            Ok(_)  => {
+                let len = cur.position() as usize;
+                Some((
+                    std::str::from_utf8(&(cur.into_inner())[0..len])
+                    .unwrap(),
+                    HexEdge::ArrowValue { value: (1.0, 1.0) },
+                ))
+            },
+            Err(_) => None,
+        }
     }
 
     fn cell_click(&self, x: usize, y: usize, btn: MButton, modkey: bool) {

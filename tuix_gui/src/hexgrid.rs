@@ -145,14 +145,35 @@ pub trait HexGridModel {
     fn cell_visible(&self, x: usize, y: usize) -> bool;
     fn cell_empty(&self, x: usize, y: usize) -> bool;
     fn cell_color(&self, x: usize, y: usize) -> u8 { 0 }
+
     fn cell_label<'a>(&self, x: usize, y: usize, out: &'a mut [u8])
         -> Option<HexCell<'a>>; // (&'a str, HexCell, Option<(f32, f32)>)>;
+
     /// Edge: 0 top-right, 1 bottom-right, 2 bottom, 3 bottom-left, 4 top-left, 5 top
     fn cell_edge<'a>(&self, x: usize, y: usize, edge: HexDir, out: &'a mut [u8])
         -> Option<(&'a str, HexEdge)>;
+
     fn cell_click(&self, x: usize, y: usize, btn: MButton, modkey: bool);
     fn cell_hover(&self, _x: usize, _y: usize) { }
 }
+
+pub struct EmptyHexGridModel {
+}
+
+impl HexGridModel for EmptyHexGridModel {
+    fn width(&self) -> usize { 0 }
+    fn height(&self) -> usize { 0 }
+    fn cell_visible(&self, x: usize, y: usize) -> bool { false }
+    fn cell_empty(&self, x: usize, y: usize) -> bool { true }
+    fn cell_color(&self, x: usize, y: usize) -> u8 { 0 }
+    fn cell_label<'a>(&self, x: usize, y: usize, out: &'a mut [u8])
+        -> Option<HexCell<'a>> { None }
+    fn cell_edge<'a>(&self, x: usize, y: usize, edge: HexDir, out: &'a mut [u8])
+        -> Option<(&'a str, HexEdge)> { None }
+    fn cell_click(&self, x: usize, y: usize, btn: MButton, modkey: bool) { }
+    fn cell_hover(&self, _x: usize, _y: usize) { }
+}
+
 
 #[derive(Debug, Clone)]
 pub struct HexGridOld {
@@ -368,13 +389,16 @@ fn draw_led(p: &mut FemtovgPainter, x: f32, y: f32, led_value: (f32, f32)) {
     p.path_stroke(1.0, led_clr_border, &mut path.iter().copied(), true);
 }
 
-#[derive(Default)]
 pub struct HexGrid {
     id:        usize,
     font:      Option<FontId>,
     font_mono: Option<FontId>,
     tile_size: f32,
     scale:     f32,
+    model:     Rc<RefCell<dyn HexGridModel>>,
+    center_font_size: f32,
+    edge_font_size:   f32,
+    y_offs:           bool,
 }
 
 impl HexGrid {
@@ -384,7 +408,11 @@ impl HexGrid {
             font:       None,
             font_mono:  None,
             scale:      1.0,
+            center_font_size: 18.0,
+            edge_font_size: 13.0,
+            y_offs:     false,
             tile_size,
+            model:  Rc::new(RefCell::new(EmptyHexGridModel { })),
         }
     }
 }
@@ -398,13 +426,16 @@ impl Widget for HexGrid {
               .set_clip_widget(state, entity)
     }
 
+    fn on_update(&mut self, state: &mut State, entity: Entity, data: &Self::Data) {
+        self.model = data.clone();
+    }
+
     fn on_event(&mut self, state: &mut State, entity: Entity, event: &mut Event) {
         if let Some(window_event) = event.message.downcast::<WindowEvent>() {
-        let posx = state.data.get_posx(entity);
-        let posy = state.data.get_posy(entity);
-        let width = state.data.get_width(entity);
-        let height = state.data.get_height(entity);
-//            println!("WINEVENT[{}]: {:?} {:?}", self.id, window_event, width);
+//            let posx = state.data.get_posx(entity);
+//            let posy = state.data.get_posy(entity);
+//            let width = state.data.get_width(entity);
+//            let height = state.data.get_height(entity);
             match window_event {
                 _ => {},
             }
@@ -425,24 +456,6 @@ impl Widget for HexGrid {
             font_mono:  self.font_mono.unwrap(),
         };
 
-        let x = bounds.x + 100.0;
-        let y = bounds.y + 100.0;
-        let (w, h) = hex_size2wh(60.0);
-
-        p.path_stroke(
-            3.0,
-            (1.0, 0.0, 1.0),
-            &mut ([
-                (x - 0.50 * w, y          ),
-                (x - 0.25 * w, y - 0.5 * h),
-                (x + 0.25 * w, y - 0.5 * h),
-                (x + 0.50 * w, y          ),
-                (x + 0.25 * w, y + 0.5 * h),
-                (x - 0.25 * w, y + 0.5 * h),
-            ].iter().copied().map(|p| (p.0.floor(), p.1.floor()))), true);
-
-        //---------------------------------------------------------------------
-
         let pos : Rect = bounds.into();
         let size = self.tile_size;
 
@@ -451,6 +464,225 @@ impl Widget for HexGrid {
         let (w, h)  = hex_size2wh(size);
 
         p.rect_fill_r(UI_GRID_BG1_CLR, pos);
+
+        let model = self.model.borrow();
+
+        let nx = model.width();
+        let ny = model.height();
+
+        for xi in 0..nx {
+            let x = xi as f32;
+
+            for yi in 0..ny {
+                let y =
+                    if xi % 2 == 0 { yi as f32 - 0.5 }
+                    else           { yi as f32 };
+
+                let xo = x * 0.75 * w + size;
+                let yo = (1.00 + y) * h;
+
+                let yo = if self.y_offs { yo - 0.5 * h } else { yo };
+
+                let test_pos = Rect {
+                    x: -0.5 * w,
+                    y: -0.5 * h,
+                    w: pos.w + 1.0 * w,
+                    h: pos.h + 1.0 * h,
+                };
+
+                // Assume the tiles are bigger than they are, so we don't miss:
+                let tile_size_check_factor = 0.1;
+                let w_check_pad = w * tile_size_check_factor;
+                let h_check_pad = h * tile_size_check_factor;
+                if !test_pos.aabb_is_inside(Rect {
+                        x: xo - w_check_pad,
+                        y: yo - h_check_pad,
+                        w: w + w_check_pad,
+                        h: h + h_check_pad
+                    })
+                {
+                println!("NOT HEXINSODE {:?} IN {:?}", Rect {
+                    x: xo - w_check_pad,
+                    y: yo - h_check_pad,
+                    w: w + w_check_pad,
+                    h: h + h_check_pad,
+                }, test_pos);
+
+                    continue;
+                }
+
+                if !model.cell_visible(xi, yi) {
+                    continue;
+                }
+
+                let th  = p.font_height(self.center_font_size as f32, false);
+                let fs  = self.center_font_size;
+                let th2 = p.font_height(self.edge_font_size as f32, false);
+                let fs2 = self.edge_font_size;
+
+                // TODO!!!!
+                let hover_pos = (1000, 1000);
+                let drag_source_pos = Some((10000, 10000));
+
+                let (line, clr) =
+                    if hover_pos.0 == xi && hover_pos.1 == yi {
+                        (5.0, UI_GRID_HOVER_BORDER_CLR)
+                    } else  if Some((xi, yi)) == drag_source_pos {
+                        (3.0, UI_GRID_DRAG_BORDER_CLR)
+                    } else if model.cell_empty(xi, yi) {
+                        (3.0, UI_GRID_EMPTY_BORDER_CLR)
+                    } else {
+                        (3.0, hex_color_idx2clr(model.cell_color(xi, yi)))
+                    };
+
+                // padded outer hex
+                draw_hexagon(p, size_in, line, pos.x + xo, pos.y + yo, clr, |p, pos, sz| {
+                    let mut label_buf = [0; 20];
+
+                    match pos {
+                        HexDecorPos::Center(x, y) => {
+                            if let Some(cell_vis) = model.cell_label(xi, yi, &mut label_buf) {
+                                let (s, hc, led) = (
+                                    cell_vis.label,
+                                    cell_vis.hlight,
+                                    cell_vis.rg_colors
+                                );
+
+                                let (txt_clr, clr) =
+                                    match hc {
+                                        HexHLight::Normal => (UI_GRID_TXT_CENTER_CLR, clr),
+                                        HexHLight::Plain  => (UI_GRID_TXT_CENTER_CLR, clr),
+                                        HexHLight::Accent => (UI_GRID_TXT_CENTER_CLR, UI_GRID_TXT_CENTER_CLR),
+                                        HexHLight::HLight => (UI_GRID_TXT_CENTER_HL_CLR, UI_GRID_TXT_CENTER_HL_CLR),
+                                        HexHLight::Select => (UI_GRID_TXT_CENTER_SL_CLR, UI_GRID_TXT_CENTER_SL_CLR),
+                                    };
+
+                                let fs =
+                                    if hc == HexHLight::Plain { fs * 1.4 }
+                                    else { fs };
+
+                                let num_fs = fs * 0.8;
+                                let y_inc = -1.0 + p.font_height(fs as f32, false);
+                                let mut lbl_it = s.split(' ');
+
+                                if let Some(name_lbl) = lbl_it.next() {
+                                    let maxwidth =
+                                        if hc == HexHLight::Plain {
+                                            (size * 1.3) as f32
+                                        } else { (size * 0.82) as f32 };
+
+                                    let mut fs = fs;
+                                    //d// println!("TEXT: {:8.3} => {} (@{})", p.text_width(fs as f32, false, name_lbl), name_lbl, size * scale);
+                                    while p.text_width(fs as f32, false, name_lbl) > maxwidth {
+                                        fs *= 0.9;
+                                    }
+
+                                    p.label(
+                                        fs, 0, txt_clr,
+                                        x - 0.5 * sz.0,
+                                        y - 0.5 * th,
+                                        sz.0, th, name_lbl,
+                                        );
+                                }
+
+                                if let Some(num_lbl) = lbl_it.next() {
+                                    p.label(
+                                        num_fs, 0, txt_clr,
+                                        x - 0.5 * sz.0,
+                                        y - 0.5 * th + y_inc,
+                                        sz.0, th, num_lbl,
+                                        );
+                                }
+
+                                if let Some(led) = led {
+                                    draw_led(p, x, y - th, led);
+                                }
+
+                                if hc != HexHLight::Plain {
+                                    draw_hexagon(
+                                        p, size * 0.5, line * 0.5, x, y, clr,
+                                        |_p, _pos, _sz| ());
+                                }
+                            }
+                        },
+                        HexDecorPos::Top(x, y) => {
+                            if let Some((s, _)) = model.cell_edge(xi, yi, HexDir::T, &mut label_buf) {
+                                p.label(
+                                    fs2, 0, UI_GRID_TXT_EDGE_CLR,
+                                    x - 0.5 * sz.0,
+                                    y - 1.0,
+                                    sz.0, th, s,
+                                    );
+                            }
+                        },
+                        HexDecorPos::Bottom(x, y) => {
+                            if let Some((s, et)) = model.cell_edge(xi, yi, HexDir::B, &mut label_buf) {
+                                p.label(
+                                    fs2, 0, UI_GRID_TXT_EDGE_CLR,
+                                    x - 0.5 * sz.0,
+                                    y - th,
+                                    sz.0, th, s,
+                                    );
+
+                                et.draw(p, x, y, 90.0);
+                            }
+                        },
+                        HexDecorPos::TopLeft(x, y) => {
+                            if let Some((s, _)) = model.cell_edge(xi, yi, HexDir::TL, &mut label_buf) {
+                                p.label_rot(
+                                    fs2, 0, 300.0, UI_GRID_TXT_EDGE_CLR,
+                                    (x - 0.5 * sz.0).floor(),
+                                    (y - 0.5 * th2).floor(),
+                                    0.0,
+                                    (0.5 * th2).floor() + 2.0,
+                                    sz.0, th2, s,
+                                    );
+                            }
+                        },
+                        HexDecorPos::TopRight(x, y) => {
+                            if let Some((s, et)) = model.cell_edge(xi, yi, HexDir::TR, &mut label_buf) {
+                                p.label_rot(
+                                    fs2, 0, 60.0, UI_GRID_TXT_EDGE_CLR,
+                                    (x - 0.5 * sz.0).floor(),
+                                    (y - 0.5 * th2).floor(),
+                                    0.0,
+                                    (0.5 * th2).floor() + 2.0,
+                                    sz.0, th2, s,
+                                    );
+
+                                et.draw(p, x, y, -30.0);
+                            }
+                        },
+                        HexDecorPos::BotLeft(x, y) => {
+                            if let Some((s, _)) = model.cell_edge(xi, yi, HexDir::BL, &mut label_buf) {
+                                p.label_rot(
+                                    fs2, 0, 60.0, UI_GRID_TXT_EDGE_CLR,
+                                    (x - 0.5 * sz.0).floor(),
+                                    (y - 0.5 * th2).floor(),
+                                    0.0,
+                                    -(0.5 * th2).floor() - 2.0,
+                                    sz.0, th2, s,
+                                    );
+                            }
+                        },
+                        HexDecorPos::BotRight(x, y) => {
+                            if let Some((s, et)) = model.cell_edge(xi, yi, HexDir::BR, &mut label_buf) {
+                                p.label_rot(
+                                    fs2, 0, 300.0, UI_GRID_TXT_EDGE_CLR,
+                                    (x - 0.5 * sz.0).floor(),
+                                    (y - 0.5 * th2).floor(),
+                                    0.0,
+                                    -(0.5 * th2).floor() - 2.0,
+                                    sz.0, th2, s,
+                                    );
+
+                                et.draw(p, x, y, 30.0);
+                            }
+                        },
+                    }
+                });
+            }
+        }
     }
 }
 

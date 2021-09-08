@@ -42,8 +42,8 @@
 //                pos.x, pos.y,
 //                pos.w, pos.h);
 
-            let nx = data.model.width();
-            let ny = data.model.height();
+//            let nx = data.model.width();
+//            let ny = data.model.height();
 
 //////            if let Some(ht) = ui.get_hex_transform(id) {
 //////                if self.transformable {
@@ -52,13 +52,13 @@
 //////                }
 //////            }
 
-            ui.define_active_zone(
-                ActiveZone::new_hex_field(
-                    id,
-                    pos,
-                    self.y_offs,
-                    data.hex_trans,
-                    size));
+//////            ui.define_active_zone(
+//////                ActiveZone::new_hex_field(
+//////                    id,
+//////                    pos,
+//////                    self.y_offs,
+//////                    data.hex_trans,
+//////                    size));
 
             let (scroll_x, scroll_y) = (
                 data.hex_trans.x_offs(),
