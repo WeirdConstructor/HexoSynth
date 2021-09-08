@@ -9,6 +9,8 @@ use femtovg::{
     Color,
 };
 
+use crate::rect::Rect;
+
 use std::rc::Rc;
 use std::cell::RefCell;
 
@@ -18,7 +20,7 @@ pub struct FemtovgPainter<'a> {
     pub font_mono:  FontId,
 }
 
-fn color_paint(color: (f64, f64, f64)) -> femtovg::Paint {
+fn color_paint(color: (f32, f32, f32)) -> femtovg::Paint {
     femtovg::Paint::color(
         Color::rgbf(
             color.0 as f32,
@@ -29,8 +31,8 @@ fn color_paint(color: (f64, f64, f64)) -> femtovg::Paint {
 impl<'a> FemtovgPainter<'a> {
     #[allow(unused_variables)]
     fn label_with_font(
-        &mut self, size: f64, align: i8, rot: f64, color: (f64, f64, f64),
-        x: f64, y: f64, xoi: f64, yoi: f64, w: f64, h: f64,
+        &mut self, size: f32, align: i8, rot: f32, color: (f32, f32, f32),
+        x: f32, y: f32, xoi: f32, yoi: f32, w: f32, h: f32,
         text: &str, font: FontId)
     {
         let mut paint = color_paint(color);
@@ -53,7 +55,7 @@ impl<'a> FemtovgPainter<'a> {
                 self.canvas.rotate(rot);
                 self.canvas.translate(xoi as f32, yoi as f32);
 
-                (-wh as f64, -hh as f64)
+                (-wh, -hh)
             } else {
                 (x, y)
             };
@@ -102,7 +104,7 @@ impl<'a> FemtovgPainter<'a> {
 }
 
 impl<'a> FemtovgPainter<'a> {
-    pub fn clip_region(&mut self, x: f64, y: f64, w: f64, h: f64) {
+    pub fn clip_region(&mut self, x: f32, y: f32, w: f32, h: f32) {
         self.canvas.save();
         self.canvas.scissor(x as f32, y as f32, w as f32, h as f32);
     }
@@ -112,9 +114,9 @@ impl<'a> FemtovgPainter<'a> {
         self.canvas.restore();
     }
 
-    pub fn path_fill_rot(&mut self, color: (f64, f64, f64),
-                     rot: f64, x: f64, y: f64, xo: f64, yo: f64,
-                     segments: &mut dyn std::iter::Iterator<Item = (f64, f64)>,
+    pub fn path_fill_rot(&mut self, color: (f32, f32, f32),
+                     rot: f32, x: f32, y: f32, xo: f32, yo: f32,
+                     segments: &mut dyn std::iter::Iterator<Item = (f32, f32)>,
                      closed: bool) {
 
         self.canvas.save();
@@ -129,9 +131,9 @@ impl<'a> FemtovgPainter<'a> {
         self.canvas.restore();
     }
 
-    pub fn path_stroke_rot(&mut self, width: f64, color: (f64, f64, f64),
-                       rot: f64, x: f64, y: f64, xo: f64, yo: f64,
-                       segments: &mut dyn std::iter::Iterator<Item = (f64, f64)>,
+    pub fn path_stroke_rot(&mut self, width: f32, color: (f32, f32, f32),
+                       rot: f32, x: f32, y: f32, xo: f32, yo: f32,
+                       segments: &mut dyn std::iter::Iterator<Item = (f32, f32)>,
                        closed: bool) {
 
         self.canvas.save();
@@ -146,7 +148,7 @@ impl<'a> FemtovgPainter<'a> {
         self.canvas.restore();
     }
 
-    pub fn path_fill(&mut self, color: (f64, f64, f64), segments: &mut dyn std::iter::Iterator<Item = (f64, f64)>, closed: bool) {
+    pub fn path_fill(&mut self, color: (f32, f32, f32), segments: &mut dyn std::iter::Iterator<Item = (f32, f32)>, closed: bool) {
         let mut p = femtovg::Path::new();
         let paint = color_paint(color);
 
@@ -165,8 +167,8 @@ impl<'a> FemtovgPainter<'a> {
         self.canvas.fill_path(&mut p, paint);
     }
 
-    pub fn path_stroke(&mut self, width: f64, color: (f64, f64, f64),
-                   segments: &mut dyn std::iter::Iterator<Item = (f64, f64)>,
+    pub fn path_stroke(&mut self, width: f32, color: (f32, f32, f32),
+                   segments: &mut dyn std::iter::Iterator<Item = (f32, f32)>,
                    closed: bool)
     {
         let mut p = femtovg::Path::new();
@@ -189,7 +191,7 @@ impl<'a> FemtovgPainter<'a> {
         self.canvas.stroke_path(&mut p, paint);
     }
 
-    pub fn arc_stroke(&mut self, width: f64, color: (f64, f64, f64), radius: f64, from_rad: f64, to_rad: f64, x: f64, y: f64) {
+    pub fn arc_stroke(&mut self, width: f32, color: (f32, f32, f32), radius: f32, from_rad: f32, to_rad: f32, x: f32, y: f32) {
         let mut p = femtovg::Path::new();
         let mut paint = color_paint(color);
         paint.set_line_width(width as f32);
@@ -197,13 +199,21 @@ impl<'a> FemtovgPainter<'a> {
         self.canvas.stroke_path(&mut p, paint);
     }
 
-    pub fn rect_fill(&mut self, color: (f64, f64, f64), x: f64, y: f64, w: f64, h: f64) {
+    pub fn rect_stroke_r(&mut self, width: f32, color: (f32, f32, f32), rect: Rect) {
+        self.rect_stroke(width, color, rect.x, rect.y, rect.w, rect.h)
+    }
+
+    pub fn rect_fill_r(&mut self, color: (f32, f32, f32), rect: Rect) {
+        self.rect_fill(color, rect.x, rect.y, rect.w, rect.h)
+    }
+
+    pub fn rect_fill(&mut self, color: (f32, f32, f32), x: f32, y: f32, w: f32, h: f32) {
         let mut pth = femtovg::Path::new();
         pth.rect(x as f32, y as f32, w as f32, h as f32);
         self.canvas.fill_path(&mut pth, color_paint(color));
     }
 
-    pub fn rect_stroke(&mut self, width: f64, color: (f64, f64, f64), x: f64, y: f64, w: f64, h: f64) {
+    pub fn rect_stroke(&mut self, width: f32, color: (f32, f32, f32), x: f32, y: f32, w: f32, h: f32) {
         let mut pth = femtovg::Path::new();
         pth.rect(x as f32, y as f32, w as f32, h as f32);
         let mut paint = color_paint(color);
@@ -211,15 +221,15 @@ impl<'a> FemtovgPainter<'a> {
         self.canvas.stroke_path(&mut pth, paint);
     }
 
-    pub fn label(&mut self, size: f64, align: i8, color: (f64, f64, f64), x: f64, y: f64, w: f64, h: f64, text: &str) {
+    pub fn label(&mut self, size: f32, align: i8, color: (f32, f32, f32), x: f32, y: f32, w: f32, h: f32, text: &str) {
         self.label_with_font(size, align, 0.0, color, x, y, 0.0, 0.0, w, h, text, self.font);
     }
 
-    pub fn label_rot(&mut self, size: f64, align: i8, rot: f64, color: (f64, f64, f64), x: f64, y: f64, xo: f64, yo: f64, w: f64, h: f64, text: &str) {
+    pub fn label_rot(&mut self, size: f32, align: i8, rot: f32, color: (f32, f32, f32), x: f32, y: f32, xo: f32, yo: f32, w: f32, h: f32, text: &str) {
         self.label_with_font(size, align, rot, color, x, y, xo, yo, w, h, text, self.font);
     }
 
-    pub fn label_mono(&mut self, size: f64, align: i8, color: (f64, f64, f64), x: f64, y: f64, w: f64, h: f64, text: &str) {
+    pub fn label_mono(&mut self, size: f32, align: i8, color: (f32, f32, f32), x: f32, y: f32, w: f32, h: f32, text: &str) {
         self.label_with_font(size, align, 0.0, color, x, y, 0.0, 0.0, w, h, text, self.font_mono);
     }
 
@@ -254,4 +264,4 @@ impl<'a> FemtovgPainter<'a> {
     }
 }
 
-pub const UI_ELEM_TXT_H     : f64 =  16.0;
+pub const UI_ELEM_TXT_H     : f32 =  16.0;
