@@ -10,6 +10,7 @@ use tuix::*;
 use femtovg::FontId;
 
 use std::rc::Rc;
+use std::cell::RefCell;
 
 macro_rules! hxclr {
     ($i: expr) => {
@@ -390,7 +391,7 @@ impl HexGrid {
 
 impl Widget for HexGrid {
     type Ret  = Entity;
-    type Data = ();
+    type Data = Rc<RefCell<dyn HexGridModel>>;
 
     fn on_build(&mut self, state: &mut State, entity: Entity) -> Self::Ret {
         entity.set_position_type(state, PositionType::ParentDirected)
