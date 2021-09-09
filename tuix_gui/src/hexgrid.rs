@@ -402,6 +402,7 @@ pub struct HexGrid {
 
     mouse_down_pos:   Option<(f32, f32)>,
     shift_offs:       (f32, f32),
+    tmp_shift_offs:   Option<(f32, f32)>,
 }
 
 impl HexGrid {
@@ -417,6 +418,7 @@ impl HexGrid {
             tile_size,
             mouse_down_pos: None,
             shift_offs: (0.0, 0.0),
+            tmp_shift_offs: None,
             model:  Rc::new(RefCell::new(EmptyHexGridModel { })),
         }
     }
@@ -449,11 +451,15 @@ impl Widget for HexGrid {
                 },
                 WindowEvent::MouseUp(btn) => {
                     self.mouse_down_pos = None;
+                    if let Some(tmp_shift_offs) = self.tmp_shift_offs.take() {
+                        self.shift_offs.0 += tmp_shift_offs.0;
+                        self.shift_offs.1 += tmp_shift_offs.1;
+                    }
                     state.release(entity);
                 },
                 WindowEvent::MouseMove(x, y) => {
                     if let Some(down_pos) = self.mouse_down_pos {
-                        self.shift_offs = (*x - down_pos.0, *y - down_pos.1);
+                        self.tmp_shift_offs = Some((*x - down_pos.0, *y - down_pos.1));
                         state.insert_event(
                             Event::new(WindowEvent::Redraw).target(Entity::root()),
                         );
@@ -511,8 +517,8 @@ impl Widget for HexGrid {
                     w: pos.w + 1.0 * w,
                     h: pos.h + 1.0 * h,
                 };
-                let shift_x = self.shift_offs.0;
-                let shift_y = self.shift_offs.1;
+                let shift_x = (self.shift_offs.0 + self.tmp_shift_offs.map(|o| o.0).unwrap_or(0.0)).round();
+                let shift_y = (self.shift_offs.1 + self.tmp_shift_offs.map(|o| o.1).unwrap_or(0.0)).round();
 
 //                let test_pos = test_pos.offs(shift_x, shift_y);
 
