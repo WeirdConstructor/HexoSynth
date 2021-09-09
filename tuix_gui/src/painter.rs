@@ -262,6 +262,21 @@ impl<'a> FemtovgPainter<'a> {
             UI_ELEM_TXT_H as f32
         }
     }
+
+    pub fn translate(&mut self, x: f32, y: f32) { // , x2: f64, y2: f64, factor: f64) {
+        self.canvas.save();
+//        self.cur_scale = factor as f32;
+//        let factor = self.cur_scale;
+//        self.canvas.translate(x as f32, y as f32);
+        self.canvas.translate(x, y);
+//        self.canvas.scale(factor, factor);
+//        self.canvas.translate(x2 as f32, y2 as f32);
+//        self.canvas.translate(-x as f32 / factor, -y as f32 / factor);
+    }
+
+    pub fn restore(&mut self) {
+        self.canvas.restore();
+    }
 }
 
 pub const UI_ELEM_TXT_H     : f32 =  16.0;

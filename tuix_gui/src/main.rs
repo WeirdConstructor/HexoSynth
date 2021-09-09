@@ -27,8 +27,8 @@ impl TestGridModel {
 }
 
 impl HexGridModel for TestGridModel {
-    fn width(&self) -> usize { 3 }
-    fn height(&self) -> usize { 3 }
+    fn width(&self) -> usize { 16 }
+    fn height(&self) -> usize { 16 }
     fn cell_visible(&self, x: usize, y: usize) -> bool {
         x < self.width() && y < self.height()
     }

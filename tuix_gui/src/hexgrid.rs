@@ -399,6 +399,9 @@ pub struct HexGrid {
     center_font_size: f32,
     edge_font_size:   f32,
     y_offs:           bool,
+
+    mouse_down_pos:   Option<(f32, f32)>,
+    shift_offs:       (f32, f32),
 }
 
 impl HexGrid {
@@ -412,6 +415,8 @@ impl HexGrid {
             edge_font_size: 13.0,
             y_offs:     false,
             tile_size,
+            mouse_down_pos: None,
+            shift_offs: (0.0, 0.0),
             model:  Rc::new(RefCell::new(EmptyHexGridModel { })),
         }
     }
@@ -432,11 +437,28 @@ impl Widget for HexGrid {
 
     fn on_event(&mut self, state: &mut State, entity: Entity, event: &mut Event) {
         if let Some(window_event) = event.message.downcast::<WindowEvent>() {
+            println!("EV: {:?}", window_event);
 //            let posx = state.data.get_posx(entity);
 //            let posy = state.data.get_posy(entity);
 //            let width = state.data.get_width(entity);
 //            let height = state.data.get_height(entity);
             match window_event {
+                WindowEvent::MouseDown(btn) => {
+                    self.mouse_down_pos = Some(state.mouse.left.pos_down);
+                    state.capture(entity);
+                },
+                WindowEvent::MouseUp(btn) => {
+                    self.mouse_down_pos = None;
+                    state.release(entity);
+                },
+                WindowEvent::MouseMove(x, y) => {
+                    if let Some(down_pos) = self.mouse_down_pos {
+                        self.shift_offs = (*x - down_pos.0, *y - down_pos.1);
+                        state.insert_event(
+                            Event::new(WindowEvent::Redraw).target(Entity::root()),
+                        );
+                    }
+                },
                 _ => {},
             }
         }
@@ -489,21 +511,25 @@ impl Widget for HexGrid {
                     w: pos.w + 1.0 * w,
                     h: pos.h + 1.0 * h,
                 };
+                let shift_x = self.shift_offs.0;
+                let shift_y = self.shift_offs.1;
+
+//                let test_pos = test_pos.offs(shift_x, shift_y);
 
                 // Assume the tiles are bigger than they are, so we don't miss:
                 let tile_size_check_factor = 0.1;
                 let w_check_pad = w * tile_size_check_factor;
                 let h_check_pad = h * tile_size_check_factor;
                 if !test_pos.aabb_is_inside(Rect {
-                        x: xo - w_check_pad,
-                        y: yo - h_check_pad,
+                        x: xo + shift_x - w_check_pad,
+                        y: yo + shift_y - h_check_pad,
                         w: w + w_check_pad,
                         h: h + h_check_pad
                     })
                 {
                 println!("NOT HEXINSODE {:?} IN {:?}", Rect {
-                    x: xo - w_check_pad,
-                    y: yo - h_check_pad,
+                    x: xo + shift_x - w_check_pad,
+                    y: yo + shift_y - h_check_pad,
                     w: w + w_check_pad,
                     h: h + h_check_pad,
                 }, test_pos);
@@ -534,6 +560,8 @@ impl Widget for HexGrid {
                     } else {
                         (3.0, hex_color_idx2clr(model.cell_color(xi, yi)))
                     };
+
+                p.translate(shift_x, shift_y);
 
                 // padded outer hex
                 draw_hexagon(p, size_in, line, pos.x + xo, pos.y + yo, clr, |p, pos, sz| {
@@ -681,6 +709,8 @@ impl Widget for HexGrid {
                         },
                     }
                 });
+
+                p.restore();
             }
         }
     }
