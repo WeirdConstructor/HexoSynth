@@ -53,7 +53,7 @@ pub const UI_GRID_TXT_CENTER_SL_CLR : (f32, f32, f32) = UI_SELECT_CLR;
 pub const UI_GRID_TXT_EDGE_CLR      : (f32, f32, f32) = UI_PRIM_CLR;
 pub const UI_GRID_CELL_BORDER_CLR   : (f32, f32, f32) = UI_ACCENT_CLR;
 pub const UI_GRID_EMPTY_BORDER_CLR  : (f32, f32, f32) = UI_ACCENT_DARK_CLR;
-pub const UI_GRID_HOVER_BORDER_CLR  : (f32, f32, f32) = UI_ACCENT_CLR;
+pub const UI_GRID_HOVER_BORDER_CLR  : (f32, f32, f32) = UI_SELECT_CLR;
 pub const UI_GRID_DRAG_BORDER_CLR   : (f32, f32, f32) = UI_HLIGHT_CLR;
 pub const UI_GRID_BG1_CLR           : (f32, f32, f32) = UI_ACCENT_BG1_CLR;
 pub const UI_GRID_BG2_CLR           : (f32, f32, f32) = UI_ACCENT_BG2_CLR;
@@ -257,20 +257,20 @@ enum HexDecorPos {
 }
 
 impl HexEdge {
-    fn draw(&self, p: &mut FemtovgPainter, x: f32, y: f32, rot: f32) {
+    fn draw(&self, p: &mut FemtovgPainter, scale: f32, x: f32, y: f32, rot: f32) {
         match self {
             HexEdge::NoArrow => {},
             HexEdge::Arrow => {
-                draw_arrow(p, UI_GRID_TXT_EDGE_CLR, x, y, 0.0, 0.0, 10.0, rot);
+                draw_arrow(p, UI_GRID_TXT_EDGE_CLR, x, y, 0.0, 0.0, 10.0 * scale, rot);
             },
             HexEdge::ArrowValue { value } => {
-                draw_arrow(p, UI_GRID_SIGNAL_OUT_CLR, x, y, 0.0, 0.0, 10.0, rot);
+                draw_arrow(p, UI_GRID_SIGNAL_OUT_CLR, x, y, 0.0, 0.0, 10.0 * scale, rot);
                 let clr = (
                     value.0,
                     value.1,
                     0.3,
                 );
-                draw_arrow(p, clr, x, y, 1.0, 0.0, 7.0, rot);
+                draw_arrow(p, clr, x, y, 1.0, 0.0, 7.0 * scale, rot);
             },
         }
     }
@@ -352,8 +352,8 @@ fn draw_hexagon<F: Fn(&mut FemtovgPainter, HexDecorPos, (f32, f32, f32))>(p: &mu
         ), sz);
 }
 
-fn draw_led(p: &mut FemtovgPainter, x: f32, y: f32, led_value: (f32, f32)) {
-    let r = UI_GRID_LED_R;
+fn draw_led(p: &mut FemtovgPainter, scale: f32, x: f32, y: f32, led_value: (f32, f32)) {
+    let r = UI_GRID_LED_R * scale;
     /*
           ____
          /    \
@@ -386,7 +386,7 @@ fn draw_led(p: &mut FemtovgPainter, x: f32, y: f32, led_value: (f32, f32)) {
         0.3,
     );
     p.path_fill(led_clr, &mut path.iter().copied(), true);
-    p.path_stroke(1.0, led_clr_border, &mut path.iter().copied(), true);
+    p.path_stroke(1.0 * scale, led_clr_border, &mut path.iter().copied(), true);
 }
 
 pub struct HexGrid {
@@ -395,6 +395,7 @@ pub struct HexGrid {
     font_mono: Option<FontId>,
     tile_size: f32,
     scale:     f32,
+    scale_step:i32,
     model:     Rc<RefCell<dyn HexGridModel>>,
     center_font_size: f32,
     edge_font_size:   f32,
@@ -403,6 +404,8 @@ pub struct HexGrid {
     mouse_down_pos:   Option<(f32, f32)>,
     shift_offs:       (f32, f32),
     tmp_shift_offs:   Option<(f32, f32)>,
+
+    hover_pos:        (i32, i32),
 }
 
 impl HexGrid {
@@ -411,7 +414,6 @@ impl HexGrid {
             id,
             font:       None,
             font_mono:  None,
-            scale:      1.0,
             center_font_size: 18.0,
             edge_font_size: 13.0,
             y_offs:     false,
@@ -419,9 +421,43 @@ impl HexGrid {
             mouse_down_pos: None,
             shift_offs: (0.0, 0.0),
             tmp_shift_offs: None,
+            scale:      1.0,
+            scale_step: 0,
+            hover_pos:  (1000, 1000),
             model:  Rc::new(RefCell::new(EmptyHexGridModel { })),
         }
     }
+}
+
+impl HexGrid {
+    pub fn mouse_to_tile(&self, x: f32, y: f32) -> (i32, i32) {
+        // https://web.archive.org/web/20161024224848/http://gdreflections.com/2011/02/hexagonal-grid-math.html
+        let tile_size = self.tile_size * self.scale;
+        let side   = ((tile_size * 3.0) / 2.0).floor();
+        let radius = tile_size;
+        let _width = tile_size * 2.0;
+        let height = (tile_size * (3.0_f32).sqrt()).floor();
+
+        let y = if self.y_offs { y + 0.5 * height } else { y };
+
+        let ci = (x / side).floor();
+        let cx = x - side * ci;
+
+        let ty = (y - (ci as usize % 2) as f32 * height / 2.0).floor();
+        let cj = (ty / height).floor();
+        let cy = (ty - height * cj).floor();
+
+        let (i, j) =
+            if cx > (radius / 2.0 - radius * cy / height).abs() {
+                (ci, cj)
+            } else {
+                (ci - 1.0,
+                 cj + (ci % 2.0)
+                    - (if cy < height / 2.0 { 1.0 } else { 0.0 }))
+            };
+        (i as i32, j as i32)
+    }
+
 }
 
 impl Widget for HexGrid {
@@ -460,10 +496,41 @@ impl Widget for HexGrid {
                 WindowEvent::MouseMove(x, y) => {
                     if let Some(down_pos) = self.mouse_down_pos {
                         self.tmp_shift_offs = Some((*x - down_pos.0, *y - down_pos.1));
-                        state.insert_event(
-                            Event::new(WindowEvent::Redraw).target(Entity::root()),
-                        );
                     }
+
+                    let bounds = state.data.get_bounds(entity);
+
+                    let shift_x =
+                        (self.shift_offs.0
+                         + self.tmp_shift_offs.map(|o| o.0).unwrap_or(0.0)).round();
+                    let shift_y =
+                        (self.shift_offs.1
+                         + self.tmp_shift_offs.map(|o| o.1).unwrap_or(0.0)).round();
+
+                    self.hover_pos =
+                        self.mouse_to_tile(*x - bounds.x - shift_x, *y - bounds.y - shift_y);
+
+                    state.insert_event(
+                        Event::new(WindowEvent::Redraw).target(Entity::root()),
+                    );
+                },
+                WindowEvent::MouseScroll(x, y) => {
+                    if *y < 0.0 {
+                        self.scale_step += 1;
+                    } else {
+                        self.scale_step -= 1;
+                    }
+
+                    let old_shift = self.shift_offs;
+                    let old_shift = (old_shift.0 / self.scale, old_shift.1 / self.scale);
+
+                    self.scale = 1.0 + self.scale_step as f32 * 0.25;
+
+                    self.shift_offs = (old_shift.0 * self.scale, old_shift.1 * self.scale);
+
+                    state.insert_event(
+                        Event::new(WindowEvent::Redraw).target(Entity::root()),
+                    );
                 },
                 _ => {},
             }
@@ -485,9 +552,9 @@ impl Widget for HexGrid {
         };
 
         let pos : Rect = bounds.into();
-        let size = self.tile_size;
+        let size = self.tile_size * self.scale;
 
-        let pad     = 10.0;
+        let pad     = 10.0 * self.scale;
         let size_in = size - pad;
         let (w, h)  = hex_size2wh(size);
 
@@ -533,12 +600,12 @@ impl Widget for HexGrid {
                         h: h + h_check_pad
                     })
                 {
-                println!("NOT HEXINSODE {:?} IN {:?}", Rect {
-                    x: xo + shift_x - w_check_pad,
-                    y: yo + shift_y - h_check_pad,
-                    w: w + w_check_pad,
-                    h: h + h_check_pad,
-                }, test_pos);
+//                println!("NOT HEXINSODE {:?} IN {:?}", Rect {
+//                    x: xo + shift_x - w_check_pad,
+//                    y: yo + shift_y - h_check_pad,
+//                    w: w + w_check_pad,
+//                    h: h + h_check_pad,
+//                }, test_pos);
 
                     continue;
                 }
@@ -547,17 +614,22 @@ impl Widget for HexGrid {
                     continue;
                 }
 
-                let th  = p.font_height(self.center_font_size as f32, false);
-                let fs  = self.center_font_size;
-                let th2 = p.font_height(self.edge_font_size as f32, false);
-                let fs2 = self.edge_font_size;
+                let th  = p.font_height(self.center_font_size * self.scale, false);
+                let fs  = self.center_font_size * self.scale;
+                let th2 = p.font_height(self.edge_font_size * self.scale, false);
+                let fs2 = self.edge_font_size * self.scale;
 
                 // TODO!!!!
-                let hover_pos = (1000, 1000);
                 let drag_source_pos = Some((10000, 10000));
 
+                let does_hover_this_widget =
+                    state.hovered == entity;
+
                 let (line, clr) =
-                    if hover_pos.0 == xi && hover_pos.1 == yi {
+                    if does_hover_this_widget
+                       && self.hover_pos.0 == (xi as i32)
+                       && self.hover_pos.1 == (yi as i32)
+                    {
                         (5.0, UI_GRID_HOVER_BORDER_CLR)
                     } else  if Some((xi, yi)) == drag_source_pos {
                         (3.0, UI_GRID_DRAG_BORDER_CLR)
@@ -570,7 +642,7 @@ impl Widget for HexGrid {
                 p.translate(shift_x, shift_y);
 
                 // padded outer hex
-                draw_hexagon(p, size_in, line, pos.x + xo, pos.y + yo, clr, |p, pos, sz| {
+                draw_hexagon(p, size_in, line * self.scale, pos.x + xo, pos.y + yo, clr, |p, pos, sz| {
                     let mut label_buf = [0; 20];
 
                     match pos {
@@ -629,12 +701,12 @@ impl Widget for HexGrid {
                                 }
 
                                 if let Some(led) = led {
-                                    draw_led(p, x, y - th, led);
+                                    draw_led(p, self.scale, x, y - th, led);
                                 }
 
                                 if hc != HexHLight::Plain {
                                     draw_hexagon(
-                                        p, size * 0.5, line * 0.5, x, y, clr,
+                                        p, size * 0.5, line * 0.5 * self.scale, x, y, clr,
                                         |_p, _pos, _sz| ());
                                 }
                             }
@@ -658,7 +730,7 @@ impl Widget for HexGrid {
                                     sz.0, th, s,
                                     );
 
-                                et.draw(p, x, y, 90.0);
+                                et.draw(p, self.scale, x, y, 90.0);
                             }
                         },
                         HexDecorPos::TopLeft(x, y) => {
@@ -684,7 +756,7 @@ impl Widget for HexGrid {
                                     sz.0, th2, s,
                                     );
 
-                                et.draw(p, x, y, -30.0);
+                                et.draw(p, self.scale, x, y, -30.0);
                             }
                         },
                         HexDecorPos::BotLeft(x, y) => {
@@ -710,7 +782,7 @@ impl Widget for HexGrid {
                                     sz.0, th2, s,
                                     );
 
-                                et.draw(p, x, y, 30.0);
+                                et.draw(p, self.scale, x, y, 30.0);
                             }
                         },
                     }
