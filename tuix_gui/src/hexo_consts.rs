@@ -31,8 +31,19 @@ pub const UI_SELECT_CLR           : (f32, f32, f32) = hxclr!(0xd73988); // 0xdc1
 pub const UI_INACTIVE_CLR         : (f32, f32, f32) = hxclr!(0x6f8782);
 pub const UI_INACTIVE2_CLR        : (f32, f32, f32) = hxclr!(0xa6dbd0);
 
+#[derive(Debug, Clone, Copy)]
 pub enum MButton {
     Left,
     Right,
     Middle
+}
+
+impl From<tuix::MouseButton> for MButton {
+    fn from(btn: tuix::MouseButton) -> Self {
+        match btn {
+            tuix::MouseButton::Right    => MButton::Right,
+            tuix::MouseButton::Middle   => MButton::Middle,
+            tuix::MouseButton::Left | _ => MButton::Left,
+        }
+    }
 }

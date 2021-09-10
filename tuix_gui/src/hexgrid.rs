@@ -153,8 +153,8 @@ pub trait HexGridModel {
     fn cell_edge<'a>(&self, x: usize, y: usize, edge: HexDir, out: &'a mut [u8])
         -> Option<(&'a str, HexEdge)>;
 
-    fn cell_click(&self, x: usize, y: usize, btn: MButton, modkey: bool);
-    fn cell_hover(&self, _x: usize, _y: usize) { }
+    fn cell_click(&mut self, x: usize, y: usize, btn: MButton);
+    fn cell_drag(&mut self, x: usize, y: usize, x2: usize, y2: usize, btn: MButton);
 }
 
 pub struct EmptyHexGridModel {
@@ -170,8 +170,8 @@ impl HexGridModel for EmptyHexGridModel {
         -> Option<HexCell<'a>> { None }
     fn cell_edge<'a>(&self, x: usize, y: usize, edge: HexDir, out: &'a mut [u8])
         -> Option<(&'a str, HexEdge)> { None }
-    fn cell_click(&self, x: usize, y: usize, btn: MButton, modkey: bool) { }
-    fn cell_hover(&self, _x: usize, _y: usize) { }
+    fn cell_click(&mut self, x: usize, y: usize, btn: MButton) { }
+    fn cell_drag(&mut self, x: usize, y: usize, x2: usize, y2: usize, btn: MButton) { }
 }
 
 
@@ -401,10 +401,11 @@ pub struct HexGrid {
     edge_font_size:   f32,
     y_offs:           bool,
 
-    mouse_down_pos:   Option<(f32, f32)>,
+    drag_source_pos:  Option<(i32, i32)>,
     shift_offs:       (f32, f32),
     tmp_shift_offs:   Option<(f32, f32)>,
 
+    start_tile_pos:   Option<(i32, i32)>,
     hover_pos:        (i32, i32),
 }
 
@@ -417,12 +418,13 @@ impl HexGrid {
             center_font_size: 18.0,
             edge_font_size: 13.0,
             y_offs:     false,
-            tile_size,
-            mouse_down_pos: None,
-            shift_offs: (0.0, 0.0),
-            tmp_shift_offs: None,
             scale:      1.0,
             scale_step: 0,
+            tile_size,
+            drag_source_pos: None,
+            shift_offs: (0.0, 0.0),
+            tmp_shift_offs: None,
+            start_tile_pos: None,
             hover_pos:  (1000, 1000),
             model:  Rc::new(RefCell::new(EmptyHexGridModel { })),
         }
@@ -458,6 +460,20 @@ impl HexGrid {
         (i as i32, j as i32)
     }
 
+    pub fn get_mouse_tile_pos(
+        &self, state: &mut State, entity: Entity, x: f32, y: f32
+    ) -> (i32, i32) {
+        let bounds = state.data.get_bounds(entity);
+
+        let shift_x =
+            (self.shift_offs.0
+             + self.tmp_shift_offs.map(|o| o.0).unwrap_or(0.0)).round();
+        let shift_y =
+            (self.shift_offs.1
+             + self.tmp_shift_offs.map(|o| o.1).unwrap_or(0.0)).round();
+
+        self.mouse_to_tile(x - bounds.x - shift_x, y - bounds.y - shift_y)
+    }
 }
 
 impl Widget for HexGrid {
@@ -482,37 +498,102 @@ impl Widget for HexGrid {
 //            let height = state.data.get_height(entity);
             match window_event {
                 WindowEvent::MouseDown(btn) => {
-                    self.mouse_down_pos = Some(state.mouse.left.pos_down);
+                    self.start_tile_pos =
+                        Some(self.get_mouse_tile_pos(
+                            state, entity,
+                            state.mouse.cursorx,
+                            state.mouse.cursory));
+
                     state.capture(entity);
                 },
                 WindowEvent::MouseUp(btn) => {
-                    self.mouse_down_pos = None;
-                    if let Some(tmp_shift_offs) = self.tmp_shift_offs.take() {
-                        self.shift_offs.0 += tmp_shift_offs.0;
-                        self.shift_offs.1 += tmp_shift_offs.1;
+//                    self.mouse_down_pos = None;
+                    if *btn == MouseButton::Middle {
+                        if let Some(tmp_shift_offs) = self.tmp_shift_offs.take() {
+                            self.shift_offs.0 += tmp_shift_offs.0;
+                            self.shift_offs.1 += tmp_shift_offs.1;
+                        }
+                    } else {
+                        let cur_tile_pos =
+                            self.get_mouse_tile_pos(
+                                state, entity,
+                                state.mouse.cursorx,
+                                state.mouse.cursory);
+
+                        if let Some(start_tile_pos) = self.start_tile_pos {
+                            if cur_tile_pos == start_tile_pos {
+                                if    cur_tile_pos.0 >= 0
+                                   && cur_tile_pos.1 >= 0
+                                {
+                                    self.model.borrow_mut().cell_click(
+                                        cur_tile_pos.0 as usize,
+                                        cur_tile_pos.1 as usize,
+                                        (*btn).into());
+                                }
+
+                            } else {
+                                if    cur_tile_pos.0 >= 0
+                                   && cur_tile_pos.1 >= 0
+                                   && start_tile_pos.0 >= 0
+                                   && start_tile_pos.1 >= 0
+                                {
+                                    self.model.borrow_mut().cell_drag(
+                                        start_tile_pos.0 as usize,
+                                        start_tile_pos.1 as usize,
+                                        cur_tile_pos.0 as usize,
+                                        cur_tile_pos.1 as usize,
+                                        (*btn).into());
+                                }
+                            }
+
+                            state.insert_event(
+                                Event::new(WindowEvent::Redraw).target(Entity::root()),
+                            );
+                        }
+
+                        self.start_tile_pos = None;
+                        self.drag_source_pos = None;
                     }
                     state.release(entity);
                 },
                 WindowEvent::MouseMove(x, y) => {
-                    if let Some(down_pos) = self.mouse_down_pos {
-                        self.tmp_shift_offs = Some((*x - down_pos.0, *y - down_pos.1));
+                    if state.mouse.middle.state == MouseButtonState::Pressed {
+                        self.tmp_shift_offs =
+                            Some((
+                                *x - state.mouse.middle.pos_down.0,
+                                *y - state.mouse.middle.pos_down.1
+                            ));
+
+                        state.insert_event(
+                            Event::new(WindowEvent::Redraw).target(Entity::root()),
+                        );
+                    } else {
+                        let old_hover_pos = self.hover_pos;
+
+                        self.hover_pos =
+                            self.get_mouse_tile_pos(state, entity, *x, *y);
+
+                        if    state.mouse.left.state == MouseButtonState::Pressed
+                           || state.mouse.right.state == MouseButtonState::Pressed
+                        {
+                            let cur_tile_pos =
+                                self.get_mouse_tile_pos(state, entity, *x, *y);
+
+                            if let Some(start_tile_pos) = self.start_tile_pos {
+                                if cur_tile_pos != start_tile_pos {
+                                    self.drag_source_pos = Some(start_tile_pos);
+                                } else {
+                                    self.drag_source_pos = None;
+                                }
+                            }
+                        }
+
+                        if old_hover_pos != self.hover_pos {
+                            state.insert_event(
+                                Event::new(WindowEvent::Redraw).target(Entity::root()),
+                            );
+                        }
                     }
-
-                    let bounds = state.data.get_bounds(entity);
-
-                    let shift_x =
-                        (self.shift_offs.0
-                         + self.tmp_shift_offs.map(|o| o.0).unwrap_or(0.0)).round();
-                    let shift_y =
-                        (self.shift_offs.1
-                         + self.tmp_shift_offs.map(|o| o.1).unwrap_or(0.0)).round();
-
-                    self.hover_pos =
-                        self.mouse_to_tile(*x - bounds.x - shift_x, *y - bounds.y - shift_y);
-
-                    state.insert_event(
-                        Event::new(WindowEvent::Redraw).target(Entity::root()),
-                    );
                 },
                 WindowEvent::MouseScroll(x, y) => {
                     if *y < 0.0 {
@@ -522,9 +603,16 @@ impl Widget for HexGrid {
                     }
 
                     let old_shift = self.shift_offs;
-                    let old_shift = (old_shift.0 / self.scale, old_shift.1 / self.scale);
+                    let old_shift = (
+                        old_shift.0 / self.scale,
+                        old_shift.1 / self.scale
+                    );
 
                     self.scale = 1.0 + self.scale_step as f32 * 0.25;
+
+                    if self.scale <= 0.001 {
+                        self.scale = 0.1;
+                    }
 
                     self.shift_offs = (old_shift.0 * self.scale, old_shift.1 * self.scale);
 
@@ -631,7 +719,7 @@ impl Widget for HexGrid {
                        && self.hover_pos.1 == (yi as i32)
                     {
                         (5.0, UI_GRID_HOVER_BORDER_CLR)
-                    } else  if Some((xi, yi)) == drag_source_pos {
+                    } else  if Some((xi as i32, yi as i32)) == self.drag_source_pos {
                         (3.0, UI_GRID_DRAG_BORDER_CLR)
                     } else if model.cell_empty(xi, yi) {
                         (3.0, UI_GRID_EMPTY_BORDER_CLR)

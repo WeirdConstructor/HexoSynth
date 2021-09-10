@@ -17,11 +17,15 @@ use std::rc::Rc;
 use std::cell::RefCell;
 
 struct TestGridModel {
+    last_click: (usize, usize),
+    drag_to:    (usize, usize),
 }
 
 impl TestGridModel {
     pub fn new() -> Self {
         Self {
+            last_click: (1000, 1000),
+            drag_to: (1000, 1000),
         }
     }
 }
@@ -43,21 +47,41 @@ impl HexGridModel for TestGridModel {
         let h = self.height();
         if x >= w || y >= h { return None; }
 
+        let mut hlight = HexHLight::Normal;
+
         use std::io::Write;
         let mut cur = std::io::Cursor::new(out);
-        match write!(cur, "{}x{}", x, y) {
-            Ok(_)  => {
-                let len = cur.position() as usize;
-                Some(HexCell {
-                    label:
-                        std::str::from_utf8(&(cur.into_inner())[0..len])
-                        .unwrap(),
-                    hlight: HexHLight::Normal,
-                    rg_colors: Some(( 1.0, 1.0,)),
-                })
-            },
-            Err(_) => None,
+        let len =
+            if self.last_click == (x, y) {
+                hlight = HexHLight::Select;
+                match write!(cur, "CLICK") {
+                    Ok(_)  => { cur.position() as usize },
+                    Err(_) => 0,
+                }
+            } else if self.drag_to == (x, y) {
+                hlight = HexHLight::HLight;
+                match write!(cur, "DRAG") {
+                    Ok(_)  => { cur.position() as usize },
+                    Err(_) => 0,
+                }
+            } else {
+                match write!(cur, "{}x{}", x, y) {
+                    Ok(_)  => { cur.position() as usize },
+                    Err(_) => 0,
+                }
+            };
+
+        if len == 0 {
+            return None;
         }
+
+        Some(HexCell {
+            label:
+                std::str::from_utf8(&(cur.into_inner())[0..len])
+                .unwrap(),
+            hlight,
+            rg_colors: Some(( 1.0, 1.0,)),
+        })
     }
 
     /// Edge: 0 top-right, 1 bottom-right, 2 bottom, 3 bottom-left, 4 top-left, 5 top
@@ -83,10 +107,13 @@ impl HexGridModel for TestGridModel {
         }
     }
 
-    fn cell_click(&self, x: usize, y: usize, btn: MButton, modkey: bool) {
+    fn cell_click(&mut self, x: usize, y: usize, btn: MButton) {
+        self.last_click = (x, y);
+        println!("CLICK! {:?} => {},{}", btn, x, y);
     }
-
-    fn cell_hover(&self, x: usize, y: usize) {
+    fn cell_drag(&mut self, x: usize, y: usize, x2: usize, y2: usize, btn: MButton) {
+        println!("DRAG! {:?} {},{} => {},{}", btn, x, y, x2, y2);
+        self.drag_to = (x2, y2);
     }
 }
 
