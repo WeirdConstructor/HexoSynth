@@ -4,6 +4,7 @@
 
 use tuix::*;
 
+mod hexknob;
 mod hexo_consts;
 mod painter;
 mod hexgrid;
@@ -11,6 +12,7 @@ mod rect;
 
 use painter::FemtovgPainter;
 use hexgrid::{HexGrid, HexGridModel, HexCell, HexDir, HexEdge, HexHLight};
+use hexknob::{HexKnob, ParamModel};
 use hexo_consts::MButton;
 
 use std::rc::Rc;
