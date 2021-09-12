@@ -308,26 +308,96 @@ impl Knob {
 
 
 pub trait ParamModel {
+    /// Should return true if the UI for the parameter can be changed
+    /// by the user. In HexoSynth this might return false if the
+    /// corresponding input is controlled by an output port.
+    fn enabled(&self) -> bool;
+    /// Should return a value in the range 0.0 to 1.0 for displayed knob position.
+    /// For instance: a normalized value in the range -1.0 to 1.0 needs to be mapped
+    /// to 0.0 to 1.0 by: `(x + 1.0) * 0.5`
+    fn get_ui_range(&self) -> Option<f32>;
     /// Should return the modulation amount for the 0..1 UI knob range.
     /// Internally you should transform that into the appropriate
     /// modulation amount in relation to what [get_ui_range] returns.
     fn get_ui_mod_amt(&self) -> Option<f32>;
+    fn fmt(&self, buf: &mut [u8]) -> usize;
+    fn fmt_mod(&self, buf: &mut [u8]) -> usize;
+    fn fmt_norm(&self, buf: &mut [u8]) -> usize;
+    fn get_denorm(&self) -> f32;
 }
 
-pub struct EmptyParamModel {
+pub struct DummyParamModel {
+    value: f32,
+    modamt: Option<f32>,
 }
 
-impl EmptyParamModel {
-    pub fn new() -> Self { Self { } }
+impl DummyParamModel {
+    pub fn new() -> Self {
+        Self {
+            value: 0.25,
+            modamt: Some(0.25),
+        }
+    }
 }
 
-impl ParamModel for EmptyParamModel {
+impl ParamModel for DummyParamModel {
+    fn enabled(&self) -> bool { self.get() > 0.1 }
+    fn get_ui_mod_amt(&self) -> Option<f32> { self.modamt }
+    fn get_ui_range(&self) -> Option<f32> { self.get() }
+    fn get_denorm(&self) -> f32 { self.get() * 100.0 }
+    fn get(&self) -> f32 { self.value }
+
+    fn fmt_name<'a>(&self, buf: &'a mut [u8]) -> usize {
+        use std::io::Write;
+        let mut bw = std::io::BufWriter::new(buf);
+        match write!(bw, "{}", "dummy") {
+            Ok(_)  => bw.buffer().len(),
+            Err(_) => 0,
+        }
+    }
+
+    fn fmt_norm<'a>(&self, buf: &'a mut [u8]) -> usize {
+        use std::io::Write;
+        let mut bw = std::io::BufWriter::new(buf);
+        match write!(bw, "{:6.4}", self.get()) {
+            Ok(_)  => bw.buffer().len(),
+            Err(_) => 0,
+        }
+    }
+
+    fn fmt_mod<'a>(&self, buf: &'a mut [u8]) -> usize {
+        let modamt =
+            if let Some(ma) = self.modamt {
+                ma
+            } else {
+                return 0;
+            };
+        let norm = self.get();
+
+        use std::io::Write;
+        let mut bw = std::io::BufWriter::new(buf);
+        match write!(bw, "{:6.3}", norm + modamt) {
+            Ok(_)  => bw.buffer().len(),
+            Err(_) => 0,
+        }
+    }
+
+    fn fmt<'a>(&self, buf: &'a mut [u8]) -> usize {
+        use std::io::Write;
+        let mut bw = std::io::BufWriter::new(buf);
+        match write!(bw, "{:6.3}", self.get_denorm()) {
+            Ok(_)  => bw.buffer().len(),
+            Err(_) => 0,
+        }
+    }
 }
 
 pub struct HexKnob {
     font:      Option<FontId>,
     font_mono: Option<FontId>,
-    model:     Rc<RefCell<dyn EmptyParamModel>>,
+    lbl_buf:   [u8; 15],
+    model:     Rc<RefCell<dyn DummyParamModel>>,
+    knob:      Knob,
 }
 
 impl HexKnob {
@@ -335,7 +405,11 @@ impl HexKnob {
         HexKnob {
             font:       None,
             font_mono:  None,
-            model:      Rc::new(RefCell::new(EmptyParamModel::new())),
+            lbl_buf:    [0; 15],
+            model:      Rc::new(RefCell::new(DummyParamModel::new())),
+            // TODO: compute Knob parameters at draw time dependent on the
+            //       space the knob has! Same with the font sizes!
+            knob:       Knob::new(50.0, 10.0, 10.0),
         }
     }
 }
@@ -395,148 +469,125 @@ impl Widget for HexKnob {
         let id     = data.id();
         let modamt = model.get_ui_mod_amt();
 
-        self.draw_oct_arc(
+        self.knob.draw_oct_arc(
             p, xo, yo,
             UI_BG_KNOB_STROKE,
             UI_BG_KNOB_STROKE_CLR,
             None,
             1.0);
 
-        let dc1 = self.get_decor_rect1();
+        let dc1 = self.knob.get_decor_rect1();
         p.rect_fill(
             UI_BG_KNOB_STROKE_CLR,
             xo + dc1.0, yo + dc1.1, dc1.2, dc1.3);
 
-        let valrect = self.get_value_rect(modamt.is_some());
+        let valrect = self.knob.get_value_rect(modamt.is_some());
         p.rect_fill(
             UI_BG_KNOB_STROKE_CLR,
             valrect.0 + xo, valrect.1 + yo, valrect.2, valrect.3);
 
-        let lblrect = self.get_label_rect();
+        let lblrect = self.knob.get_label_rect();
         p.rect_fill(
             UI_BG_KNOB_STROKE_CLR,
             lblrect.0 + xo, lblrect.1 + yo, lblrect.2, lblrect.3);
 
-        let r = self.get_fine_adjustment_mark();
+        let r = self.knob.get_fine_adjustment_mark();
         p.rect_fill(
             UI_BG_KNOB_STROKE_CLR,
             xo + r.0, yo + r.1, r.2, r.3);
 
-        //---------------------------------------------------------------------------
-
-        // TODO: Get inactive status from model
-        // TODO: Get hover status from `self`
-
         let highlight = ui.hl_style_for(id, None);
         let value =
-            if let Some(v) = ui.atoms().get_ui_range(id) {
+            if let Some(v) = model.get_ui_range(id) {
                 (v as f32).clamp(0.0, 1.0)
             } else { 0.0 };
 
         let mut hover_fine_adj = false;
 
-        match highlight {
-//            HLStyle::EditModAmt => {
-//                self.draw_oct_arc(
-//                    p, xo, yo,
-//                    UI_MG_KNOB_STROKE,
-//                    UI_MG_KNOB_STROKE_CLR,
-//                    None,
-//                    1.0);
-//
-//                self.draw_mod_arc(
-//                    p, xo, yo, value, modamt,
-//                    UI_FG_KNOB_STROKE_CLR);
-//            },
-////            HLStyle::HoverModTarget => {
-////                self.draw_oct_arc(
-////                    p, xo, yo,
-////                    UI_MG_KNOB_STROKE * 2.0,
-////                    UI_TXT_KNOB_MODPOS_CLR,
-////                    false,
-////                    1.0);
-////            },
-            HLStyle::Hover(subtype) => {
-                if let ZoneType::ValueDragFine = subtype {
-                    hover_fine_adj = true;
+        // TODO: Get hover status from `self` (fine vs coarse area)
+        let hover = false;
+        let fine_hover = false;
 
-                    let r = self.get_fine_adjustment_mark();
-                    p.rect_fill(
-                        UI_TXT_KNOB_HOVER_CLR,
-                        xo + r.0, yo + r.1, r.2, r.3);
-                }
+        if !model.enabled() {
+            self.knob.draw_oct_arc(
+                p, xo, yo,
+                UI_MG_KNOB_STROKE,
+                UI_INACTIVE_CLR,
+                None,
+                1.0);
 
-                self.draw_oct_arc(
-                    p, xo, yo,
-                    UI_MG_KNOB_STROKE,
-                    UI_MG_KNOB_STROKE_CLR,
-                    None,
-                    1.0);
+            self.knob.draw_mod_arc(
+                p, xo, yo, value, modamt,
+                UI_INACTIVE2_CLR);
 
-                self.draw_mod_arc(
-                    p, xo, yo, value, modamt,
-                    UI_FG_KNOB_STROKE_CLR);
-            },
-            HLStyle::Inactive => {
-                self.draw_oct_arc(
-                    p, xo, yo,
-                    UI_MG_KNOB_STROKE,
-                    UI_INACTIVE_CLR,
-                    None,
-                    1.0);
+        } else if hover {
+            if fine_hover {
+                hover_fine_adj = true;
 
-                self.draw_mod_arc(
-                    p, xo, yo, value, modamt,
-                    UI_INACTIVE2_CLR);
-            },
-              HLStyle::None
-            | HLStyle::AtomClick
-            => {
-                self.draw_oct_arc(
-                    p, xo, yo,
-                    UI_MG_KNOB_STROKE,
-                    UI_MG_KNOB_STROKE_CLR,
-                    None,
-                    1.0);
-
-                self.draw_mod_arc(
-                    p, xo, yo, value, modamt,
-                    UI_FG_KNOB_STROKE_CLR);
+                let r = self.knob.get_fine_adjustment_mark();
+                p.rect_fill(
+                    UI_TXT_KNOB_HOVER_CLR,
+                    xo + r.0, yo + r.1, r.2, r.3);
             }
+
+            self.knob.draw_oct_arc(
+                p, xo, yo,
+                UI_MG_KNOB_STROKE,
+                UI_MG_KNOB_STROKE_CLR,
+                None,
+                1.0);
+
+            self.knob.draw_mod_arc(
+                p, xo, yo, value, modamt,
+                UI_FG_KNOB_STROKE_CLR);
+
+        } else {
+            self.knob.draw_oct_arc(
+                p, xo, yo,
+                UI_MG_KNOB_STROKE,
+                UI_MG_KNOB_STROKE_CLR,
+                None,
+                1.0);
+
+            self.knob.draw_mod_arc(
+                p, xo, yo, value, modamt,
+                UI_FG_KNOB_STROKE_CLR);
+
         }
 
-        data.with(|data: &mut KnobData| {
-            let len = ui.atoms().fmt(id, &mut data.lbl_buf[..]);
-            let val_s = std::str::from_utf8(&data.lbl_buf[0..len]).unwrap();
-            self.draw_value_label(modamt.is_some(), true, p, xo, yo, highlight, val_s);
+        //---------------------------------------------------------------------------
 
+        let len = model.fmt(&mut self.lbl_buf[..]);
+        let val_s = std::str::from_utf8(&self.lbl_buf[0..len]).unwrap();
+        self.draw_value_label(modamt.is_some(), true, p, xo, yo, highlight, val_s);
 
-            if modamt.is_some() {
-                let len = ui.atoms().fmt_mod(id, &mut data.lbl_buf[..]);
-                let val_s = std::str::from_utf8(&data.lbl_buf[0..len]).unwrap();
-                self.draw_value_label(true, false, p, xo, yo, highlight, val_s);
-            }
+        if modamt.is_some() {
+            let len = model.fmt_mod(&mut self.lbl_buf[..]);
+            let val_s = std::str::from_utf8(&self.lbl_buf[0..len]).unwrap();
+            self.draw_value_label(true, false, p, xo, yo, highlight, val_s);
+        }
 
-            if hover_fine_adj {
-                let len = ui.atoms().fmt_norm(id, &mut data.lbl_buf[..]);
-                let val_s = std::str::from_utf8(&data.lbl_buf[0..len]).unwrap();
-                // + 2.0 for the marker cube, to space it from the minus sign.
-                self.draw_name(p, xo + 2.0, yo, &val_s);
-            } else {
-                self.draw_name(p, xo, yo, &data.name);
-            }
-        });
-
-        ui.define_active_zone(
-            ActiveZone::new_drag_zone(
-                id,
-                Rect::from_tpl(self.get_coarse_adjustment_rect()).offs(xo, yo), true)
-            .dbgid(DBGID_KNOB_COARSE));
-        ui.define_active_zone(
-            ActiveZone::new_drag_zone(
-                id,
-                Rect::from_tpl(self.get_fine_adjustment_rect()).offs(xo, yo), false)
-            .dbgid(DBGID_KNOB_FINE));
+        if hover_fine_adj {
+            let len = model.fmt_norm(&mut self.lbl_buf[..]);
+            let val_s = std::str::from_utf8(&self.lbl_buf[0..len]).unwrap();
+            // + 2.0 for the marker cube, to space it from the minus sign.
+            self.knob.draw_name(p, xo + 2.0, yo, &val_s);
+        } else {
+            let len = model.fmt_name(&mut self.lbl_buf[..]);
+            let val_s = std::str::from_utf8(&self.lbl_buf[0..len]).unwrap();
+            self.knob.draw_name(p, xo, yo, &val_s);
+        }
+//
+//        ui.define_active_zone(
+//            ActiveZone::new_drag_zone(
+//                id,
+//                Rect::from_tpl(self.get_coarse_adjustment_rect()).offs(xo, yo), true)
+//            .dbgid(DBGID_KNOB_COARSE));
+//        ui.define_active_zone(
+//            ActiveZone::new_drag_zone(
+//                id,
+//                Rect::from_tpl(self.get_fine_adjustment_rect()).offs(xo, yo), false)
+//            .dbgid(DBGID_KNOB_FINE));
     }
 }
 
