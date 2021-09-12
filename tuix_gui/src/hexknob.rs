@@ -444,8 +444,6 @@ impl HexKnob {
             font_mono:  None,
             lbl_buf:    [0; 15],
             model:      Rc::new(RefCell::new(DummyParamModel::new())),
-            // TODO: compute Knob parameters at draw time dependent on the
-            //       space the knob has! Same with the font sizes!
             size:       28.0,
             knob:       Knob::new(28.0, UI_BG_KNOB_STROKE, 12.0, 9.0, UI_ELEM_TXT_H),
         }
@@ -506,14 +504,20 @@ impl Widget for HexKnob {
 
         let size = pos.w.min(pos.h);
 
-        // TODO: Implement no value labels!
         let mut no_value_label = false;
-        // TODO: Implement no name label!
         let mut no_name_label  = false;
 
-        let factor = size / (30.0 * 2.0);
+        let mut factor = size / (32.0 * 2.0);
+        let mut radius_factor = factor;
         if factor < 1.0 {
             no_value_label = true;
+            no_name_label = true;
+            radius_factor = factor * 0.9;
+            factor = 0.9 * factor + (1.0 - factor) * 0.5;
+        }
+
+        // Standard size horizonally is 30.0 + 48.0
+        if (yo + (48.0 * factor)) > (pos.y + pos.h) {
             no_name_label = true;
         }
 
@@ -522,7 +526,7 @@ impl Widget for HexKnob {
             self.size = size;
             self.knob =
                 Knob::new(
-                    (28.0 * factor).round(),
+                    (28.0 * radius_factor).round(),
                     (UI_BG_KNOB_STROKE * factor).round(),
                     (12.0 * factor).round(),
                     ( 9.0 * factor).round(),
