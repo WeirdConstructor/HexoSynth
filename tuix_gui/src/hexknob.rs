@@ -35,6 +35,13 @@ fn circle_point(r: f32, angle: f32) -> (f32, f32) {
     (x * r, y * r)
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum HLStyle {
+    None,
+    Inactive,
+    Hover(bool),
+}
+
 #[derive(Debug)]
 pub struct Knob {
     sbottom:        (f32, f32),
@@ -157,7 +164,7 @@ impl Knob {
         let r = self.get_label_rect();
         p.label(
             self.font_size_lbl, 0, UI_TXT_KNOB_CLR,
-            x + r.0, y + r.1, r.2, r.3, s, DBGID_KNOB_NAME);
+            x + r.0, y + r.1, r.2, r.3, s);
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -180,10 +187,9 @@ impl Knob {
 
         let color =
             match highlight {
-                HLStyle::Hover(_subtype) => { UI_TXT_KNOB_HOVER_CLR },
-                HLStyle::Inactive        => { UI_INACTIVE_CLR },
-                HLStyle::EditModAmt      => { UI_TXT_KNOB_MOD_CLR },
-                _                        => { UI_TXT_KNOB_CLR },
+                HLStyle::Hover(_fine) => { UI_TXT_KNOB_HOVER_CLR },
+                HLStyle::Inactive     => { UI_INACTIVE_CLR },
+                _                     => { UI_TXT_KNOB_CLR },
             };
 
         let some_right_padding = 6.0;
@@ -194,10 +200,7 @@ impl Knob {
             x + r.0 + light_font_offs,
             y + r.1,
             r.2 - some_right_padding,
-            r.3, s,
-            if double {
-                if first { DBGID_KNOB_VALUE } else { DBGID_KNOB_MODAMT }
-            } else { DBGID_KNOB_VALUE });
+            r.3, s);
     }
 
     pub fn draw_mod_arc(
@@ -308,21 +311,29 @@ impl Knob {
 
 
 pub trait ParamModel {
+    /// Should return the normalized paramter value.
+    fn get(&self) -> f32 { self.value }
+
     /// Should return true if the UI for the parameter can be changed
     /// by the user. In HexoSynth this might return false if the
     /// corresponding input is controlled by an output port.
     fn enabled(&self) -> bool;
+
     /// Should return a value in the range 0.0 to 1.0 for displayed knob position.
     /// For instance: a normalized value in the range -1.0 to 1.0 needs to be mapped
     /// to 0.0 to 1.0 by: `(x + 1.0) * 0.5`
     fn get_ui_range(&self) -> Option<f32>;
+
     /// Should return the modulation amount for the 0..1 UI knob range.
     /// Internally you should transform that into the appropriate
     /// modulation amount in relation to what [get_ui_range] returns.
     fn get_ui_mod_amt(&self) -> Option<f32>;
+
     fn fmt(&self, buf: &mut [u8]) -> usize;
     fn fmt_mod(&self, buf: &mut [u8]) -> usize;
     fn fmt_norm(&self, buf: &mut [u8]) -> usize;
+    fn fmt_name(&self, buf: &mut [u8]) -> usize;
+
     fn get_denorm(&self) -> f32;
 }
 
@@ -508,51 +519,63 @@ impl Widget for HexKnob {
         let hover = false;
         let fine_hover = false;
 
-        if !model.enabled() {
-            self.knob.draw_oct_arc(
-                p, xo, yo,
-                UI_MG_KNOB_STROKE,
-                UI_INACTIVE_CLR,
-                None,
-                1.0);
+        let highlight =
+            if !model.enabled() {
+                HLStyle::Inactive
+            } else if hover || fine_hover {
+                HLStyle::Hover(fine_hover)
+            } else {
+                HLStyle::None
+            };
 
-            self.knob.draw_mod_arc(
-                p, xo, yo, value, modamt,
-                UI_INACTIVE2_CLR);
+        match highlight {
+            HLStyle::Inactive => {
+                self.knob.draw_oct_arc(
+                    p, xo, yo,
+                    UI_MG_KNOB_STROKE,
+                    UI_INACTIVE_CLR,
+                    None,
+                    1.0);
 
-        } else if hover {
-            if fine_hover {
-                hover_fine_adj = true;
+                self.knob.draw_mod_arc(
+                    p, xo, yo, value, modamt,
+                    UI_INACTIVE2_CLR);
+            },
+            HLStyle::Hover(fine) => {
+                if fine_hover {
+                    hover_fine_adj = true;
 
-                let r = self.knob.get_fine_adjustment_mark();
-                p.rect_fill(
-                    UI_TXT_KNOB_HOVER_CLR,
-                    xo + r.0, yo + r.1, r.2, r.3);
-            }
+                    let r = self.knob.get_fine_adjustment_mark();
+                    p.rect_fill(
+                        UI_TXT_KNOB_HOVER_CLR,
+                        xo + r.0, yo + r.1, r.2, r.3);
+                }
 
-            self.knob.draw_oct_arc(
-                p, xo, yo,
-                UI_MG_KNOB_STROKE,
-                UI_MG_KNOB_STROKE_CLR,
-                None,
-                1.0);
+                self.knob.draw_oct_arc(
+                    p, xo, yo,
+                    UI_MG_KNOB_STROKE,
+                    UI_MG_KNOB_STROKE_CLR,
+                    None,
+                    1.0);
 
-            self.knob.draw_mod_arc(
-                p, xo, yo, value, modamt,
-                UI_FG_KNOB_STROKE_CLR);
+                self.knob.draw_mod_arc(
+                    p, xo, yo, value, modamt,
+                    UI_FG_KNOB_STROKE_CLR);
 
-        } else {
-            self.knob.draw_oct_arc(
-                p, xo, yo,
-                UI_MG_KNOB_STROKE,
-                UI_MG_KNOB_STROKE_CLR,
-                None,
-                1.0);
+            },
+            HLStyle::None => {
+                self.knob.draw_oct_arc(
+                    p, xo, yo,
+                    UI_MG_KNOB_STROKE,
+                    UI_MG_KNOB_STROKE_CLR,
+                    None,
+                    1.0);
 
-            self.knob.draw_mod_arc(
-                p, xo, yo, value, modamt,
-                UI_FG_KNOB_STROKE_CLR);
+                self.knob.draw_mod_arc(
+                    p, xo, yo, value, modamt,
+                    UI_FG_KNOB_STROKE_CLR);
 
+            },
         }
 
         //---------------------------------------------------------------------------
