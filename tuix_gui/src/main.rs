@@ -147,6 +147,29 @@ fn main() {
                     HexGrid::new(1, 64.0)
                         .bind(UIState::grid_1, |value| value.clone())
                         .build(state, row, |builder| builder);
+
+                let hknob =
+                    HexKnob::new()
+                    .build(state, row, |builder| {
+                        builder
+                            .set_min_left(Units::Pixels(100.0))
+                            .set_max_left(Units::Pixels(100.0))
+                    });
+                let hknob =
+                    HexKnob::new()
+                    .build(state, row, |builder| {
+                        builder
+                            .set_min_left(Units::Pixels(100.0))
+                            .set_max_left(Units::Pixels(100.0))
+                    });
+                let hknob =
+                    HexKnob::new()
+                    .build(state, row, |builder| {
+                        builder
+                            .set_min_left(Units::Pixels(100.0))
+                            .set_max_left(Units::Pixels(100.0))
+                    });
+
                 let hex2 =
                     HexGrid::new(2, 72.0)
                         .bind(UIState::grid_2, |value| value.clone())

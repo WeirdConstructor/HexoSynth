@@ -12,23 +12,22 @@ use femtovg::FontId;
 use std::rc::Rc;
 use std::cell::RefCell;
 
-pub const UI_BG_KNOB_STROKE       : f64 = 8.0;
-pub const UI_MG_KNOB_STROKE       : f64 = 3.0;
-pub const UI_FG_KNOB_STROKE       : f64 = 5.0;
-pub const UI_BG_KNOB_STROKE_CLR   : (f64, f64, f64) = UI_LBL_BG_CLR;
-pub const UI_MG_KNOB_STROKE_CLR   : (f64, f64, f64) = UI_ACCENT_CLR;
-pub const UI_FG_KNOB_STROKE_CLR   : (f64, f64, f64) = UI_PRIM_CLR;
-pub const UI_FG_KNOB_MODPOS_CLR   : (f64, f64, f64) = UI_HLIGHT_CLR;
-pub const UI_FG_KNOB_MODNEG_CLR   : (f64, f64, f64) = UI_SELECT_CLR;
-pub const UI_TXT_KNOB_CLR         : (f64, f64, f64) = UI_PRIM_CLR;
-pub const UI_TXT_KNOB_HOVER_CLR   : (f64, f64, f64) = UI_HLIGHT_CLR;
-pub const UI_TXT_KNOB_MOD_CLR     : (f64, f64, f64) = UI_HLIGHT2_CLR;
-pub const UI_GUI_BG_CLR           : (f64, f64, f64) = UI_BG_CLR;
-pub const UI_GUI_CLEAR_CLR        : (f64, f64, f64) = UI_LBL_BG_CLR;
-pub const UI_BORDER_WIDTH         : f64 = 2.0;
-pub const UI_KNOB_RADIUS          : f64 = 25.0;
-pub const UI_KNOB_SMALL_RADIUS    : f64 = 14.0;
-pub const UI_KNOB_FONT_SIZE       : f64 = 11.0;
+pub const UI_BG_KNOB_STROKE       : f32 = 8.0;
+//pub const UI_MG_KNOB_STROKE       : f32 = 3.0;
+pub const UI_BG_KNOB_STROKE_CLR   : (f32, f32, f32) = UI_LBL_BG_CLR;
+pub const UI_MG_KNOB_STROKE_CLR   : (f32, f32, f32) = UI_ACCENT_CLR;
+pub const UI_FG_KNOB_STROKE_CLR   : (f32, f32, f32) = UI_PRIM_CLR;
+pub const UI_FG_KNOB_MODPOS_CLR   : (f32, f32, f32) = UI_HLIGHT_CLR;
+pub const UI_FG_KNOB_MODNEG_CLR   : (f32, f32, f32) = UI_SELECT_CLR;
+pub const UI_TXT_KNOB_CLR         : (f32, f32, f32) = UI_PRIM_CLR;
+pub const UI_TXT_KNOB_HOVER_CLR   : (f32, f32, f32) = UI_HLIGHT_CLR;
+pub const UI_TXT_KNOB_MOD_CLR     : (f32, f32, f32) = UI_HLIGHT2_CLR;
+pub const UI_GUI_BG_CLR           : (f32, f32, f32) = UI_BG_CLR;
+pub const UI_GUI_CLEAR_CLR        : (f32, f32, f32) = UI_LBL_BG_CLR;
+pub const UI_BORDER_WIDTH         : f32 = 2.0;
+pub const UI_KNOB_RADIUS          : f32 = 25.0;
+pub const UI_KNOB_SMALL_RADIUS    : f32 = 14.0;
+pub const UI_KNOB_FONT_SIZE       : f32 = 11.0;
 
 fn circle_point(r: f32, angle: f32) -> (f32, f32) {
     let (y, x) = angle.sin_cos();
@@ -53,10 +52,17 @@ pub struct Knob {
     radius:         f32,
     font_size_lbl:  f32,
     font_size_data: f32,
+    line_w:         f32,
+    line_height:    f32,
 }
 
 impl Knob {
-    pub fn new(radius: f32, font_size_lbl: f32, font_size_data: f32) -> Self {
+    pub fn new(
+        radius: f32, line_w: f32,
+        font_size_lbl: f32, font_size_data: f32,
+        line_height: f32
+    ) -> Self
+    {
         let init_rot : f32 = 90.;
 
         let mut s       = [(0.0_f32, 0.0_f32); 7];
@@ -94,6 +100,8 @@ impl Knob {
             radius,
             font_size_lbl,
             font_size_data,
+            line_w,
+            line_height,
         }
     }
 
@@ -104,8 +112,8 @@ impl Knob {
 
     pub fn get_fine_adjustment_mark(&self) -> (f32, f32, f32, f32) {
         let mut r = self.get_fine_adjustment_rect();
-        r.1 = (r.1 - UI_ELEM_TXT_H * 0.5).round();
-        r.3 = (r.3 + UI_ELEM_TXT_H * 0.5).round();
+        r.1 = (r.1 - self.line_height * 0.5).round();
+        r.3 = (r.3 + self.line_height * 0.5).round();
 
         let mut size = (self.font_size_lbl * 0.25).round();
         if (size as i32) % 2 != 0 {
@@ -130,37 +138,37 @@ impl Knob {
     }
 
     pub fn get_value_rect(&self, double: bool) -> (f32, f32, f32, f32) {
-        let width = self.radius * 2.0;
+        let width = (self.radius * 0.8) * 2.0;
         if double {
-            ((self.sbottom.0 - self.radius).round(),
-             (self.sbottom.1 - (self.radius + UI_ELEM_TXT_H)).round(),
+            ((self.sbottom.0 - (self.radius * 0.8)).round(),
+             (self.sbottom.1 - (self.radius + self.line_height)).round(),
              width.round(),
-             2.0 * UI_ELEM_TXT_H)
+             2.0 * self.line_height)
         } else {
-            ((self.sbottom.0 - self.radius).round(),
-             (self.sbottom.1 - (self.radius + UI_ELEM_TXT_H * 0.5)).round(),
+            ((self.sbottom.0 - (self.radius * 0.8)).round(),
+             (self.sbottom.1 - (self.radius + self.line_height * 0.5)).round(),
              width.round(),
-             UI_ELEM_TXT_H)
+             self.line_height)
         }
     }
 
     pub fn get_label_rect(&self) -> (f32, f32, f32, f32) {
         let width = self.radius * 2.25;
         ((self.sbottom.0 - width * 0.5).round(),
-         (self.sbottom.1 + 0.5 * UI_BG_KNOB_STROKE).round(),
+         (self.sbottom.1 + 0.5 * self.line_w).round(),
          width.round(),
-         UI_ELEM_TXT_H)
+         self.line_height)
     }
 
     pub fn get_decor_rect1(&self) -> (f32, f32, f32, f32) {
-        ((self.s[0].0      - 0.25 * UI_BG_KNOB_STROKE).round(),
-         (self.sbottom.1    - 0.5 * UI_BG_KNOB_STROKE).round(),
+        ((self.s[0].0      - 0.3 * self.line_w).round(),
+         (self.sbottom.1    - 0.5 * self.line_w).round(),
          ((self.s[6].0 - self.s[0].0).abs()
-                           + 0.5 * UI_BG_KNOB_STROKE).round(),
-         UI_BG_KNOB_STROKE * 1.0)
+                           + 0.6 * self.line_w).round(),
+         self.line_w * 1.0)
     }
 
-    pub fn draw_name(&self, p: &mut dyn Painter, x: f32, y: f32, s: &str) {
+    pub fn draw_name(&self, p: &mut FemtovgPainter, x: f32, y: f32, s: &str) {
         let r = self.get_label_rect();
         p.label(
             self.font_size_lbl, 0, UI_TXT_KNOB_CLR,
@@ -169,7 +177,7 @@ impl Knob {
 
     #[allow(clippy::too_many_arguments)]
     pub fn draw_value_label(
-        &self, double: bool, first: bool, p: &mut dyn Painter,
+        &self, double: bool, first: bool, p: &mut FemtovgPainter,
         x: f32, y: f32, highlight: HLStyle, s: &str
     ) {
         let r = self.get_value_rect(double);
@@ -177,9 +185,9 @@ impl Knob {
         let r =
             if double {
                 if first {
-                    (r.0, r.1 + 1.0, r.2, UI_ELEM_TXT_H)
+                    (r.0, r.1 + 1.0, r.2, self.line_height)
                 } else {
-                    (r.0, r.1 + UI_ELEM_TXT_H - 1.0, r.2, UI_ELEM_TXT_H)
+                    (r.0, r.1 + self.line_height - 1.0, r.2, self.line_height)
                 }
             } else {
                 r
@@ -204,54 +212,68 @@ impl Knob {
     }
 
     pub fn draw_mod_arc(
-        &self, p: &mut dyn Painter, xo: f32, yo: f32,
+        &self, p: &mut FemtovgPainter, xo: f32, yo: f32,
         value: f32, modamt: Option<f32>,
         fg_clr: (f32, f32, f32))
     {
         if let Some(modamt) = modamt {
             if modamt > 0.0 {
-                self.draw_oct_arc(
+                self.draw_oct_arc_fg(
                     p, xo, yo,
-                    UI_MG_KNOB_STROKE,
                     UI_FG_KNOB_MODPOS_CLR,
                     None,
                     (value + modamt).clamp(0.0, 1.0));
-                self.draw_oct_arc(
+                self.draw_oct_arc_fg(
                     p, xo, yo,
-                    UI_MG_KNOB_STROKE,
                     fg_clr,
                     Some(UI_FG_KNOB_MODPOS_CLR),
                     value);
             } else {
-                self.draw_oct_arc(
+                self.draw_oct_arc_fg(
                     p, xo, yo,
-                    UI_MG_KNOB_STROKE,
                     UI_FG_KNOB_MODNEG_CLR,
                     Some(UI_FG_KNOB_MODNEG_CLR),
                     value);
-                self.draw_oct_arc(
+                self.draw_oct_arc_fg(
                     p, xo, yo,
-                    UI_MG_KNOB_STROKE,
                     fg_clr,
                     None,
                     (value + modamt).clamp(0.0, 1.0));
             }
         } else {
-            self.draw_oct_arc(
+            self.draw_oct_arc_fg(
                 p, xo, yo,
-                UI_MG_KNOB_STROKE,
                 fg_clr,
                 Some(fg_clr),
                 value);
         }
     }
 
-    #[allow(clippy::too_many_arguments)]
-    pub fn draw_oct_arc(
-        &self, p: &mut dyn Painter, x: f32, y: f32, line_w: f32,
+    pub fn draw_oct_arc_bg(
+        &self, p: &mut FemtovgPainter, x: f32, y: f32,
+        color: (f32, f32, f32),
+        dot_color: Option<(f32, f32, f32)>,
+        value: f32,
+        closed: bool,
+    ) {
+        self.draw_oct_arc(p, x, y, self.line_w, color, dot_color, value, closed);
+    }
+
+    pub fn draw_oct_arc_fg(
+        &self, p: &mut FemtovgPainter, x: f32, y: f32,
         color: (f32, f32, f32),
         dot_color: Option<(f32, f32, f32)>,
         value: f32
+    ) {
+        self.draw_oct_arc(p, x, y, self.line_w * 0.375, color, dot_color, value, false);
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn draw_oct_arc(
+        &self, p: &mut FemtovgPainter, x: f32, y: f32, line_w: f32,
+        color: (f32, f32, f32),
+        dot_color: Option<(f32, f32, f32)>,
+        value: f32, closed: bool
     ) {
         let arc_len = &self.arc_len;
 
@@ -305,14 +327,17 @@ impl Knob {
                 prev.1 + partial.1);
         }
 
-        p.path_stroke(line_w, color, &mut s.iter().copied().take(next_idx + 1), false);
+        p.path_stroke(
+            line_w, color,
+            &mut s.iter().copied().take(next_idx + 1),
+            closed);
     }
 }
 
 
 pub trait ParamModel {
     /// Should return the normalized paramter value.
-    fn get(&self) -> f32 { self.value }
+    fn get(&self) -> f32;
 
     /// Should return true if the UI for the parameter can be changed
     /// by the user. In HexoSynth this might return false if the
@@ -322,7 +347,7 @@ pub trait ParamModel {
     /// Should return a value in the range 0.0 to 1.0 for displayed knob position.
     /// For instance: a normalized value in the range -1.0 to 1.0 needs to be mapped
     /// to 0.0 to 1.0 by: `(x + 1.0) * 0.5`
-    fn get_ui_range(&self) -> Option<f32>;
+    fn get_ui_range(&self) -> f32;
 
     /// Should return the modulation amount for the 0..1 UI knob range.
     /// Internally you should transform that into the appropriate
@@ -354,7 +379,7 @@ impl DummyParamModel {
 impl ParamModel for DummyParamModel {
     fn enabled(&self) -> bool { self.get() > 0.1 }
     fn get_ui_mod_amt(&self) -> Option<f32> { self.modamt }
-    fn get_ui_range(&self) -> Option<f32> { self.get() }
+    fn get_ui_range(&self) -> f32 { self.get() }
     fn get_denorm(&self) -> f32 { self.get() * 100.0 }
     fn get(&self) -> f32 { self.value }
 
@@ -407,12 +432,13 @@ pub struct HexKnob {
     font:      Option<FontId>,
     font_mono: Option<FontId>,
     lbl_buf:   [u8; 15],
-    model:     Rc<RefCell<dyn DummyParamModel>>,
+    model:     Rc<RefCell<dyn ParamModel>>,
+    size:      f32,
     knob:      Knob,
 }
 
 impl HexKnob {
-    pub fn new(size: f32) -> Self {
+    pub fn new() -> Self {
         HexKnob {
             font:       None,
             font_mono:  None,
@@ -420,7 +446,8 @@ impl HexKnob {
             model:      Rc::new(RefCell::new(DummyParamModel::new())),
             // TODO: compute Knob parameters at draw time dependent on the
             //       space the knob has! Same with the font sizes!
-            knob:       Knob::new(50.0, 10.0, 10.0),
+            size:       28.0,
+            knob:       Knob::new(28.0, UI_BG_KNOB_STROKE, 12.0, 9.0, UI_ELEM_TXT_H),
         }
     }
 }
@@ -477,41 +504,69 @@ impl Widget for HexKnob {
             (pos.y + pos.h / 2.0).round()
         );
 
-        let id     = data.id();
+        let size = pos.w.min(pos.h);
+
+        // TODO: Implement no value labels!
+        let mut no_value_label = false;
+        // TODO: Implement no name label!
+        let mut no_name_label  = false;
+
+        let factor = size / (30.0 * 2.0);
+        if factor < 1.0 {
+            no_value_label = true;
+            no_name_label = true;
+        }
+
+        if size != self.size {
+            println!("SIZE: {} {}", size, factor);
+            self.size = size;
+            self.knob =
+                Knob::new(
+                    (28.0 * factor).round(),
+                    (UI_BG_KNOB_STROKE * factor).round(),
+                    (12.0 * factor).round(),
+                    ( 9.0 * factor).round(),
+                    (UI_ELEM_TXT_H * factor).round());
+        }
+
+        let model = self.model.borrow_mut();
+
         let modamt = model.get_ui_mod_amt();
 
-        self.knob.draw_oct_arc(
+        self.knob.draw_oct_arc_bg(
             p, xo, yo,
-            UI_BG_KNOB_STROKE,
             UI_BG_KNOB_STROKE_CLR,
             None,
-            1.0);
+            1.0,
+            no_name_label);
 
-        let dc1 = self.knob.get_decor_rect1();
-        p.rect_fill(
-            UI_BG_KNOB_STROKE_CLR,
-            xo + dc1.0, yo + dc1.1, dc1.2, dc1.3);
+        if !no_name_label {
+            let dc1 = self.knob.get_decor_rect1();
+            p.rect_fill(
+                UI_BG_KNOB_STROKE_CLR,
+                xo + dc1.0, yo + dc1.1, dc1.2, dc1.3);
+        }
 
-        let valrect = self.knob.get_value_rect(modamt.is_some());
-        p.rect_fill(
-            UI_BG_KNOB_STROKE_CLR,
-            valrect.0 + xo, valrect.1 + yo, valrect.2, valrect.3);
+        if !no_value_label {
+            let valrect = self.knob.get_value_rect(modamt.is_some());
+            p.rect_fill(
+                UI_BG_KNOB_STROKE_CLR,
+                valrect.0 + xo, valrect.1 + yo, valrect.2, valrect.3);
+        }
 
-        let lblrect = self.knob.get_label_rect();
-        p.rect_fill(
-            UI_BG_KNOB_STROKE_CLR,
-            lblrect.0 + xo, lblrect.1 + yo, lblrect.2, lblrect.3);
+        if !no_name_label {
+            let lblrect = self.knob.get_label_rect();
+            p.rect_fill(
+                UI_BG_KNOB_STROKE_CLR,
+                lblrect.0 + xo, lblrect.1 + yo, lblrect.2, lblrect.3);
 
-        let r = self.knob.get_fine_adjustment_mark();
-        p.rect_fill(
-            UI_BG_KNOB_STROKE_CLR,
-            xo + r.0, yo + r.1, r.2, r.3);
+            let r = self.knob.get_fine_adjustment_mark();
+            p.rect_fill(
+                UI_BG_KNOB_STROKE_CLR,
+                xo + r.0, yo + r.1, r.2, r.3);
+        }
 
-        let highlight = ui.hl_style_for(id, None);
-        let value =
-            if let Some(v) = model.get_ui_range(id) {
-                (v as f32).clamp(0.0, 1.0)
-            } else { 0.0 };
+        let value = model.get_ui_range().clamp(0.0, 1.0);
 
         let mut hover_fine_adj = false;
 
@@ -530,9 +585,8 @@ impl Widget for HexKnob {
 
         match highlight {
             HLStyle::Inactive => {
-                self.knob.draw_oct_arc(
+                self.knob.draw_oct_arc_fg(
                     p, xo, yo,
-                    UI_MG_KNOB_STROKE,
                     UI_INACTIVE_CLR,
                     None,
                     1.0);
@@ -551,9 +605,8 @@ impl Widget for HexKnob {
                         xo + r.0, yo + r.1, r.2, r.3);
                 }
 
-                self.knob.draw_oct_arc(
+                self.knob.draw_oct_arc_fg(
                     p, xo, yo,
-                    UI_MG_KNOB_STROKE,
                     UI_MG_KNOB_STROKE_CLR,
                     None,
                     1.0);
@@ -564,9 +617,8 @@ impl Widget for HexKnob {
 
             },
             HLStyle::None => {
-                self.knob.draw_oct_arc(
+                self.knob.draw_oct_arc_fg(
                     p, xo, yo,
-                    UI_MG_KNOB_STROKE,
                     UI_MG_KNOB_STROKE_CLR,
                     None,
                     1.0);
@@ -580,25 +632,29 @@ impl Widget for HexKnob {
 
         //---------------------------------------------------------------------------
 
-        let len = model.fmt(&mut self.lbl_buf[..]);
-        let val_s = std::str::from_utf8(&self.lbl_buf[0..len]).unwrap();
-        self.draw_value_label(modamt.is_some(), true, p, xo, yo, highlight, val_s);
-
-        if modamt.is_some() {
-            let len = model.fmt_mod(&mut self.lbl_buf[..]);
+        if !no_value_label {
+            let len = model.fmt(&mut self.lbl_buf[..]);
             let val_s = std::str::from_utf8(&self.lbl_buf[0..len]).unwrap();
-            self.draw_value_label(true, false, p, xo, yo, highlight, val_s);
+            self.knob.draw_value_label(modamt.is_some(), true, p, xo, yo, highlight, val_s);
+
+            if modamt.is_some() {
+                let len = model.fmt_mod(&mut self.lbl_buf[..]);
+                let val_s = std::str::from_utf8(&self.lbl_buf[0..len]).unwrap();
+                self.knob.draw_value_label(true, false, p, xo, yo, highlight, val_s);
+            }
         }
 
-        if hover_fine_adj {
-            let len = model.fmt_norm(&mut self.lbl_buf[..]);
-            let val_s = std::str::from_utf8(&self.lbl_buf[0..len]).unwrap();
-            // + 2.0 for the marker cube, to space it from the minus sign.
-            self.knob.draw_name(p, xo + 2.0, yo, &val_s);
-        } else {
-            let len = model.fmt_name(&mut self.lbl_buf[..]);
-            let val_s = std::str::from_utf8(&self.lbl_buf[0..len]).unwrap();
-            self.knob.draw_name(p, xo, yo, &val_s);
+        if !no_name_label {
+            if hover_fine_adj {
+                let len = model.fmt_norm(&mut self.lbl_buf[..]);
+                let val_s = std::str::from_utf8(&self.lbl_buf[0..len]).unwrap();
+                // + 2.0 for the marker cube, to space it from the minus sign.
+                self.knob.draw_name(p, xo + 2.0, yo, &val_s);
+            } else {
+                let len = model.fmt_name(&mut self.lbl_buf[..]);
+                let val_s = std::str::from_utf8(&self.lbl_buf[0..len]).unwrap();
+                self.knob.draw_name(p, xo, yo, &val_s);
+            }
         }
 //
 //        ui.define_active_zone(

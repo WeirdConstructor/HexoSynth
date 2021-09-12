@@ -174,6 +174,7 @@ impl<'a> FemtovgPainter<'a> {
         let mut p = femtovg::Path::new();
         let mut paint = color_paint(color);
         paint.set_line_join(femtovg::LineJoin::Round);
+        // paint.set_line_cap(femtovg::LineCap::Round);
         paint.set_line_width(width as f32);
 
         let mut first = true;

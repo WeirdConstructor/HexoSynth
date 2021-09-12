@@ -12,12 +12,12 @@ macro_rules! hxclr {
     }
 }
 
-pub const UI_BOX_H          : f64 = 200.0;
-pub const UI_BOX_BORD       : f64 =   3.0;
-pub const UI_MARGIN         : f64 =   4.0;
-pub const UI_PADDING        : f64 =   6.0;
-pub const UI_ELEM_TXT_H     : f64 =  16.0;
-pub const UI_SAFETY_PAD     : f64 =   1.0;
+pub const UI_BOX_H          : f32 = 200.0;
+pub const UI_BOX_BORD       : f32 =   3.0;
+pub const UI_MARGIN         : f32 =   4.0;
+pub const UI_PADDING        : f32 =   6.0;
+pub const UI_ELEM_TXT_H     : f32 =  16.0;
+pub const UI_SAFETY_PAD     : f32 =   1.0;
 
 pub const UI_BG_CLR               : (f32, f32, f32) = hxclr!(0x414a51); // 473f49
 pub const UI_BG2_CLR              : (f32, f32, f32) = hxclr!(0x4b535a); // 594f5d
