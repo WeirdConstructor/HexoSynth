@@ -12,6 +12,13 @@ macro_rules! hxclr {
     }
 }
 
+pub fn lighten_clr(depth: u32, clr: (f32, f32, f32)) -> (f32, f32, f32) {
+    if depth == 0 { return clr; }
+    ((clr.0 * (1.2_f32).powf(depth as f32)).clamp(0.0, 1.0),
+     (clr.1 * (1.2_f32).powf(depth as f32)).clamp(0.0, 1.0),
+     (clr.2 * (1.2_f32).powf(depth as f32)).clamp(0.0, 1.0))
+}
+
 pub const UI_BOX_H          : f32 = 200.0;
 pub const UI_BOX_BORD       : f32 =   3.0;
 pub const UI_MARGIN         : f32 =   4.0;

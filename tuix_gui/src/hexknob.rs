@@ -17,6 +17,8 @@ pub const UI_BG_KNOB_STROKE       : f32 = 8.0;
 pub const UI_BG_KNOB_STROKE_CLR   : (f32, f32, f32) = UI_LBL_BG_CLR;
 pub const UI_MG_KNOB_STROKE_CLR   : (f32, f32, f32) = UI_ACCENT_CLR;
 pub const UI_FG_KNOB_STROKE_CLR   : (f32, f32, f32) = UI_PRIM_CLR;
+pub const UI_MG_KNOB_STROKE_HV_CLR: (f32, f32, f32) = UI_ACCENT_DARK_CLR;
+pub const UI_FG_KNOB_STROKE_HV_CLR: (f32, f32, f32) = UI_PRIM2_CLR;
 pub const UI_FG_KNOB_MODPOS_CLR   : (f32, f32, f32) = UI_HLIGHT_CLR;
 pub const UI_FG_KNOB_MODNEG_CLR   : (f32, f32, f32) = UI_SELECT_CLR;
 pub const UI_TXT_KNOB_CLR         : (f32, f32, f32) = UI_PRIM_CLR;
@@ -152,6 +154,17 @@ impl Knob {
         }
     }
 
+    pub fn get_coarse_rect(&self) -> (f32, f32, f32, f32) {
+        ((-self.radius).round(),
+         (-self.radius).round(),
+         (self.radius * 2.0).round(),
+         (self.radius * 2.0).round())
+    }
+
+    pub fn get_fine_rect(&self) -> (f32, f32, f32, f32) {
+        self.get_label_rect()
+    }
+
     pub fn get_label_rect(&self) -> (f32, f32, f32, f32) {
         let width = self.radius * 2.25;
         ((self.sbottom.0 - width * 0.5).round(),
@@ -214,37 +227,37 @@ impl Knob {
     pub fn draw_mod_arc(
         &self, p: &mut FemtovgPainter, xo: f32, yo: f32,
         value: f32, modamt: Option<f32>,
-        fg_clr: (f32, f32, f32))
+        fg_clr: (f32, f32, f32), lighten: u32)
     {
         if let Some(modamt) = modamt {
             if modamt > 0.0 {
                 self.draw_oct_arc_fg(
                     p, xo, yo,
-                    UI_FG_KNOB_MODPOS_CLR,
+                    lighten_clr(lighten, UI_FG_KNOB_MODPOS_CLR),
                     None,
                     (value + modamt).clamp(0.0, 1.0));
                 self.draw_oct_arc_fg(
                     p, xo, yo,
-                    fg_clr,
-                    Some(UI_FG_KNOB_MODPOS_CLR),
+                    lighten_clr(lighten, fg_clr),
+                    Some(lighten_clr(lighten, UI_FG_KNOB_MODPOS_CLR)),
                     value);
             } else {
                 self.draw_oct_arc_fg(
                     p, xo, yo,
-                    UI_FG_KNOB_MODNEG_CLR,
-                    Some(UI_FG_KNOB_MODNEG_CLR),
+                    lighten_clr(lighten, UI_FG_KNOB_MODNEG_CLR),
+                    Some(lighten_clr(lighten, UI_FG_KNOB_MODNEG_CLR)),
                     value);
                 self.draw_oct_arc_fg(
                     p, xo, yo,
-                    fg_clr,
+                    lighten_clr(lighten, fg_clr),
                     None,
                     (value + modamt).clamp(0.0, 1.0));
             }
         } else {
             self.draw_oct_arc_fg(
                 p, xo, yo,
-                fg_clr,
-                Some(fg_clr),
+                lighten_clr(lighten, fg_clr),
+                Some(lighten_clr(lighten, fg_clr)),
                 value);
         }
     }
@@ -429,12 +442,14 @@ impl ParamModel for DummyParamModel {
 }
 
 pub struct HexKnob {
-    font:      Option<FontId>,
-    font_mono: Option<FontId>,
-    lbl_buf:   [u8; 15],
-    model:     Rc<RefCell<dyn ParamModel>>,
-    size:      f32,
-    knob:      Knob,
+    font:       Option<FontId>,
+    font_mono:  Option<FontId>,
+    lbl_buf:    [u8; 15],
+    model:      Rc<RefCell<dyn ParamModel>>,
+    size:       f32,
+    knob:       Knob,
+    hover:      bool,
+    hover_fine: bool,
 }
 
 impl HexKnob {
@@ -446,6 +461,8 @@ impl HexKnob {
             model:      Rc::new(RefCell::new(DummyParamModel::new())),
             size:       28.0,
             knob:       Knob::new(28.0, UI_BG_KNOB_STROKE, 12.0, 9.0, UI_ELEM_TXT_H),
+            hover:      false,
+            hover_fine: false,
         }
     }
 }
@@ -473,6 +490,29 @@ impl Widget for HexKnob {
                 WindowEvent::MouseUp(btn) => {
                 },
                 WindowEvent::MouseMove(x, y) => {
+                    let bounds = state.data.get_bounds(entity);
+                    let pos : Rect = bounds.into();
+
+                    let (xo, yo) = (
+                        (pos.x + pos.w / 2.0).round(),
+                        (pos.y + pos.h / 2.0).round()
+                    );
+
+                    let coarse = Rect::from_tpl(self.knob.get_coarse_rect());
+                    let coarse = coarse.offs(xo, yo);
+                    let fine = Rect::from_tpl(self.knob.get_fine_rect());
+                    let fine = fine.offs(xo, yo);
+
+                    let old_hover = self.hover;
+                    self.hover = coarse.is_inside(*x, *y);
+                    let old_hover_fine = self.hover;
+                    self.hover_fine = fine.is_inside(*x, *y);
+
+                    if old_hover != self.hover || old_hover_fine != self.hover_fine {
+                        state.insert_event(
+                            Event::new(WindowEvent::Redraw).target(Entity::root()),
+                        );
+                    }
                 },
                 WindowEvent::MouseScroll(x, y) => {
                 },
@@ -522,7 +562,6 @@ impl Widget for HexKnob {
         }
 
         if size != self.size {
-            println!("SIZE: {} {}", size, factor);
             self.size = size;
             self.knob =
                 Knob::new(
@@ -575,8 +614,9 @@ impl Widget for HexKnob {
         let mut hover_fine_adj = false;
 
         // TODO: Get hover status from `self` (fine vs coarse area)
-        let hover = false;
-        let fine_hover = false;
+        let hover_this_widget = state.hovered == entity;
+        let hover      = hover_this_widget && self.hover;
+        let fine_hover = hover_this_widget && self.hover_fine;;
 
         let highlight =
             if !model.enabled() {
@@ -597,10 +637,11 @@ impl Widget for HexKnob {
 
                 self.knob.draw_mod_arc(
                     p, xo, yo, value, modamt,
-                    UI_INACTIVE2_CLR);
+                    UI_INACTIVE2_CLR,
+                    0);
             },
             HLStyle::Hover(fine) => {
-                if fine_hover {
+                if !no_name_label && fine_hover {
                     hover_fine_adj = true;
 
                     let r = self.knob.get_fine_adjustment_mark();
@@ -611,13 +652,13 @@ impl Widget for HexKnob {
 
                 self.knob.draw_oct_arc_fg(
                     p, xo, yo,
-                    UI_MG_KNOB_STROKE_CLR,
+                    lighten_clr(2, UI_MG_KNOB_STROKE_CLR),
                     None,
                     1.0);
 
                 self.knob.draw_mod_arc(
                     p, xo, yo, value, modamt,
-                    UI_FG_KNOB_STROKE_CLR);
+                    UI_FG_KNOB_STROKE_CLR, 2);
 
             },
             HLStyle::None => {
@@ -629,7 +670,7 @@ impl Widget for HexKnob {
 
                 self.knob.draw_mod_arc(
                     p, xo, yo, value, modamt,
-                    UI_FG_KNOB_STROKE_CLR);
+                    UI_FG_KNOB_STROKE_CLR, 0);
 
             },
         }

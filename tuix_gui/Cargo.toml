@@ -8,3 +8,4 @@ edition = "2018"
 [dependencies]
 tuix    = { path = "../../tuix" }
 femtovg = { git = "https://github.com/femtovg/femtovg", branch = "master"}
+hexodsp = { path = "../../hexodsp" }
