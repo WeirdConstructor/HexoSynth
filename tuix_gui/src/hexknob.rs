@@ -244,8 +244,8 @@ impl Knob {
             } else {
                 self.draw_oct_arc_fg(
                     p, xo, yo,
-                    lighten_clr(lighten, UI_FG_KNOB_MODNEG_CLR),
-                    Some(lighten_clr(lighten, UI_FG_KNOB_MODNEG_CLR)),
+                    darken_clr(lighten, UI_FG_KNOB_MODNEG_CLR),
+                    Some(darken_clr(lighten, UI_FG_KNOB_MODNEG_CLR)),
                     value);
                 self.draw_oct_arc_fg(
                     p, xo, yo,
@@ -376,6 +376,21 @@ pub trait ParamModel {
     /// modulation amount in relation to what [get_ui_range] returns.
     fn get_ui_mod_amt(&self) -> Option<f32>;
 
+    /// Should return the modulation amount like it will be applied to the
+    /// inputs.
+    fn get_mod_amt(&self) -> Option<f32>;
+
+    /// Set the UI modulation amount like it will be used in the
+    /// modulation later and be returned from [get_mod_amt].
+    fn set_mod_amt(&mut self, amt: Option<f32>);
+
+    /// Should return a coarse step and a fine step for the normalized value.
+    /// If none are returned, the UI will assume default steps of:
+    ///
+    /// * Default coarse: 0.05
+    /// * Default fine: 0.01
+    fn get_ui_steps(&self) -> (f32, f32) { (0.05, 0.01) }
+
     fn fmt(&self, buf: &mut [u8]) -> usize;
     fn fmt_mod(&self, buf: &mut [u8]) -> usize;
     fn fmt_norm(&self, buf: &mut [u8]) -> usize;
@@ -406,6 +421,8 @@ impl DummyParamModel {
 impl ParamModel for DummyParamModel {
     fn enabled(&self) -> bool { self.get() > 0.1 }
     fn get_ui_mod_amt(&self) -> Option<f32> { self.modamt }
+    fn get_mod_amt(&self) -> Option<f32> { self.modamt }
+    fn set_mod_amt(&mut self, amt: Option<f32>) { self.modamt = amt; }
     fn get_ui_range(&self) -> f32 { self.get() }
     fn get_denorm(&self) -> f32 { self.get() * 100.0 }
     fn get(&self) -> f32 { self.value }
@@ -456,7 +473,7 @@ impl ParamModel for DummyParamModel {
 
         use std::io::Write;
         let mut bw = std::io::BufWriter::new(buf);
-        match write!(bw, "{:6.3}", norm + modamt) {
+        match write!(bw, "{:6.3}", (norm + modamt) * 100.0) {
             Ok(_)  => bw.buffer().len(),
             Err(_) => 0,
         }
@@ -490,9 +507,9 @@ struct HexValueDrag {
     step_dt:        f32,
     /// The `ActiveZone` the current drag action belongs to.
     zone:           HexKnobZone,
-    /// The original position the mouse cursor was on when pressing mouse
-    /// button down.
-    orig_pos:       (f64, f64),
+//    /// The original position the mouse cursor was on when pressing mouse
+//    /// button down.
+//    orig_pos:       (f32, f32),
     /// A delta value that is set when the user hits the Shift key.
     pre_fine_delta: f32,
     /// Whether the Shift key was pressed.
@@ -501,6 +518,46 @@ struct HexValueDrag {
     res:            ChangeRes,
     /// What is actually changed is the modulation amount.
     is_modamt:      bool,
+    /// Mouse button:
+    btn:            MouseButton,
+}
+
+impl HexValueDrag {
+    fn calc_delta_value(&self, pos_delta: f32) -> f32 {
+        let steps =
+            if self.fine_key { pos_delta / 100.0 }
+            else             { pos_delta / 10.0 };
+
+        steps * self.step_dt
+    }
+
+    pub fn start(&mut self, model: &mut dyn ParamModel) {
+        if !self.is_modamt {
+            model.change_start();
+        }
+    }
+
+    pub fn change(&mut self, model: &mut dyn ParamModel, pos_delta: f32) {
+        let v = self.value + self.calc_delta_value(pos_delta);
+
+        if self.is_modamt {
+            model.set_mod_amt(Some(v));
+
+        } else {
+            model.change(v, false, self.res);
+        }
+    }
+
+    pub fn end(&mut self, model: &mut dyn ParamModel, pos_delta: f32) {
+        let v = self.value + self.calc_delta_value(pos_delta);
+
+        if self.is_modamt {
+            model.set_mod_amt(Some(v));
+
+        } else {
+            model.change_end(v, self.res);
+        }
+    }
 }
 
 pub struct HexKnob {
@@ -511,7 +568,7 @@ pub struct HexKnob {
     size:       f32,
     knob:       Knob,
     hover:      Option<HexKnobZone>,
-    drag:       Option<HexKnobZone>,
+    drag:       Option<HexValueDrag>,
 }
 
 impl HexKnob {
@@ -559,6 +616,15 @@ impl HexKnob {
     }
 }
 
+fn button_delta(state: &mut State, btn: MouseButton) -> f32 {
+    match btn {
+        MouseButton::Left   => state.mouse.left.pos_down.1   - state.mouse.cursory,
+        MouseButton::Right  => state.mouse.right.pos_down.1  - state.mouse.cursory,
+        MouseButton::Middle => state.mouse.middle.pos_down.1 - state.mouse.cursory,
+        _ => 0.0,
+    }
+}
+
 impl Widget for HexKnob {
     type Ret  = Entity;
     type Data = Rc<RefCell<dyn ParamModel>>;
@@ -576,18 +642,77 @@ impl Widget for HexKnob {
         if let Some(window_event) = event.message.downcast::<WindowEvent>() {
             println!("EV: {:?}", window_event);
 
+            let mut model = self.model.borrow_mut();
+
             match window_event {
                 WindowEvent::MouseDown(btn) => {
+                    let zone_info =
+                        match self.cursor_zone(
+                            state, entity,
+                            state.mouse.cursorx,
+                            state.mouse.cursory)
+                        {
+                            Some(HexKnobZone::Coarse) =>
+                                Some((
+                                    HexKnobZone::Coarse,
+                                    ChangeRes::Coarse,
+                                    model.get_ui_steps().0,
+                                )),
+                            Some(HexKnobZone::Fine)   =>
+                                Some((
+                                    HexKnobZone::Fine,
+                                    ChangeRes::Fine,
+                                    model.get_ui_steps().1,
+                                )),
+                            _ => None,
+                        };
+
+                    if let Some((zone, res, step_dt)) = zone_info {
+                        let is_modamt = MouseButton::Right == (*btn).into();
+
+                        let mut hvd = HexValueDrag {
+                            value:
+                                if is_modamt { model.get_mod_amt().unwrap_or(0.0) }
+                                else         { model.get() },
+                            step_dt,
+                            zone,
+                            res,
+                            is_modamt,
+                            btn: *btn,
+                            pre_fine_delta: 0.0,
+                            fine_key:       false,
+                        };
+                        hvd.start(&mut *model);
+                        self.drag = Some(hvd);
+
+                        state.insert_event(
+                            Event::new(WindowEvent::Redraw)
+                                .target(Entity::root()));
+                    }
                     state.capture(entity);
                 },
                 WindowEvent::MouseUp(btn) => {
+                    if let Some(mut hvd) = self.drag.take() {
+                        hvd.end(&mut *model, button_delta(state, hvd.btn));
+
+                        state.insert_event(
+                            Event::new(WindowEvent::Redraw)
+                                .target(Entity::root()));
+                    }
                     state.release(entity);
                 },
                 WindowEvent::MouseMove(x, y) => {
                     let old_hover = self.hover;
                     self.hover    = self.cursor_zone(state, entity, *x, *y);
 
-                    if old_hover != self.hover {
+                    if let Some(ref mut hvd) = self.drag {
+                        hvd.change(&mut *model, button_delta(state, hvd.btn));
+
+                        state.insert_event(
+                            Event::new(WindowEvent::Redraw)
+                                .target(Entity::root()));
+
+                    } else if old_hover != self.hover {
                         state.insert_event(
                             Event::new(WindowEvent::Redraw)
                                 .target(Entity::root()));
@@ -693,9 +818,13 @@ impl Widget for HexKnob {
         let mut hover_fine_adj = false;
 
         // TODO: Get hover status from `self` (fine vs coarse area)
-        let hover_this_widget = state.hovered == entity;
-        let hover      = hover_this_widget && self.hover == Some(HexKnobZone::Coarse);
-        let fine_hover = hover_this_widget && self.hover == Some(HexKnobZone::Fine);
+        let zone_hover =
+            if let Some(hvd) = &self.drag { Some(hvd.zone) }
+            else if state.hovered == entity { self.hover }
+            else { None };
+
+        let hover      = zone_hover == Some(HexKnobZone::Coarse);
+        let fine_hover = zone_hover == Some(HexKnobZone::Fine);
 
         let highlight =
             if !model.enabled() {
