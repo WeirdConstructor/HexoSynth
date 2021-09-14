@@ -347,6 +347,15 @@ impl Knob {
     }
 }
 
+/// This specifies the granularity or resultion of the change.
+/// The client of this API can then round the given changed values
+/// to a fine/coarse step, or no step at all.
+#[derive(Debug, Clone, Copy, Eq, PartialEq, PartialOrd, Ord)]
+pub enum ChangeRes {
+    Free,
+    Fine,
+    Coarse,
+}
 
 pub trait ParamModel {
     /// Should return the normalized paramter value.
@@ -373,6 +382,11 @@ pub trait ParamModel {
     fn fmt_name(&self, buf: &mut [u8]) -> usize;
 
     fn get_denorm(&self) -> f32;
+
+    fn set_default(&mut self);
+    fn change_start(&mut self);
+    fn change(&mut self, v: f32, single: bool, res: ChangeRes);
+    fn change_end(&mut self, v: f32, res: ChangeRes);
 }
 
 pub struct DummyParamModel {
@@ -395,6 +409,23 @@ impl ParamModel for DummyParamModel {
     fn get_ui_range(&self) -> f32 { self.get() }
     fn get_denorm(&self) -> f32 { self.get() * 100.0 }
     fn get(&self) -> f32 { self.value }
+
+    fn set_default(&mut self) { self.value = 0.25; }
+    fn change_start(&mut self) { }
+    fn change(&mut self, v: f32, single: bool, res: ChangeRes) {
+        match res {
+            ChangeRes::Free   => { self.value = v; },
+            ChangeRes::Fine   => { self.value = (v * 100.0).round() / 100.0; }
+            ChangeRes::Coarse => { self.value = (v * 10.0).round() / 10.0; }
+        }
+    }
+    fn change_end(&mut self, v: f32, res: ChangeRes) {
+        match res {
+            ChangeRes::Free   => { self.value = v; },
+            ChangeRes::Fine   => { self.value = (v * 100.0).round() / 100.0; }
+            ChangeRes::Coarse => { self.value = (v * 10.0).round() / 10.0; }
+        }
+    }
 
     fn fmt_name<'a>(&self, buf: &'a mut [u8]) -> usize {
         use std::io::Write;
@@ -441,6 +472,37 @@ impl ParamModel for DummyParamModel {
     }
 }
 
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd)]
+enum HexKnobZone {
+    Coarse,
+    Fine,
+}
+
+/// The value drag mode is enabled by clicking inside a
+/// `HexKnobZone::Coarse` or `HexKnobZone::Fine`
+/// and holding down the mouse button while moving the mouse.
+/// A mouse up event ends the drag mode.
+struct HexValueDrag {
+    /// The original value of the parameter that was initially clicked on.
+    value:          f32,
+    /// The modification step, a parameter that will define how coarse/fine
+    /// the change of the paramter is for N pixels of mouse movement.
+    step_dt:        f32,
+    /// The `ActiveZone` the current drag action belongs to.
+    zone:           HexKnobZone,
+    /// The original position the mouse cursor was on when pressing mouse
+    /// button down.
+    orig_pos:       (f64, f64),
+    /// A delta value that is set when the user hits the Shift key.
+    pre_fine_delta: f32,
+    /// Whether the Shift key was pressed.
+    fine_key:       bool,
+    /// The change resolution, used by the client to round the values.
+    res:            ChangeRes,
+    /// What is actually changed is the modulation amount.
+    is_modamt:      bool,
+}
+
 pub struct HexKnob {
     font:       Option<FontId>,
     font_mono:  Option<FontId>,
@@ -448,8 +510,8 @@ pub struct HexKnob {
     model:      Rc<RefCell<dyn ParamModel>>,
     size:       f32,
     knob:       Knob,
-    hover:      bool,
-    hover_fine: bool,
+    hover:      Option<HexKnobZone>,
+    drag:       Option<HexKnobZone>,
 }
 
 impl HexKnob {
@@ -461,9 +523,39 @@ impl HexKnob {
             model:      Rc::new(RefCell::new(DummyParamModel::new())),
             size:       28.0,
             knob:       Knob::new(28.0, UI_BG_KNOB_STROKE, 12.0, 9.0, UI_ELEM_TXT_H),
-            hover:      false,
-            hover_fine: false,
+            hover:      None,
+            drag:       None,
         }
+    }
+}
+
+impl HexKnob {
+    pub fn cursor_zone(
+        &self, state: &mut State, entity: Entity, x: f32, y: f32)
+        -> Option<HexKnobZone>
+    {
+        let bounds = state.data.get_bounds(entity);
+        let pos : Rect = bounds.into();
+
+        let (xo, yo) = (
+            (pos.x + pos.w / 2.0).round(),
+            (pos.y + pos.h / 2.0).round()
+        );
+
+        let coarse = Rect::from_tpl(self.knob.get_coarse_rect());
+        let coarse = coarse.offs(xo, yo);
+        let fine   = Rect::from_tpl(self.knob.get_fine_rect());
+        let fine   = fine.offs(xo, yo);
+
+        if coarse.is_inside(x, y) {
+            return Some(HexKnobZone::Coarse);
+        }
+
+        if fine.is_inside(x, y) {
+            return Some(HexKnobZone::Fine);
+        }
+
+        None
     }
 }
 
@@ -486,32 +578,19 @@ impl Widget for HexKnob {
 
             match window_event {
                 WindowEvent::MouseDown(btn) => {
+                    state.capture(entity);
                 },
                 WindowEvent::MouseUp(btn) => {
+                    state.release(entity);
                 },
                 WindowEvent::MouseMove(x, y) => {
-                    let bounds = state.data.get_bounds(entity);
-                    let pos : Rect = bounds.into();
-
-                    let (xo, yo) = (
-                        (pos.x + pos.w / 2.0).round(),
-                        (pos.y + pos.h / 2.0).round()
-                    );
-
-                    let coarse = Rect::from_tpl(self.knob.get_coarse_rect());
-                    let coarse = coarse.offs(xo, yo);
-                    let fine = Rect::from_tpl(self.knob.get_fine_rect());
-                    let fine = fine.offs(xo, yo);
-
                     let old_hover = self.hover;
-                    self.hover = coarse.is_inside(*x, *y);
-                    let old_hover_fine = self.hover;
-                    self.hover_fine = fine.is_inside(*x, *y);
+                    self.hover    = self.cursor_zone(state, entity, *x, *y);
 
-                    if old_hover != self.hover || old_hover_fine != self.hover_fine {
+                    if old_hover != self.hover {
                         state.insert_event(
-                            Event::new(WindowEvent::Redraw).target(Entity::root()),
-                        );
+                            Event::new(WindowEvent::Redraw)
+                                .target(Entity::root()));
                     }
                 },
                 WindowEvent::MouseScroll(x, y) => {
@@ -615,8 +694,8 @@ impl Widget for HexKnob {
 
         // TODO: Get hover status from `self` (fine vs coarse area)
         let hover_this_widget = state.hovered == entity;
-        let hover      = hover_this_widget && self.hover;
-        let fine_hover = hover_this_widget && self.hover_fine;;
+        let hover      = hover_this_widget && self.hover == Some(HexKnobZone::Coarse);
+        let fine_hover = hover_this_widget && self.hover == Some(HexKnobZone::Fine);
 
         let highlight =
             if !model.enabled() {
