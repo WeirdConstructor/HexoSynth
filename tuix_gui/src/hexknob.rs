@@ -525,6 +525,46 @@ struct HexValueDrag {
 }
 
 impl HexValueDrag {
+    fn from_state(
+        state: &mut State, model: &mut ParamModel, btn: MouseButton, zone: HexKnobZone)
+    -> Option<Self>
+    {
+        let is_modamt = MouseButton::Right == btn.into();
+
+        let (res, step_dt) =
+            match zone {
+                HexKnobZone::Coarse => (
+                    ChangeRes::Coarse,
+                    model.get_ui_steps().0,
+                ),
+                HexKnobZone::Fine => (
+                    ChangeRes::Fine,
+                    model.get_ui_steps().1,
+                ),
+            };
+
+        let res =
+            if state.modifiers.ctrl { ChangeRes::Free }
+            else { res };
+
+        Some(Self {
+            value:
+                if is_modamt { model.get_mod_amt().unwrap_or(0.0) }
+                else         { model.get() },
+            step_dt,
+            zone,
+            res,
+            is_modamt,
+            btn,
+            pre_fine_delta: 0.0,
+            fine_key:       state.modifiers.shift,
+            mouse_start: (
+                state.mouse.cursorx,
+                state.mouse.cursory
+            ),
+        })
+    }
+
     fn calc_delta_value(&self, x: f32, y: f32) -> f32 {
         let pos_delta = self.delta(x, y);
         let steps =
@@ -542,6 +582,12 @@ impl HexValueDrag {
         if !self.is_modamt {
             model.change_start();
         }
+    }
+
+    pub fn wheel(&mut self, model: &mut dyn ParamModel, wheel_y: f32) {
+        model.change_end(
+            self.value + self.step_dt * (wheel_y as f32),
+            ChangeRes::Free);
     }
 
     pub fn change(&mut self, model: &mut dyn ParamModel, x: f32, y: f32) {
@@ -685,57 +731,25 @@ impl Widget for HexKnob {
                         } else {
                             MouseButton::Left
                         };
-                    let zone_info =
-                        match self.cursor_zone(
+
+                    if let Some(zone) =
+                        self.cursor_zone(
                             state, entity,
                             state.mouse.cursorx,
                             state.mouse.cursory)
+                    {
+                        if let Some(mut hvd) =
+                            HexValueDrag::from_state(state, &mut *model, btn, zone)
                         {
-                            Some(HexKnobZone::Coarse) =>
-                                Some((
-                                    HexKnobZone::Coarse,
-                                    ChangeRes::Coarse,
-                                    model.get_ui_steps().0,
-                                )),
-                            Some(HexKnobZone::Fine)   =>
-                                Some((
-                                    HexKnobZone::Fine,
-                                    ChangeRes::Fine,
-                                    model.get_ui_steps().1,
-                                )),
-                            _ => None,
-                        };
+                            hvd.start(&mut *model);
+                            self.drag = Some(hvd);
 
-                    if let Some((zone, res, step_dt)) = zone_info {
-                        let res =
-                            if state.modifiers.ctrl { ChangeRes::Free }
-                            else { res };
-
-                        let is_modamt = MouseButton::Right == btn.into();
-
-                        let mut hvd = HexValueDrag {
-                            value:
-                                if is_modamt { model.get_mod_amt().unwrap_or(0.0) }
-                                else         { model.get() },
-                            step_dt,
-                            zone,
-                            res,
-                            is_modamt,
-                            btn,
-                            pre_fine_delta: 0.0,
-                            fine_key:       state.modifiers.shift,
-                            mouse_start: (
-                                state.mouse.cursorx,
-                                state.mouse.cursory
-                            ),
-                        };
-                        hvd.start(&mut *model);
-                        self.drag = Some(hvd);
-
-                        state.insert_event(
-                            Event::new(WindowEvent::Redraw)
-                                .target(Entity::root()));
+                            state.insert_event(
+                                Event::new(WindowEvent::Redraw)
+                                    .target(Entity::root()));
+                        }
                     }
+
                     state.capture(entity);
                     state.focused = entity;
                 },
@@ -779,6 +793,24 @@ impl Widget for HexKnob {
                     }
                 },
                 WindowEvent::MouseScroll(x, y) => {
+                    if let Some(zone) =
+                        self.cursor_zone(
+                            state, entity,
+                            state.mouse.cursorx,
+                            state.mouse.cursory)
+                    {
+                        if let Some(mut hvd) =
+                            HexValueDrag::from_state(
+                                state, &mut *model, MouseButton::Left, zone)
+                        {
+                            hvd.start(&mut *model);
+                            hvd.wheel(&mut *model, *y);
+
+                            state.insert_event(
+                                Event::new(WindowEvent::Redraw)
+                                    .target(Entity::root()));
+                        }
+                    }
                 },
                 WindowEvent::KeyDown(code, key) => {
                     if    Code::ShiftLeft  == *code
