@@ -535,7 +535,7 @@ impl HexValueDrag {
     }
 
     fn delta(&self, x: f32, y: f32) -> f32 {
-        self.mouse_start.1.round() - y.round()
+        self.mouse_start.1 - y
     }
 
     pub fn start(&mut self, model: &mut dyn ParamModel) {
@@ -677,7 +677,14 @@ impl Widget for HexKnob {
                         },
                     }
                 },
-                WindowEvent::MouseDown(btn) => {
+                  WindowEvent::MouseDown(MouseButton::Left)
+                | WindowEvent::MouseDown(MouseButton::Right) => {
+                    let btn =
+                        if let WindowEvent::MouseDown(btn) = window_event {
+                            *btn
+                        } else {
+                            MouseButton::Left
+                        };
                     let zone_info =
                         match self.cursor_zone(
                             state, entity,
@@ -704,7 +711,7 @@ impl Widget for HexKnob {
                             if state.modifiers.ctrl { ChangeRes::Free }
                             else { res };
 
-                        let is_modamt = MouseButton::Right == (*btn).into();
+                        let is_modamt = MouseButton::Right == btn.into();
 
                         let mut hvd = HexValueDrag {
                             value:
@@ -714,7 +721,7 @@ impl Widget for HexKnob {
                             zone,
                             res,
                             is_modamt,
-                            btn: *btn,
+                            btn,
                             pre_fine_delta: 0.0,
                             fine_key:       state.modifiers.shift,
                             mouse_start: (
@@ -731,6 +738,12 @@ impl Widget for HexKnob {
                     }
                     state.capture(entity);
                     state.focused = entity;
+                },
+                WindowEvent::MouseUp(MouseButton::Middle) => {
+                    model.set_default();
+                    state.insert_event(
+                        Event::new(WindowEvent::Redraw)
+                            .target(Entity::root()));
                 },
                 WindowEvent::MouseUp(btn) => {
                     if let Some(mut hvd) = self.drag.take() {
