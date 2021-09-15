@@ -427,7 +427,10 @@ impl ParamModel for DummyParamModel {
     fn get_denorm(&self) -> f32 { self.get() * 100.0 }
     fn get(&self) -> f32 { self.value }
 
-    fn set_default(&mut self) { self.value = 0.25; }
+    fn set_default(&mut self) {
+        self.value = 0.25;
+        self.modamt = None;
+    }
     fn change_start(&mut self) { }
     fn change(&mut self, v: f32, single: bool, res: ChangeRes) {
         match res {
@@ -500,6 +503,8 @@ enum HexKnobZone {
 /// and holding down the mouse button while moving the mouse.
 /// A mouse up event ends the drag mode.
 struct HexValueDrag {
+    /// The initial mouse position of the current gesture:
+    mouse_start:    (f32, f32),
     /// The original value of the parameter that was initially clicked on.
     value:          f32,
     /// The modification step, a parameter that will define how coarse/fine
@@ -507,9 +512,6 @@ struct HexValueDrag {
     step_dt:        f32,
     /// The `ActiveZone` the current drag action belongs to.
     zone:           HexKnobZone,
-//    /// The original position the mouse cursor was on when pressing mouse
-//    /// button down.
-//    orig_pos:       (f32, f32),
     /// A delta value that is set when the user hits the Shift key.
     pre_fine_delta: f32,
     /// Whether the Shift key was pressed.
@@ -523,12 +525,17 @@ struct HexValueDrag {
 }
 
 impl HexValueDrag {
-    fn calc_delta_value(&self, pos_delta: f32) -> f32 {
+    fn calc_delta_value(&self, x: f32, y: f32) -> f32 {
+        let pos_delta = self.delta(x, y);
         let steps =
             if self.fine_key { pos_delta / 100.0 }
             else             { pos_delta / 10.0 };
 
         steps * self.step_dt
+    }
+
+    fn delta(&self, x: f32, y: f32) -> f32 {
+        self.mouse_start.1.round() - y.round()
     }
 
     pub fn start(&mut self, model: &mut dyn ParamModel) {
@@ -537,25 +544,46 @@ impl HexValueDrag {
         }
     }
 
-    pub fn change(&mut self, model: &mut dyn ParamModel, pos_delta: f32) {
-        let v = self.value + self.calc_delta_value(pos_delta);
+    pub fn change(&mut self, model: &mut dyn ParamModel, x: f32, y: f32) {
+        let v = self.value + self.calc_delta_value(x, y) + self.pre_fine_delta;
 
         if self.is_modamt {
             model.set_mod_amt(Some(v));
 
         } else {
-            model.change(v, false, self.res);
+            if (self.value - v).abs() < std::f32::EPSILON {
+                // XXX: Prevent rounding if we did not change the value:
+                model.change_end(v, ChangeRes::Free);
+            } else {
+                model.change(v, false, self.res);
+            }
         }
     }
 
-    pub fn end(&mut self, model: &mut dyn ParamModel, pos_delta: f32) {
-        let v = self.value + self.calc_delta_value(pos_delta);
+    pub fn set_fine_res(&mut self, model: &mut dyn ParamModel, x: f32, y: f32) {
+        self.res = ChangeRes::Free;
+        self.change(model, x, y);
+    }
+
+    pub fn enable_fine_key(&mut self, model: &mut dyn ParamModel, x: f32, y: f32) {
+        self.pre_fine_delta = self.calc_delta_value(x, y);
+        self.fine_key = true;
+        self.mouse_start = (x, y);
+    }
+
+    pub fn end(&mut self, model: &mut dyn ParamModel, x: f32, y: f32) {
+        let v = self.value + self.calc_delta_value(x, y) + self.pre_fine_delta;
 
         if self.is_modamt {
             model.set_mod_amt(Some(v));
 
         } else {
-            model.change_end(v, self.res);
+            if (self.value - v).abs() < std::f32::EPSILON {
+                // XXX: Prevent rounding if we did not change the value:
+                model.change_end(v, ChangeRes::Free);
+            } else {
+                model.change_end(v, self.res);
+            }
         }
     }
 }
@@ -616,15 +644,6 @@ impl HexKnob {
     }
 }
 
-fn button_delta(state: &mut State, btn: MouseButton) -> f32 {
-    match btn {
-        MouseButton::Left   => state.mouse.left.pos_down.1   - state.mouse.cursory,
-        MouseButton::Right  => state.mouse.right.pos_down.1  - state.mouse.cursory,
-        MouseButton::Middle => state.mouse.middle.pos_down.1 - state.mouse.cursory,
-        _ => 0.0,
-    }
-}
-
 impl Widget for HexKnob {
     type Ret  = Entity;
     type Data = Rc<RefCell<dyn ParamModel>>;
@@ -645,6 +664,19 @@ impl Widget for HexKnob {
             let mut model = self.model.borrow_mut();
 
             match window_event {
+                WindowEvent::MouseDoubleClick(btn) => {
+                    match btn {
+                        MouseButton::Left => {
+                            model.set_default();
+                            self.drag = None;
+                            state.insert_event(
+                                Event::new(WindowEvent::Redraw)
+                                    .target(Entity::root()));
+                        },
+                        _ => {
+                        },
+                    }
+                },
                 WindowEvent::MouseDown(btn) => {
                     let zone_info =
                         match self.cursor_zone(
@@ -668,6 +700,10 @@ impl Widget for HexKnob {
                         };
 
                     if let Some((zone, res, step_dt)) = zone_info {
+                        let res =
+                            if state.modifiers.ctrl { ChangeRes::Free }
+                            else { res };
+
                         let is_modamt = MouseButton::Right == (*btn).into();
 
                         let mut hvd = HexValueDrag {
@@ -680,7 +716,11 @@ impl Widget for HexKnob {
                             is_modamt,
                             btn: *btn,
                             pre_fine_delta: 0.0,
-                            fine_key:       false,
+                            fine_key:       state.modifiers.shift,
+                            mouse_start: (
+                                state.mouse.cursorx,
+                                state.mouse.cursory
+                            ),
                         };
                         hvd.start(&mut *model);
                         self.drag = Some(hvd);
@@ -690,10 +730,14 @@ impl Widget for HexKnob {
                                 .target(Entity::root()));
                     }
                     state.capture(entity);
+                    state.focused = entity;
                 },
                 WindowEvent::MouseUp(btn) => {
                     if let Some(mut hvd) = self.drag.take() {
-                        hvd.end(&mut *model, button_delta(state, hvd.btn));
+                        hvd.end(
+                            &mut *model,
+                            state.mouse.cursorx,
+                            state.mouse.cursory);
 
                         state.insert_event(
                             Event::new(WindowEvent::Redraw)
@@ -706,7 +750,10 @@ impl Widget for HexKnob {
                     self.hover    = self.cursor_zone(state, entity, *x, *y);
 
                     if let Some(ref mut hvd) = self.drag {
-                        hvd.change(&mut *model, button_delta(state, hvd.btn));
+                        hvd.change(
+                            &mut *model,
+                            state.mouse.cursorx,
+                            state.mouse.cursory);
 
                         state.insert_event(
                             Event::new(WindowEvent::Redraw)
@@ -719,6 +766,27 @@ impl Widget for HexKnob {
                     }
                 },
                 WindowEvent::MouseScroll(x, y) => {
+                },
+                WindowEvent::KeyDown(code, key) => {
+                    if    Code::ShiftLeft  == *code
+                       || Code::ShiftRight == *code
+                    {
+                        if let Some(ref mut hvd) = self.drag {
+                            hvd.enable_fine_key(
+                                &mut *model,
+                                state.mouse.cursorx,
+                                state.mouse.cursory);
+                        }
+                    }
+                    else if Code::ControlLeft == *code
+                    {
+                        if let Some(ref mut hvd) = self.drag {
+                            hvd.set_fine_res(
+                                &mut *model,
+                                state.mouse.cursorx,
+                                state.mouse.cursory);
+                        }
+                    }
                 },
                 _ => {},
             }
