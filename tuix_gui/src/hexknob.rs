@@ -643,6 +643,9 @@ pub struct HexKnob {
     knob:       Knob,
     hover:      Option<HexKnobZone>,
     drag:       Option<HexValueDrag>,
+
+    popup:      Entity,
+    text_box:   Entity,
 }
 
 impl HexKnob {
@@ -656,6 +659,9 @@ impl HexKnob {
             knob:       Knob::new(28.0, UI_BG_KNOB_STROKE, 12.0, 9.0, UI_ELEM_TXT_H),
             hover:      None,
             drag:       None,
+
+            popup:      Entity::null(),
+            text_box:   Entity::null(),
         }
     }
 }
@@ -695,6 +701,30 @@ impl Widget for HexKnob {
     type Data = Rc<RefCell<dyn ParamModel>>;
 
     fn on_build(&mut self, state: &mut State, entity: Entity) -> Self::Ret {
+
+        self.popup = Popup::new().build(state, Entity::root(), |builder|
+            builder
+                .set_width(Pixels(100.0))
+                .set_height(Pixels(200.0))
+                .set_z_order(100)
+                .set_background_color(
+                    Color::rgb(
+                        (UI_BG_CLR.0 * 255.0) as u8,
+                        (UI_BG_CLR.1 * 255.0) as u8,
+                        (UI_BG_CLR.2 * 255.0) as u8))
+        );
+
+        self.text_box =
+            Textbox::new("test")
+                .on_submit(|data, state, textbox|{
+    //                if let Ok(temp) = data.text.parse::<f32>() {
+                            println!("TEXT: {}", data.text);
+    //                    textbox.emit(state, AppEvent::SetCelcius(temp));
+    //                }
+                })
+    //            .bind(AppData::temperature_celcius, |temp| temp.to_string())
+                .build(state, self.popup, |builder| builder);
+
         entity.set_position_type(state, PositionType::ParentDirected)
               .set_clip_widget(state, entity)
     }
@@ -760,6 +790,18 @@ impl Widget for HexKnob {
                             .target(Entity::root()));
                 },
                 WindowEvent::MouseUp(btn) => {
+                    state.release(entity);
+
+                    if *btn == MouseButton::Right && state.modifiers.ctrl {
+                        println!("POPUP!");
+                        entity.emit_to(
+                            state, self.popup, PopupEvent::OpenAtCursor);
+                        state.focused = self.text_box;
+                        state.insert_event(
+                            Event::new(WindowEvent::Redraw)
+                                .target(Entity::root()));
+                    }
+
                     if let Some(mut hvd) = self.drag.take() {
                         hvd.end(
                             &mut *model,
@@ -770,7 +812,6 @@ impl Widget for HexKnob {
                             Event::new(WindowEvent::Redraw)
                                 .target(Entity::root()));
                     }
-                    state.release(entity);
                 },
                 WindowEvent::MouseMove(x, y) => {
                     let old_hover = self.hover;
