@@ -361,6 +361,14 @@ pub trait ParamModel {
     /// Should return the normalized paramter value.
     fn get(&self) -> f32;
 
+    /// Sets the given normalized value. Internally calls [change]
+    /// to do the actual change.
+    fn set(&mut self, v: f32) {
+        self.change_start();
+        self.change(v, ChangeRes::Free);
+        self.change_end(v, ChangeRes::Free);
+    }
+
     /// Should return true if the UI for the parameter can be changed
     /// by the user. In HexoSynth this might return false if the
     /// corresponding input is controlled by an output port.
@@ -396,11 +404,32 @@ pub trait ParamModel {
     fn fmt_norm(&self, buf: &mut [u8]) -> usize;
     fn fmt_name(&self, buf: &mut [u8]) -> usize;
 
+    fn fmt_to_string(&self) -> String {
+        let mut buf = [0; 255];
+        let len = self.fmt(&mut buf);
+        std::str::from_utf8(&buf[0..len]).unwrap().to_string()
+    }
+
+    fn fmt_norm_mod_to_string(&self) -> String {
+        if let Some(v) = self.get_mod_amt() {
+            format!("{:6.3}", v)
+        } else {
+            "".to_string()
+        }
+    }
+
+    fn fmt_norm_to_string(&self) -> String {
+        let mut buf = [0; 255];
+        let len = self.fmt_norm(&mut buf);
+        std::str::from_utf8(&buf[0..len]).unwrap().to_string()
+    }
+
     fn get_denorm(&self) -> f32;
+    fn set_denorm(&mut self, v: f32);
 
     fn set_default(&mut self);
     fn change_start(&mut self);
-    fn change(&mut self, v: f32, single: bool, res: ChangeRes);
+    fn change(&mut self, v: f32, res: ChangeRes);
     fn change_end(&mut self, v: f32, res: ChangeRes);
 }
 
@@ -425,6 +454,7 @@ impl ParamModel for DummyParamModel {
     fn set_mod_amt(&mut self, amt: Option<f32>) { self.modamt = amt; }
     fn get_ui_range(&self) -> f32 { self.get() }
     fn get_denorm(&self) -> f32 { self.get() * 100.0 }
+    fn set_denorm(&mut self, v: f32) { self.set(v / 100.0) }
     fn get(&self) -> f32 { self.value }
 
     fn set_default(&mut self) {
@@ -432,7 +462,7 @@ impl ParamModel for DummyParamModel {
         self.modamt = None;
     }
     fn change_start(&mut self) { }
-    fn change(&mut self, v: f32, single: bool, res: ChangeRes) {
+    fn change(&mut self, v: f32, res: ChangeRes) {
         match res {
             ChangeRes::Free   => { self.value = v; },
             ChangeRes::Fine   => { self.value = (v * 100.0).round() / 100.0; }
@@ -601,7 +631,7 @@ impl HexValueDrag {
                 // XXX: Prevent rounding if we did not change the value:
                 model.change_end(v, ChangeRes::Free);
             } else {
-                model.change(v, false, self.res);
+                model.change(v, self.res);
             }
         }
     }
@@ -644,8 +674,10 @@ pub struct HexKnob {
     hover:      Option<HexKnobZone>,
     drag:       Option<HexValueDrag>,
 
-    popup:      Entity,
-    text_box:   Entity,
+    popup:          Entity,
+    text_box:       Entity,
+    text_box_norm:  Entity,
+    text_box_mod:   Entity,
 }
 
 impl HexKnob {
@@ -660,8 +692,10 @@ impl HexKnob {
             hover:      None,
             drag:       None,
 
-            popup:      Entity::null(),
-            text_box:   Entity::null(),
+            popup:          Entity::null(),
+            text_box:       Entity::null(),
+            text_box_norm:  Entity::null(),
+            text_box_mod:   Entity::null(),
         }
     }
 }
@@ -714,16 +748,53 @@ impl Widget for HexKnob {
                         (UI_BG_CLR.2 * 255.0) as u8))
         );
 
+        let col = Column::new().build(state, self.popup, |builder| builder);
+
+        let txtmodel = self.model.clone();
         self.text_box =
             Textbox::new("test")
-                .on_submit(|data, state, textbox|{
-    //                if let Ok(temp) = data.text.parse::<f32>() {
-                            println!("TEXT: {}", data.text);
-    //                    textbox.emit(state, AppEvent::SetCelcius(temp));
-    //                }
+                .on_submit(move |data, state, textbox|{
+                    textbox.emit(state, PopupEvent::Close);
+
+                    if data.text.len() > 0 {
+                        let txt = data.text.replace(",", ".");
+                        if let Ok(v) = txt.parse::<f32>() {
+                            txtmodel.borrow_mut().set_denorm(v);
+                        }
+                    }
                 })
-    //            .bind(AppData::temperature_celcius, |temp| temp.to_string())
-                .build(state, self.popup, |builder| builder);
+                .build(state, col, |builder| builder);
+
+        let txtmodel = self.model.clone();
+        self.text_box_norm =
+            Textbox::new("test")
+                .on_submit(move |data, state, textbox|{
+                    textbox.emit(state, PopupEvent::Close);
+
+                    if data.text.len() > 0 {
+                        let txt = data.text.replace(",", ".");
+                        if let Ok(v) = txt.parse::<f32>() {
+                            txtmodel.borrow_mut().set(v);
+                        }
+                    }
+                })
+                .build(state, col, |builder| builder);
+
+        let txtmodel = self.model.clone();
+        self.text_box_mod =
+            Textbox::new("test")
+                .on_submit(move |data, state, textbox|{
+                    textbox.emit(state, PopupEvent::Close);
+
+                    let txt = data.text.replace(",", ".");
+                    if txt.trim().len() == 0 {
+                        txtmodel.borrow_mut().set_mod_amt(None);
+
+                    } else if let Ok(v) = txt.parse::<f32>() {
+                        txtmodel.borrow_mut().set_mod_amt(Some(v));
+                    }
+                })
+                .build(state, col, |builder| builder);
 
         entity.set_position_type(state, PositionType::ParentDirected)
               .set_clip_widget(state, entity)
@@ -795,8 +866,18 @@ impl Widget for HexKnob {
                     if *btn == MouseButton::Right && state.modifiers.ctrl {
                         println!("POPUP!");
                         entity.emit_to(
+                            state, self.text_box,
+                            TextboxEvent::SetValue(model.fmt_to_string()));
+                        entity.emit_to(
+                            state, self.text_box_norm,
+                            TextboxEvent::SetValue(model.fmt_norm_to_string()));
+                        entity.emit_to(
+                            state, self.text_box_mod,
+                            TextboxEvent::SetValue(model.fmt_norm_mod_to_string()));
+
+                        entity.emit_to(
                             state, self.popup, PopupEvent::OpenAtCursor);
-                        state.focused = self.text_box;
+                        state.set_focus(self.text_box);
                         state.insert_event(
                             Event::new(WindowEvent::Redraw)
                                 .target(Entity::root()));
