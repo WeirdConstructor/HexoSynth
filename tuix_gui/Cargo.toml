@@ -8,5 +8,5 @@ edition = "2018"
 [dependencies]
 wlambda = { path = "../../wlambda" }
 tuix    = { path = "../../tuix" }
-femtovg = { git = "https://github.com/femtovg/femtovg", branch = "master"}
+femtovg = "0.2.5"
 hexodsp = { git = "https://github.com/WeirdConstructor/HexoDSP" }

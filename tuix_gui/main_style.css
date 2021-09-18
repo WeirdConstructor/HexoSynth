@@ -1,0 +1,25 @@
+button {
+    border-radius: 16px;
+    border-corner-shape: bevel;
+    border-width: 2px;
+    border-color: UI_ACCENT_CLR;
+    background-color: UI_LBL_BG_CLR;
+    color: UI_PRIM_CLR;
+    space: 1s;
+    child-space: 1s;
+    outer-shadow: 4px 4px 7px UI_PRIM_CLR;
+}
+
+button:hover {
+    border-color: UI_HLIGHT_CLR;
+    color: UI_HLIGHT_CLR;
+    outer-shadow: 4px 4px 7px UI_SELECT_CLR;
+}
+
+button:active {
+    border-color: UI_SELECT_CLR;
+    outer-shadow: 0px 0px 10px UI_SELECT_CLR;
+}
+
+label {
+}

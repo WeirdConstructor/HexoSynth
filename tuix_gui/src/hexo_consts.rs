@@ -26,6 +26,13 @@ pub fn lighten_clr(depth: u32, clr: (f32, f32, f32)) -> (f32, f32, f32) {
      (clr.2 * (1.2_f32).powf(depth as f32)).clamp(0.0, 1.0))
 }
 
+pub fn tpl2clr(clr: (f32, f32, f32)) -> tuix::Color {
+    tuix::Color::rgb(
+        (clr.0 * 255.0) as u8,
+        (clr.1 * 255.0) as u8,
+        (clr.2 * 255.0) as u8)
+}
+
 pub const UI_BOX_H          : f32 = 200.0;
 pub const UI_BOX_BORD       : f32 =   3.0;
 pub const UI_MARGIN         : f32 =   4.0;

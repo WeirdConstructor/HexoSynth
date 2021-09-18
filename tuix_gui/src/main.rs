@@ -14,7 +14,7 @@ mod rect;
 use painter::FemtovgPainter;
 use hexgrid::{HexGrid, HexGridModel, HexCell, HexDir, HexEdge, HexHLight};
 use hexknob::{HexKnob, ParamModel};
-use hexo_consts::MButton;
+use hexo_consts::*;
 
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -126,6 +126,7 @@ enum GUIAction {
     NewHexKnob(i64, i64),
     NewButton(i64, i64, String, VVal),
     SetText(i64, String),
+    AddTheme(String),
     Redraw,
 }
 
@@ -184,6 +185,12 @@ impl GUIActionRecorder {
             r.borrow_mut().actions.push(
                 GUIAction::SetText(
                     env.arg(0).i(), env.arg(1).s_raw()));
+            Ok(VVal::None)
+        });
+
+        set_vval_method!(obj, r, add_theme, Some(1), Some(1), env, _argc, {
+            r.borrow_mut().actions.push(
+                GUIAction::AddTheme(env.arg(0).s_raw()));
             Ok(VVal::None)
         });
 
@@ -253,6 +260,16 @@ impl GUIActionRecorder {
                             Row::new().build(state, *parent, |builder| builder));
                     }
                 },
+                GUIAction::NewHexKnob(parent, out) => {
+                    if let Some(GUIRef::Ent(parent)) = self.refs.get(*parent as usize) {
+                        self.refs[*out as usize] = GUIRef::Ent(
+                            HexKnob::new().build(state, *parent, |builder| { builder }));
+                    }
+                },
+                GUIAction::AddTheme(theme) => {
+                    state.add_theme(theme);
+                    println!("ADDTHEME: {}", theme);
+                },
                 GUIAction::NewButton(parent, out, label, on_click) => {
                     if let Some(GUIRef::Ent(parent)) = self.refs.get(*parent as usize) {
                         let wl_ctx   = wl_ctx.clone();
@@ -266,7 +283,7 @@ impl GUIActionRecorder {
                                         sr.clone(), wl_ctx.clone(),
                                         state, button, on_click.clone());
                                 })
-                                .build(state, *parent, |builder| builder));
+                                .build(state, *parent, |builder| { builder }));
                     }
                 },
                 GUIAction::SetText(entity, text) => {
@@ -296,6 +313,24 @@ pub struct UIState {
 impl Model for UIState {
 }
 
+struct HiddenThingie;
+impl Widget for HiddenThingie {
+    type Ret = Entity;
+    type Data = ();
+
+    fn on_build(&mut self, state: &mut State, entity: Entity) -> Self::Ret {
+        entity
+    }
+
+    fn on_draw(&mut self, state: &mut State, entity: Entity, canvas: &mut Canvas) {
+        state.fonts.regular =
+            Some(
+                canvas.add_font_mem(
+                    std::include_bytes!("font_mono.ttf"))
+                .expect("can load font"));
+    }
+}
+
 fn main() {
     let mut app =
         Application::new(
@@ -311,7 +346,13 @@ fn main() {
 
                 let (gui_rec, gui_rec_vval) = GUIActionRecorder::new_vval();
 
+                let thing = (HiddenThingie { }).build(state, app_data, |builder| builder);
+
                 let mut wl_ctx = EvalContext::new_default();
+
+                wl_ctx.set_global_var(
+                    "hexo_consts_rs",
+                    &VVal::new_str(std::include_str!("hexo_consts.rs")));
 
                 match wl_ctx.eval_file("main.wl") {
                     Ok(_) => { },
@@ -331,7 +372,7 @@ fn main() {
 
                 let gui_rec_self = gui_rec.clone();
 
-                gui_rec.borrow_mut().run(gui_rec_self, wl_ctx, state, app_data);
+                gui_rec.borrow_mut().run(gui_rec_self, wl_ctx, state, thing);
 
 //                let row = Row::new().build(state, app_data, |builder| builder);
 //
