@@ -32,4 +32,6 @@ iter line (("\n" => 0) hexo_consts_rs) {
         _.set_text btn ~ $F "Counter: {}" i;
         _.redraw[];
     };
+
+    ui.new_hexknob par;
 };

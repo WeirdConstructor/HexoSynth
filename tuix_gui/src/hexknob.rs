@@ -741,11 +741,6 @@ impl Widget for HexKnob {
                 .set_width(Pixels(100.0))
                 .set_height(Pixels(200.0))
                 .set_z_order(100)
-                .set_background_color(
-                    Color::rgb(
-                        (UI_BG_CLR.0 * 255.0) as u8,
-                        (UI_BG_CLR.1 * 255.0) as u8,
-                        (UI_BG_CLR.2 * 255.0) as u8))
         );
 
         let col = Column::new().build(state, self.popup, |builder| builder);
