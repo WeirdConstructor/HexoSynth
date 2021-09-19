@@ -326,11 +326,6 @@ impl Widget for HiddenThingie {
     }
 
     fn on_draw(&mut self, state: &mut State, entity: Entity, canvas: &mut Canvas) {
-        state.fonts.regular =
-            Some(
-                canvas.add_font_mem(
-                    std::include_bytes!("font_mono.ttf"))
-                .expect("can load font"));
     }
 }
 
@@ -351,6 +346,12 @@ fn main() {
                     let (gui_rec, gui_rec_vval) = GUIActionRecorder::new_vval();
 
                     let thing = (HiddenThingie { }).build(state, app_data, |builder| builder);
+
+                    state.add_font_mem(
+                        "font_mono",
+                        std::include_bytes!("font_mono.ttf"));
+
+                    state.set_default_font("font_mono");
 
                     let mut wl_ctx = EvalContext::new_default();
 
