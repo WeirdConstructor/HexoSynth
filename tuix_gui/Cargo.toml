@@ -6,7 +6,10 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-wlambda = { path = "../../wlambda" }
-tuix    = { path = "../../tuix" }
-femtovg = "0.2.5"
-hexodsp = { git = "https://github.com/WeirdConstructor/HexoDSP" }
+wlambda   = { path = "../../wlambda" }
+tuix      = { path = "../../tuix" }
+femtovg   = "0.2.5"
+#hexodsp   = { git = "https://github.com/WeirdConstructor/HexoDSP" }
+hexodsp   = { path = "../../hexodsp" }
+jack      = "0.6.6"
+hexosynth = { path = ".." }

@@ -11,6 +11,9 @@ mod painter;
 mod hexgrid;
 mod rect;
 
+mod jack;
+mod synth;
+
 use painter::FemtovgPainter;
 use hexgrid::{HexGrid, HexGridModel, HexCell, HexDir, HexEdge, HexHLight};
 use hexknob::{HexKnob, ParamModel};
@@ -332,81 +335,49 @@ impl Widget for HiddenThingie {
 }
 
 fn main() {
-    let mut app =
-        Application::new(
-            WindowDescription::new(),
-            |state, window| {
-                let ui_state =
-                    UIState {
-                        grid_1: Rc::new(RefCell::new(TestGridModel::new())),
-                        grid_2: Rc::new(RefCell::new(TestGridModel::new())),
-                    };
+    synth::start(|matrix| {
+        let mut app =
+            Application::new(
+                WindowDescription::new(),
+                |state, window| {
+                    let ui_state =
+                        UIState {
+                            grid_1: Rc::new(RefCell::new(TestGridModel::new())),
+                            grid_2: Rc::new(RefCell::new(TestGridModel::new())),
+                        };
 
-                let app_data = ui_state.build(state, window);
+                    let app_data = ui_state.build(state, window);
 
-                let (gui_rec, gui_rec_vval) = GUIActionRecorder::new_vval();
+                    let (gui_rec, gui_rec_vval) = GUIActionRecorder::new_vval();
 
-                let thing = (HiddenThingie { }).build(state, app_data, |builder| builder);
+                    let thing = (HiddenThingie { }).build(state, app_data, |builder| builder);
 
-                let mut wl_ctx = EvalContext::new_default();
+                    let mut wl_ctx = EvalContext::new_default();
 
-                wl_ctx.set_global_var(
-                    "hexo_consts_rs",
-                    &VVal::new_str(std::include_str!("hexo_consts.rs")));
+                    wl_ctx.set_global_var(
+                        "hexo_consts_rs",
+                        &VVal::new_str(std::include_str!("hexo_consts.rs")));
 
-                match wl_ctx.eval_file("main.wl") {
-                    Ok(_) => { },
-                    Err(e) => { panic!("Error in main.wl: {:?}", e); }
-                }
+                    match wl_ctx.eval_file("main.wl") {
+                        Ok(_) => { },
+                        Err(e) => { panic!("Error in main.wl: {:?}", e); }
+                    }
 
-                let init_fun =
-                    wl_ctx.get_global_var("init")
-                       .expect("global 'init' function in main.wl defined");
+                    let init_fun =
+                        wl_ctx.get_global_var("init")
+                           .expect("global 'init' function in main.wl defined");
 
-                match wl_ctx.call(&init_fun, &[gui_rec_vval]) {
-                    Ok(_) => {},
-                    Err(e) => { panic!("Error in main.wl 'init': {:?}", e); }
-                }
+                    match wl_ctx.call(&init_fun, &[gui_rec_vval]) {
+                        Ok(_) => {},
+                        Err(e) => { panic!("Error in main.wl 'init': {:?}", e); }
+                    }
 
-                let wl_ctx = Rc::new(RefCell::new(wl_ctx));
+                    let wl_ctx = Rc::new(RefCell::new(wl_ctx));
 
-                let gui_rec_self = gui_rec.clone();
+                    let gui_rec_self = gui_rec.clone();
 
-                gui_rec.borrow_mut().run(gui_rec_self, wl_ctx, state, thing);
-
-//                let row = Row::new().build(state, app_data, |builder| builder);
-//
-//                let hex =
-//                    HexGrid::new(1, 64.0)
-//                        .bind(UIState::grid_1, |value| value.clone())
-//                        .build(state, row, |builder| builder);
-//
-//                let hknob =
-//                    HexKnob::new()
-//                    .build(state, row, |builder| {
-//                        builder
-//                            .set_min_left(Units::Pixels(100.0))
-//                            .set_max_left(Units::Pixels(100.0))
-//                    });
-//                let hknob =
-//                    HexKnob::new()
-//                    .build(state, row, |builder| {
-//                        builder
-//                            .set_min_left(Units::Pixels(100.0))
-//                            .set_max_left(Units::Pixels(100.0))
-//                    });
-//                let hknob =
-//                    HexKnob::new()
-//                    .build(state, row, |builder| {
-//                        builder
-//                            .set_min_left(Units::Pixels(100.0))
-//                            .set_max_left(Units::Pixels(100.0))
-//                    });
-//
-//                let hex2 =
-//                    HexGrid::new(2, 72.0)
-//                        .bind(UIState::grid_2, |value| value.clone())
-//                        .build(state, row, |builder| builder);
-            });
-    app.run();
+                    gui_rec.borrow_mut().run(gui_rec_self, wl_ctx, state, thing);
+                });
+        app.run();
+    });
 }
