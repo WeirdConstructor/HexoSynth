@@ -19,7 +19,9 @@ iter line (("\n" => 0) hexo_consts_rs) {
         ~ replace_colors_in_text
         ~ std:io:file:read_text "main_style.css";
 
-    !par = ui.new_row 0;
+    !col = ui.new_col 0;
+
+    !par = ui.new_row col;
 
     !i = 0;
     !btn = $n;
@@ -34,4 +36,6 @@ iter line (("\n" => 0) hexo_consts_rs) {
     };
 
     ui.new_hexknob par;
+
+    ui.new_pattern_editor col;
 };

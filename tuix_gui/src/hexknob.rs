@@ -734,6 +734,10 @@ impl Widget for HexKnob {
     type Ret  = Entity;
     type Data = Rc<RefCell<dyn ParamModel>>;
 
+    fn widget_name(&self) -> String {
+        "hexknob".to_string()
+    }
+
     fn on_build(&mut self, state: &mut State, entity: Entity) -> Self::Ret {
 
         self.popup = Popup::new().build(state, Entity::root(), |builder|

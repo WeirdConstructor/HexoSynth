@@ -10,6 +10,7 @@ mod hexo_consts;
 mod painter;
 mod hexgrid;
 mod rect;
+mod pattern_editor;
 
 mod jack;
 mod synth;
@@ -17,6 +18,7 @@ mod synth;
 use painter::FemtovgPainter;
 use hexgrid::{HexGrid, HexGridModel, HexCell, HexDir, HexEdge, HexHLight};
 use hexknob::{HexKnob, ParamModel};
+use pattern_editor::PatternEditor;
 use hexo_consts::*;
 
 use std::rc::Rc;
@@ -126,7 +128,9 @@ impl HexGridModel for TestGridModel {
 #[derive(Debug)]
 enum GUIAction {
     NewRow(i64, i64),
+    NewCol(i64, i64),
     NewHexKnob(i64, i64),
+    NewPatternEditor(i64, i64),
     NewButton(i64, i64, String, VVal),
     SetText(i64, String),
     AddTheme(String),
@@ -202,9 +206,19 @@ impl GUIActionRecorder {
             Ok(VVal::Int(r.new_row(env.arg(0).i())))
         });
 
+        set_vval_method!(obj, r, new_col, Some(1), Some(1), env, _argc, {
+            let mut r = r.borrow_mut();
+            Ok(VVal::Int(r.new_col(env.arg(0).i())))
+        });
+
         set_vval_method!(obj, r, new_hexknob, Some(1), Some(1), env, _argc, {
             let mut r = r.borrow_mut();
             Ok(VVal::Int(r.new_hexknob(env.arg(0).i())))
+        });
+
+        set_vval_method!(obj, r, new_pattern_editor, Some(1), Some(1), env, _argc, {
+            let mut r = r.borrow_mut();
+            Ok(VVal::Int(r.new_pattern_editor(env.arg(0).i())))
         });
 
         set_vval_method!(obj, r, new_button, Some(3), Some(3), env, _argc, {
@@ -227,6 +241,12 @@ impl GUIActionRecorder {
         ret_ref
     }
 
+    pub fn new_pattern_editor(&mut self, parent: i64) -> i64 {
+        let ret_ref = self.new_ref();
+        self.actions.push(GUIAction::NewPatternEditor(parent, ret_ref));
+        ret_ref
+    }
+
     pub fn new_button(&mut self, parent: i64, label: String, on_click: VVal) -> i64 {
         let ret_ref = self.new_ref();
         self.actions.push(GUIAction::NewButton(parent, ret_ref, label, on_click));
@@ -236,6 +256,12 @@ impl GUIActionRecorder {
     pub fn new_row(&mut self, parent: i64) -> i64 {
         let ret_ref = self.new_ref();
         self.actions.push(GUIAction::NewRow(parent, ret_ref));
+        ret_ref
+    }
+
+    pub fn new_col(&mut self, parent: i64) -> i64 {
+        let ret_ref = self.new_ref();
+        self.actions.push(GUIAction::NewCol(parent, ret_ref));
         ret_ref
     }
 
@@ -263,10 +289,25 @@ impl GUIActionRecorder {
                             Row::new().build(state, *parent, |builder| builder));
                     }
                 },
+                GUIAction::NewCol(parent, out) => {
+                    if let Some(GUIRef::Ent(parent)) = self.refs.get(*parent as usize) {
+                        self.refs[*out as usize] = GUIRef::Ent(
+                            Column::new().build(state, *parent, |builder| builder));
+                    }
+                },
                 GUIAction::NewHexKnob(parent, out) => {
                     if let Some(GUIRef::Ent(parent)) = self.refs.get(*parent as usize) {
                         self.refs[*out as usize] = GUIRef::Ent(
                             HexKnob::new().build(state, *parent, |builder| { builder }));
+                    }
+                },
+                GUIAction::NewPatternEditor(parent, out) => {
+                    if let Some(GUIRef::Ent(parent)) = self.refs.get(*parent as usize) {
+                        self.refs[*out as usize] = GUIRef::Ent(
+                            PatternEditor::new(
+                                hexodsp::dsp::tracker::MAX_COLS,
+                                hexodsp::dsp::tracker::MAX_PATTERN_LEN)
+                            .build(state, *parent, |builder| { builder }));
                     }
                 },
                 GUIAction::AddTheme(theme) => {

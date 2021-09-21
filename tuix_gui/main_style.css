@@ -24,6 +24,10 @@ button:active {
 label {
 }
 
+row {
+    height: 0.3s;
+}
+
 popup {
     border-width: 2px;
     border-color: UI_BORDER_CLR;
@@ -59,4 +63,8 @@ textbox {
     border-corner-shape: bevel;
     border-radius: 16px;
     border-width: 2px;
+}
+
+hexknob {
+    space: 1s;
 }
