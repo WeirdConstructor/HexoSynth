@@ -65,6 +65,11 @@ textbox {
     border-width: 2px;
 }
 
-hexknob {
-    space: 1s;
+hex-knob {
+    space: 0.1s;
+}
+
+pattern-editor {
+    left: 1s;
+    right: 1s;
 }

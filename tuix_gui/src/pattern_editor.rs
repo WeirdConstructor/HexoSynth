@@ -22,12 +22,14 @@ pub const UI_TRK_COL_DIV_PAD       : f32 = 3.0;
 pub const UI_TRK_BG_CLR            : (f32, f32, f32) = UI_LBL_BG_CLR;
 pub const UI_TRK_BG_ALT_CLR        : (f32, f32, f32) = UI_LBL_BG_ALT_CLR;
 pub const UI_TRK_COL_DIV_CLR       : (f32, f32, f32) = UI_PRIM2_CLR;
-pub const UI_TRK_BORDER_CLR        : (f32, f32, f32) = UI_ACCENT_CLR;
-pub const UI_TRK_BORDER_HOVER_CLR  : (f32, f32, f32) = UI_HLIGHT_CLR;
-pub const UI_TRK_BORDER_EDIT_CLR   : (f32, f32, f32) = UI_SELECT_CLR;
-pub const UI_TRK_BORDER_INACT_CLR  : (f32, f32, f32) = UI_INACTIVE_CLR;
+//pub const UI_TRK_BORDER_CLR        : (f32, f32, f32) = UI_ACCENT_CLR;
+//pub const UI_TRK_BORDER_HOVER_CLR  : (f32, f32, f32) = UI_HLIGHT_CLR;
+//pub const UI_TRK_BORDER_EDIT_CLR   : (f32, f32, f32) = UI_SELECT_CLR;
+//pub const UI_TRK_BORDER_INACT_CLR  : (f32, f32, f32) = UI_INACTIVE_CLR;
 pub const UI_TRK_TEXT_CLR          : (f32, f32, f32) = UI_TXT_CLR;
-pub const UI_TRK_CURSOR_BG_CLR     : (f32, f32, f32) = UI_PRIM_CLR;
+pub const UI_TRK_CURSOR_BG_CLR     : (f32, f32, f32) = UI_PRIM2_CLR;
+pub const UI_TRK_CURSOR_BG_HOV_CLR : (f32, f32, f32) = UI_PRIM_CLR;
+pub const UI_TRK_CURSOR_BG_SEL_CLR : (f32, f32, f32) = UI_SELECT_CLR;
 pub const UI_TRK_CURSOR_FG_CLR     : (f32, f32, f32) = UI_LBL_BG_CLR;
 pub const UI_TRK_PHASEROW_BG_CLR   : (f32, f32, f32) = UI_HLIGHT_CLR;
 pub const UI_TRK_PHASEROW_FG_CLR   : (f32, f32, f32) = UI_LBL_BG_CLR;
@@ -500,6 +502,10 @@ impl Widget for PatternEditor {
 
     fn on_build(&mut self, state: &mut State, entity: Entity) -> Self::Ret {
         entity
+            .set_width(state, Pixels(UI_TRK_COL_WIDTH * 7.0))
+            .set_element(state, "pattern-editor")
+            .set_focusable(state, true)
+            .set_hoverable(state, true)
     }
 
     fn on_update(&mut self, state: &mut State, entity: Entity, data: &Self::Data) {
@@ -510,10 +516,41 @@ impl Widget for PatternEditor {
         if let Some(window_event) = event.message.downcast::<WindowEvent>() {
 
             match window_event {
+                WindowEvent::FocusOut => {
+                    self.enter_mode = EnterMode::None;
+                },
                 WindowEvent::MouseDoubleClick(btn) => {
                 },
                   WindowEvent::MouseDown(MouseButton::Left)
                 | WindowEvent::MouseDown(MouseButton::Right) => {
+
+                    let bounds = state.data.get_bounds(entity);
+
+                    let x = state.mouse.cursorx - bounds.x;
+                    let y = state.mouse.cursory - bounds.y;
+
+                    let pat = self.pattern.lock().unwrap();
+
+                    let xi = (x - self.cell_zone.x) / UI_TRK_COL_WIDTH;
+                    let yi = (y - self.cell_zone.y) / UI_TRK_ROW_HEIGHT;
+
+                    let xi = xi.max(1.0);
+                    let yi = yi.max(1.0);
+
+                    let row_scroll_offs = self.calc_row_offs(self.rows);
+                    let yr = (yi as usize - 1) + row_scroll_offs;
+
+                    //d// println!("INDEX: {} {},{} => {},{}", index, x, y, xi, yi);
+                    self.cursor = (yr, xi as usize - 1);
+
+                    self.cursor.0 = self.cursor.0.min(pat.rows() - 1);
+                    self.cursor.1 = self.cursor.1.min(pat.cols() - 1);
+
+                    state.set_focus(entity);
+
+                    state.insert_event(
+                        Event::new(WindowEvent::Redraw)
+                            .target(Entity::root()));
                 },
                 WindowEvent::MouseUp(MouseButton::Middle) => {
                 },
@@ -522,9 +559,38 @@ impl Widget for PatternEditor {
                 WindowEvent::MouseMove(x, y) => {
                 },
                 WindowEvent::MouseScroll(x, y) => {
+                    let pat = self.pattern.lock().unwrap();
+
+                    if *y > 0.0 {
+                        if self.cursor.0 > 0 {
+                            self.cursor.0 -= 1;
+                        }
+                    } else {
+                        if (self.cursor.0 + 1) < pat.rows() {
+                            self.cursor.0 += 1;
+                        }
+                    }
+
+                    state.insert_event(
+                        Event::new(WindowEvent::Redraw)
+                            .target(Entity::root()));
+                },
+                WindowEvent::CharInput(c) => {
+                    self.handle_key_event(
+                        state,
+                        &Key::Character(c.to_string()));
+
+                    state.insert_event(
+                        Event::new(WindowEvent::Redraw)
+                            .target(Entity::root()));
                 },
                 WindowEvent::KeyDown(code, key) => {
                     println!("KEY: {:?}", key);
+
+                    if let Some(key) = key {
+                        self.handle_key_event(state, key);
+                    }
+
                     state.insert_event(
                         Event::new(WindowEvent::Redraw)
                             .target(Entity::root()));
@@ -549,6 +615,12 @@ impl Widget for PatternEditor {
         };
 
         let pos : Rect = bounds.into();
+        let pos = Rect {
+            x: pos.x.floor(),
+            y: pos.y.floor(),
+            w: pos.w.floor(),
+            h: pos.h.floor(),
+        };
 
 //        let id        = data.id();
 //        let highlight = ui.hl_style_for(id, None);
@@ -563,7 +635,7 @@ impl Widget for PatternEditor {
 
         let mut notify_click = false;
 
-        let border_color =
+//        let border_color =
 //                match highlight {
 //                    HLStyle::Hover(_) => {
 //                        if data.enter_mode != EnterMode::None {
@@ -578,13 +650,14 @@ impl Widget for PatternEditor {
 //                    },
 //                    _ => {
 //                        data.enter_mode = EnterMode::None;
-                    UI_TRK_BORDER_CLR
+//                    UI_TRK_BORDER_CLR
 //                    },
 //                };
-        ;
+//        ;
 
-        let pos =
-            rect_border(p, UI_TRK_BORDER, border_color, UI_TRK_BG_CLR, pos);
+        p.rect_fill(UI_TRK_BG_CLR, pos.x, pos.y, pos.w, pos.h);
+//        let pos =
+//            rect_border(p, UI_TRK_BORDER, border_color, UI_TRK_BG_CLR, pos);
 
         let mode_line =
             match self.enter_mode {
@@ -751,7 +824,13 @@ impl Widget for PatternEditor {
                     if (ir, ic) == self.cursor || ir == phase_row {
                         p.rect_fill(
                             if (ir, ic) == self.cursor {
-                                UI_TRK_CURSOR_BG_CLR
+                                if state.focused == entity {
+                                    UI_TRK_CURSOR_BG_SEL_CLR
+                                } else if state.hovered == entity {
+                                    UI_TRK_CURSOR_BG_HOV_CLR
+                                } else {
+                                    UI_TRK_CURSOR_BG_CLR
+                                }
                             } else { UI_TRK_PHASEROW_BG_CLR },
                             pos.x + x,
                             pos.y + y,
@@ -763,6 +842,42 @@ impl Widget for PatternEditor {
                         } else {
                             UI_TRK_PHASEROW_FG_CLR
                         }
+                    } else if
+                           (   state.focused == entity
+                            || state.hovered == entity)
+                        && ir == self.cursor.0
+                    {
+                        let hl_clr =
+                            if state.focused == entity {
+                                UI_TRK_CURSOR_BG_SEL_CLR
+                            } else { // if state.hovered == entity {
+                                UI_TRK_CURSOR_BG_HOV_CLR
+                            };
+
+                        if (ir, ic) == self.cursor {
+                            p.rect_fill(
+                                hl_clr,
+                                pos.x + x,
+                                pos.y + y,
+                                UI_TRK_COL_WIDTH,
+                                UI_TRK_ROW_HEIGHT);
+
+                        } else {
+                            if self.enter_mode != EnterMode::None {
+                                p.path_stroke(
+                                    1.0,
+                                    hl_clr,
+                                    &mut [
+                                        (pos.x + x + 1.5,              pos.y + y + UI_TRK_ROW_HEIGHT - 0.5),
+                                        (pos.x + x + UI_TRK_COL_WIDTH - 0.5, pos.y + y + UI_TRK_ROW_HEIGHT - 0.5),
+                                        (pos.x + x + UI_TRK_COL_WIDTH - 0.5, pos.y + y + 0.5),
+                                        (pos.x + x + 1.5,              pos.y + y + 0.5),
+                                    ].iter().copied(),
+                                    true);
+                            }
+                        }
+
+                        UI_TRK_TEXT_CLR
                     } else {
                         UI_TRK_TEXT_CLR
                     };
@@ -974,60 +1089,3 @@ fn num_from_char(c: &str) -> Option<u16> {
         _ => None,
     }
 }
-
-//    #[allow(clippy::collapsible_else_if)]
-//    fn event(&self, ui: &mut dyn WidgetUI, data: &mut WidgetData, ev: &UIEvent) {
-//        match ev {
-//            UIEvent::Click { id, x, y, .. } => {
-//                if *id == data.id() {
-//                    data.with(|data: &mut PatternEditorData| {
-//                        let pat = data.pattern.lock().unwrap();
-//
-//                        // TODO => find cell!
-//                        let xi = (x - data.cell_zone.x) / UI_TRK_COL_WIDTH;
-//                        let yi = (y - data.cell_zone.y) / UI_TRK_ROW_HEIGHT;
-//
-//                        let xi = xi.max(1.0);
-//                        let yi = yi.max(1.0);
-//
-//                        let row_scroll_offs = data.calc_row_offs(self.rows);
-//                        let yr = (yi as usize - 1) + row_scroll_offs;
-//
-//                        //d// println!("INDEX: {} {},{} => {},{}", index, x, y, xi, yi);
-//                        data.cursor = (yr, xi as usize - 1);
-//
-//                        data.cursor.0 = data.cursor.0.min(pat.rows() - 1);
-//                        data.cursor.1 = data.cursor.1.min(pat.cols() - 1);
-//
-//                        ui.queue_redraw();
-//                    });
-//                }
-//            },
-//            UIEvent::Scroll { id, amt, .. } => {
-//                if *id == data.id() {
-//                    data.with(|data: &mut PatternEditorData| {
-//                        let pat = data.pattern.lock().unwrap();
-//
-//                        if *amt > 0.0 {
-//                            if data.cursor.0 > 0 {
-//                                data.cursor.0 -= 1;
-//                            }
-//                        } else {
-//                            if (data.cursor.0 + 1) < pat.rows() {
-//                                data.cursor.0 += 1;
-//                            }
-//                        }
-//                        ui.queue_redraw();
-//                    });
-//                }
-//            },
-//            UIEvent::Key { id, key, .. } => {
-//                if *id == data.id() {
-//                    data.with(|data: &mut PatternEditorData| {
-//                        data.handle_key_event(ui, key);
-//                    });
-//                }
-//            },
-//            _ => {},
-//        }
-//    }

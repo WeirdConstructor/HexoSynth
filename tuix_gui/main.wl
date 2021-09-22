@@ -37,5 +37,7 @@ iter line (("\n" => 0) hexo_consts_rs) {
 
     ui.new_hexknob par;
 
-    ui.new_pattern_editor col;
+    !par2 = ui.new_row col;
+
+    ui.new_pattern_editor par2;
 };

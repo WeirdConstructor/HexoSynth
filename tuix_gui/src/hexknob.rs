@@ -797,6 +797,7 @@ impl Widget for HexKnob {
 
         entity.set_position_type(state, PositionType::ParentDirected)
               .set_clip_widget(state, entity)
+              .set_element(state, "hex-knob")
     }
 
     fn on_update(&mut self, state: &mut State, entity: Entity, data: &Self::Data) {
@@ -974,6 +975,12 @@ impl Widget for HexKnob {
         };
 
         let pos : Rect = bounds.into();
+        let pos = Rect {
+            x: pos.x.floor(),
+            y: pos.y.floor(),
+            w: pos.w.floor(),
+            h: pos.h.floor(),
+        };
 
         let (xo, yo) = (
             (pos.x + pos.w / 2.0).round(),
@@ -985,7 +992,7 @@ impl Widget for HexKnob {
         let mut no_value_label = false;
         let mut no_name_label  = false;
 
-        let mut factor = size / (32.0 * 2.0);
+        let mut factor = size / (34.0 * 2.0);
         let mut radius_factor = factor;
         if factor < 1.0 {
             no_value_label = true;
