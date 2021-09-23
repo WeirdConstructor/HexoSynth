@@ -67,14 +67,14 @@ pub struct PatternEditor {
 }
 
 impl PatternEditor {
-    pub fn new(columns: usize, rows: usize) -> Self {
+    pub fn new(columns: usize) -> Self {
         Self {
             font:       None,
             font_mono:  None,
-            rows,
+            rows:       10,
             columns,
 
-            pattern: Arc::new(Mutex::new(PatternData::new(rows))),
+            pattern: Arc::new(Mutex::new(PatternData::new(256))),
             cursor: (1, 2),
             enter_mode: EnterMode::None,
 
@@ -96,12 +96,22 @@ impl PatternEditor {
 
         let mut scroll_page = 0;
 
-        while cur > (rows * 5 / 6) {
-            cur -= rows * 2 / 3;
+        //d// println!("ROWS={:3} CUR={:3}", rows, cur);
+
+        let page_rows = rows * 3 / 4;
+
+        if page_rows < 1 {
+            return cur as usize;
+        }
+
+        while cur > page_rows {
+            cur -= page_rows;
             scroll_page += 1;
         }
 
-        (scroll_page * rows * 2 / 3) as usize
+        //d// println!("ROWS={:3} CUR={:3} SCROLLPAGE={:3}", rows, cur, scroll_page);
+
+        (scroll_page * page_rows) as usize
     }
 
     fn handle_key_event(&mut self, state: &mut State, key: &Key) {
@@ -585,7 +595,7 @@ impl Widget for PatternEditor {
                             .target(Entity::root()));
                 },
                 WindowEvent::KeyDown(code, key) => {
-                    println!("KEY: {:?}", key);
+                    //d// println!("KEY: {:?}", key);
 
                     if let Some(key) = key {
                         self.handle_key_event(state, key);
@@ -622,6 +632,8 @@ impl Widget for PatternEditor {
             h: pos.h.floor(),
         };
 
+        p.clip_region(pos.x, pos.y, pos.w, pos.h);
+
 //        let id        = data.id();
 //        let highlight = ui.hl_style_for(id, None);
 
@@ -656,6 +668,7 @@ impl Widget for PatternEditor {
 //        ;
 
         p.rect_fill(UI_TRK_BG_CLR, pos.x, pos.y, pos.w, pos.h);
+
 //        let pos =
 //            rect_border(p, UI_TRK_BORDER, border_color, UI_TRK_BG_CLR, pos);
 
@@ -771,6 +784,8 @@ impl Widget for PatternEditor {
             h: pos.h,
         };
 
+        self.rows = (self.cell_zone.h / UI_TRK_ROW_HEIGHT).round() as usize - 1;
+
         // center the cursor row
         // - but lock the start of the pattern to the top
         // - and lock the end of the pattern to the end
@@ -779,7 +794,6 @@ impl Widget for PatternEditor {
         for ir in 0..self.rows {
             let y = (ir + 1) as f32 * UI_TRK_ROW_HEIGHT;
             let ir = row_scroll_offs as usize + ir;
-
 
             if ir >= pat.rows() {
                 break;
@@ -933,6 +947,8 @@ impl Widget for PatternEditor {
                 ].iter().copied(),
                 false);
         }
+
+        p.reset_clip_region();
     }
 }
 

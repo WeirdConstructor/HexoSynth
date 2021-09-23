@@ -305,8 +305,7 @@ impl GUIActionRecorder {
                     if let Some(GUIRef::Ent(parent)) = self.refs.get(*parent as usize) {
                         self.refs[*out as usize] = GUIRef::Ent(
                             PatternEditor::new(
-                                hexodsp::dsp::tracker::MAX_COLS,
-                                hexodsp::dsp::tracker::MAX_PATTERN_LEN)
+                                hexodsp::dsp::tracker::MAX_COLS)
                             .build(state, *parent, |builder| { builder }));
                     }
                 },
