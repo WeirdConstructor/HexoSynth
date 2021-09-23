@@ -94,24 +94,26 @@ impl PatternEditor {
         let rows = rows as i64;
         let mut cur = self.cursor.0 as i64;
 
-        let mut scroll_page = 0;
+        let margin = rows * 1 / 3;
+        let margin = (margin / 2) * 2;
+        let page_rows = rows - margin;
 
-        //d// println!("ROWS={:3} CUR={:3}", rows, cur);
-
-        let page_rows = rows * 3 / 4;
-
-        if page_rows < 1 {
+        if page_rows <= 0 {
             return cur as usize;
         }
 
-        while cur > page_rows {
+        let mut scroll_page = 0;
+
+        while cur >= page_rows {
             cur -= page_rows;
             scroll_page += 1;
         }
 
-        //d// println!("ROWS={:3} CUR={:3} SCROLLPAGE={:3}", rows, cur, scroll_page);
-
-        (scroll_page * page_rows) as usize
+        if scroll_page > 0 {
+            (scroll_page * page_rows - (margin / 2)) as usize
+        } else {
+            0
+        }
     }
 
     fn handle_key_event(&mut self, state: &mut State, key: &Key) {
