@@ -21,7 +21,7 @@ iter line (("\n" => 0) hexo_consts_rs) {
 
     !col = ui.new_col 0;
 
-    !par = ui.new_row col;
+    !par = ui.new_row col "headbar";
 
     !i = 0;
     !btn = $n;

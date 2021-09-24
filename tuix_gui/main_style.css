@@ -25,7 +25,6 @@ label {
 }
 
 row {
-    height: 0.3s;
 }
 
 popup {
@@ -48,8 +47,8 @@ column {
 //    child-space: 2px;
 //    inner-shadow-color: #F0F;
 //    color: #000;
-    row-between: 3px;
-    space: 0.1s;
+//    row-between: 3px;
+    space: 0.01s;
 }
 
 textbox {
@@ -66,10 +65,14 @@ textbox {
 }
 
 hex-knob {
-    space: 0.1s;
+    width: 70px;
 }
 
 pattern-editor {
     left: 1s;
     right: 1s;
+}
+
+row.headbar {
+    height: 100px;
 }
