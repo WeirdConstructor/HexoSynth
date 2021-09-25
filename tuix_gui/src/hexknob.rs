@@ -735,19 +735,33 @@ impl Widget for HexKnob {
     type Data = Rc<RefCell<dyn ParamModel>>;
 
     fn widget_name(&self) -> String {
-        "hexknob".to_string()
+        "hex-knob".to_string()
     }
 
     fn on_build(&mut self, state: &mut State, entity: Entity) -> Self::Ret {
 
         self.popup = Popup::new().build(state, Entity::root(), |builder|
             builder
-                .set_width(Pixels(100.0))
-                .set_height(Pixels(200.0))
                 .set_z_order(100)
-        );
+                .set_layout_type(LayoutType::Grid)
+                .set_grid_rows(vec![Stretch(1.0), Stretch(1.0), Stretch(1.0)])
+                .set_grid_cols(vec![Stretch(0.5),Stretch(0.75)])
+                .set_row_between(Pixels(1.0))
+                .set_col_between(Pixels(1.0))
+                .class("hex-knob-popup"));
 
-        let col = Column::new().build(state, self.popup, |builder| builder);
+        Label::new("value:").build(state, self.popup, |builder|
+            builder.set_row_index(0)
+                   .set_col_index(0)
+                   .class("hex-knob-popup"));
+        Label::new("norm:").build(state, self.popup, |builder|
+            builder.set_row_index(1)
+                   .set_col_index(0)
+                   .class("hex-knob-popup"));
+        Label::new("mod:").build(state, self.popup, |builder|
+            builder.set_row_index(2)
+                   .set_col_index(0)
+                   .class("hex-knob-popup"));
 
         let txtmodel = self.model.clone();
         self.text_box =
@@ -762,7 +776,10 @@ impl Widget for HexKnob {
                         }
                     }
                 })
-                .build(state, col, |builder| builder);
+                .build(state, self.popup, |builder|
+                    builder.set_row_index(0)
+                           .set_col_index(1)
+                           .class("hex-knob-popup"));
 
         let txtmodel = self.model.clone();
         self.text_box_norm =
@@ -777,7 +794,10 @@ impl Widget for HexKnob {
                         }
                     }
                 })
-                .build(state, col, |builder| builder);
+                .build(state, self.popup, |builder|
+                    builder.set_row_index(1)
+                           .set_col_index(1)
+                           .class("hex-knob-popup"));
 
         let txtmodel = self.model.clone();
         self.text_box_mod =
@@ -793,7 +813,10 @@ impl Widget for HexKnob {
                         txtmodel.borrow_mut().set_mod_amt(Some(v));
                     }
                 })
-                .build(state, col, |builder| builder);
+                .build(state, self.popup, |builder|
+                    builder.set_row_index(2)
+                           .set_col_index(1)
+                           .class("hex-knob-popup"));
 
         entity.set_position_type(state, PositionType::ParentDirected)
               .set_clip_widget(state, entity)

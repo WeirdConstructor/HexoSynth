@@ -494,15 +494,13 @@ impl Widget for HexGrid {
     type Data = ();
 
     fn on_build(&mut self, state: &mut State, entity: Entity) -> Self::Ret {
-        entity.set_position_type(state, PositionType::ParentDirected)
-              .set_clip_widget(state, entity)
+        entity.set_clip_widget(state, entity)
     }
 
     fn on_event(&mut self, state: &mut State, entity: Entity, event: &mut Event) {
         if let Some(grid_msg) = event.message.downcast::<HexGridMessage>() {
             match grid_msg {
                 HexGridMessage::SetModel(model) => {
-                    println!("HEXGRID: SET MODEL!");
                     self.model = model.clone();
                     state.insert_event(
                         Event::new(WindowEvent::Redraw).target(Entity::root()));

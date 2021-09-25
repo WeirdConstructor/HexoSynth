@@ -21,7 +21,8 @@ use hexknob::{HexKnob, ParamModel};
 use pattern_editor::PatternEditor;
 use hexo_consts::*;
 
-use hexodsp::{Matrix, Cell, CellDir};
+use hexodsp::{Matrix, NodeId, Cell, CellDir};
+use hexodsp::matrix::MatrixError;
 
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -181,8 +182,14 @@ fn vv2event(event: &VVal) -> Event {
     match &event.v_s_raw(0)[..] {
         "textbox:set_value"
             => Event::new(TextboxEvent::SetValue(event.v_s_raw(1))),
-        "hexgrid:set_test_model"
-            => Event::new(hexgrid::HexGridMessage::SetModel(Rc::new(RefCell::new(TestGridModel::new())))),
+        "hexgrid:set_model" => {
+            if let Some(model) = vval2hex_grid_model(event.v_(1)) {
+                Event::new(hexgrid::HexGridMessage::SetModel(model))
+            } else {
+                eprintln!("Bad Event Type sent: {}, bad model arg!", event.s());
+                Event::new(WindowEvent::Redraw)
+            }
+        },
         _ => {
             eprintln!("Unknown Event Type sent: {}", event.s());
             Event::new(WindowEvent::Redraw)
@@ -222,6 +229,14 @@ fn vvbuilder<'a, T>(mut builder: Builder<'a, T>, build_attribs: &VVal) -> Builde
     builder
 }
 
+fn output2vval(node_id: NodeId, out: u8) -> VVal {
+    if let Some(name) = node_id.out_name_by_idx(out) {
+        VVal::new_str(name)
+    } else {
+        VVal::Int(out as i64)
+    }
+}
+
 fn cell_port2vval(cell: &Cell, dir: CellDir) -> VVal {
     let node_id = cell.node_id();
 
@@ -233,15 +248,40 @@ fn cell_port2vval(cell: &Cell, dir: CellDir) -> VVal {
                 VVal::Int(i as i64)
             }
         } else {
-            if let Some(name) = node_id.out_name_by_idx(i) {
-                VVal::new_str(name)
-            } else {
-                VVal::Int(i as i64)
-            }
+            output2vval(node_id, i)
         }
     } else {
         VVal::None
     }
+}
+
+fn cell_set_port(cell: &mut Cell, v: VVal, dir: CellDir) -> bool {
+    if v.is_none() {
+        return true;
+    }
+    let name = v.s_raw();
+    let node_id = cell.node_id();
+
+    if dir.is_input() {
+        if let Some(i) = node_id.inp(&name) {
+            cell.set_io_dir(dir, i as usize);
+            true
+        } else {
+            false
+        }
+    } else {
+        if let Some(i) = node_id.out(&name) {
+            cell.set_io_dir(dir, i as usize);
+            true
+        } else {
+            false
+        }
+    }
+}
+
+fn vval2node_id(v: &VVal) -> NodeId {
+    let node_id = v.v_(0).with_s_ref(|s| NodeId::from_str(s));
+    node_id.to_instance(v.v_i(1) as usize)
 }
 
 fn cell2vval(cell: &Cell) -> VVal {
@@ -258,13 +298,51 @@ fn cell2vval(cell: &Cell) -> VVal {
     VVal::map3(
         "node_id",
         VVal::pair(
-            VVal::new_str(node_id.label()),
+            VVal::new_str(node_id.name()),
             VVal::Int(node_id.instance() as i64)),
         "pos",
         VVal::ivec2(
             cell.pos().0 as i64,
             cell.pos().1 as i64),
         "ports", ports)
+}
+
+fn vval2cell(v: &VVal) -> Cell {
+    let node_id = vval2node_id(&v.v_k("node_id"));
+
+    let mut m_cell = Cell::empty(node_id);
+
+    let ports = v.v_k("ports");
+
+    cell_set_port(&mut m_cell, ports.v_(0), CellDir::T);
+    cell_set_port(&mut m_cell, ports.v_(1), CellDir::TL);
+    cell_set_port(&mut m_cell, ports.v_(2), CellDir::BL);
+    cell_set_port(&mut m_cell, ports.v_(3), CellDir::TR);
+    cell_set_port(&mut m_cell, ports.v_(4), CellDir::BR);
+    cell_set_port(&mut m_cell, ports.v_(5), CellDir::B);
+
+    m_cell
+}
+
+fn matrix_error2vval_err(err: MatrixError) -> VVal {
+    let err_val =
+        match err {
+            MatrixError::CycleDetected => VVal::new_sym("cycle-detected"),
+            MatrixError::PosOutOfRange => VVal::new_sym("pos-out-of-range"),
+            MatrixError::NonEmptyCell { cell } =>
+                VVal::pair(
+                    VVal::new_sym("non-empty-cell"),
+                    cell2vval(&cell)),
+            MatrixError::DuplicatedInput { output1, output2 } =>
+                VVal::vec3(
+                    VVal::new_sym("duplicated-input"),
+                    output2vval(output1.0, output1.1),
+                    output2vval(output2.0, output2.1)),
+        };
+
+    VVal::Err(Rc::new(RefCell::new((
+        err_val,
+        wlambda::vval::SynPos::empty()))))
 }
 
 #[derive(Clone)]
@@ -285,23 +363,68 @@ impl vval::VValUserData for VValMatrix {
         let args = env.argv_ref();
 
         let m = self.matrix.lock();
-        if let Ok(m) = m {
+
+        if let Ok(mut m) = m {
             match key {
                 "get" => {
-                    if args.len() != 2 {
+                    if args.len() != 1 {
                         return Err(StackAction::panic_msg(
-                            "matrix.get[x, y] called with too few arguments"
+                            "matrix.get[$i(x, y)] called with wrong number of arguments"
                             .to_string()));
                     }
 
                     if let Some(cell) =
                         m.get(
-                            env.arg(0).i() as usize,
-                            env.arg(1).i() as usize)
+                            env.arg(0).v_i(0) as usize,
+                            env.arg(0).v_i(1) as usize)
                     {
                         Ok(cell2vval(cell))
                     } else {
                         Ok(VVal::None)
+                    }
+                },
+                "set" => {
+                    if args.len() != 2 {
+                        return Err(StackAction::panic_msg(
+                            "matrix.set[$i(x, y), cell] called with wrong number of arguments"
+                            .to_string()));
+                    }
+
+                    if let (Some(vv_cell), Some(pos)) = (env.arg_ref(1), env.arg_ref(0)) {
+                        let cell = vval2cell(vv_cell);
+
+                        let x = pos.v_ik("x") as usize;
+                        let y = pos.v_ik("y") as usize;
+
+                        m.place(x, y, cell);
+
+                        Ok(VVal::Bol(true))
+                    } else {
+                        Ok(VVal::None)
+                    }
+                },
+                "check" => {
+                    if args.len() != 0 {
+                        return Err(StackAction::panic_msg(
+                            "matrix.check[] called with wrong number of arguments"
+                            .to_string()));
+                    }
+
+                    match m.check() {
+                        Ok(_)  => Ok(VVal::Bol(true)),
+                        Err(e) => Ok(matrix_error2vval_err(e)),
+                    }
+                },
+                "sync" => {
+                    if args.len() != 0 {
+                        return Err(StackAction::panic_msg(
+                            "matrix.check[] called with wrong number of arguments"
+                            .to_string()));
+                    }
+
+                    match m.sync() {
+                        Ok(_)  => Ok(VVal::Bol(true)),
+                        Err(e) => Ok(matrix_error2vval_err(e)),
                     }
                 },
                 _ => Ok(VVal::err_msg(&format!("Unknown method called: {}", key))),
@@ -313,6 +436,21 @@ impl vval::VValUserData for VValMatrix {
 
     fn as_any(&mut self) -> &mut dyn std::any::Any { self }
     fn clone_ud(&self) -> Box<dyn vval::VValUserData> { Box::new(self.clone()) }
+}
+
+#[derive(Clone)]
+struct VValHexGridModel {
+    model: Rc<RefCell<dyn HexGridModel>>,
+}
+
+impl VValUserData for VValHexGridModel {
+    fn s(&self) -> String { format!("$<UI::HexGridModel>") }
+    fn as_any(&mut self) -> &mut dyn std::any::Any { self }
+    fn clone_ud(&self) -> Box<dyn vval::VValUserData> { Box::new(self.clone()) }
+}
+
+fn vval2hex_grid_model(mut v: VVal) -> Option<Rc<RefCell<dyn HexGridModel>>> {
+    v.with_usr_ref(|model: &mut VValHexGridModel| model.model.clone())
 }
 
 impl GUIActionRecorder {
@@ -379,11 +517,6 @@ impl GUIActionRecorder {
         set_vval_method!(obj, r, new_pattern_editor, Some(1), Some(2), env, _argc, {
             let mut r = r.borrow_mut();
             Ok(VVal::Int(r.new_pattern_editor(env.arg(0).i(), env.arg(1))))
-        });
-
-        let matrix = matrix.clone();
-        set_vval_method!(obj, r, matrix, Some(0), Some(0), env, _argc, {
-            Ok(VVal::new_usr(VValMatrix { matrix: matrix.clone() }))
         });
 
         set_vval_method!(obj, r, new_button, Some(3), Some(4), env, _argc, {
@@ -559,6 +692,28 @@ impl Widget for HiddenThingie {
     }
 }
 
+fn setup_hx_module(matrix: Arc<Mutex<Matrix>>) -> wlambda::SymbolTable {
+    let mut st = wlambda::SymbolTable::new();
+
+    st.set(
+        "hexo_consts_rs",
+        VVal::new_str(std::include_str!("hexo_consts.rs")));
+
+    st.fun(
+        "get_main_matrix_handle", move |env: &mut Env, argc: usize| {
+            Ok(VVal::new_usr(VValMatrix { matrix: matrix.clone() }))
+        }, Some(0), Some(0), false);
+
+    st.fun(
+        "create_test_hex_grid_model", |env: &mut Env, argc: usize| {
+            Ok(VVal::new_usr(VValHexGridModel {
+                model: Rc::new(RefCell::new(TestGridModel::new())),
+            }))
+        }, Some(0), Some(0), false);
+
+    st
+}
+
 fn main() {
     synth::start(|matrix| {
         let mut app =
@@ -583,11 +738,10 @@ fn main() {
 
                     state.set_default_font("font_mono");
 
-                    let mut wl_ctx = EvalContext::new_default();
+                    let global_env = wlambda::GlobalEnv::new_default();
+                    global_env.borrow_mut().set_module("hx", setup_hx_module(matrix));
 
-                    wl_ctx.set_global_var(
-                        "hexo_consts_rs",
-                        &VVal::new_str(std::include_str!("hexo_consts.rs")));
+                    let mut wl_ctx = wlambda::EvalContext::new(global_env);
 
                     match wl_ctx.eval_file("main.wl") {
                         Ok(_) => { },

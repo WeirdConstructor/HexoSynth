@@ -27,17 +27,30 @@ label {
 row {
 }
 
-popup {
+popup.hex-knob-popup {
     border-width: 2px;
     border-color: UI_BORDER_CLR;
     border-corner-shape: bevel;
-    border-radius: 16px;
+    border-radius: 8px;
     border-top-left-radius: 0px;
     border-top-right-radius: 0px;
     child-space: 0.1s;
     background-color: UI_BG_CLR;
     color: UI_PRIM_CLR;
     outer-shadow: 0px 0px 14px UI_PRIM_CLR;
+
+    width: 140px;
+    height: 100px;
+}
+
+label.hex-knob-popup {
+    font-size: 12px;
+    child-top: 1s;
+    child-bottom: 1s;
+}
+
+textbox.hex-knob-popup {
+    font-size: 12px;
 }
 
 column {
@@ -60,7 +73,7 @@ textbox {
 textbox {
     border-color: UI_ACCENT_CLR;
     border-corner-shape: bevel;
-    border-radius: 16px;
+    border-radius: 8px;
     border-width: 2px;
 }
 
