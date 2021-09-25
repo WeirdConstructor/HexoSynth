@@ -19,7 +19,9 @@ iter line (("\n" => 0) hexo_consts_rs) {
         ~ replace_colors_in_text
         ~ std:io:file:read_text "main_style.css";
 
-    !grid = ui.new_hexgrid 0 30.0 ${ position = "self" };
+    std:displayln ~ ui.matrix[].get 1 1;
+
+    !grid = ui.new_hexgrid 0 60.0 ${ position = "self" };
 
     ui.emit_to grid grid $[:hexgrid:set_test_model];
 

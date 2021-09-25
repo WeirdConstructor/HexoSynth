@@ -21,8 +21,12 @@ use hexknob::{HexKnob, ParamModel};
 use pattern_editor::PatternEditor;
 use hexo_consts::*;
 
+use hexodsp::{Matrix, Cell, CellDir};
+
 use std::rc::Rc;
 use std::cell::RefCell;
+
+use std::sync::{Arc, Mutex};
 
 struct TestGridModel {
     last_click: (usize, usize),
@@ -146,6 +150,7 @@ enum GUIRef {
 }
 
 pub struct GUIActionRecorder {
+    matrix:   Arc<Mutex<Matrix>>,
     actions:  Vec<GUIAction>,
     refs:     Vec<GUIRef>,
     ref_idx:  i64,
@@ -217,13 +222,99 @@ fn vvbuilder<'a, T>(mut builder: Builder<'a, T>, build_attribs: &VVal) -> Builde
     builder
 }
 
+fn cell_port2vval(cell: &Cell, dir: CellDir) -> VVal {
+    let node_id = cell.node_id();
+
+    if let Some(i) = cell.local_port_idx(dir) {
+        if dir.is_input() {
+            if let Some(param) = node_id.inp_param_by_idx(i as usize) {
+                VVal::new_str(param.name())
+            } else {
+                VVal::Int(i as i64)
+            }
+        } else {
+            if let Some(name) = node_id.out_name_by_idx(i) {
+                VVal::new_str(name)
+            } else {
+                VVal::Int(i as i64)
+            }
+        }
+    } else {
+        VVal::None
+    }
+}
+
+#[derive(Clone)]
+struct VValMatrix {
+    matrix: Arc<Mutex<hexodsp::Matrix>>,
+}
+
+impl vval::VValUserData for VValMatrix {
+    fn s(&self) -> String { format!("$<HexoDSP::Matrix>") }
+
+    fn get_key(&self, key: &str) -> Option<VVal> {
+        None
+    }
+
+    fn call_method(&self, key: &str, env: &mut Env)
+        -> Result<VVal, StackAction>
+    {
+        let args = env.argv_ref();
+
+        let m = self.matrix.lock();
+        if let Ok(m) = m {
+            match key {
+                "get" => {
+                    if args.len() != 2 {
+                        return Err(StackAction::panic_msg(
+                            "matrix.get[x, y] called with too few arguments"
+                            .to_string()));
+                    }
+
+                    if let Some(cell) =
+                        m.get(
+                            env.arg(0).i() as usize,
+                            env.arg(1).i() as usize)
+                    {
+
+                        let ports = VVal::vec();
+                        ports.push(cell_port2vval(cell, CellDir::T));
+                        ports.push(cell_port2vval(cell, CellDir::TL));
+                        ports.push(cell_port2vval(cell, CellDir::BL));
+                        ports.push(cell_port2vval(cell, CellDir::TR));
+                        ports.push(cell_port2vval(cell, CellDir::BR));
+                        ports.push(cell_port2vval(cell, CellDir::B));
+
+                        Ok(VVal::map3(
+                            "pos", VVal::ivec2(cell.pos().0 as i64, cell.pos().1 as i64),
+                            "node_id",
+                                VVal::pair(
+                                    VVal::new_str(cell.node_id().label()),
+                                    VVal::Int(cell.node_id().instance() as i64)),
+                            "ports", ports))
+                    } else {
+                        Ok(VVal::None)
+                    }
+                },
+                _ => Ok(VVal::err_msg(&format!("Unknown method called: {}", key))),
+            }
+        } else {
+             Ok(VVal::err_msg("Can't lock matrix!"))
+        }
+    }
+
+    fn as_any(&mut self) -> &mut dyn std::any::Any { self }
+    fn clone_ud(&self) -> Box<dyn vval::VValUserData> { Box::new(self.clone()) }
+}
+
 impl GUIActionRecorder {
-    pub fn new_vval() -> (Rc<RefCell<GUIActionRecorder>>, VVal) {
+    pub fn new_vval(matrix: Arc<Mutex<Matrix>>) -> (Rc<RefCell<GUIActionRecorder>>, VVal) {
         let obj = VVal::map();
 
         let r =
             Rc::new(RefCell::new(
                 GUIActionRecorder {
+                    matrix: matrix.clone(),
                     actions:  vec![],
                     refs:     vec![],
                     ref_idx:  1,
@@ -280,6 +371,11 @@ impl GUIActionRecorder {
         set_vval_method!(obj, r, new_pattern_editor, Some(1), Some(2), env, _argc, {
             let mut r = r.borrow_mut();
             Ok(VVal::Int(r.new_pattern_editor(env.arg(0).i(), env.arg(1))))
+        });
+
+        let matrix = matrix.clone();
+        set_vval_method!(obj, r, matrix, Some(0), Some(0), env, _argc, {
+            Ok(VVal::new_usr(VValMatrix { matrix: matrix.clone() }))
         });
 
         set_vval_method!(obj, r, new_button, Some(3), Some(4), env, _argc, {
@@ -469,7 +565,7 @@ fn main() {
 
                     let app_data = ui_state.build(state, window);
 
-                    let (gui_rec, gui_rec_vval) = GUIActionRecorder::new_vval();
+                    let (gui_rec, gui_rec_vval) = GUIActionRecorder::new_vval(matrix.clone());
 
                     let thing = (HiddenThingie { }).build(state, app_data, |builder| builder);
 
