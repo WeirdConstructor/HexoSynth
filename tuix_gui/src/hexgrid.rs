@@ -390,7 +390,6 @@ fn draw_led(p: &mut FemtovgPainter, scale: f32, x: f32, y: f32, led_value: (f32,
 }
 
 pub struct HexGrid {
-    id:        usize,
     font:      Option<FontId>,
     font_mono: Option<FontId>,
     tile_size: f32,
@@ -410,9 +409,8 @@ pub struct HexGrid {
 }
 
 impl HexGrid {
-    pub fn new(id: usize, tile_size: f32) -> Self {
+    pub fn new(tile_size: f32) -> Self {
         HexGrid {
-            id,
             font:       None,
             font_mono:  None,
             center_font_size: 18.0,
@@ -476,20 +474,42 @@ impl HexGrid {
     }
 }
 
+#[derive(Clone)]
+pub enum HexGridMessage {
+    SetModel(Rc<RefCell<dyn HexGridModel>>),
+}
+
+impl PartialEq for HexGridMessage {
+    fn eq(&self, other: &HexGridMessage) -> bool {
+        match self {
+            HexGridMessage::SetModel(_) =>
+                if let HexGridMessage::SetModel(_) = other { true }
+                else { false },
+        }
+    }
+}
+
 impl Widget for HexGrid {
     type Ret  = Entity;
-    type Data = Rc<RefCell<dyn HexGridModel>>;
+    type Data = ();
 
     fn on_build(&mut self, state: &mut State, entity: Entity) -> Self::Ret {
         entity.set_position_type(state, PositionType::ParentDirected)
               .set_clip_widget(state, entity)
     }
 
-    fn on_update(&mut self, state: &mut State, entity: Entity, data: &Self::Data) {
-        self.model = data.clone();
-    }
-
     fn on_event(&mut self, state: &mut State, entity: Entity, event: &mut Event) {
+        if let Some(grid_msg) = event.message.downcast::<HexGridMessage>() {
+            match grid_msg {
+                HexGridMessage::SetModel(model) => {
+                    println!("HEXGRID: SET MODEL!");
+                    self.model = model.clone();
+                    state.insert_event(
+                        Event::new(WindowEvent::Redraw).target(Entity::root()));
+                },
+            }
+        }
+
         if let Some(window_event) = event.message.downcast::<WindowEvent>() {
             println!("EV: {:?}", window_event);
 //            let posx = state.data.get_posx(entity);
@@ -547,8 +567,7 @@ impl Widget for HexGrid {
                             }
 
                             state.insert_event(
-                                Event::new(WindowEvent::Redraw).target(Entity::root()),
-                            );
+                                Event::new(WindowEvent::Redraw).target(Entity::root()));
                         }
 
                         self.start_tile_pos = None;

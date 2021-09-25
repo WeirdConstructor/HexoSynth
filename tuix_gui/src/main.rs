@@ -128,10 +128,12 @@ impl HexGridModel for TestGridModel {
 #[derive(Debug)]
 enum GUIAction {
     NewRow(i64, i64, Option<String>),
-    NewCol(i64, i64, Option<String>),
+    NewCol(i64, i64, VVal),
     NewHexKnob(i64, i64, Option<String>),
+    NewHexGrid(i64, i64, f32, VVal),
     NewPatternEditor(i64, i64, Option<String>),
     NewButton(i64, i64, Option<String>, String, VVal),
+    EmitTo(i64, i64, VVal),
     SetText(i64, String),
     AddTheme(String),
     Redraw,
@@ -170,12 +172,49 @@ pub fn exec_cb(
     self_ref.borrow_mut().run(sr, wl_ctx, state, entity);
 }
 
+fn vv2event(event: &VVal) -> Event {
+    match &event.v_s_raw(0)[..] {
+        "textbox:set_value"
+            => Event::new(TextboxEvent::SetValue(event.v_s_raw(1))),
+        "hexgrid:set_test_model"
+            => Event::new(hexgrid::HexGridMessage::SetModel(Rc::new(RefCell::new(TestGridModel::new())))),
+        _ => {
+            eprintln!("Unknown Event Type sent: {}", event.s());
+            Event::new(WindowEvent::Redraw)
+        },
+    }
+}
+
 fn vv2class(class: VVal) -> Option<String> {
     if class.is_some() {
         Some(class.s_raw())
     } else {
         None
     }
+}
+
+fn vvbuilder<'a, T>(mut builder: Builder<'a, T>, build_attribs: &VVal) -> Builder<'a, T> {
+    let mut attribs = vec![];
+
+    build_attribs.for_each(|v| {
+        let val = v.v_(1);
+        let key = v.v_s(0);
+        attribs.push((key, val));
+    });
+
+    for (k, v) in attribs {
+        builder =
+            match &k[..] {
+                "class" => builder.class(&v.s_raw()),
+                "position" =>
+                    builder.set_position_type(
+                        if &v.s_raw() == "self" { PositionType::SelfDirected }
+                        else { PositionType::ParentDirected }),
+                _       => builder,
+            };
+    }
+
+    builder
 }
 
 impl GUIActionRecorder {
@@ -203,6 +242,13 @@ impl GUIActionRecorder {
             Ok(VVal::None)
         });
 
+        set_vval_method!(obj, r, emit_to, Some(3), Some(3), env, _argc, {
+            r.borrow_mut().actions.push(
+                GUIAction::EmitTo(
+                    env.arg(0).i(), env.arg(1).i(), env.arg(2)));
+            Ok(VVal::None)
+        });
+
         set_vval_method!(obj, r, add_theme, Some(1), Some(1), env, _argc, {
             r.borrow_mut().actions.push(
                 GUIAction::AddTheme(env.arg(0).s_raw()));
@@ -215,13 +261,20 @@ impl GUIActionRecorder {
         });
 
         set_vval_method!(obj, r, new_col, Some(1), Some(2), env, _argc, {
-            let mut r = r.borrow_mut();
-            Ok(VVal::Int(r.new_col(env.arg(0).i(), env.arg(1))))
+            Ok(VVal::Int(r.borrow_mut().add(|id|
+                GUIAction::NewCol(env.arg(0).i(), id, env.arg(1)))))
         });
 
         set_vval_method!(obj, r, new_hexknob, Some(1), Some(2), env, _argc, {
             let mut r = r.borrow_mut();
             Ok(VVal::Int(r.new_hexknob(env.arg(0).i(), env.arg(1))))
+        });
+
+        set_vval_method!(obj, r, new_hexgrid, Some(2), Some(3), env, _argc, {
+            Ok(VVal::Int(
+                r.borrow_mut().add(|id|
+                    GUIAction::NewHexGrid(
+                        env.arg(0).i(), id, env.arg(1).f() as f32, env.arg(2)))))
         });
 
         set_vval_method!(obj, r, new_pattern_editor, Some(1), Some(2), env, _argc, {
@@ -242,6 +295,12 @@ impl GUIActionRecorder {
         r.borrow_mut().obj = obj.clone();
 
         (r, obj)
+    }
+
+    pub fn add<F: FnOnce(i64) -> GUIAction>(&mut self, f: F) -> i64 {
+        let ret_ref = self.new_ref();
+        self.actions.push(f(ret_ref));
+        ret_ref
     }
 
     pub fn new_hexknob(&mut self, parent: i64, class: VVal) -> i64 {
@@ -265,12 +324,6 @@ impl GUIActionRecorder {
     pub fn new_row(&mut self, parent: i64, class: VVal) -> i64 {
         let ret_ref = self.new_ref();
         self.actions.push(GUIAction::NewRow(parent, ret_ref, vv2class(class)));
-        ret_ref
-    }
-
-    pub fn new_col(&mut self, parent: i64, class: VVal) -> i64 {
-        let ret_ref = self.new_ref();
-        self.actions.push(GUIAction::NewCol(parent, ret_ref, vv2class(class)));
         ret_ref
     }
 
@@ -304,11 +357,22 @@ impl GUIActionRecorder {
                             }));
                     }
                 },
-                GUIAction::NewCol(parent, out, class) => {
+                GUIAction::NewCol(parent, out, build_attribs) => {
                     if let Some(GUIRef::Ent(parent)) = self.refs.get(*parent as usize) {
                         self.refs[*out as usize] = GUIRef::Ent(
-                            Column::new().build(state, *parent, |builder| builder));
+                            Column::new().build(
+                                state, *parent,
+                                |builder| vvbuilder(builder, build_attribs)));
                     }
+                },
+                GUIAction::NewHexGrid(parent, out, tile_size, build_attribs) => {
+                    if let Some(GUIRef::Ent(parent)) = self.refs.get(*parent as usize) {
+                        self.refs[*out as usize] = GUIRef::Ent(
+                            HexGrid::new(*tile_size).build(
+                                state, *parent,
+                                |builder| vvbuilder(builder, build_attribs)));
+                    }
+
                 },
                 GUIAction::NewHexKnob(parent, out, class) => {
                     if let Some(GUIRef::Ent(parent)) = self.refs.get(*parent as usize) {
@@ -349,12 +413,19 @@ impl GUIActionRecorder {
                         entity.set_text(state, text);
                     }
                 },
+                GUIAction::EmitTo(entity, to, event) => {
+                    if let Some(GUIRef::Ent(entity)) = self.refs.get(*entity as usize) {
+                        if let Some(GUIRef::Ent(to)) = self.refs.get(*to as usize) {
+                            state.insert_event(
+                                vv2event(event).target(*to).origin(*entity));
+                        }
+                    }
+                },
                 GUIAction::Redraw => {
                     state.insert_event(
                         Event::new(WindowEvent::Redraw)
                             .target(Entity::root()));
                 },
-                _ => {},
             }
         }
 
