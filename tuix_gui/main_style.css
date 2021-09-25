@@ -51,7 +51,12 @@ label.hex-knob-popup {
 
 textbox.hex-knob-popup {
     font-size: 12px;
+    border-color: UI_ACCENT_CLR;
+    border-corner-shape: bevel;
+    border-radius: 8px;
+    border-width: 2px;
 }
+
 
 column {
 //    background-color: #FFFFFF;
@@ -68,13 +73,6 @@ textbox {
     background-color: UI_LBL_BG_CLR;
     color: UI_PRIM_CLR;
     child-space: 1s;
-}
-
-textbox {
-    border-color: UI_ACCENT_CLR;
-    border-corner-shape: bevel;
-    border-radius: 8px;
-    border-width: 2px;
 }
 
 hex-knob {
