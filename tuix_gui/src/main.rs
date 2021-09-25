@@ -244,6 +244,29 @@ fn cell_port2vval(cell: &Cell, dir: CellDir) -> VVal {
     }
 }
 
+fn cell2vval(cell: &Cell) -> VVal {
+    let node_id = cell.node_id();
+
+    let ports = VVal::vec();
+    ports.push(cell_port2vval(cell, CellDir::T));
+    ports.push(cell_port2vval(cell, CellDir::TL));
+    ports.push(cell_port2vval(cell, CellDir::BL));
+    ports.push(cell_port2vval(cell, CellDir::TR));
+    ports.push(cell_port2vval(cell, CellDir::BR));
+    ports.push(cell_port2vval(cell, CellDir::B));
+
+    VVal::map3(
+        "node_id",
+        VVal::pair(
+            VVal::new_str(node_id.label()),
+            VVal::Int(node_id.instance() as i64)),
+        "pos",
+        VVal::ivec2(
+            cell.pos().0 as i64,
+            cell.pos().1 as i64),
+        "ports", ports)
+}
+
 #[derive(Clone)]
 struct VValMatrix {
     matrix: Arc<Mutex<hexodsp::Matrix>>,
@@ -276,22 +299,7 @@ impl vval::VValUserData for VValMatrix {
                             env.arg(0).i() as usize,
                             env.arg(1).i() as usize)
                     {
-
-                        let ports = VVal::vec();
-                        ports.push(cell_port2vval(cell, CellDir::T));
-                        ports.push(cell_port2vval(cell, CellDir::TL));
-                        ports.push(cell_port2vval(cell, CellDir::BL));
-                        ports.push(cell_port2vval(cell, CellDir::TR));
-                        ports.push(cell_port2vval(cell, CellDir::BR));
-                        ports.push(cell_port2vval(cell, CellDir::B));
-
-                        Ok(VVal::map3(
-                            "pos", VVal::ivec2(cell.pos().0 as i64, cell.pos().1 as i64),
-                            "node_id",
-                                VVal::pair(
-                                    VVal::new_str(cell.node_id().label()),
-                                    VVal::Int(cell.node_id().instance() as i64)),
-                            "ports", ports))
+                        Ok(cell2vval(cell))
                     } else {
                         Ok(VVal::None)
                     }
