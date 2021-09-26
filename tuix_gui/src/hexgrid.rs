@@ -153,8 +153,8 @@ pub trait HexGridModel {
     fn cell_edge<'a>(&self, x: usize, y: usize, edge: HexDir, out: &'a mut [u8])
         -> Option<(&'a str, HexEdge)>;
 
-    fn cell_click(&mut self, x: usize, y: usize, btn: MButton);
-    fn cell_drag(&mut self, x: usize, y: usize, x2: usize, y2: usize, btn: MButton);
+//    fn cell_click(&mut self, x: usize, y: usize, btn: MButton);
+//    fn cell_drag(&mut self, x: usize, y: usize, x2: usize, y2: usize, btn: MButton);
 }
 
 pub struct EmptyHexGridModel {
@@ -170,8 +170,8 @@ impl HexGridModel for EmptyHexGridModel {
         -> Option<HexCell<'a>> { None }
     fn cell_edge<'a>(&self, x: usize, y: usize, edge: HexDir, out: &'a mut [u8])
         -> Option<(&'a str, HexEdge)> { None }
-    fn cell_click(&mut self, x: usize, y: usize, btn: MButton) { }
-    fn cell_drag(&mut self, x: usize, y: usize, x2: usize, y2: usize, btn: MButton) { }
+//    fn cell_click(&mut self, x: usize, y: usize, btn: MButton) { }
+//    fn cell_drag(&mut self, x: usize, y: usize, x2: usize, y2: usize, btn: MButton) { }
 }
 
 
@@ -543,10 +543,10 @@ impl Widget for HexGrid {
                                 if    cur_tile_pos.0 >= 0
                                    && cur_tile_pos.1 >= 0
                                 {
-                                    self.model.borrow_mut().cell_click(
-                                        cur_tile_pos.0 as usize,
-                                        cur_tile_pos.1 as usize,
-                                        (*btn).into());
+//                                    self.model.borrow_mut().cell_click(
+//                                        cur_tile_pos.0 as usize,
+//                                        cur_tile_pos.1 as usize,
+//                                        (*btn).into());
                                 }
 
                             } else {
@@ -555,12 +555,12 @@ impl Widget for HexGrid {
                                    && start_tile_pos.0 >= 0
                                    && start_tile_pos.1 >= 0
                                 {
-                                    self.model.borrow_mut().cell_drag(
-                                        start_tile_pos.0 as usize,
-                                        start_tile_pos.1 as usize,
-                                        cur_tile_pos.0 as usize,
-                                        cur_tile_pos.1 as usize,
-                                        (*btn).into());
+//                                    self.model.borrow_mut().cell_drag(
+//                                        start_tile_pos.0 as usize,
+//                                        start_tile_pos.1 as usize,
+//                                        cur_tile_pos.0 as usize,
+//                                        cur_tile_pos.1 as usize,
+//                                        (*btn).into());
                                 }
                             }
 

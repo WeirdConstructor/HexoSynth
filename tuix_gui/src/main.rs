@@ -11,6 +11,7 @@ mod painter;
 mod hexgrid;
 mod rect;
 mod pattern_editor;
+mod grid_models;
 
 mod jack;
 mod synth;
@@ -28,107 +29,6 @@ use std::rc::Rc;
 use std::cell::RefCell;
 
 use std::sync::{Arc, Mutex};
-
-struct TestGridModel {
-    last_click: (usize, usize),
-    drag_to:    (usize, usize),
-}
-
-impl TestGridModel {
-    pub fn new() -> Self {
-        Self {
-            last_click: (1000, 1000),
-            drag_to: (1000, 1000),
-        }
-    }
-}
-
-impl HexGridModel for TestGridModel {
-    fn width(&self) -> usize { 16 }
-    fn height(&self) -> usize { 16 }
-    fn cell_visible(&self, x: usize, y: usize) -> bool {
-        x < self.width() && y < self.height()
-    }
-    fn cell_empty(&self, x: usize, y: usize) -> bool {
-        !(x < self.width() && y < self.height())
-    }
-    fn cell_color(&self, x: usize, y: usize) -> u8 { 0 }
-    fn cell_label<'a>(&self, x: usize, y: usize, out: &'a mut [u8])
-        -> Option<HexCell<'a>>
-    {
-        let w = self.width();
-        let h = self.height();
-        if x >= w || y >= h { return None; }
-
-        let mut hlight = HexHLight::Normal;
-
-        use std::io::Write;
-        let mut cur = std::io::Cursor::new(out);
-        let len =
-            if self.last_click == (x, y) {
-                hlight = HexHLight::Select;
-                match write!(cur, "CLICK") {
-                    Ok(_)  => { cur.position() as usize },
-                    Err(_) => 0,
-                }
-            } else if self.drag_to == (x, y) {
-                hlight = HexHLight::HLight;
-                match write!(cur, "DRAG") {
-                    Ok(_)  => { cur.position() as usize },
-                    Err(_) => 0,
-                }
-            } else {
-                match write!(cur, "{}x{}", x, y) {
-                    Ok(_)  => { cur.position() as usize },
-                    Err(_) => 0,
-                }
-            };
-
-        if len == 0 {
-            return None;
-        }
-
-        Some(HexCell {
-            label:
-                std::str::from_utf8(&(cur.into_inner())[0..len])
-                .unwrap(),
-            hlight,
-            rg_colors: Some(( 1.0, 1.0,)),
-        })
-    }
-
-    /// Edge: 0 top-right, 1 bottom-right, 2 bottom, 3 bottom-left, 4 top-left, 5 top
-    fn cell_edge<'a>(&self, x: usize, y: usize, edge: HexDir, out: &'a mut [u8])
-        -> Option<(&'a str, HexEdge)>
-    {
-        let w = self.width();
-        let h = self.height();
-        if x >= w || y >= h { return None; }
-
-        use std::io::Write;
-        let mut cur = std::io::Cursor::new(out);
-        match write!(cur, "{:?}", edge) {
-            Ok(_)  => {
-                let len = cur.position() as usize;
-                Some((
-                    std::str::from_utf8(&(cur.into_inner())[0..len])
-                    .unwrap(),
-                    HexEdge::ArrowValue { value: (1.0, 1.0) },
-                ))
-            },
-            Err(_) => None,
-        }
-    }
-
-    fn cell_click(&mut self, x: usize, y: usize, btn: MButton) {
-        self.last_click = (x, y);
-        println!("CLICK! {:?} => {},{}", btn, x, y);
-    }
-    fn cell_drag(&mut self, x: usize, y: usize, x2: usize, y2: usize, btn: MButton) {
-        println!("DRAG! {:?} {},{} => {},{}", btn, x, y, x2, y2);
-        self.drag_to = (x2, y2);
-    }
-}
 
 #[derive(Debug)]
 enum GUIAction {
@@ -402,6 +302,14 @@ impl vval::VValUserData for VValMatrix {
                     } else {
                         Ok(VVal::None)
                     }
+                },
+                "restore_snapshot" => {
+                    m.restore_matrix();
+                    Ok(VVal::Bol(true))
+                },
+                "save_snapshot" => {
+                    m.save_matrix();
+                    Ok(VVal::Bol(true))
                 },
                 "check" => {
                     if args.len() != 0 {
@@ -705,9 +613,27 @@ fn setup_hx_module(matrix: Arc<Mutex<Matrix>>) -> wlambda::SymbolTable {
         }, Some(0), Some(0), false);
 
     st.fun(
+        "create_matrix_grid_model", |env: &mut Env, argc: usize| {
+
+            if let Some(matrix) =
+                env.arg(0).with_usr_ref(|model: &mut VValMatrix| model.matrix.clone())
+            {
+                Ok(VVal::new_usr(VValHexGridModel {
+                    model:
+                        Rc::new(RefCell::new(
+                            grid_models::MatrixUIModel::new(matrix))),
+                }))
+            }
+            else
+            {
+                Ok(VVal::err_msg("The passed argument is not a matrix object."))
+            }
+        }, Some(1), Some(1), false);
+
+    st.fun(
         "create_test_hex_grid_model", |env: &mut Env, argc: usize| {
             Ok(VVal::new_usr(VValHexGridModel {
-                model: Rc::new(RefCell::new(TestGridModel::new())),
+                model: Rc::new(RefCell::new(grid_models::TestGridModel::new())),
             }))
         }, Some(0), Some(0), false);
 
@@ -720,17 +646,9 @@ fn main() {
             Application::new(
                 WindowDescription::new(),
                 |state, window| {
-                    let ui_state =
-                        UIState {
-                            grid_1: Rc::new(RefCell::new(TestGridModel::new())),
-                            grid_2: Rc::new(RefCell::new(TestGridModel::new())),
-                        };
-
-                    let app_data = ui_state.build(state, window);
-
                     let (gui_rec, gui_rec_vval) = GUIActionRecorder::new_vval(matrix.clone());
 
-                    let thing = (HiddenThingie { }).build(state, app_data, |builder| builder);
+                    let thing = (HiddenThingie { }).build(state, window, |builder| builder);
 
                     state.add_font_mem(
                         "font_mono",
