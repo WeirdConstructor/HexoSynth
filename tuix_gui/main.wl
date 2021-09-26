@@ -25,7 +25,18 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
     matrix.set $i(1, 1) ${ node_id = $p("sin", 1) };
     std:displayln ~ matrix.get $i(1, 1);
 
-    !grid = ui.new_hexgrid 0 54.0 ${ position = "self" };
+    !grid = ui.new_hexgrid 0 ${
+        position = "self",
+        on_click = {!(ui, pos, btn) = @;
+            std:displayln "CLICK CELL:" pos btn;
+
+            matrix.set pos ${ node_id = $p("sin", 1) };
+            unwrap ~ matrix.sync[];
+        },
+        on_cell_drag = {!(ui, pos, pos2, btn) = @;
+            std:displayln "DRAG CELL:" pos "=>" pos2 btn;
+        },
+    };
 
 #    !test_model = hx:create_test_hex_grid_model[];
 #    ui.emit_to 0 grid $p(:hexgrid:set_model, test_model);

@@ -406,27 +406,35 @@ pub struct HexGrid {
 
     start_tile_pos:   Option<(i32, i32)>,
     hover_pos:        (i32, i32),
+
+    on_click:     Option<Box<dyn Fn(&mut Self, &mut State, Entity, usize, usize, tuix::MouseButton)>>,
+    on_cell_drag: Option<Box<dyn Fn(&mut Self, &mut State, Entity, usize, usize, usize, usize, tuix::MouseButton)>>,
 }
 
 impl HexGrid {
-    pub fn new(tile_size: f32) -> Self {
+    pub fn new() -> Self {
+        let tile_size = 54.0_f32;
+        let scale = tile_size / 54.0;
         HexGrid {
-            font:       None,
-            font_mono:  None,
-            center_font_size: 14.0,
-            edge_font_size: 10.0,
-            y_offs:     false,
-            scale:      1.0,
-            scale_step: 0,
+            font:               None,
+            font_mono:          None,
+            center_font_size:   (14.0 * scale).round(),
+            edge_font_size:     (10.0 * scale).round(),
+            y_offs:             false,
+            scale:              1.0,
+            scale_step:         0,
             tile_size,
-            drag_source_pos: None,
-            shift_offs: (0.0, 0.0),
-            tmp_shift_offs: None,
-            start_tile_pos: None,
-            hover_pos:  (1000, 1000),
+            drag_source_pos:    None,
+            shift_offs:         (0.0, 0.0),
+            tmp_shift_offs:     None,
+            start_tile_pos:     None,
+            hover_pos:          (1000, 1000),
+            on_click:           None,
+            on_cell_drag:       None,
             model:  Rc::new(RefCell::new(EmptyHexGridModel { })),
         }
     }
+
 }
 
 impl HexGrid {
@@ -471,6 +479,24 @@ impl HexGrid {
              + self.tmp_shift_offs.map(|o| o.1).unwrap_or(0.0)).round();
 
         self.mouse_to_tile(x - bounds.x - shift_x, y - bounds.y - shift_y)
+    }
+
+    pub fn on_click<F>(mut self, on_click: F) -> Self
+    where
+        F: 'static + Fn(&mut Self, &mut State, Entity, usize, usize, tuix::MouseButton),
+    {
+        self.on_click = Some(Box::new(on_click));
+
+        self
+    }
+
+    pub fn on_cell_drag<F>(mut self, on_cell_drag: F) -> Self
+    where
+        F: 'static + Fn(&mut Self, &mut State, Entity, usize, usize, usize, usize, tuix::MouseButton),
+    {
+        self.on_cell_drag = Some(Box::new(on_cell_drag));
+
+        self
     }
 }
 
@@ -543,10 +569,14 @@ impl Widget for HexGrid {
                                 if    cur_tile_pos.0 >= 0
                                    && cur_tile_pos.1 >= 0
                                 {
-//                                    self.model.borrow_mut().cell_click(
-//                                        cur_tile_pos.0 as usize,
-//                                        cur_tile_pos.1 as usize,
-//                                        (*btn).into());
+                                    if let Some(callback) = self.on_click.take() {
+                                        (callback)(
+                                            self, state, entity,
+                                            cur_tile_pos.0 as usize,
+                                            cur_tile_pos.1 as usize,
+                                            *btn);
+                                        self.on_click = Some(callback);
+                                    }
                                 }
 
                             } else {
@@ -555,12 +585,16 @@ impl Widget for HexGrid {
                                    && start_tile_pos.0 >= 0
                                    && start_tile_pos.1 >= 0
                                 {
-//                                    self.model.borrow_mut().cell_drag(
-//                                        start_tile_pos.0 as usize,
-//                                        start_tile_pos.1 as usize,
-//                                        cur_tile_pos.0 as usize,
-//                                        cur_tile_pos.1 as usize,
-//                                        (*btn).into());
+                                    if let Some(callback) = self.on_cell_drag.take() {
+                                        (callback)(
+                                            self, state, entity,
+                                            start_tile_pos.0 as usize,
+                                            start_tile_pos.1 as usize,
+                                            cur_tile_pos.0 as usize,
+                                            cur_tile_pos.1 as usize,
+                                            *btn);
+                                        self.on_cell_drag = Some(callback);
+                                    }
                                 }
                             }
 

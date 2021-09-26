@@ -35,7 +35,7 @@ enum GUIAction {
     NewRow(i64, i64, Option<String>),
     NewCol(i64, i64, VVal),
     NewHexKnob(i64, i64, Option<String>),
-    NewHexGrid(i64, i64, f32, VVal),
+    NewHexGrid(i64, i64, VVal),
     NewPatternEditor(i64, i64, Option<String>),
     NewButton(i64, i64, Option<String>, String, VVal),
     EmitTo(i64, i64, VVal),
@@ -64,11 +64,10 @@ pub fn exec_cb(
     wl_ctx:   Rc<RefCell<EvalContext>>,
     state:    &mut State,
     entity:   Entity,
-    callback: VVal)
+    callback: VVal,
+    args:     &[VVal])
 {
-    let gui_rec = self_ref.borrow().obj.clone();
-
-    match wl_ctx.borrow_mut().call(&callback, &[gui_rec]) {
+    match wl_ctx.borrow_mut().call(&callback, args) {
         Ok(_) => {},
         Err(e) => { panic!("Error in callback: {:?}", e); }
     }
@@ -380,6 +379,16 @@ fn vval2hex_grid_model(mut v: VVal) -> Option<Rc<RefCell<dyn HexGridModel>>> {
     v.with_usr_ref(|model: &mut VValHexGridModel| model.model.clone())
 }
 
+fn btn2vval(btn: tuix::MouseButton) -> VVal {
+    match btn {
+        tuix::MouseButton::Right    => VVal::new_sym("right"),
+        tuix::MouseButton::Middle   => VVal::new_sym("middle"),
+        tuix::MouseButton::Left     => VVal::new_sym("left"),
+        tuix::MouseButton::Other(n) =>
+            VVal::pair(VVal::new_sym("other"), VVal::Int(n as i64)),
+    }
+}
+
 impl GUIActionRecorder {
     pub fn new_vval(matrix: Arc<Mutex<Matrix>>) -> (Rc<RefCell<GUIActionRecorder>>, VVal) {
         let obj = VVal::map();
@@ -434,11 +443,10 @@ impl GUIActionRecorder {
             Ok(VVal::Int(r.new_hexknob(env.arg(0).i(), env.arg(1))))
         });
 
-        set_vval_method!(obj, r, new_hexgrid, Some(2), Some(3), env, _argc, {
+        set_vval_method!(obj, r, new_hexgrid, Some(1), Some(2), env, _argc, {
             Ok(VVal::Int(
                 r.borrow_mut().add(|id|
-                    GUIAction::NewHexGrid(
-                        env.arg(0).i(), id, env.arg(1).f() as f32, env.arg(2)))))
+                    GUIAction::NewHexGrid(env.arg(0).i(), id, env.arg(1)))))
         });
 
         set_vval_method!(obj, r, new_pattern_editor, Some(1), Some(2), env, _argc, {
@@ -529,12 +537,39 @@ impl GUIActionRecorder {
                                 |builder| vvbuilder(builder, build_attribs)));
                     }
                 },
-                GUIAction::NewHexGrid(parent, out, tile_size, build_attribs) => {
+                GUIAction::NewHexGrid(parent, out, build_attribs) => {
                     if let Some(GUIRef::Ent(parent)) = self.refs.get(*parent as usize) {
+                        let on_click     = build_attribs.v_k("on_click");
+                        let on_cell_drag = build_attribs.v_k("on_cell_drag");
+
+                        let sr1 = self_ref.clone();
+                        let sr2 = self_ref.clone();
+                        let wl_ctx1 = wl_ctx.clone();
+                        let wl_ctx2 = wl_ctx.clone();
+
                         self.refs[*out as usize] = GUIRef::Ent(
-                            HexGrid::new(*tile_size).build(
-                                state, *parent,
-                                |builder| vvbuilder(builder, build_attribs)));
+                            HexGrid::new()
+                                .on_click(move |_, state, button, x, y, btn| {
+                                    let gui_rec = sr1.borrow().obj.clone();
+
+                                    exec_cb(
+                                        sr1.clone(), wl_ctx1.clone(),
+                                        state, button, on_click.clone(),
+                                        &[gui_rec, VVal::ivec2(x as i64, y as i64), btn2vval(btn)]);
+                                })
+                                .on_cell_drag(move |_, state, button, x1, y1, x2, y2, btn| {
+                                    let gui_rec = sr2.borrow().obj.clone();
+
+                                    exec_cb(
+                                        sr2.clone(), wl_ctx2.clone(),
+                                        state, button, on_cell_drag.clone(),
+                                        &[gui_rec,
+                                          VVal::ivec2(x1 as i64, y1 as i64),
+                                          VVal::ivec2(x2 as i64, y2 as i64),
+                                          btn2vval(btn)]);
+                                })
+                                .build(state, *parent,
+                                    |builder| vvbuilder(builder, build_attribs)));
                     }
 
                 },
@@ -561,9 +596,12 @@ impl GUIActionRecorder {
                         self.refs[*out as usize] = GUIRef::Ent(
                             Button::with_label(label)
                                 .on_release(move |_, state, button| {
+                                    let gui_rec = sr.borrow().obj.clone();
+
                                     exec_cb(
                                         sr.clone(), wl_ctx.clone(),
-                                        state, button, on_click.clone());
+                                        state, button, on_click.clone(),
+                                        &[gui_rec]);
                                 })
                                 .build(state, *parent, |builder| { builder }));
                     }
