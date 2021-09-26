@@ -413,8 +413,8 @@ impl HexGrid {
         HexGrid {
             font:       None,
             font_mono:  None,
-            center_font_size: 18.0,
-            edge_font_size: 13.0,
+            center_font_size: 14.0,
+            edge_font_size: 10.0,
             y_offs:     false,
             scale:      1.0,
             scale_step: 0,

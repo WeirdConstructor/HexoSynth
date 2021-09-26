@@ -262,6 +262,25 @@ impl vval::VValUserData for VValMatrix {
     {
         let args = env.argv_ref();
 
+        match key {
+            "create_grid_model" => {
+                if args.len() != 0 {
+                    return Err(StackAction::panic_msg(
+                        "matrix.create_grid_model[] called with wrong number of arguments"
+                        .to_string()));
+                }
+
+                let matrix = self.matrix.clone();
+
+                return Ok(VVal::new_usr(VValHexGridModel {
+                    model:
+                        Rc::new(RefCell::new(
+                            grid_models::MatrixUIModel::new(matrix))),
+                }));
+            },
+            _ => {}
+        }
+
         let m = self.matrix.lock();
 
         if let Ok(mut m) = m {
@@ -611,24 +630,6 @@ fn setup_hx_module(matrix: Arc<Mutex<Matrix>>) -> wlambda::SymbolTable {
         "get_main_matrix_handle", move |env: &mut Env, argc: usize| {
             Ok(VVal::new_usr(VValMatrix { matrix: matrix.clone() }))
         }, Some(0), Some(0), false);
-
-    st.fun(
-        "create_matrix_grid_model", |env: &mut Env, argc: usize| {
-
-            if let Some(matrix) =
-                env.arg(0).with_usr_ref(|model: &mut VValMatrix| model.matrix.clone())
-            {
-                Ok(VVal::new_usr(VValHexGridModel {
-                    model:
-                        Rc::new(RefCell::new(
-                            grid_models::MatrixUIModel::new(matrix))),
-                }))
-            }
-            else
-            {
-                Ok(VVal::err_msg("The passed argument is not a matrix object."))
-            }
-        }, Some(1), Some(1), false);
 
     st.fun(
         "create_test_hex_grid_model", |env: &mut Env, argc: usize| {

@@ -25,10 +25,15 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
     matrix.set $i(1, 1) ${ node_id = $p("sin", 1) };
     std:displayln ~ matrix.get $i(1, 1);
 
-    !grid = ui.new_hexgrid 0 60.0 ${ position = "self" };
+    !grid = ui.new_hexgrid 0 54.0 ${ position = "self" };
 
-    !test_model = hx:create_test_hex_grid_model[];
-    ui.emit_to 0 grid $p(:hexgrid:set_model, test_model);
+#    !test_model = hx:create_test_hex_grid_model[];
+#    ui.emit_to 0 grid $p(:hexgrid:set_model, test_model);
+    std:displayln "A";
+    !matrix_model = matrix.create_grid_model[];
+    std:displayln "B";
+    ui.emit_to 0 grid $p(:hexgrid:set_model, matrix_model);
+    std:displayln "C";
 
     !col = ui.new_col 0 ${ position = "self" };
 
