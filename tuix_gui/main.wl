@@ -3,7 +3,7 @@
 !COLORS = ${};
 
 iter line (("\n" => 0) hx:hexo_consts_rs) {
-    if line &> $r/$*?const\ (^UI_$+$S)$*?hxclr!\(0x(^$+[^\)])\)/ {
+    if line &> $r/*const\ (^UI_$+$S)*hxclr!\(0x(^$+[^\)])\)/ {
         COLORS.($\.1) = "#" $\.2;
     };
 };
@@ -68,4 +68,16 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
     !par2 = ui.new_row col;
 
     ui.new_pattern_editor par2;
+
+    !tab_cont_ids = ui.new_tabs par2 $[
+            ${ name = "first",  title = "First",      cont = ${ class = "tab_cont" } },
+            ${ name = "second", title = "Second Tab", cont = ${ class = "tab_cont" } },
+            ${ name = "third",  title = "Third Tab",  cont = ${ class = "tab_cont" } },
+        ] ${
+            tab_class = "tab",
+            tab_view = ${ }, # attribs
+        };
+
+    ui.new_button tab_cont_ids.0 "Test First" {||};
+    ui.new_button tab_cont_ids.1 "Test Second" {||};
 };

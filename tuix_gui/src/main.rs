@@ -36,6 +36,7 @@ enum GUIAction {
     NewCol(i64, i64, VVal),
     NewHexKnob(i64, i64, Option<String>),
     NewHexGrid(i64, i64, VVal),
+    NewTabs(Vec<(VVal, i64)>, i64, VVal),
     NewPatternEditor(i64, i64, Option<String>),
     NewButton(i64, i64, Option<String>, String, VVal),
     EmitTo(i64, i64, VVal),
@@ -107,16 +108,17 @@ fn vv2class(class: VVal) -> Option<String> {
 fn vvbuilder<'a, T>(mut builder: Builder<'a, T>, build_attribs: &VVal) -> Builder<'a, T> {
     let mut attribs = vec![];
 
-    build_attribs.for_each(|v| {
-        let val = v.v_(1);
-        let key = v.v_s(0);
-        attribs.push((key, val));
+    println!("VVB: {}", build_attribs.s());
+
+    build_attribs.for_eachk(|key, val| {
+        attribs.push((key.to_string(), val.clone()));
     });
 
     for (k, v) in attribs {
+        println!("VVBUILDER A={} V={}", k, v.s());
         builder =
             match &k[..] {
-                "class" => builder.class(&v.s_raw()),
+                "class" => { println!("SET CLASS={}", v.s_raw()); builder.class(&v.s_raw()) },
                 "position" =>
                     builder.set_position_type(
                         if &v.s_raw() == "self" { PositionType::SelfDirected }
@@ -454,6 +456,23 @@ impl GUIActionRecorder {
             Ok(VVal::Int(r.new_pattern_editor(env.arg(0).i(), env.arg(1))))
         });
 
+        set_vval_method!(obj, r, new_tabs, Some(2), Some(3), env, _argc, {
+            let mut rr = r.borrow_mut();
+            let mut tabs = vec![];
+            let ids = VVal::vec();
+
+            env.arg(1).for_each(|v| {
+                let id = rr.new_ref();
+                tabs.push((v.clone(), id));
+                ids.push(VVal::Int(id));
+            });
+
+            rr.actions.push(
+                GUIAction::NewTabs(tabs, env.arg(0).i(), env.arg(2)));
+
+            Ok(ids)
+        });
+
         set_vval_method!(obj, r, new_button, Some(3), Some(4), env, _argc, {
             let mut r = r.borrow_mut();
             Ok(VVal::Int(r.new_button(
@@ -604,6 +623,43 @@ impl GUIActionRecorder {
                                         &[gui_rec]);
                                 })
                                 .build(state, *parent, |builder| { builder }));
+                    }
+                },
+                GUIAction::NewTabs(tabs, parent, build_attribs) => {
+                    if let Some(GUIRef::Ent(parent)) = self.refs.get(*parent as usize) {
+                        let tab_class = build_attribs.v_s_rawk("tab_class");
+
+                        let (tab_bar, tab_viewport) =
+                            TabView::new().build(state, *parent,
+                                |builder| vvbuilder(
+                                    builder, &build_attribs.v_k("tab_view")));
+
+                        for (i, (tab_battribs, tab_cont_id)) in tabs.iter().enumerate() {
+                            let name   = tab_battribs.v_s_rawk("name");
+                            let title  = tab_battribs.v_s_rawk("title");
+                            let catrib = tab_battribs.v_k("cont");
+
+                            let tab =
+                                Tab::new(&name)
+                                    .build(state, tab_bar, |builder| {
+                                        builder.set_text(&title).class(&tab_class)
+                                    });
+
+                            println!("CONT: {}", catrib.s());
+                            let container =
+                                TabContainer::new(&name)
+                                    .build(state, tab_viewport,
+                                        |builder| vvbuilder(builder, &catrib));
+
+                            if i == 0 {
+                                tab.set_checked(state, true);
+                            } else {
+                                container.set_display(state, Display::None);
+                            }
+
+                            self.refs[*tab_cont_id as usize] =
+                                GUIRef::Ent(container);
+                        }
                     }
                 },
                 GUIAction::AddTheme(theme) => {

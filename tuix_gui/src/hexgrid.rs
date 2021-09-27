@@ -520,7 +520,9 @@ impl Widget for HexGrid {
     type Data = ();
 
     fn on_build(&mut self, state: &mut State, entity: Entity) -> Self::Ret {
-        entity.set_clip_widget(state, entity)
+        entity
+            .set_clip_widget(state, entity)
+            .set_element(state, "hex-grid")
     }
 
     fn on_event(&mut self, state: &mut State, entity: Entity, event: &mut Event) {

@@ -34,6 +34,7 @@ popup.hex-knob-popup {
     border-radius: 8px;
     border-top-left-radius: 0px;
     border-top-right-radius: 0px;
+
     child-space: 0.1s;
     background-color: UI_BG_CLR;
     color: UI_PRIM_CLR;
@@ -80,10 +81,59 @@ hex-knob {
 }
 
 pattern-editor {
-    left: 1s;
-    right: 1s;
+//    left: 1s;
+//    right: 1s;
 }
 
 row.headbar {
     height: 100px;
+}
+
+//tab_manager {
+//    width: 1s;
+//}
+
+tab_bar {
+//    background-color: #202020;
+    height: 30px;
+    layout-type: row;
+}
+
+tab_container.tab_cont {
+    border-width: 2px;
+    border-color: UI_ACCENT_CLR;
+    background-color: UI_BG_CLR;
+}
+
+tab_bar>.tab {
+    border-width: 1px;
+    border-color: UI_ACCENT_CLR;
+    border-corner-shape: bevel;
+    border-radius: 8px;
+    border-bottom-left-radius: 0px;
+    border-bottom-right-radius: 0px;
+
+    color: UI_PRIM2_CLR;
+
+    background-color: UI_LBL_BG_CLR;
+
+    right: 1px;
+    width: 100px;
+
+    child-space: 1s;
+}
+
+tab_bar>.tab:checked {
+    border-width: 2px;
+    bottom: 0px;
+    background-color: UI_LBL_BG_CLR;
+    border-color: UI_SELECT_CLR;
+    color: UI_PRIM_CLR;
+    /* background-color: red; */
+}
+
+
+
+hex-grid {
+    width: 400px;
 }
