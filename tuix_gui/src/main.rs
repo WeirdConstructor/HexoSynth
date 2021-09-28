@@ -24,6 +24,7 @@ use hexo_consts::*;
 
 use hexodsp::{Matrix, NodeId, Cell, CellDir};
 use hexodsp::matrix::MatrixError;
+use hexodsp::dsp::UICategory;
 
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -38,10 +39,11 @@ enum GUIAction {
     NewHexGrid(i64, i64, VVal),
     NewTabs(Vec<(VVal, i64)>, i64, VVal),
     NewPatternEditor(i64, i64, Option<String>),
-    NewButton(i64, i64, Option<String>, String, VVal),
+    NewButton(i64, i64, String, VVal, VVal),
     EmitTo(i64, i64, VVal),
     SetText(i64, String),
     AddTheme(String),
+    Remove(i64),
     Redraw,
 }
 
@@ -52,11 +54,12 @@ enum GUIRef {
 }
 
 pub struct GUIActionRecorder {
-    matrix:   Arc<Mutex<Matrix>>,
-    actions:  Vec<GUIAction>,
-    refs:     Vec<GUIRef>,
-    ref_idx:  i64,
-    obj:      VVal,
+    matrix:     Arc<Mutex<Matrix>>,
+    actions:    Vec<GUIAction>,
+    refs:       Vec<GUIRef>,
+    free_refs:  Vec<i64>,
+    ref_idx:    i64,
+    obj:        VVal,
 }
 
 
@@ -115,10 +118,18 @@ fn vvbuilder<'a, T>(mut builder: Builder<'a, T>, build_attribs: &VVal) -> Builde
     });
 
     for (k, v) in attribs {
-        println!("VVBUILDER A={} V={}", k, v.s());
         builder =
             match &k[..] {
-                "class" => { println!("SET CLASS={}", v.s_raw()); builder.class(&v.s_raw()) },
+                "class" => {
+                    if v.is_vec() {
+                        for i in 0..v.len() {
+                            builder = builder.class(&v.v_s_raw(i));
+                        }
+                        builder
+                    } else {
+                        builder.class(&v.s_raw())
+                    }
+                },
                 "position" =>
                     builder.set_position_type(
                         if &v.s_raw() == "self" { PositionType::SelfDirected }
@@ -401,6 +412,7 @@ impl GUIActionRecorder {
                     matrix: matrix.clone(),
                     actions:  vec![],
                     refs:     vec![],
+                    free_refs: vec![],
                     ref_idx:  1,
                     obj:      VVal::None,
                 }));
@@ -427,6 +439,11 @@ impl GUIActionRecorder {
         set_vval_method!(obj, r, add_theme, Some(1), Some(1), env, _argc, {
             r.borrow_mut().actions.push(
                 GUIAction::AddTheme(env.arg(0).s_raw()));
+            Ok(VVal::None)
+        });
+
+        set_vval_method!(obj, r, remove, Some(1), Some(1), env, _argc, {
+            r.borrow_mut().actions.push(GUIAction::Remove(env.arg(0).i()));
             Ok(VVal::None)
         });
 
@@ -506,9 +523,9 @@ impl GUIActionRecorder {
         ret_ref
     }
 
-    pub fn new_button(&mut self, parent: i64, label: String, on_click: VVal, class: VVal) -> i64 {
+    pub fn new_button(&mut self, parent: i64, label: String, on_click: VVal, build_attribs: VVal) -> i64 {
         let ret_ref = self.new_ref();
-        self.actions.push(GUIAction::NewButton(parent, ret_ref, vv2class(class), label, on_click));
+        self.actions.push(GUIAction::NewButton(parent, ret_ref, label, on_click, build_attribs));
         ret_ref
     }
 
@@ -518,7 +535,18 @@ impl GUIActionRecorder {
         ret_ref
     }
 
+//    pub fn recycle_ref(&mut self, id: i64) {
+//        self.refs[id as usize] = GUIRef::None;
+//        self.free_refs.push(id);
+//    }
+
     pub fn new_ref(&mut self) -> i64 {
+        if !self.free_refs.is_empty() {
+            if let Some(id) = self.free_refs.pop() {
+                return id;
+            }
+        }
+
         let idx = self.ref_idx;
         self.ref_idx += 1;
         while self.refs.len() <= (idx as usize) {
@@ -606,7 +634,7 @@ impl GUIActionRecorder {
                             .build(state, *parent, |builder| { builder }));
                     }
                 },
-                GUIAction::NewButton(parent, out, class, label, on_click) => {
+                GUIAction::NewButton(parent, out, label, on_click, build_attribs) => {
                     if let Some(GUIRef::Ent(parent)) = self.refs.get(*parent as usize) {
                         let wl_ctx   = wl_ctx.clone();
                         let on_click = on_click.clone();
@@ -622,12 +650,14 @@ impl GUIActionRecorder {
                                         state, button, on_click.clone(),
                                         &[gui_rec]);
                                 })
-                                .build(state, *parent, |builder| { builder }));
+                                .build(state, *parent,
+                                    |builder|
+                                        vvbuilder(builder, build_attribs)));
                     }
                 },
                 GUIAction::NewTabs(tabs, parent, build_attribs) => {
                     if let Some(GUIRef::Ent(parent)) = self.refs.get(*parent as usize) {
-                        let tab_class = build_attribs.v_s_rawk("tab_class");
+                        let tab_build_at = build_attribs.v_k("tab");
 
                         let (tab_bar, tab_viewport) =
                             TabView::new().build(state, *parent,
@@ -642,7 +672,7 @@ impl GUIActionRecorder {
                             let tab =
                                 Tab::new(&name)
                                     .build(state, tab_bar, |builder| {
-                                        builder.set_text(&title).class(&tab_class)
+                                        vvbuilder(builder.set_text(&title), &tab_build_at)
                                     });
 
                             println!("CONT: {}", catrib.s());
@@ -665,6 +695,14 @@ impl GUIActionRecorder {
                 GUIAction::AddTheme(theme) => {
                     state.add_theme(theme);
                     println!("ADDTHEME: {}", theme);
+                },
+                GUIAction::Remove(id) => {
+                    if let Some(GUIRef::Ent(entity)) = self.refs.get(*id as usize) {
+                        state.tree.remove(*entity);
+                    }
+
+                    self.refs[*id as usize] = GUIRef::None;
+                    self.free_refs.push(*id);
                 },
                 GUIAction::SetText(entity, text) => {
                     if let Some(GUIRef::Ent(entity)) = self.refs.get(*entity as usize) {
@@ -713,6 +751,102 @@ impl Widget for HiddenThingie {
     }
 }
 
+fn ui_category2str(cat: UICategory) -> &'static str {
+    match cat {
+        UICategory::None   => "none",
+        UICategory::Osc    => "Osc",
+        UICategory::Mod    => "Mod",
+        UICategory::NtoM   => "NtoM",
+        UICategory::Signal => "Signal",
+        UICategory::Ctrl   => "Ctrl",
+        UICategory::IOUtil => "IOUtil",
+    }
+}
+
+fn setup_node_id_module() -> wlambda::SymbolTable {
+    let mut st = wlambda::SymbolTable::new();
+
+    st.fun(
+        "list_all", move |env: &mut Env, argc: usize| {
+            let ids = VVal::vec();
+
+            for nid in hexodsp::dsp::ALL_NODE_IDS.iter() {
+                ids.push(VVal::new_str(nid.name()));
+            }
+
+            Ok(ids)
+        }, Some(0), Some(0), false);
+
+    st.fun(
+        "ui_category_list", move |env: &mut Env, argc: usize| {
+            let cats = VVal::vec();
+            cats.push(VVal::new_sym("none"));
+            cats.push(VVal::new_sym("Osc"));
+            cats.push(VVal::new_sym("Mod"));
+            cats.push(VVal::new_sym("NtoM"));
+            cats.push(VVal::new_sym("Signal"));
+            cats.push(VVal::new_sym("Ctrl"));
+            cats.push(VVal::new_sym("IOUtil"));
+            Ok(cats)
+        }, Some(0), Some(0), false);
+
+    st.fun(
+        "ui_category_node_id_map", move |env: &mut Env, argc: usize| {
+            let m = VVal::map();
+
+            for cat in [
+                UICategory::Osc,
+                UICategory::Mod,
+                UICategory::NtoM,
+                UICategory::Signal,
+                UICategory::Ctrl,
+                UICategory::IOUtil
+            ]
+            {
+                let v = VVal::vec();
+                cat.get_node_ids(
+                    0,
+                    |nid| {
+                        v.push(VVal::pair(VVal::new_str(nid.name()),
+                                          VVal::Int(0)));
+                    });
+                m.set_key_str(ui_category2str(cat), v);
+            }
+
+            Ok(m)
+        }, Some(0), Some(0), false);
+
+    st.fun(
+        "ui_category", move |env: &mut Env, argc: usize| {
+            let nid = vval2node_id(&env.arg(0));
+            Ok(VVal::new_sym(ui_category2str(nid.ui_category())))
+        }, Some(1), Some(1), false);
+
+    st.fun(
+        "instance", move |env: &mut Env, argc: usize| {
+            Ok(VVal::Int(vval2node_id(&env.arg(0)).instance() as i64))
+        }, Some(1), Some(1), false);
+
+    st.fun(
+        "name", move |env: &mut Env, argc: usize| {
+            Ok(VVal::new_str(vval2node_id(&env.arg(0)).name()))
+        }, Some(1), Some(1), false);
+
+    st.fun(
+        "label", move |env: &mut Env, argc: usize| {
+            Ok(VVal::new_str(vval2node_id(&env.arg(0)).label()))
+        }, Some(1), Some(1), false);
+
+    st.fun(
+        "eq_variant", move |env: &mut Env, argc: usize| {
+            Ok(VVal::Bol(
+                            vval2node_id(&env.arg(0))
+                .eq_variant(&vval2node_id(&env.arg(1)))))
+        }, Some(2), Some(2), false);
+
+    st
+}
+
 fn setup_hx_module(matrix: Arc<Mutex<Matrix>>) -> wlambda::SymbolTable {
     let mut st = wlambda::SymbolTable::new();
 
@@ -746,13 +880,18 @@ fn main() {
                     let thing = (HiddenThingie { }).build(state, window, |builder| builder);
 
                     state.add_font_mem(
+                        "font_serif",
+                        std::include_bytes!("font.ttf"));
+
+                    state.add_font_mem(
                         "font_mono",
                         std::include_bytes!("font_mono.ttf"));
 
-                    state.set_default_font("font_mono");
+                    state.set_default_font("font_serif");
 
                     let global_env = wlambda::GlobalEnv::new_default();
                     global_env.borrow_mut().set_module("hx", setup_hx_module(matrix));
+                    global_env.borrow_mut().set_module("node_id", setup_node_id_module());
 
                     let mut wl_ctx = wlambda::EvalContext::new(global_env);
 

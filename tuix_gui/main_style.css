@@ -1,3 +1,4 @@
+
 button {
     border-radius: 16px;
     border-corner-shape: bevel;
@@ -19,6 +20,10 @@ button:hover {
 button:active {
     border-color: UI_SELECT_CLR;
     outer-shadow: 0px 0px 10px UI_SELECT_CLR;
+}
+
+button.node_btn {
+    width: 80px;
 }
 
 label {
@@ -99,10 +104,29 @@ tab_bar {
     layout-type: row;
 }
 
-tab_container.tab_cont {
+tab_manager.ui_category_tab_view {
+    position: self-directed;
+    top: 1s;
+    height: 230px;
+    width: 305px;
+}
+
+tab_manager.ui_category_tab_view > tab_container {
+    width: 305px;
+    height: 200px;
+}
+
+
+tab_container {
     border-width: 2px;
     border-color: UI_ACCENT_CLR;
     background-color: UI_BG_CLR;
+}
+
+tab_bar>.tabx {
+    font-size: 14px;
+    width: 50px;
+    height: 30px;
 }
 
 tab_bar>.tab {
@@ -118,9 +142,14 @@ tab_bar>.tab {
     background-color: UI_LBL_BG_CLR;
 
     right: 1px;
-    width: 100px;
 
     child-space: 1s;
+}
+
+tab_bar>.tab:hover {
+    border-color: UI_HLIGHT_CLR;
+    color: UI_PRIM_CLR;
+    /* background-color: red; */
 }
 
 tab_bar>.tab:checked {
@@ -132,8 +161,5 @@ tab_bar>.tab:checked {
     /* background-color: red; */
 }
 
-
-
 hex-grid {
-    width: 400px;
 }
