@@ -108,6 +108,17 @@ fn vv2class(class: VVal) -> Option<String> {
     }
 }
 
+fn vv2units(v: &VVal) -> Units {
+    let amt = v.v_f(0) as f32;
+    v.v_with_s_ref(1, |s|
+        match s {
+            "px"       => Units::Pixels(amt),
+            "%"        => Units::Percentage(amt),
+            "s"        => Units::Stretch(amt),
+            "auto" | _ => Units::Auto,
+        })
+}
+
 fn vvbuilder<'a, T>(mut builder: Builder<'a, T>, build_attribs: &VVal) -> Builder<'a, T> {
     let mut attribs = vec![];
 
@@ -129,6 +140,39 @@ fn vvbuilder<'a, T>(mut builder: Builder<'a, T>, build_attribs: &VVal) -> Builde
                     } else {
                         builder.class(&v.s_raw())
                     }
+                },
+                "space" => { builder.set_space(vv2units(&v)) },
+                "child_space" => { builder.set_child_space(vv2units(&v)) },
+                "text" => { builder.set_text(&v.s_raw()) },
+                "row" => { builder.set_row_index(v.i() as usize) },
+                "col" => { builder.set_col_index(v.i() as usize) },
+                "row_span" => { builder.set_row_span(v.i() as usize) },
+                "col_span" => { builder.set_col_span(v.i() as usize) },
+                "row_between" => { builder.set_row_between(vv2units(&v)) },
+                "col_between" => { builder.set_col_between(vv2units(&v)) },
+                "grid_rows" => {
+                    let mut rows = vec![];
+                    v.for_each(|v| { rows.push(vv2units(v)); });
+                    println!("ROWS: {:?}", rows);
+                    builder.set_grid_rows(rows)
+                },
+                "grid_cols" => {
+                    let mut cols = vec![];
+                    v.for_each(|v| { cols.push(vv2units(v)); });
+                    builder.set_grid_cols(cols)
+                },
+                "layout_type" => {
+                    builder.set_layout_type(
+                        if &v.s_raw() == "row" {
+                            LayoutType::Row
+                        } else if &v.s_raw() == "grid" {
+                            println!("LAYOUTTPYE: GRID!!!!");
+                            LayoutType::Grid
+                        } else if &v.s_raw() == "column" {
+                            LayoutType::Column
+                        } else {
+                            LayoutType::Column
+                        })
                 },
                 "position" =>
                     builder.set_position_type(

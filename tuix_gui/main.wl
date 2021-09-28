@@ -34,28 +34,41 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
         std:push tabs ${
             name = "tab_" std:str:to_lowercase[cat],
             title = cat,
-            cont = ${ class = "ui_category_tab_cont" },
+            cont = ${
+                class       = "ui_category_tab_cont",
+                layout_type = :grid,
+                grid_rows   = $@vec ($iter 0 => 5) {|| $+ 1 => :s },
+                grid_cols   = $@vec ($iter 0 => 4) {|| $+ 1 => :s },
+            },
         };
     };
 
     !tab_cont_ids = ui.new_tabs parent tabs ${
-        tab      = ${ class = $["tab", "tabx"] },
+        tab      = ${ class = $["tab", "tabx"], },
         tab_view = ${ class = "ui_category_tab_view" },
     };
 
     !i = 0;
     iter tc tab_cont_ids {
-        !row = ui.new_row tc;
         !cat = (i + 1) cat_list;
+        !j = 0;
 
         iter nid NODE_ID_CATEGORIES.(cat) {
+            !row_i = j / 4;
+            !col_i = j - (4 * row_i);
+            .j += 1;
+
             !mnid = nid;
             !btn =
                 ui.new_button
-                    row
+                    tc
                     node_id:label[nid]
                     {|| .CUR_NODE_TYPE = mnid; }
-                    ${ class = "node_btn" };
+                    ${
+                        class = "node_btn",
+                        row = row_i,
+                        col = col_i,
+                    };
         };
 
         .i += 1;
