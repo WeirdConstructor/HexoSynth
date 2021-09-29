@@ -89,10 +89,25 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
         on_click = {!(ui, pos, btn) = @;
             std:displayln "CLICK CELL:" pos btn;
 
-            !new_node_id = matrix.get_unused_instance_node_id CUR_NODE_TYPE;
+            match btn
+                :left => {
+                    !new_node_id =
+                        matrix.get_unused_instance_node_id CUR_NODE_TYPE;
+                    matrix.set pos ${ node_id = new_node_id };
+                    unwrap ~ matrix.sync[];
+                }
+                :right => {
+                    !cluster = hx:new_cluster[];
+                    cluster.add_cluster_at matrix pos;
+                    std:displayln cluster.cell_list[];
 
-            matrix.set pos ${ node_id = new_node_id };
-            unwrap ~ matrix.sync[];
+                    !d = hx:dir :T;
+                    !d2 = d.flip[];
+                    std:displayln
+                        d d2
+                        d.is_input[] d2.is_input[]
+                        d2.as_edge[];
+                };
         },
         on_cell_drag = {!(ui, pos, pos2, btn) = @;
             std:displayln "DRAG CELL:" pos "=>" pos2 btn;

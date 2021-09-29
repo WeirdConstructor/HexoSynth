@@ -12,6 +12,7 @@ mod hexgrid;
 mod rect;
 mod pattern_editor;
 mod grid_models;
+mod cluster;
 
 mod jack;
 mod synth;
@@ -427,6 +428,194 @@ impl vval::VValUserData for VValMatrix {
             }
         } else {
              Ok(VVal::err_msg("Can't lock matrix!"))
+        }
+    }
+
+    fn as_any(&mut self) -> &mut dyn std::any::Any { self }
+    fn clone_ud(&self) -> Box<dyn vval::VValUserData> { Box::new(self.clone()) }
+}
+
+#[derive(Clone)]
+struct VValCellDir {
+    dir: CellDir
+}
+
+impl VValCellDir {
+    pub fn from_vval(v: &VVal) -> Self {
+        Self {
+            dir: v.with_s_ref(|s| {
+                match s {
+                    "c" | "C" => CellDir::C,
+                    "t" | "T" => CellDir::T,
+                    "b" | "B" => CellDir::B,
+                    "tl" | "TL" => CellDir::TL,
+                    "bl" | "BL" => CellDir::BL,
+                    "tr" | "TR" => CellDir::TR,
+                    "br" | "BR" => CellDir::BR,
+                    _ => CellDir::C,
+                }
+            })
+        }
+    }
+
+    pub fn from_vval_edge(v: &VVal) -> Self {
+        Self {
+            dir: CellDir::from(v.i() as u8),
+        }
+    }
+}
+
+fn cell_dir2vv(dir: CellDir) -> VVal { VVal::new_usr(VValCellDir { dir }) }
+
+impl vval::VValUserData for VValCellDir {
+    fn s(&self) -> String { format!("$<CellDir::{:?}>", self.dir) }
+
+    fn call_method(&self, key: &str, env: &mut Env)
+        -> Result<VVal, StackAction>
+    {
+        let args = env.argv_ref();
+
+        match key {
+            "as_edge" => {
+                if args.len() != 0 {
+                    return Err(StackAction::panic_msg(
+                        "cell_dir.as_edge[] called with wrong number of arguments"
+                        .to_string()));
+                }
+
+                Ok(VVal::Int(self.dir.as_edge() as i64))
+            },
+            "flip" => {
+                if args.len() != 0 {
+                    return Err(StackAction::panic_msg(
+                        "cell_dir.flip[] called with wrong number of arguments"
+                        .to_string()));
+                }
+
+                Ok(cell_dir2vv(self.dir.flip()))
+            },
+            "is_input" => {
+                if args.len() != 0 {
+                    return Err(StackAction::panic_msg(
+                        "cell_dir.is_input[] called with wrong number of arguments"
+                        .to_string()));
+                }
+
+                Ok(VVal::Bol(self.dir.is_input()))
+            },
+            "is_output" => {
+                if args.len() != 0 {
+                    return Err(StackAction::panic_msg(
+                        "cell_dir.is_output[] called with wrong number of arguments"
+                        .to_string()));
+                }
+
+                Ok(VVal::Bol(self.dir.is_output()))
+            },
+            _ => Ok(VVal::err_msg(&format!("Unknown method called: {}", key))),
+        }
+    }
+
+    fn as_any(&mut self) -> &mut dyn std::any::Any { self }
+    fn clone_ud(&self) -> Box<dyn vval::VValUserData> { Box::new(self.clone()) }
+}
+
+
+#[derive(Clone)]
+struct VValCluster {
+    cluster: Rc<RefCell<crate::cluster::Cluster>>,
+}
+
+impl VValCluster {
+    pub fn new() -> Self {
+        Self {
+            cluster: Rc::new(RefCell::new(crate::cluster::Cluster::new())),
+        }
+    }
+}
+
+impl vval::VValUserData for VValCluster {
+    fn s(&self) -> String { format!("$<HexoDSP::Cluster>") }
+
+    fn call_method(&self, key: &str, env: &mut Env)
+        -> Result<VVal, StackAction>
+    {
+        let args = env.argv_ref();
+
+        match key {
+            "add_cluster_at" => {
+                if args.len() != 2 {
+                    return Err(StackAction::panic_msg(
+                        "cluster.add_cluster_at[matrix, $i(x, y)] called with wrong number of arguments"
+                        .to_string()));
+                }
+
+                let mut m = env.arg(0);
+
+                if let Some(matrix) =
+                    m.with_usr_ref(
+                        |m: &mut VValMatrix| { m.matrix.clone() })
+                {
+                    if let Ok(mut m) = matrix.lock() {
+                        let v = env.arg(1);
+
+                        self.cluster
+                            .borrow_mut()
+                            .add_cluster_at(
+                                &mut m,
+                                (v.v_i(0) as usize,
+                                 v.v_i(1) as usize));
+                    }
+                }
+
+                Ok(VVal::None)
+            },
+            "ignore_pos" => {
+                if args.len() != 1 {
+                    return Err(StackAction::panic_msg(
+                        "cluster.ignore_pos[$i(x, y)] called with wrong number of arguments"
+                        .to_string()));
+                }
+
+                let v = env.arg(0);
+
+                self.cluster.borrow_mut().ignore_pos((
+                    v.v_i(0) as usize,
+                    v.v_i(1) as usize));
+
+                Ok(VVal::None)
+            },
+            "position_list" => {
+                if args.len() != 0 {
+                    return Err(StackAction::panic_msg(
+                        "cluster.position_list[] called with wrong number of arguments"
+                        .to_string()));
+                }
+
+                let v = VVal::vec();
+
+                self.cluster.borrow().for_poses(|pos| {
+                    v.push(VVal::ivec2(pos.0 as i64, pos.1 as i64));
+                });
+
+                Ok(v)
+            },
+            "cell_list" => {
+                if args.len() != 0 {
+                    return Err(StackAction::panic_msg(
+                        "cluster.cell_list[] called with wrong number of arguments"
+                        .to_string()));
+                }
+
+                let v = VVal::vec();
+
+                self.cluster.borrow().for_cells(|cell| {
+                    v.push(cell2vval(cell));
+                });
+
+                Ok(v)
+            },
+            _ => Ok(VVal::err_msg(&format!("Unknown method called: {}", key))),
         }
     }
 
@@ -910,6 +1099,21 @@ fn setup_hx_module(matrix: Arc<Mutex<Matrix>>) -> wlambda::SymbolTable {
         "get_main_matrix_handle", move |env: &mut Env, argc: usize| {
             Ok(VVal::new_usr(VValMatrix { matrix: matrix.clone() }))
         }, Some(0), Some(0), false);
+
+    st.fun(
+        "new_cluster", move |env: &mut Env, argc: usize| {
+            Ok(VVal::new_usr(VValCluster::new()))
+        }, Some(0), Some(0), false);
+
+    st.fun(
+        "dir", move |env: &mut Env, argc: usize| {
+            Ok(VVal::new_usr(VValCellDir::from_vval(&env.arg(0))))
+        }, Some(1), Some(1), false);
+
+    st.fun(
+        "dir_edge", move |env: &mut Env, argc: usize| {
+            Ok(VVal::new_usr(VValCellDir::from_vval_edge(&env.arg(0))))
+        }, Some(1), Some(1), false);
 
     st.fun(
         "create_test_hex_grid_model", |env: &mut Env, argc: usize| {
