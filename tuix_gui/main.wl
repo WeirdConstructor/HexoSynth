@@ -89,7 +89,9 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
         on_click = {!(ui, pos, btn) = @;
             std:displayln "CLICK CELL:" pos btn;
 
-            matrix.set pos ${ node_id = CUR_NODE_TYPE };
+            !new_node_id = matrix.get_unused_instance_node_id CUR_NODE_TYPE;
+
+            matrix.set pos ${ node_id = new_node_id };
             unwrap ~ matrix.sync[];
         },
         on_cell_drag = {!(ui, pos, pos2, btn) = @;

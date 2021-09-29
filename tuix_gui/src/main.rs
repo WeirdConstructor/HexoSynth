@@ -86,7 +86,7 @@ fn vv2event(event: &VVal) -> Event {
         "textbox:set_value"
             => Event::new(TextboxEvent::SetValue(event.v_s_raw(1))),
         "hexgrid:set_model" => {
-            if let Some(model) = vval2hex_grid_model(event.v_(1)) {
+            if let Some(model) = vv2hex_grid_model(event.v_(1)) {
                 Event::new(hexgrid::HexGridMessage::SetModel(model))
             } else {
                 eprintln!("Bad Event Type sent: {}, bad model arg!", event.s());
@@ -141,13 +141,13 @@ fn vvbuilder<'a, T>(mut builder: Builder<'a, T>, build_attribs: &VVal) -> Builde
                         builder.class(&v.s_raw())
                     }
                 },
-                "space" => { builder.set_space(vv2units(&v)) },
+                "space"       => { builder.set_space(vv2units(&v)) },
                 "child_space" => { builder.set_child_space(vv2units(&v)) },
-                "text" => { builder.set_text(&v.s_raw()) },
-                "row" => { builder.set_row_index(v.i() as usize) },
-                "col" => { builder.set_col_index(v.i() as usize) },
-                "row_span" => { builder.set_row_span(v.i() as usize) },
-                "col_span" => { builder.set_col_span(v.i() as usize) },
+                "text"        => { builder.set_text(&v.s_raw()) },
+                "row"         => { builder.set_row_index(v.i() as usize) },
+                "col"         => { builder.set_col_index(v.i() as usize) },
+                "row_span"    => { builder.set_row_span(v.i() as usize) },
+                "col_span"    => { builder.set_col_span(v.i() as usize) },
                 "row_between" => { builder.set_row_between(vv2units(&v)) },
                 "col_between" => { builder.set_col_between(vv2units(&v)) },
                 "grid_rows" => {
@@ -235,9 +235,13 @@ fn cell_set_port(cell: &mut Cell, v: VVal, dir: CellDir) -> bool {
     }
 }
 
-fn vval2node_id(v: &VVal) -> NodeId {
+fn vv2node_id(v: &VVal) -> NodeId {
     let node_id = v.v_(0).with_s_ref(|s| NodeId::from_str(s));
     node_id.to_instance(v.v_i(1) as usize)
+}
+
+fn node_id2vv(nid: NodeId) -> VVal {
+    VVal::pair(VVal::new_str(nid.name()), VVal::Int(nid.instance() as i64))
 }
 
 fn cell2vval(cell: &Cell) -> VVal {
@@ -253,9 +257,7 @@ fn cell2vval(cell: &Cell) -> VVal {
 
     VVal::map3(
         "node_id",
-        VVal::pair(
-            VVal::new_str(node_id.name()),
-            VVal::Int(node_id.instance() as i64)),
+        node_id2vv(node_id),
         "pos",
         VVal::ivec2(
             cell.pos().0 as i64,
@@ -263,8 +265,8 @@ fn cell2vval(cell: &Cell) -> VVal {
         "ports", ports)
 }
 
-fn vval2cell(v: &VVal) -> Cell {
-    let node_id = vval2node_id(&v.v_k("node_id"));
+fn vv2cell(v: &VVal) -> Cell {
+    let node_id = vv2node_id(&v.v_k("node_id"));
 
     let mut m_cell = Cell::empty(node_id);
 
@@ -366,7 +368,7 @@ impl vval::VValUserData for VValMatrix {
                     }
 
                     if let (Some(vv_cell), Some(pos)) = (env.arg_ref(1), env.arg_ref(0)) {
-                        let cell = vval2cell(vv_cell);
+                        let cell = vv2cell(vv_cell);
 
                         let x = pos.v_ik("x") as usize;
                         let y = pos.v_ik("y") as usize;
@@ -410,6 +412,17 @@ impl vval::VValUserData for VValMatrix {
                         Err(e) => Ok(matrix_error2vval_err(e)),
                     }
                 },
+                "get_unused_instance_node_id" => {
+                    if args.len() != 1 {
+                        return Err(StackAction::panic_msg(
+                            "matrix.get_unused_instance_node_id[node_id] called with wrong number of arguments"
+                            .to_string()));
+                    }
+
+                    let node_id = vv2node_id(&args[0]);
+                    let node_id = m.get_unused_instance_node_id(node_id);
+                    Ok(node_id2vv(node_id))
+                },
                 _ => Ok(VVal::err_msg(&format!("Unknown method called: {}", key))),
             }
         } else {
@@ -432,7 +445,7 @@ impl VValUserData for VValHexGridModel {
     fn clone_ud(&self) -> Box<dyn vval::VValUserData> { Box::new(self.clone()) }
 }
 
-fn vval2hex_grid_model(mut v: VVal) -> Option<Rc<RefCell<dyn HexGridModel>>> {
+fn vv2hex_grid_model(mut v: VVal) -> Option<Rc<RefCell<dyn HexGridModel>>> {
     v.with_usr_ref(|model: &mut VValHexGridModel| model.model.clone())
 }
 
@@ -848,12 +861,7 @@ fn setup_node_id_module() -> wlambda::SymbolTable {
             ]
             {
                 let v = VVal::vec();
-                cat.get_node_ids(
-                    0,
-                    |nid| {
-                        v.push(VVal::pair(VVal::new_str(nid.name()),
-                                          VVal::Int(0)));
-                    });
+                cat.get_node_ids(0, |nid| { v.push(node_id2vv(nid)); });
                 m.set_key_str(ui_category2str(cat), v);
             }
 
@@ -862,30 +870,30 @@ fn setup_node_id_module() -> wlambda::SymbolTable {
 
     st.fun(
         "ui_category", move |env: &mut Env, argc: usize| {
-            let nid = vval2node_id(&env.arg(0));
+            let nid = vv2node_id(&env.arg(0));
             Ok(VVal::new_sym(ui_category2str(nid.ui_category())))
         }, Some(1), Some(1), false);
 
     st.fun(
         "instance", move |env: &mut Env, argc: usize| {
-            Ok(VVal::Int(vval2node_id(&env.arg(0)).instance() as i64))
+            Ok(VVal::Int(vv2node_id(&env.arg(0)).instance() as i64))
         }, Some(1), Some(1), false);
 
     st.fun(
         "name", move |env: &mut Env, argc: usize| {
-            Ok(VVal::new_str(vval2node_id(&env.arg(0)).name()))
+            Ok(VVal::new_str(vv2node_id(&env.arg(0)).name()))
         }, Some(1), Some(1), false);
 
     st.fun(
         "label", move |env: &mut Env, argc: usize| {
-            Ok(VVal::new_str(vval2node_id(&env.arg(0)).label()))
+            Ok(VVal::new_str(vv2node_id(&env.arg(0)).label()))
         }, Some(1), Some(1), false);
 
     st.fun(
         "eq_variant", move |env: &mut Env, argc: usize| {
             Ok(VVal::Bol(
-                            vval2node_id(&env.arg(0))
-                .eq_variant(&vval2node_id(&env.arg(1)))))
+                            vv2node_id(&env.arg(0))
+                .eq_variant(&vv2node_id(&env.arg(1)))))
         }, Some(2), Some(2), false);
 
     st
