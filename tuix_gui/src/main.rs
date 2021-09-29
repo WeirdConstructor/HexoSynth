@@ -440,22 +440,24 @@ struct VValCellDir {
     dir: CellDir
 }
 
+pub fn vv2cell_dir(v: &VVal) -> CellDir {
+    v.with_s_ref(|s| {
+        match s {
+            "c" | "C" => CellDir::C,
+            "t" | "T" => CellDir::T,
+            "b" | "B" => CellDir::B,
+            "tl" | "TL" => CellDir::TL,
+            "bl" | "BL" => CellDir::BL,
+            "tr" | "TR" => CellDir::TR,
+            "br" | "BR" => CellDir::BR,
+            _ => CellDir::C,
+        }
+    })
+}
+
 impl VValCellDir {
     pub fn from_vval(v: &VVal) -> Self {
-        Self {
-            dir: v.with_s_ref(|s| {
-                match s {
-                    "c" | "C" => CellDir::C,
-                    "t" | "T" => CellDir::T,
-                    "b" | "B" => CellDir::B,
-                    "tl" | "TL" => CellDir::TL,
-                    "bl" | "BL" => CellDir::BL,
-                    "tr" | "TR" => CellDir::TR,
-                    "br" | "BR" => CellDir::BR,
-                    _ => CellDir::C,
-                }
-            })
-        }
+        Self { dir: vv2cell_dir(v), }
     }
 
     pub fn from_vval_edge(v: &VVal) -> Self {
@@ -553,8 +555,7 @@ impl vval::VValUserData for VValCluster {
                 let mut m = env.arg(0);
 
                 if let Some(matrix) =
-                    m.with_usr_ref(
-                        |m: &mut VValMatrix| { m.matrix.clone() })
+                    m.with_usr_ref(|m: &mut VValMatrix| { m.matrix.clone() })
                 {
                     if let Ok(mut m) = matrix.lock() {
                         let v = env.arg(1);
@@ -614,6 +615,78 @@ impl vval::VValUserData for VValCluster {
                 });
 
                 Ok(v)
+            },
+            "remove_cells" => {
+                if args.len() != 1 {
+                    return Err(StackAction::panic_msg(
+                        "cluster.remove_cells[matrix] called with wrong number of arguments"
+                        .to_string()));
+                }
+
+                let mut m = env.arg(0);
+
+                if let Some(matrix) =
+                    m.with_usr_ref(|m: &mut VValMatrix| { m.matrix.clone() })
+                {
+                    if let Ok(mut m) = matrix.lock() {
+                        self.cluster.borrow_mut().remove_cells(&mut m);
+                    }
+                }
+
+                Ok(VVal::None)
+            },
+            "place" => {
+                if args.len() != 1 {
+                    return Err(StackAction::panic_msg(
+                        "cluster.place[matrix] called with wrong number of arguments"
+                        .to_string()));
+                }
+
+                let mut m = env.arg(0);
+
+                if let Some(matrix) =
+                    m.with_usr_ref(|m: &mut VValMatrix| { m.matrix.clone() })
+                {
+                    if let Ok(mut m) = matrix.lock() {
+                        return
+                            match self.cluster.borrow_mut().place(&mut m) {
+                                Ok(_) => Ok(VVal::Bol(true)),
+                                Err(e) => Ok(matrix_error2vval_err(e)),
+                            };
+                    }
+                }
+
+                Ok(VVal::None)
+            },
+            "move_cluster_cells_dir_path" => {
+                if args.len() != 1 {
+                    return Err(StackAction::panic_msg(
+                        "cluster.move_cluster_cells_dir_path[$[CellDir, ...]] called with wrong number of arguments"
+                        .to_string()));
+                }
+
+                let path = env.arg(0);
+                let mut cd_path = vec![];
+
+                path.for_each(|v| {
+                    let mut v = v.clone();
+
+                    if let Some(dir) =
+                        v.with_usr_ref(|v: &mut VValCellDir| v.dir)
+                    {
+                        cd_path.push(dir);
+                    } else {
+                        cd_path.push(vv2cell_dir(&v));
+                    }
+                });
+
+                match self.cluster
+                          .borrow_mut()
+                          .move_cluster_cells_dir_path(&cd_path[..])
+                {
+                    Ok(_)  => Ok(VVal::Bol(true)),
+                    Err(e) => Ok(matrix_error2vval_err(e)),
+                }
             },
             _ => Ok(VVal::err_msg(&format!("Unknown method called: {}", key))),
         }

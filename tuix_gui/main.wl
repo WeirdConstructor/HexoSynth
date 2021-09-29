@@ -75,6 +75,20 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
     };
 };
 
+!checked_matrix_change = {!(matrix, cb) = @;
+    matrix.save_snapshot[];
+    !res = block :err {
+        _? :err cb[matrix];
+        _? :err matrix.check[];
+    };
+    if is_err[res] {
+        matrix.restore_snapshot[];
+    } {
+        if is_err[matrix.sync[]] ~
+            matrix.restore_snapshot[];
+    };
+};
+
 !:global init = {!(ui) = @;
     ui.add_theme
         ~ replace_colors_in_text
@@ -100,6 +114,12 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
                     !cluster = hx:new_cluster[];
                     cluster.add_cluster_at matrix pos;
                     std:displayln cluster.cell_list[];
+
+                    checked_matrix_change matrix {!(matrix) = @;
+                        cluster.remove_cells matrix;
+                        _? :err ~ cluster.move_cluster_cells_dir_path $[:B];
+                        _? :err ~ cluster.place matrix;
+                    };
 
                     !d = hx:dir :T;
                     !d2 = d.flip[];
