@@ -1,5 +1,5 @@
 // Copyright (c) 2021 Weird Constructor <weirdconstructor@gmail.com>
-// This file is a part of HexoDSP. Released under GPL-3.0-or-later.
+// This file is a part of HexoSynth. Released under GPL-3.0-or-later.
 // See README.md and COPYING for details.
 
 use wlambda::*;
@@ -513,6 +513,26 @@ impl vval::VValUserData for VValCellDir {
                 }
 
                 Ok(VVal::Bol(self.dir.is_output()))
+            },
+            "offs_pos" => {
+                if args.len() != 1 {
+                    return Err(StackAction::panic_msg(
+                        "cell_dir.offs_pos[$i(x, y)] called with wrong number of arguments"
+                        .to_string()));
+                }
+
+                let p = env.arg(0);
+
+                let pos = (
+                    p.v_i(0) as usize,
+                    p.v_i(1) as usize
+                );
+
+                if let Some(opos) = self.dir.offs_pos(pos) {
+                    Ok(VVal::ivec2(opos.0 as i64, opos.1 as i64))
+                } else {
+                    Ok(VVal::None)
+                }
             },
             _ => Ok(VVal::err_msg(&format!("Unknown method called: {}", key))),
         }
@@ -1187,6 +1207,24 @@ fn setup_hx_module(matrix: Arc<Mutex<Matrix>>) -> wlambda::SymbolTable {
         "dir_edge", move |env: &mut Env, argc: usize| {
             Ok(VVal::new_usr(VValCellDir::from_vval_edge(&env.arg(0))))
         }, Some(1), Some(1), false);
+
+    st.fun(
+        "dir_path_from_to", move |env: &mut Env, argc: usize| {
+            let from = env.arg(0);
+            let to   = env.arg(1);
+
+            let path =
+                CellDir::path_from_to(
+                    (from.v_i(0) as usize, from.v_i(1) as usize),
+                    (to.v_i(0) as usize, to.v_i(1) as usize));
+
+            let pth = VVal::vec();
+            for p in path.iter() {
+                pth.push(cell_dir2vv(*p));
+            }
+
+            Ok(pth)
+        }, Some(2), Some(2), false);
 
     st.fun(
         "create_test_hex_grid_model", |env: &mut Env, argc: usize| {

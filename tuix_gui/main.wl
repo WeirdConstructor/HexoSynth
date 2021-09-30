@@ -1,3 +1,7 @@
+# Copyright (c) 2021 Weird Constructor <weirdconstructor@gmail.com>
+# This file is a part of HexoDSP. Released under GPL-3.0-or-later.
+# See README.md and COPYING for details.
+
 !@import hx      = hx;
 !@import node_id = node_id;
 
@@ -77,10 +81,12 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
 
 !checked_matrix_change = {!(matrix, cb) = @;
     matrix.save_snapshot[];
+
     !res = block :err {
         _? :err cb[matrix];
         _? :err matrix.check[];
     };
+
     if is_err[res] {
         matrix.restore_snapshot[];
     } {
@@ -130,6 +136,20 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
                 };
         },
         on_cell_drag = {!(ui, pos, pos2, btn) = @;
+
+            if btn == :left {
+                !cluster = hx:new_cluster[];
+                cluster.add_cluster_at matrix pos;
+
+                !pth = hx:dir_path_from_to pos pos2;
+
+                checked_matrix_change matrix {!(matrix) = @;
+                    cluster.remove_cells matrix;
+                    _? :err ~ cluster.move_cluster_cells_dir_path pth;
+                    _? :err ~ cluster.place matrix;
+                };
+            };
+
             std:displayln "DRAG CELL:" pos "=>" pos2 btn;
         },
     };

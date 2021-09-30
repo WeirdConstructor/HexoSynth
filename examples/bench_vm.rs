@@ -303,7 +303,9 @@ impl RegVM {
     }
 }
 
-// output = if i > 0.5 { sin((i - 0.5) * TAU) } else { (i + 0.3) * 1.1 * i }
+// output =
+//     if i > 0.5 { sin((i - 0.5) * TAU) }
+//     else       { (i + 0.3) * 1.1 * i }
 const REG_PROG : [RegOp; 8] = [
     RegOp::BrIfLe(0.5, 4, 0), // if i > 0.5
     RegOp::Sub(0.5, 0, 0),
@@ -311,8 +313,6 @@ const REG_PROG : [RegOp; 8] = [
     RegOp::Sin(0, 0),
     RegOp::Br(5),   // skip else branch
 
-//    RegOp::Mul2(0, 1, 4),  // i1 * i
-//    RegOp::Mul2(0, 1, 4),  // i1 * i
     RegOp::Add(0.3, 0, 1), // i1 + 0.3
     RegOp::Mul(1.1, 1, 1), // i1 * 1.1
     RegOp::Mul2(0, 1, 0),  // i1 * i
