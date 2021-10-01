@@ -13,6 +13,7 @@ mod rect;
 mod pattern_editor;
 mod grid_models;
 mod cluster;
+mod matrix_param_model;
 
 mod jack;
 mod synth;

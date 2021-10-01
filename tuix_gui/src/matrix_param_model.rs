@@ -2,24 +2,128 @@
 // This file is a part of HexoSynth. Released under GPL-3.0-or-later.
 // See README.md and COPYING for details.
 
-use crate::hexknob::ParamModel;
+use crate::hexknob::{ParamModel, ChangeRes};
 
-use hexodsp::{Matrix, NodeId, Cell, CellDir};
+use hexodsp::{Matrix, NodeId, Cell, CellDir, ParamId};
 use hexodsp::matrix::MatrixError;
 
-struct ParamStore {
-    matrix_gen:     RefCell<usize>,
-    matrix:         Arc<Mutex<Matrix>>,
-    recent_err:     Option<MatrixError>,
+use std::sync::{Arc, Mutex};
 
-    params:         HashMap<AtomId, (ParamId, Atom)>,
-    modamts:        HashMap<AtomId, Option<f32>>,
-    variables:      HashMap<AtomId, (ParamId, Atom)>,
+//struct ParamStore {
+//    matrix_gen:     RefCell<usize>,
+//    matrix:         Arc<Mutex<Matrix>>,
+//    recent_err:     Option<MatrixError>,
+//
+//    params:         HashMap<AtomId, (ParamId, Atom)>,
+//    modamts:        HashMap<AtomId, Option<f32>>,
+//    variables:      HashMap<AtomId, (ParamId, Atom)>,
+//}
+//
+struct KnobParam {
+    matrix:         Arc<Mutex<Matrix>>,
+    param_id: ParamId,
 }
 
-struct KnobParamModel {
-    store:    Rc<RefCell<ParamStore>>,
-    param_id: ParamId,
+impl KnobParam {
+    pub fn new(matrix: Arc<Mutex<Matrix>>, param_id: ParamId) -> Self {
+        Self {
+            matrix,
+            param_id,
+        }
+    }
+
+    pub fn with<F, R: Default>(&self, fun: F) -> R
+        where F: FnOnce(&mut Matrix, ParamId) -> R
+    {
+        match self.matrix.lock() {
+            Ok(mut lock) => fun(&mut *lock, self.param_id),
+            Err(e) => {
+                eprintln!("Couldn't lock matrix!: {}", e);
+                R::default()
+            },
+        }
+    }
+
+    pub fn with_ref<F, R: Default>(&self, fun: F) -> R
+        where F: FnOnce(&mut Matrix, &ParamId) -> R
+    {
+        match self.matrix.lock() {
+            Ok(mut lock) => fun(&mut *lock, &self.param_id),
+            Err(e) => {
+                eprintln!("Couldn't lock matrix!: {}", e);
+                R::default()
+            },
+        }
+    }
+}
+
+impl ParamModel for KnobParam {
+    fn get(&self) -> f32 {
+        self.with_ref(|m, param_id|
+           m.get_param(param_id)
+            .map(|a| a.f())
+            .unwrap_or(0.0))
+    }
+
+    /// Should return true if the UI for the parameter can be changed
+    /// by the user. In HexoSynth this might return false if the
+    /// corresponding input is controlled by an output port.
+    fn enabled(&self) -> bool {
+        true
+    }
+
+    /// Should return a value in the range 0.0 to 1.0 for displayed knob position.
+    /// For instance: a normalized value in the range -1.0 to 1.0 needs to be mapped
+    /// to 0.0 to 1.0 by: `(x + 1.0) * 0.5`
+    fn get_ui_range(&self) -> f32 {
+        0.0
+    }
+
+    /// Should return the modulation amount for the 0..1 UI knob range.
+    /// Internally you should transform that into the appropriate
+    /// modulation amount in relation to what [get_ui_range] returns.
+    fn get_ui_mod_amt(&self) -> Option<f32> {
+        None
+    }
+
+    /// Should return the modulation amount like it will be applied to the
+    /// inputs.
+    fn get_mod_amt(&self) -> Option<f32> {
+        None
+    }
+
+    /// Set the UI modulation amount like it will be used in the
+    /// modulation later and be returned from [get_mod_amt].
+    fn set_mod_amt(&mut self, amt: Option<f32>) {
+    }
+
+    /// Should return a coarse step and a fine step for the normalized value.
+    /// If none are returned, the UI will assume default steps of:
+    ///
+    /// * Default coarse: 0.05
+    /// * Default fine: 0.01
+    fn get_ui_steps(&self) -> (f32, f32) { (0.05, 0.01) }
+
+    fn fmt(&self, buf: &mut [u8]) -> usize { 0 }
+    fn fmt_mod(&self, buf: &mut [u8]) -> usize { 0 }
+    fn fmt_norm(&self, buf: &mut [u8]) -> usize { 0 }
+    fn fmt_name(&self, buf: &mut [u8]) -> usize { 0 }
+
+    fn fmt_norm_mod_to_string(&self) -> String {
+        if let Some(v) = self.get_mod_amt() {
+            format!("{:6.3}", v)
+        } else {
+            "".to_string()
+        }
+    }
+
+    fn get_denorm(&self) -> f32 { 0.0 }
+    fn set_denorm(&mut self, v: f32) { }
+
+    fn set_default(&mut self) { }
+    fn change_start(&mut self) { }
+    fn change(&mut self, v: f32, res: ChangeRes) { }
+    fn change_end(&mut self, v: f32, res: ChangeRes) { }
 }
 
 //pub struct UIParams {
