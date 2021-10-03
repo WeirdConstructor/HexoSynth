@@ -18,6 +18,9 @@ mod matrix_param_model;
 mod jack;
 mod synth;
 
+use crate::matrix_param_model::KnobParam;
+use crate::hexknob::DummyParamModel;
+
 use painter::FemtovgPainter;
 use hexgrid::{HexGrid, HexGridModel, HexCell, HexDir, HexEdge, HexHLight};
 use hexknob::{HexKnob, ParamModel};
@@ -37,7 +40,7 @@ use std::sync::{Arc, Mutex};
 enum GUIAction {
     NewRow(i64, i64, Option<String>),
     NewCol(i64, i64, VVal),
-    NewHexKnob(i64, i64, VVal),
+    NewHexKnob(i64, i64, VVal, VVal),
     NewHexGrid(i64, i64, VVal),
     NewTabs(Vec<(VVal, i64)>, i64, VVal),
     NewPatternEditor(i64, i64, Option<String>),
@@ -345,6 +348,37 @@ impl vval::VValUserData for VValMatrix {
                         Rc::new(RefCell::new(
                             grid_models::MatrixUIModel::new(matrix))),
                 }));
+            },
+            "create_hex_knob_dummy_model" => {
+                if args.len() != 0 {
+                    return Err(StackAction::panic_msg(
+                        "matrix.create_hex_knob_model[] called with wrong number of arguments"
+                        .to_string()));
+                }
+
+                return Ok(VVal::new_usr(VValHexKnobModel {
+                    model: Rc::new(RefCell::new(DummyParamModel::new()))
+                }));
+            },
+            "create_hex_knob_model" => {
+                if args.len() != 1 {
+                    return Err(StackAction::panic_msg(
+                        "matrix.create_hex_knob_model[param_id] called with wrong number of arguments"
+                        .to_string()));
+                }
+
+                let matrix = self.matrix.clone();
+                if let Some(param_id) = vv2param_id(env.arg(0)) {
+                    return Ok(VVal::new_usr(VValHexKnobModel {
+                        model: Rc::new(RefCell::new(
+                            KnobParam::new(matrix, param_id)))
+                    }));
+
+                } else {
+                    return Err(StackAction::panic_msg(
+                        "matrix.create_hex_knob_model[param_id] requires a $<HexoDSP::ParamId> as first argument."
+                        .to_string()));
+                }
             },
             _ => {}
         }
@@ -889,10 +923,16 @@ impl GUIActionRecorder {
                 GUIAction::NewCol(env.arg(0).i(), id, env.arg(1)))))
         });
 
-        set_vval_method!(obj, r, new_hexknob, Some(1), Some(2), env, _argc, {
-            Ok(VVal::Int(
-                r.borrow_mut().add(|id|
-                    GUIAction::NewHexKnob(env.arg(0).i(), id, env.arg(1)))))
+        set_vval_method!(obj, r, new_hexknob, Some(2), Some(3), env, _argc, {
+            if let Some(_) = vv2hex_knob_model(env.arg(1)) {
+                Ok(VVal::Int(
+                    r.borrow_mut().add(|id|
+                        GUIAction::NewHexKnob(env.arg(0).i(), id, env.arg(1), env.arg(2)))))
+            } else {
+                Err(StackAction::panic_msg(
+                    "ui.new_hexknob[parent_id, hex_knob_model, build_attrs] not called with a $<UI::HexKnobModel>!"
+                    .to_string()))
+            }
         });
 
         set_vval_method!(obj, r, new_hexgrid, Some(1), Some(2), env, _argc, {
@@ -1047,10 +1087,17 @@ impl GUIActionRecorder {
                     }
 
                 },
-                GUIAction::NewHexKnob(parent, out, build_attribs) => {
+                GUIAction::NewHexKnob(parent, out, param_model, build_attribs) => {
                     if let Some(GUIRef::Ent(parent)) = self.refs.get(*parent as usize) {
+                        // XXX: Unwrap is checked by the
+                        //      creator of GUIAction::NewHexKnob!
+                        let param_model =
+                            vv2hex_knob_model(param_model.clone()).unwrap();
+
                         self.refs[*out as usize] = GUIRef::Ent(
-                            HexKnob::new().build(state, *parent, |builder| { vvbuilder(builder, build_attribs) }));
+                            HexKnob::new(param_model)
+                                .build(state, *parent,
+                                    |builder| vvbuilder(builder, build_attribs)));
                     }
                 },
                 GUIAction::NewPatternEditor(parent, out, class) => {

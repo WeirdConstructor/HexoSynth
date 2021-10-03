@@ -19,7 +19,7 @@ use std::sync::{Arc, Mutex};
 //    variables:      HashMap<AtomId, (ParamId, Atom)>,
 //}
 //
-struct KnobParam {
+pub struct KnobParam {
     matrix:         Arc<Mutex<Matrix>>,
     param_id: ParamId,
 }

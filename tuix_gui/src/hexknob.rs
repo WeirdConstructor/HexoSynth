@@ -681,12 +681,12 @@ pub struct HexKnob {
 }
 
 impl HexKnob {
-    pub fn new() -> Self {
+    pub fn new(model: Rc<RefCell<dyn ParamModel>>) -> Self {
         HexKnob {
+            model,
             font:       None,
             font_mono:  None,
             lbl_buf:    [0; 15],
-            model:      Rc::new(RefCell::new(DummyParamModel::new())),
             size:       28.0,
             knob:       Knob::new(28.0, UI_BG_KNOB_STROKE, 12.0, 9.0, UI_ELEM_TXT_H),
             hover:      None,
