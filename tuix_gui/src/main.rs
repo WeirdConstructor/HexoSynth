@@ -37,7 +37,7 @@ use std::sync::{Arc, Mutex};
 enum GUIAction {
     NewRow(i64, i64, Option<String>),
     NewCol(i64, i64, VVal),
-    NewHexKnob(i64, i64, Option<String>),
+    NewHexKnob(i64, i64, VVal),
     NewHexGrid(i64, i64, VVal),
     NewTabs(Vec<(VVal, i64)>, i64, VVal),
     NewPatternEditor(i64, i64, Option<String>),
@@ -87,6 +87,14 @@ fn vv2event(event: &VVal) -> Event {
     match &event.v_s_raw(0)[..] {
         "textbox:set_value"
             => Event::new(TextboxEvent::SetValue(event.v_s_raw(1))),
+        "hexknob:set_model" => {
+            if let Some(model) = vv2hex_knob_model(event.v_(1)) {
+                Event::new(hexknob::HexKnobMessage::SetModel(model))
+            } else {
+                eprintln!("Bad Event Type sent: {}, bad model arg!", event.s());
+                Event::new(WindowEvent::Redraw)
+            }
+        },
         "hexgrid:set_model" => {
             if let Some(model) = vv2hex_grid_model(event.v_(1)) {
                 Event::new(hexgrid::HexGridMessage::SetModel(model))
@@ -732,6 +740,21 @@ fn vv2hex_grid_model(mut v: VVal) -> Option<Rc<RefCell<dyn HexGridModel>>> {
     v.with_usr_ref(|model: &mut VValHexGridModel| model.model.clone())
 }
 
+#[derive(Clone)]
+struct VValHexKnobModel {
+    model: Rc<RefCell<dyn ParamModel>>,
+}
+
+impl VValUserData for VValHexKnobModel {
+    fn s(&self) -> String { format!("$<UI::HexKnobModel>") }
+    fn as_any(&mut self) -> &mut dyn std::any::Any { self }
+    fn clone_ud(&self) -> Box<dyn vval::VValUserData> { Box::new(self.clone()) }
+}
+
+fn vv2hex_knob_model(mut v: VVal) -> Option<Rc<RefCell<dyn ParamModel>>> {
+    v.with_usr_ref(|model: &mut VValHexKnobModel| model.model.clone())
+}
+
 fn btn2vval(btn: tuix::MouseButton) -> VVal {
     match btn {
         tuix::MouseButton::Right    => VVal::new_sym("right"),
@@ -798,8 +821,9 @@ impl GUIActionRecorder {
         });
 
         set_vval_method!(obj, r, new_hexknob, Some(1), Some(2), env, _argc, {
-            let mut r = r.borrow_mut();
-            Ok(VVal::Int(r.new_hexknob(env.arg(0).i(), env.arg(1))))
+            Ok(VVal::Int(
+                r.borrow_mut().add(|id|
+                    GUIAction::NewHexKnob(env.arg(0).i(), id, env.arg(1)))))
         });
 
         set_vval_method!(obj, r, new_hexgrid, Some(1), Some(2), env, _argc, {
@@ -848,12 +872,6 @@ impl GUIActionRecorder {
     pub fn add<F: FnOnce(i64) -> GUIAction>(&mut self, f: F) -> i64 {
         let ret_ref = self.new_ref();
         self.actions.push(f(ret_ref));
-        ret_ref
-    }
-
-    pub fn new_hexknob(&mut self, parent: i64, class: VVal) -> i64 {
-        let ret_ref = self.new_ref();
-        self.actions.push(GUIAction::NewHexKnob(parent, ret_ref, vv2class(class)));
         ret_ref
     }
 
@@ -960,10 +978,10 @@ impl GUIActionRecorder {
                     }
 
                 },
-                GUIAction::NewHexKnob(parent, out, class) => {
+                GUIAction::NewHexKnob(parent, out, build_attribs) => {
                     if let Some(GUIRef::Ent(parent)) = self.refs.get(*parent as usize) {
                         self.refs[*out as usize] = GUIRef::Ent(
-                            HexKnob::new().build(state, *parent, |builder| { builder }));
+                            HexKnob::new().build(state, *parent, |builder| { vvbuilder(builder, build_attribs) }));
                     }
                 },
                 GUIAction::NewPatternEditor(parent, out, class) => {
