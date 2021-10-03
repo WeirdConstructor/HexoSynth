@@ -175,7 +175,10 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
         class = "knob_panel",
     };
 
-    !dmy = matrix.create_hex_knob_dummy_model[];
+    !param_id = node_id:inp_param :sin => 0 "freq";
+#    !dmy = matrix.create_hex_knob_dummy_model[];
+    std:displayln :DMY: param_id;
+    !dmy = matrix.create_hex_knob_model[param_id];
 
     !pf = ui.new_hexknob panel dmy;
 
