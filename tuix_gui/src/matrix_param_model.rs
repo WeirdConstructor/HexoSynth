@@ -4,10 +4,11 @@
 
 use crate::hexknob::{ParamModel, ChangeRes};
 
-use hexodsp::{Matrix, NodeId, Cell, CellDir, ParamId};
+use hexodsp::{Matrix, NodeId, Cell, CellDir, ParamId, NodeInfo};
 use hexodsp::matrix::MatrixError;
 
 use std::sync::{Arc, Mutex};
+use std::io::Write;
 
 //struct ParamStore {
 //    matrix_gen:     RefCell<usize>,
@@ -20,8 +21,9 @@ use std::sync::{Arc, Mutex};
 //}
 //
 pub struct KnobParam {
-    matrix:         Arc<Mutex<Matrix>>,
-    param_id: ParamId,
+    matrix:     Arc<Mutex<Matrix>>,
+    param_id:   ParamId,
+    node_info:  NodeInfo,
 }
 
 impl KnobParam {
@@ -29,6 +31,7 @@ impl KnobParam {
         Self {
             matrix,
             param_id,
+            node_info: NodeInfo::from(param_id.node_id().name()),
         }
     }
 
@@ -107,7 +110,18 @@ impl ParamModel for KnobParam {
     fn fmt(&self, buf: &mut [u8]) -> usize { 0 }
     fn fmt_mod(&self, buf: &mut [u8]) -> usize { 0 }
     fn fmt_norm(&self, buf: &mut [u8]) -> usize { 0 }
-    fn fmt_name(&self, buf: &mut [u8]) -> usize { 0 }
+    fn fmt_name(&self, buf: &mut [u8]) -> usize {
+        let mut bw = std::io::BufWriter::new(buf);
+
+        match write!(bw, "{}",
+            self.node_info
+                .in_name(self.param_id.inp() as usize)
+                .unwrap_or("?"))
+        {
+            Ok(_)  => bw.buffer().len(),
+            Err(_) => 0,
+        }
+    }
 
     fn fmt_norm_mod_to_string(&self) -> String {
         if let Some(v) = self.get_mod_amt() {

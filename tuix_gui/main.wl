@@ -171,9 +171,7 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
     ui.emit_to 0 grid $p(:hexgrid:set_model, matrix_model);
     std:displayln "C";
 
-    !panel = ui.new_elem 0 ${
-        class = "knob_panel",
-    };
+    !panel = ui.new_elem 0 ${ class = "knob_panel" };
 
     !param_id = node_id:inp_param :sin => 0 "freq";
 #    !dmy = matrix.create_hex_knob_dummy_model[];
