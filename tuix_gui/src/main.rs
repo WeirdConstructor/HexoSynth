@@ -38,6 +38,7 @@ use std::sync::{Arc, Mutex};
 
 #[derive(Debug)]
 enum GUIAction {
+    NewElem(i64, i64, VVal),
     NewRow(i64, i64, Option<String>),
     NewCol(i64, i64, VVal),
     NewHexKnob(i64, i64, VVal, VVal),
@@ -923,6 +924,11 @@ impl GUIActionRecorder {
                 GUIAction::NewCol(env.arg(0).i(), id, env.arg(1)))))
         });
 
+        set_vval_method!(obj, r, new_elem, Some(1), Some(2), env, _argc, {
+            Ok(VVal::Int(r.borrow_mut().add(|id|
+                GUIAction::NewElem(env.arg(0).i(), id, env.arg(1)))))
+        });
+
         set_vval_method!(obj, r, new_hexknob, Some(2), Some(3), env, _argc, {
             if let Some(_) = vv2hex_knob_model(env.arg(1)) {
                 Ok(VVal::Int(
@@ -1041,6 +1047,14 @@ impl GUIActionRecorder {
                                     builder
                                 }
                             }));
+                    }
+                },
+                GUIAction::NewElem(parent, out, build_attribs) => {
+                    if let Some(GUIRef::Ent(parent)) = self.refs.get(*parent as usize) {
+                        self.refs[*out as usize] = GUIRef::Ent(
+                            Element::new().build(
+                                state, *parent,
+                                |builder| vvbuilder(builder, build_attribs)));
                     }
                 },
                 GUIAction::NewCol(parent, out, build_attribs) => {

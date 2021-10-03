@@ -172,3 +172,19 @@ tab_bar>.tab:checked {
 
 hex-grid {
 }
+
+.knob_panel {
+    background-color: UI_BG_CLR;
+    border-width: 2px;
+    border-color: UI_BORDER_CLR;
+    left: 1s;
+    top: 1s;
+    height: 400px;
+    width: 400px;
+    child-space: 1s;
+}
+
+.knob_panel hex-knob {
+    height: 300px;
+    width: 200px;
+}

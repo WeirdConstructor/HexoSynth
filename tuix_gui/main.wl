@@ -171,6 +171,14 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
     ui.emit_to 0 grid $p(:hexgrid:set_model, matrix_model);
     std:displayln "C";
 
+    !panel = ui.new_elem 0 ${
+        class = "knob_panel",
+    };
+
+    !dmy = matrix.create_hex_knob_dummy_model[];
+
+    !pf = ui.new_hexknob panel dmy;
+
     create_node_id_selector ui 0;
 
 #    !col = ui.new_col 0 ${ position = "self" };
