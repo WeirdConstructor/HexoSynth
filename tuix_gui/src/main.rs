@@ -24,7 +24,7 @@ use hexknob::{HexKnob, ParamModel};
 use pattern_editor::PatternEditor;
 use hexo_consts::*;
 
-use hexodsp::{Matrix, NodeId, Cell, CellDir};
+use hexodsp::{Matrix, NodeId, NodeInfo, ParamId, Cell, CellDir};
 use hexodsp::matrix::MatrixError;
 use hexodsp::dsp::UICategory;
 
@@ -726,6 +726,54 @@ impl vval::VValUserData for VValCluster {
 }
 
 #[derive(Clone)]
+struct VValNodeInfo {
+    node_id: NodeId,
+    info:    Rc<NodeInfo>,
+}
+
+impl VValNodeInfo {
+    pub fn new(node_id: NodeId) -> Self {
+        Self {
+            info: Rc::new(NodeInfo::from_node_id(node_id)),
+            node_id,
+        }
+    }
+}
+
+impl vval::VValUserData for VValNodeInfo {
+    fn s(&self) -> String {
+        format!(
+            "$<HexoDSP::NodeInfo node={}, at_cnt={}, in_cnt={}, out_cnt={}>",
+            self.node_id.name(),
+            self.info.at_count(),
+            self.info.in_count(),
+            self.info.out_count())
+    }
+
+    fn call_method(&self, key: &str, env: &mut Env)
+        -> Result<VVal, StackAction>
+    {
+        let args = env.argv_ref();
+
+        match key {
+            "add_cluster_at" => {
+                if args.len() != 2 {
+                    return Err(StackAction::panic_msg(
+                        "cluster.add_cluster_at[matrix, $i(x, y)] called with wrong number of arguments"
+                        .to_string()));
+                }
+                Ok(VVal::None)
+            },
+            _ => Ok(VVal::err_msg(&format!("Unknown method called: {}", key))),
+        }
+    }
+
+    fn as_any(&mut self) -> &mut dyn std::any::Any { self }
+    fn clone_ud(&self) -> Box<dyn vval::VValUserData> { Box::new(self.clone()) }
+}
+
+
+#[derive(Clone)]
 struct VValHexGridModel {
     model: Rc<RefCell<dyn HexGridModel>>,
 }
@@ -753,6 +801,27 @@ impl VValUserData for VValHexKnobModel {
 
 fn vv2hex_knob_model(mut v: VVal) -> Option<Rc<RefCell<dyn ParamModel>>> {
     v.with_usr_ref(|model: &mut VValHexKnobModel| model.model.clone())
+}
+
+#[derive(Clone)]
+struct VValParamId {
+    param: ParamId,
+}
+
+impl VValUserData for VValParamId {
+    fn s(&self) -> String {
+        format!(
+            "$<HexoDSP::ParamId node_id={}, idx={}, name={}>",
+            self.param.node_id(),
+            self.param.inp(),
+            self.param.name())
+    }
+    fn as_any(&mut self) -> &mut dyn std::any::Any { self }
+    fn clone_ud(&self) -> Box<dyn vval::VValUserData> { Box::new(self.clone()) }
+}
+
+fn vv2param_id(mut v: VVal) -> Option<ParamId> {
+    v.with_usr_ref(|s: &mut VValParamId| s.param.clone())
 }
 
 fn btn2vval(btn: tuix::MouseButton) -> VVal {
@@ -1190,11 +1259,96 @@ fn setup_node_id_module() -> wlambda::SymbolTable {
             Ok(VVal::new_str(vv2node_id(&env.arg(0)).label()))
         }, Some(1), Some(1), false);
 
+    let mut info_map : std::collections::HashMap<String, VVal> =
+        std::collections::HashMap::new();
+
+    for nid in hexodsp::dsp::ALL_NODE_IDS.iter() {
+        info_map.insert(
+            nid.name().to_string(),
+            VVal::new_usr(VValNodeInfo::new(*nid)));
+    }
+
+    st.fun(
+        "info", move |env: &mut Env, argc: usize| {
+            let nid = vv2node_id(&env.arg(0));
+            Ok(info_map.get(nid.name()).map_or(VVal::None, |v| v.clone()))
+        }, Some(1), Some(1), false);
+
     st.fun(
         "eq_variant", move |env: &mut Env, argc: usize| {
             Ok(VVal::Bol(
                             vv2node_id(&env.arg(0))
                 .eq_variant(&vv2node_id(&env.arg(1)))))
+        }, Some(2), Some(2), false);
+
+    st.fun(
+        "param_by_idx", move |env: &mut Env, argc: usize| {
+            let nid = vv2node_id(&env.arg(0));
+            let param = nid.param_by_idx(env.arg(1).i() as usize);
+
+            Ok(param.map_or(VVal::None,
+                |param| VVal::new_usr(VValParamId { param })))
+        }, Some(2), Some(2), false);
+
+    st.fun(
+        "inp_param", move |env: &mut Env, argc: usize| {
+            let nid = vv2node_id(&env.arg(0));
+            let param = env.arg(1).with_s_ref(|s| nid.inp_param(s));
+
+            Ok(param.map_or(VVal::None,
+                |param| VVal::new_usr(VValParamId { param })))
+        }, Some(2), Some(2), false);
+
+    st.fun(
+        "param_list", move |env: &mut Env, argc: usize| {
+            let nid = vv2node_id(&env.arg(0));
+
+            let atoms = VVal::vec();
+            let mut i = 0;
+            while let Some(param) = nid.atom_param_by_idx(i) {
+                atoms.push(VVal::new_usr(VValParamId { param }));
+                i += 1;
+            }
+
+            let inputs = VVal::vec();
+            let mut i = 0;
+            while let Some(param) = nid.inp_param_by_idx(i) {
+                inputs.push(VVal::new_usr(VValParamId { param }));
+                i += 1;
+            }
+
+            Ok(VVal::map2(
+                "atoms",  atoms,
+                "inputs", inputs,
+            ))
+        }, Some(1), Some(1), false);
+
+    st.fun(
+        "inp_name2idx", move |env: &mut Env, argc: usize| {
+            let nid   = vv2node_id(&env.arg(0));
+            let idx = env.arg(1).with_s_ref(|s| nid.inp(s));
+            Ok(idx.map_or(VVal::None, |idx| VVal::Int(idx as i64)))
+        }, Some(2), Some(2), false);
+
+    st.fun(
+        "out_name2idx", move |env: &mut Env, argc: usize| {
+            let nid   = vv2node_id(&env.arg(0));
+            let idx = env.arg(1).with_s_ref(|s| nid.out(s));
+            Ok(idx.map_or(VVal::None, |idx| VVal::Int(idx as i64)))
+        }, Some(2), Some(2), false);
+
+    st.fun(
+        "inp_idx2name", move |env: &mut Env, argc: usize| {
+            let nid = vv2node_id(&env.arg(0));
+            let name = nid.inp_name_by_idx(env.arg(1).i() as u8);
+            Ok(name.map_or(VVal::None, |name| VVal::new_str(name)))
+        }, Some(2), Some(2), false);
+
+    st.fun(
+        "out_idx2name", move |env: &mut Env, argc: usize| {
+            let nid  = vv2node_id(&env.arg(0));
+            let name = nid.out_name_by_idx(env.arg(1).i() as u8);
+            Ok(name.map_or(VVal::None, |name| VVal::new_str(name)))
         }, Some(2), Some(2), false);
 
     st

@@ -67,7 +67,18 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
                 ui.new_button
                     tc
                     node_id:label[nid]
-                    {|| .CUR_NODE_TYPE = mnid; }
+                    {||
+                        .CUR_NODE_TYPE = mnid;
+
+                        std:displayln "pbyidx" ~ node_id:param_by_idx mnid 0;
+                        std:displayln "inp_p"  ~ node_id:inp_param mnid "inp";
+                        std:displayln "plist"  ~ node_id:param_list mnid;
+                        std:displayln "in2i"   ~ node_id:inp_name2idx mnid "inp";
+                        std:displayln "ii2n"   ~ node_id:inp_idx2name mnid 0;
+                        std:displayln "on2i"   ~ node_id:out_name2idx mnid "sig";
+                        std:displayln "oi2n"   ~ node_id:out_idx2name mnid 0;
+                        std:displayln "node_info" ~ node_id:info mnid;
+                    }
                     ${
                         class = "node_btn",
                         row = row_i,
