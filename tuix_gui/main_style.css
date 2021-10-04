@@ -188,3 +188,16 @@ hex-grid {
     height: 300px;
     width: 200px;
 }
+
+.setting_popup {
+    background-color: UI_BG_CLR;
+    z-order: 100;
+    width: 100px;
+
+    border-width: 2px;
+    border-color: UI_BORDER_CLR;
+    border-corner-shape: bevel;
+    border-radius: 8px;
+    border-top-left-radius: 0px;
+    border-top-right-radius: 0px;
+}

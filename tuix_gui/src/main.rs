@@ -44,11 +44,13 @@ enum GUIAction {
     NewHexKnob(i64, i64, VVal, VVal),
     NewHexGrid(i64, i64, VVal),
     NewTabs(Vec<(VVal, i64)>, i64, VVal),
+    NewPopup(i64, VVal),
     NewPatternEditor(i64, i64, Option<String>),
     NewButton(i64, i64, String, VVal, VVal),
     EmitTo(i64, i64, VVal),
     SetText(i64, String),
     AddTheme(String),
+    RemoveAllChilds(i64),
     Remove(i64),
     Redraw,
 }
@@ -91,6 +93,8 @@ fn vv2event(event: &VVal) -> Event {
     match &event.v_s_raw(0)[..] {
         "textbox:set_value"
             => Event::new(TextboxEvent::SetValue(event.v_s_raw(1))),
+        "popup:open_at_cursor"
+            => Event::new(PopupEvent::OpenAtCursor),
         "hexknob:set_model" => {
             if let Some(model) = vv2hex_knob_model(event.v_(1)) {
                 Event::new(hexknob::HexKnobMessage::SetModel(model))
@@ -164,6 +168,7 @@ fn vvbuilder<'a, T>(mut builder: Builder<'a, T>, build_attribs: &VVal) -> Builde
                 "col_span"    => { builder.set_col_span(v.i() as usize) },
                 "row_between" => { builder.set_row_between(vv2units(&v)) },
                 "col_between" => { builder.set_col_between(vv2units(&v)) },
+                "z_order"     => { builder.set_z_order(v.i() as i32) },
                 "grid_rows" => {
                     let mut rows = vec![];
                     v.for_each(|v| { rows.push(vv2units(v)); });
@@ -914,6 +919,12 @@ impl GUIActionRecorder {
             Ok(VVal::None)
         });
 
+        set_vval_method!(obj, r, remove_all_childs, Some(1), Some(1), env, _argc, {
+            r.borrow_mut().actions.push(GUIAction::RemoveAllChilds(env.arg(0).i()));
+            Ok(VVal::None)
+        });
+
+
         set_vval_method!(obj, r, new_row, Some(1), Some(2), env, _argc, {
             let mut r = r.borrow_mut();
             Ok(VVal::Int(r.new_row(env.arg(0).i(), env.arg(1))))
@@ -967,6 +978,12 @@ impl GUIActionRecorder {
                 GUIAction::NewTabs(tabs, env.arg(0).i(), env.arg(2)));
 
             Ok(ids)
+        });
+
+        set_vval_method!(obj, r, new_popup, Some(0), Some(1), env, _argc, {
+            Ok(VVal::Int(
+                r.borrow_mut().add(|id|
+                    GUIAction::NewPopup(id, env.arg(0)))))
         });
 
         set_vval_method!(obj, r, new_button, Some(3), Some(4), env, _argc, {
@@ -1028,13 +1045,15 @@ impl GUIActionRecorder {
         idx
     }
 
-    pub fn run(&mut self, self_ref: Rc<RefCell<GUIActionRecorder>>, wl_ctx: Rc<RefCell<EvalContext>>, state: &mut State, entity: Entity) {
+    pub fn set_root(&mut self, root: Entity) {
         if self.refs.len() < 1 {
-            self.refs.push(GUIRef::Ent(entity));
+            self.refs.push(GUIRef::Ent(root));
         } else {
-            self.refs[0] = GUIRef::Ent(entity);
+            self.refs[0] = GUIRef::Ent(root);
         }
+    }
 
+    pub fn run(&mut self, self_ref: Rc<RefCell<GUIActionRecorder>>, wl_ctx: Rc<RefCell<EvalContext>>, state: &mut State, entity: Entity) {
         for act in self.actions.iter() {
             match act {
                 GUIAction::NewRow(parent, out, class) => {
@@ -1119,8 +1138,15 @@ impl GUIActionRecorder {
                         self.refs[*out as usize] = GUIRef::Ent(
                             PatternEditor::new(
                                 hexodsp::dsp::tracker::MAX_COLS)
-                            .build(state, *parent, |builder| { builder }));
+                                .build(state, *parent, |builder| builder));
                     }
+                },
+                GUIAction::NewPopup(out, build_attribs) => {
+                    self.refs[*out as usize] = GUIRef::Ent(
+                        Popup::new()
+                            .build(state, Entity::root(),
+                                |builder|
+                                    vvbuilder(builder, build_attribs)));
                 },
                 GUIAction::NewButton(parent, out, label, on_click, build_attribs) => {
                     if let Some(GUIRef::Ent(parent)) = self.refs.get(*parent as usize) {
@@ -1192,6 +1218,38 @@ impl GUIActionRecorder {
                     self.refs[*id as usize] = GUIRef::None;
                     self.free_refs.push(*id);
                 },
+                GUIAction::RemoveAllChilds(id) => {
+                    let mut removed_entities = vec![];
+
+                    if let Some(GUIRef::Ent(entity)) = self.refs.get(*id as usize) {
+                        for i in 0..state.tree.get_num_children(*entity).unwrap_or(0) {
+                            if let Some(child) =
+                                state.tree.get_child(*entity, i as usize)
+                            {
+                                removed_entities.push(child);
+                                state.tree.remove(child);
+                            }
+                        }
+                    }
+
+                    let mut removed_ids : Vec<usize> = vec![];
+                    for dead_child in removed_entities {
+                        let mut remove_idx = None;
+
+                        for (i, r) in self.refs.iter().enumerate() {
+                            if let GUIRef::Ent(entity) = r {
+                                if *entity == dead_child {
+                                    remove_idx = Some(i);
+                                }
+                            }
+                        }
+
+                        if let Some(i) = remove_idx {
+                            self.refs[i] = GUIRef::None;
+                            self.free_refs.push(i as i64);
+                        }
+                    }
+                },
                 GUIAction::SetText(entity, text) => {
                     if let Some(GUIRef::Ent(entity)) = self.refs.get(*entity as usize) {
                         entity.set_text(state, text);
@@ -1219,8 +1277,6 @@ impl GUIActionRecorder {
 
 #[derive(Lens)]
 pub struct UIState {
-    grid_1: Rc<RefCell<dyn HexGridModel>>,
-    grid_2: Rc<RefCell<dyn HexGridModel>>,
 }
 
 impl Model for UIState {
@@ -1478,7 +1534,11 @@ fn main() {
                 |state, window| {
                     let (gui_rec, gui_rec_vval) = GUIActionRecorder::new_vval(matrix.clone());
 
+                    let gui_rec_self = gui_rec.clone();
+
                     let thing = (HiddenThingie { }).build(state, window, |builder| builder);
+
+                    gui_rec_self.borrow_mut().set_root(thing);
 
                     state.add_font_mem(
                         "font_serif",
@@ -1511,8 +1571,6 @@ fn main() {
                     }
 
                     let wl_ctx = Rc::new(RefCell::new(wl_ctx));
-
-                    let gui_rec_self = gui_rec.clone();
 
                     gui_rec.borrow_mut().run(gui_rec_self, wl_ctx, state, thing);
                 });

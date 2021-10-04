@@ -180,6 +180,19 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
 
     !pf = ui.new_hexknob panel dmy;
 
+    !popup = ui.new_popup ${
+        width   = 100 => :px,
+        z_order = 100,
+        class   = "setting_popup",
+    };
+
+    !popbtn = ui.new_button panel "popup param" {!(ui) = @;
+        std:displayln "popup";
+        ui.remove_all_childs popup;
+        ui.new_button popup "test" {|| };
+        ui.emit_to 0 popup $p(:popup:open_at_cursor, $n);
+    };
+
     create_node_id_selector ui 0;
 
 #    !col = ui.new_col 0 ${ position = "self" };
