@@ -1214,7 +1214,7 @@ impl GUIActionRecorder {
                 },
                 GUIAction::Remove(id) => {
                     if let Some(GUIRef::Ent(entity)) = self.refs.get(*id as usize) {
-                        state.tree.remove(*entity);
+                        state.remove(*entity);
                     }
 
                     self.refs[*id as usize] = GUIRef::None;
@@ -1237,7 +1237,7 @@ impl GUIActionRecorder {
                     for dead_child in removed_entities {
                         let mut remove_idx = None;
 
-                        state.tree.remove(dead_child);
+                        state.remove(dead_child);
 
                         for (i, r) in self.refs.iter().enumerate() {
                             if let GUIRef::Ent(entity) = r {
