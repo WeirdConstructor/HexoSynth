@@ -179,8 +179,8 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
     std:displayln :DMY: param_id;
     !dmy = matrix.create_hex_knob_model[param_id];
 
-    !popup = ui.new_popup ${ class = "setting_popup" };
-    !popup_col = ui.new_col popup ${ class = "setting_popup" };
+    !popup = ui.new_popup ${ class = :setting_popup };
+    !popup_col = ui.new_col popup ${ class = :setting_popup };
 
     !setup_settings_popup = {!(container, settings, cb) = @;
         ui.remove_all_childs container;
@@ -189,7 +189,7 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
             !idx = setting.0;
             ui.new_button
                 container setting.1 { cb _ idx }
-                ${ class = :settings_button };
+                ${ class = :setting_popup_btn };
         };
     };
 

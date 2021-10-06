@@ -53,17 +53,13 @@ row {
 }
 
 popup.hex-knob-popup {
-    border-width: 2px;
-    border-color: UI_BORDER_CLR;
-    border-corner-shape: bevel;
-    border-radius: 8px;
+    $FLOAT_PANEL()
+
     border-top-left-radius: 0px;
     border-top-right-radius: 0px;
 
     child-space: 0.1s;
-    background-color: UI_BG_CLR;
     color: UI_PRIM_CLR;
-    outer-shadow: 0px 0px 14px UI_PRIM_CLR;
 
     width: 140px;
     height: 100px;
@@ -200,31 +196,44 @@ hex-grid {
     width: 200px;
 }
 
+!FLOAT_PANEL() {{
+    border-width:        2px;
+    border-color:        UI_BORDER_CLR;
+    border-corner-shape: bevel;
+    border-radius:       8px;
+
+    background-color:    UI_BG_CLR;
+    outer-shadow:        0px 0px 14px UI_PRIM_CLR;
+}}
+
+!MARGIN(WIDTH) {{
+    top:         $WIDTH;
+    bottom:      $WIDTH;
+    left:        $WIDTH;
+    right:       $WIDTH;
+}}
+
 popup.setting_popup {
     z-order: 100;
-    width: 120px;
-    height: auto;
+    width:   120px;
+    height:  auto;
 
-    border-width: 2px;
-    border-color: UI_BORDER_CLR;
-    border-corner-shape: bevel;
-    border-radius: 8px;
-
-    background-color: UI_BG_CLR;
-    outer-shadow: 0px 0px 14px UI_PRIM_CLR;
+    $FLOAT_PANEL()
 }
 
 column.setting_popup {
-    height: auto;
-    row-between: 10px;
-    space: 0.05s;
+    height:      auto;
+    width:       100px;
+    row-between: 7px;
+
+    $MARGIN(10px)
 }
 
-.settings_button {
+.setting_popup_btn {
     border-radius: 8px;
-    space: 5px;
-    font-size: 13px;
-    height: 20px;
+    font-size:     13px;
+    height:        20px;
+    width:         100%;
 }
 
 .popup_setting_btn_prev {

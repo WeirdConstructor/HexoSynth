@@ -1,13 +1,12 @@
 !PANEL_SHADOW(A, BBB) {{
-x {
-    $A
-    $A
-    $A
-    $(XXX * $A $BBB)
-    $(< + $XXX 20)
-    [$XXX]
-}
-
+    x {
+        $A
+        $A
+        $A
+        $(XXX * $A $BBB)
+        $(< + $XXX 20)
+        [$XXX]
+    }
 }}
 
-$PANEL_SHADOW(323,    0.4     )
+$PANEL_SHADOW(323, 0.4)
