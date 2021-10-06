@@ -4,6 +4,7 @@
 
 !@import hx      = hx;
 !@import node_id = node_id;
+!@import wpp     = wpp;
 
 !NODE_ID_CATEGORIES = node_id:ui_category_node_id_map[];
 
@@ -109,7 +110,7 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
 !:global init = {!(ui) = @;
     ui.add_theme
         ~ replace_colors_in_text
-        ~ std:io:file:read_text "main_style.css";
+        ~ wpp:run_macro_lang[${}, std:io:file:read_text "main_style.css"];
 
     !matrix = hx:get_main_matrix_handle[];
     matrix.set $i(1, 1) ${ node_id = CUR_NODE_TYPE };

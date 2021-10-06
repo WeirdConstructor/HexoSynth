@@ -1,3 +1,14 @@
+!PANEL_SHADOW(A, BBB) {{
+x {
+    $A
+    $A
+    $A
+    $(XXX + $A $BBB)
+    [$XXX]
+}
+}}
+
+$PANEL_SHADOW(323,    43     )
 
 button {
     border-radius: 16px;
