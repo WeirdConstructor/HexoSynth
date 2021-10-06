@@ -178,20 +178,66 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
     std:displayln :DMY: param_id;
     !dmy = matrix.create_hex_knob_model[param_id];
 
-    !pf = ui.new_hexknob panel dmy;
+    !popup = ui.new_popup ${ class = "setting_popup" };
+    !popup_col = ui.new_col popup ${ class = "setting_popup" };
 
-    !popup = ui.new_popup ${
-        width   = 100 => :px,
-        z_order = 100,
-        class   = "setting_popup",
+    !setup_settings_popup = {!(container, settings, cb) = @;
+        ui.remove_all_childs container;
+
+        iter setting settings {
+            !idx = setting.0;
+            ui.new_button
+                container setting.1 { cb _ idx }
+                ${ class = :settings_button };
+        };
     };
 
-    !popbtn = ui.new_button panel "popup param" {!(ui) = @;
+    !dummy_settings = $[
+        0 => "Off",
+        1 => "On",
+        2 => "LowPass",
+        3 => "HighPass",
+    ];
+
+    !row = ui.new_row panel;
+
+    !popbtn = $n;
+    !cursetting = 0;
+    !update_popbtn = {!(ui) = @;
+        ui.set_text popbtn dummy_settings.(cursetting).1;
+    };
+    !popbtn_prev = ui.new_button row "<" {!(ui) = @;
+        .cursetting -= 1;
+        .cursetting =
+            if cursetting < 0
+                (len[dummy_settings] - 1)
+                cursetting;
+        std:displayln "CURSETTING:" cursetting;
+        update_popbtn ui;
+    } ${ class = :popup_setting_btn_prev };
+    .popbtn = ui.new_button row "popup param" {!(ui) = @;
         std:displayln "popup";
-        ui.remove_all_childs popup;
-        ui.new_button popup "test" {|| };
+        setup_settings_popup popup_col dummy_settings {!(ui, setting) = @;
+            std:displayln "Choosen:" setting;
+            .cursetting = setting;
+            update_popbtn[ui];
+            ui.emit_to 0 popup $p(:popup:close, $n);
+        };
+#        ui.remove_all_childs popup;
+#        ui.new_button popup "test" {|| };
         ui.emit_to 0 popup $p(:popup:open_at_cursor, $n);
-    };
+    } ${ class = :popup_setting_btn };
+    !popbtn_next = ui.new_button row ">" {!(ui) = @;
+        .cursetting += 1;
+        .cursetting =
+            if cursetting >= len[dummy_settings]
+                0
+                cursetting;
+        update_popbtn ui;
+    } ${ class = :popup_setting_btn_next  };
+    update_popbtn ui;
+
+    !pf = ui.new_hexknob panel dmy;
 
     create_node_id_selector ui 0;
 

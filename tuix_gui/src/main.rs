@@ -95,6 +95,8 @@ fn vv2event(event: &VVal) -> Event {
             => Event::new(TextboxEvent::SetValue(event.v_s_raw(1))),
         "popup:open_at_cursor"
             => Event::new(PopupEvent::OpenAtCursor),
+        "popup:close"
+            => Event::new(PopupEvent::Close),
         "hexknob:set_model" => {
             if let Some(model) = vv2hex_knob_model(event.v_(1)) {
                 Event::new(hexknob::HexKnobMessage::SetModel(model))
@@ -169,10 +171,11 @@ fn vvbuilder<'a, T>(mut builder: Builder<'a, T>, build_attribs: &VVal) -> Builde
                 "row_between" => { builder.set_row_between(vv2units(&v)) },
                 "col_between" => { builder.set_col_between(vv2units(&v)) },
                 "z_order"     => { builder.set_z_order(v.i() as i32) },
+                "width"       => { builder.set_width(vv2units(&v)) },
+                "height"      => { builder.set_height(vv2units(&v)) },
                 "grid_rows" => {
                     let mut rows = vec![];
                     v.for_each(|v| { rows.push(vv2units(v)); });
-                    println!("ROWS: {:?}", rows);
                     builder.set_grid_rows(rows)
                 },
                 "grid_cols" => {
@@ -185,7 +188,6 @@ fn vvbuilder<'a, T>(mut builder: Builder<'a, T>, build_attribs: &VVal) -> Builde
                         if &v.s_raw() == "row" {
                             LayoutType::Row
                         } else if &v.s_raw() == "grid" {
-                            println!("LAYOUTTPYE: GRID!!!!");
                             LayoutType::Grid
                         } else if &v.s_raw() == "column" {
                             LayoutType::Column
@@ -1227,14 +1229,15 @@ impl GUIActionRecorder {
                                 state.tree.get_child(*entity, i as usize)
                             {
                                 removed_entities.push(child);
-                                state.tree.remove(child);
                             }
                         }
                     }
 
-                    let mut removed_ids : Vec<usize> = vec![];
+                    let mut removed_ids : Vec<Entity> = vec![];
                     for dead_child in removed_entities {
                         let mut remove_idx = None;
+
+                        state.tree.remove(dead_child);
 
                         for (i, r) in self.refs.iter().enumerate() {
                             if let GUIRef::Ent(entity) = r {

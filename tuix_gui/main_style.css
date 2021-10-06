@@ -6,7 +6,7 @@ button {
     border-color: UI_ACCENT_CLR;
     background-color: UI_LBL_BG_CLR;
     color: UI_PRIM_CLR;
-    space: 1s;
+//    space: 1s;
     child-space: 1s;
     outer-shadow: 4px 4px 7px UI_PRIM_CLR;
 }
@@ -189,15 +189,46 @@ hex-grid {
     width: 200px;
 }
 
-.setting_popup {
+popup.setting_popup {
     background-color: UI_BG_CLR;
     z-order: 100;
-    width: 100px;
+    width: 120px;
+    height: 200px;
 
     border-width: 2px;
     border-color: UI_BORDER_CLR;
     border-corner-shape: bevel;
     border-radius: 8px;
-    border-top-left-radius: 0px;
+}
+
+column.setting_popup {
+//    width: 500px;
+//    background-color: #000000;
+//    border-color: UI_BORDER_CLR;
+//    border-width: 4px;
+    row-between: 5px;
+    space: 0.05s;
+}
+
+.settings_button {
+//    width: 100%;
+    width: 100px;
+//    height: 26px;
+    height: 1s;
+}
+
+.popup_setting_btn_prev {
     border-top-right-radius: 0px;
+    border-bottom-right-radius: 0px;
+    width: 40px;
+}
+.popup_setting_btn {
+    border-radius: 0px;
+    width: 100px;
+    outer-shadow: 4px 4px 9px UI_PRIM_CLR;
+}
+.popup_setting_btn_next {
+    border-top-left-radius: 0px;
+    border-bottom-left-radius: 0px;
+    width: 40px;
 }
