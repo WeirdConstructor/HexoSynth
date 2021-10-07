@@ -2,9 +2,11 @@
 # This file is a part of HexoSynth. Released under GPL-3.0-or-later.
 # See README.md and COPYING for details.
 
-!@import hx      = hx;
-!@import node_id = node_id;
-!@import wpp     = wpp;
+!@import hx;
+!@import node_id;
+!@import wpp;
+
+!@import wid_settings = settings_widget;
 
 !NODE_ID_CATEGORIES = node_id:ui_category_node_id_map[];
 
@@ -107,6 +109,8 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
     };
 };
 
+!:global TEST_WID = $n;
+
 !:global init = {!(ui) = @;
     ui.add_theme
         ~ replace_colors_in_text
@@ -179,19 +183,7 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
     std:displayln :DMY: param_id;
     !dmy = matrix.create_hex_knob_model[param_id];
 
-    !popup = ui.new_popup ${ class = :setting_popup };
-    !popup_col = ui.new_col popup ${ class = :setting_popup };
-
-    !setup_settings_popup = {!(container, settings, cb) = @;
-        ui.remove_all_childs container;
-
-        iter setting settings {
-            !idx = setting.0;
-            ui.new_button
-                container setting.1 { cb _ idx }
-                ${ class = :setting_popup_btn };
-        };
-    };
+    wid_settings:init_global_settings_popup[ui];
 
     !dummy_settings = $[
         0 => "Off",
@@ -200,43 +192,16 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
         3 => "HighPass",
     ];
 
-    !row = ui.new_row panel;
-
-    !popbtn = $n;
-    !cursetting = 0;
-    !update_popbtn = {!(ui) = @;
-        ui.set_text popbtn dummy_settings.(cursetting).1;
-    };
-    !popbtn_prev = ui.new_button row "<" {!(ui) = @;
-        .cursetting -= 1;
-        .cursetting =
-            if cursetting < 0
-                (len[dummy_settings] - 1)
-                cursetting;
-        std:displayln "CURSETTING:" cursetting;
-        update_popbtn ui;
-    } ${ class = :popup_setting_btn_prev };
-    .popbtn = ui.new_button row "popup param" {!(ui) = @;
-        std:displayln "popup";
-        setup_settings_popup popup_col dummy_settings {!(ui, setting) = @;
-            std:displayln "Choosen:" setting;
-            .cursetting = setting;
-            update_popbtn[ui];
-            ui.emit_to 0 popup $p(:popup:close, $n);
+    !my_wid =
+        wid_settings:SettingsWidget.new
+            ui
+            dummy_settings;
+    my_wid.build panel;
+    my_wid.listen :setting_changed {!(ev, idx) = @;
+        if idx == 3 {
+            .TEST_WID = $n;
         };
-#        ui.remove_all_childs popup;
-#        ui.new_button popup "test" {|| };
-        ui.emit_to 0 popup $p(:popup:open_at_cursor, $n);
-    } ${ class = :popup_setting_btn };
-    !popbtn_next = ui.new_button row ">" {!(ui) = @;
-        .cursetting += 1;
-        .cursetting =
-            if cursetting >= len[dummy_settings]
-                0
-                cursetting;
-        update_popbtn ui;
-    } ${ class = :popup_setting_btn_next  };
-    update_popbtn ui;
+    };
 
     !pf = ui.new_hexknob panel dmy;
 

@@ -233,7 +233,7 @@ column.setting_popup {
     border-radius: 8px;
     font-size:     13px;
     height:        20px;
-    width:         100%;
+    width:         1s;
 }
 
 .popup_setting_btn_prev {

@@ -59,9 +59,9 @@
     # * settings - $[index => label, ...]
     _proto = Observable,
     new = {!(ui, settings) = @;
-        !self = ${
+        !self = $&& ${
             _proto = $self,
-            _data = ${
+            _data = $&& ${
                 ui       = ui,
                 settings = settings,
 
@@ -85,10 +85,9 @@
         !data = $w& $data;
         !ui   = $data.ui;
 
-        $data.root = ui.new_row parent;
-        $self.dropper = std:to_drop {
-            ui.remove data.root;
-        };
+        !root_widget = ui.new_row parent;
+        $data.root = root_widget;
+        $self.dropper = std:to_drop { ui.remove root_widget };
 
         !popbtn_prev = ui.new_button $data.root "<" {!(ui) = @;
             data.cur_idx -= 1;
@@ -96,16 +95,16 @@
                 if data.cur_idx < 0
                     (len[data.settings] - 1)
                     data.cur_idx;
-            self.emit :setting_changed data.cur_idx;
             self.update_popbtn[];
+            self.emit :setting_changed data.cur_idx;
         } ${ class = :popup_setting_btn_prev };
 
         $data.pop_btn = ui.new_button $data.root "popup param" {||
             global_settings_popup ui data.settings {!(ui, idx) = @;
                 std:displayln "Choosen:" idx;
                 data.cur_idx = idx;
-                self.emit :setting_changed data.cur_idx;
                 self.update_popbtn[];
+                self.emit :setting_changed data.cur_idx;
             };
         } ${ class = :popup_setting_btn };
 
@@ -115,8 +114,8 @@
                 if data.cur_idx >= len[data.settings]
                     0
                     data.cur_idx;
-            self.emit :setting_changed data.cur_idx;
             self.update_popbtn[];
+            self.emit :setting_changed data.cur_idx;
         } ${ class = :popup_setting_btn_next  };
 
         $self.update_popbtn[];
