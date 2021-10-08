@@ -4,6 +4,7 @@
 
 use wlambda::*;
 use tuix::*;
+use tuix::widgets::*;
 
 mod hexknob;
 mod hexo_consts;
@@ -14,6 +15,7 @@ mod pattern_editor;
 mod grid_models;
 mod cluster;
 mod matrix_param_model;
+mod octave_keys;
 
 mod jack;
 mod synth;
@@ -25,6 +27,7 @@ use painter::FemtovgPainter;
 use hexgrid::{HexGrid, HexGridModel, HexCell, HexDir, HexEdge, HexHLight};
 use hexknob::{HexKnob, ParamModel};
 use pattern_editor::PatternEditor;
+use octave_keys::OctaveKeys;
 use hexo_consts::*;
 
 use hexodsp::{Matrix, NodeId, NodeInfo, ParamId, Cell, CellDir};
@@ -47,6 +50,7 @@ enum GUIAction {
     NewPopup(i64, VVal),
     NewPatternEditor(i64, i64, Option<String>),
     NewButton(i64, i64, String, VVal, VVal),
+    NewOctaveKeys(i64, i64, VVal),
     EmitTo(i64, i64, VVal),
     SetText(i64, String),
     AddTheme(String),
@@ -958,6 +962,12 @@ impl GUIActionRecorder {
                     GUIAction::NewHexGrid(env.arg(0).i(), id, env.arg(1)))))
         });
 
+        set_vval_method!(obj, r, new_octave_keys, Some(1), Some(2), env, _argc, {
+            Ok(VVal::Int(
+                r.borrow_mut().add(|id|
+                    GUIAction::NewOctaveKeys(env.arg(0).i(), id, env.arg(1)))))
+        });
+
         set_vval_method!(obj, r, new_pattern_editor, Some(1), Some(2), env, _argc, {
             let mut r = r.borrow_mut();
             Ok(VVal::Int(r.new_pattern_editor(env.arg(0).i(), env.arg(1))))
@@ -1127,6 +1137,14 @@ impl GUIActionRecorder {
 
                         self.refs[*out as usize] = GUIRef::Ent(
                             HexKnob::new(param_model)
+                                .build(state, *parent,
+                                    |builder| vvbuilder(builder, build_attribs)));
+                    }
+                },
+                GUIAction::NewOctaveKeys(parent, out, build_attribs) => {
+                    if let Some(GUIRef::Ent(parent)) = self.refs.get(*parent as usize) {
+                        self.refs[*out as usize] = GUIRef::Ent(
+                            OctaveKeys::new()
                                 .build(state, *parent,
                                     |builder| vvbuilder(builder, build_attribs)));
                     }
@@ -1544,6 +1562,12 @@ fn setup_vizia_module(r: Rc<RefCell<GUIActionRecorder>>) -> wlambda::SymbolTable
                 "ui.new_hexknob[parent_id, hex_knob_model, build_attrs] not called with a $<UI::HexKnobModel>!"
                 .to_string()))
         }
+    });
+
+    set_modfun!(st, r, new_octave_keys, Some(1), Some(2), env, _argc, {
+        Ok(VVal::Int(
+            r.borrow_mut().add(|id|
+                GUIAction::NewOctaveKeys(env.arg(0).i(), id, env.arg(1)))))
     });
 
     set_modfun!(st, r, new_hexgrid, Some(1), Some(2), env, _argc, {

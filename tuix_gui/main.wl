@@ -204,6 +204,8 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
         };
     };
 
+    !keys = vizia:new_octave_keys panel ${ };
+
     !pf = vizia:new_hexknob panel dmy;
 
     create_node_id_selector 0;

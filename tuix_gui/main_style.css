@@ -98,7 +98,7 @@ textbox {
 }
 
 hex-knob {
-    width: 70px;
+    width: 30px;
 }
 
 pattern-editor {
@@ -192,8 +192,8 @@ hex-grid {
 }
 
 .knob_panel hex-knob {
-    height: 300px;
-    width: 200px;
+//    height: 100px;
+    width: 80px;
 }
 
 !FLOAT_PANEL() {{
@@ -250,4 +250,11 @@ column.setting_popup {
     border-top-left-radius: 0px;
     border-bottom-left-radius: 0px;
     width: 40px;
+}
+
+octave-keys {
+    top: 10px;
+    bottom:10px;
+    height: 100px;
+    width: 200px;
 }

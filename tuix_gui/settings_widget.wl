@@ -21,9 +21,9 @@
         !idx = setting.0;
         vizia:new_button
             popup_entity setting.1 {
-                cb _ idx;
+                cb idx;
                 vizia:emit_to 0 popup $p(:popup:close, $n);
-                _.remove_all_childs popup_entity;
+                vizia:remove_all_childs popup_entity;
             }
             ${ class = :setting_popup_btn };
     };

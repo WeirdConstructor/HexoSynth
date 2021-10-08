@@ -7,6 +7,7 @@ use crate::rect::*;
 use crate::painter::FemtovgPainter;
 
 use tuix::*;
+use tuix::widgets::*;
 use femtovg::FontId;
 
 use std::rc::Rc;
@@ -1194,17 +1195,6 @@ impl Widget for HexKnob {
                 self.knob.draw_name(p, xo, yo, &val_s);
             }
         }
-//
-//        ui.define_active_zone(
-//            ActiveZone::new_drag_zone(
-//                id,
-//                Rect::from_tpl(self.get_coarse_adjustment_rect()).offs(xo, yo), true)
-//            .dbgid(DBGID_KNOB_COARSE));
-//        ui.define_active_zone(
-//            ActiveZone::new_drag_zone(
-//                id,
-//                Rect::from_tpl(self.get_fine_adjustment_rect()).offs(xo, yo), false)
-//            .dbgid(DBGID_KNOB_FINE));
     }
 }
 
