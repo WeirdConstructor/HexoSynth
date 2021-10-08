@@ -1,34 +1,34 @@
 !@wlambda;
 !@import std;
+!@import vizia;
 
 !popup        = $n;
 !popup_entity = $n;
 
-!init_global_settings_popup = {!(ui) = @;
-    .popup        = ui.new_popup ${ class = :setting_popup };
-    .popup_entity = ui.new_col popup ${ class = :setting_popup };
+!init_global_settings_popup = {
+    .popup        = vizia:new_popup ${ class = :setting_popup };
+    .popup_entity = vizia:new_col popup ${ class = :setting_popup };
 };
 
 !@export init_global_settings_popup = init_global_settings_popup;
 
-# * ui       - UI Handle
 # * settings - $[index => label, ...]
 # * cb       - Callback
-!global_settings_popup = {!(ui, settings, cb) = @;
-    ui.remove_all_childs popup_entity;
+!global_settings_popup = {!(settings, cb) = @;
+    vizia:remove_all_childs popup_entity;
 
     iter setting settings {
         !idx = setting.0;
-        ui.new_button
+        vizia:new_button
             popup_entity setting.1 {
                 cb _ idx;
-                ui.emit_to 0 popup $p(:popup:close, $n);
+                vizia:emit_to 0 popup $p(:popup:close, $n);
                 _.remove_all_childs popup_entity;
             }
             ${ class = :setting_popup_btn };
     };
 
-    ui.emit_to 0 popup $p(:popup:open_at_cursor, $n);
+    vizia:emit_to 0 popup $p(:popup:open_at_cursor, $n);
 };
 
 !Observable = ${
@@ -58,11 +58,10 @@
 !@export SettingsWidget = ${
     # * settings - $[index => label, ...]
     _proto = Observable,
-    new = {!(ui, settings) = @;
+    new = {!(settings) = @;
         !self = $&& ${
             _proto = $self,
             _data = $&& ${
-                ui       = ui,
                 settings = settings,
 
                 root     = $n,
@@ -76,20 +75,19 @@
         self;
     },
     update_popbtn = {
-        $data.ui.set_text
+        vizia:set_text
             $data.pop_btn
             $data.settings.($data.cur_idx).1;
     },
     build = {!(parent) = @;
         !self = $w& $self;
         !data = $w& $data;
-        !ui   = $data.ui;
 
-        !root_widget = ui.new_row parent;
+        !root_widget = vizia:new_row parent;
         $data.root = root_widget;
-        $self.dropper = std:to_drop { ui.remove root_widget };
+        $self.dropper = std:to_drop { std:displayln "DROPREM"; vizia:remove root_widget };
 
-        !popbtn_prev = ui.new_button $data.root "<" {!(ui) = @;
+        !popbtn_prev = vizia:new_button $data.root "<" {
             data.cur_idx -= 1;
             data.cur_idx =
                 if data.cur_idx < 0
@@ -99,8 +97,8 @@
             self.emit :setting_changed data.cur_idx;
         } ${ class = :popup_setting_btn_prev };
 
-        $data.pop_btn = ui.new_button $data.root "popup param" {||
-            global_settings_popup ui data.settings {!(ui, idx) = @;
+        $data.pop_btn = vizia:new_button $data.root "popup param" {||
+            global_settings_popup data.settings {!(idx) = @;
                 std:displayln "Choosen:" idx;
                 data.cur_idx = idx;
                 self.update_popbtn[];
@@ -108,7 +106,7 @@
             };
         } ${ class = :popup_setting_btn };
 
-        !popbtn_next = ui.new_button $data.root ">" {!(ui) = @;
+        !popbtn_next = vizia:new_button $data.root ">" {
             data.cur_idx += 1;
             data.cur_idx =
                 if data.cur_idx >= len[data.settings]

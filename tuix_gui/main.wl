@@ -5,6 +5,7 @@
 !@import hx;
 !@import node_id;
 !@import wpp;
+!@import vizia;
 
 !@import wid_settings = settings_widget;
 
@@ -30,7 +31,7 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
 
 !CUR_NODE_TYPE = :sin => 0;
 
-!create_node_id_selector = {!(ui, parent) = @;
+!create_node_id_selector = {!(parent) = @;
     !tabs = $[];
 
     !cat_list = node_id:ui_category_list[];
@@ -50,7 +51,7 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
         };
     };
 
-    !tab_cont_ids = ui.new_tabs parent tabs ${
+    !tab_cont_ids = vizia:new_tabs parent tabs ${
         tab      = ${ class = $["tab", "tabx"], },
         tab_view = ${ class = "ui_category_tab_view" },
     };
@@ -67,7 +68,7 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
 
             !mnid = nid;
             !btn =
-                ui.new_button
+                vizia:new_button
                     tc
                     node_id:label[nid]
                     {||
@@ -111,8 +112,8 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
 
 !:global TEST_WID = $n;
 
-!:global init = {!(ui) = @;
-    ui.add_theme
+!:global init = {
+    vizia:add_theme
         ~ replace_colors_in_text
         ~ wpp:run_macro_lang[${}, std:io:file:read_text "main_style.css"];
 
@@ -120,9 +121,9 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
     matrix.set $i(1, 1) ${ node_id = CUR_NODE_TYPE };
     std:displayln ~ matrix.get $i(1, 1);
 
-    !grid = ui.new_hexgrid 0 ${
+    !grid = vizia:new_hexgrid 0 ${
         position = "self",
-        on_click = {!(ui, pos, btn) = @;
+        on_click = {!(pos, btn) = @;
             std:displayln "CLICK CELL:" pos btn;
 
             match btn
@@ -151,7 +152,7 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
                         d2.as_edge[];
                 };
         },
-        on_cell_drag = {!(ui, pos, pos2, btn) = @;
+        on_cell_drag = {!(pos, pos2, btn) = @;
 
             if btn == :left {
                 !cluster = hx:new_cluster[];
@@ -173,17 +174,17 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
     std:displayln "A";
     !matrix_model = matrix.create_grid_model[];
     std:displayln "B";
-    ui.emit_to 0 grid $p(:hexgrid:set_model, matrix_model);
+    vizia:emit_to 0 grid $p(:hexgrid:set_model, matrix_model);
     std:displayln "C";
 
-    !panel = ui.new_elem 0 ${ class = "knob_panel" };
+    !panel = vizia:new_elem 0 ${ class = "knob_panel" };
 
     !param_id = node_id:inp_param :sin => 0 "freq";
 #    !dmy = matrix.create_hex_knob_dummy_model[];
     std:displayln :DMY: param_id;
     !dmy = matrix.create_hex_knob_model[param_id];
 
-    wid_settings:init_global_settings_popup[ui];
+    wid_settings:init_global_settings_popup[];
 
     !dummy_settings = $[
         0 => "Off",
@@ -194,8 +195,8 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
 
     !my_wid =
         wid_settings:SettingsWidget.new
-            ui
             dummy_settings;
+    .TEST_WID = my_wid;
     my_wid.build panel;
     my_wid.listen :setting_changed {!(ev, idx) = @;
         if idx == 3 {
@@ -203,9 +204,9 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
         };
     };
 
-    !pf = ui.new_hexknob panel dmy;
+    !pf = vizia:new_hexknob panel dmy;
 
-    create_node_id_selector ui 0;
+    create_node_id_selector 0;
 
 #    !col = ui.new_col 0 ${ position = "self" };
 #
