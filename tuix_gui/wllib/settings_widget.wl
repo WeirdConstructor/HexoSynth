@@ -51,6 +51,7 @@
 
         self;
     },
+    update = {!(idx) = @; $data.cur_idx = idx; },
     update_popbtn = {
         vizia:set_text
             $data.pop_btn
@@ -62,7 +63,7 @@
 
         !root_widget = vizia:new_row parent;
         $data.root = root_widget;
-        $self.dropper = std:to_drop { std:displayln "DROPREM"; vizia:remove root_widget };
+        $self.dropper = std:to_drop { vizia:remove root_widget };
 
         !popbtn_prev = vizia:new_button $data.root "<" {
             data.cur_idx -= 1;
@@ -71,7 +72,7 @@
                     (len[data.settings] - 1)
                     data.cur_idx;
             self.update_popbtn[];
-            self.emit :setting_changed data.cur_idx;
+            self.emit :changed data.cur_idx;
         } ${ class = :popup_setting_btn_prev };
 
         $data.pop_btn = vizia:new_button $data.root "popup param" {||
@@ -79,7 +80,7 @@
                 std:displayln "Choosen:" idx;
                 data.cur_idx = idx;
                 self.update_popbtn[];
-                self.emit :setting_changed data.cur_idx;
+                self.emit :changed data.cur_idx;
             };
         } ${ class = :popup_setting_btn };
 
@@ -90,7 +91,7 @@
                     0
                     data.cur_idx;
             self.update_popbtn[];
-            self.emit :setting_changed data.cur_idx;
+            self.emit :changed data.cur_idx;
         } ${ class = :popup_setting_btn_next  };
 
         $self.update_popbtn[];

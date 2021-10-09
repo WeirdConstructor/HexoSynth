@@ -200,7 +200,7 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
             dummy_settings;
     .TEST_WID = my_wid;
     my_wid.build panel;
-    my_wid.listen :setting_changed {!(ev, idx) = @;
+    my_wid.listen :changed {!(ev, idx) = @;
         if idx == 3 {
             .TEST_WID = $n;
         };
@@ -263,7 +263,7 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
 };
 
 !:global idle = {
-    std:displayln "IDLE";
+    std:displayln "IDLE, Matrix changes:" _;
 };
 
 #    !test_model = hx:create_test_hex_grid_model[];

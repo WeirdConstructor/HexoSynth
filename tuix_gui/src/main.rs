@@ -31,7 +31,7 @@ use octave_keys::OctaveKeys;
 use hexo_consts::*;
 
 use hexodsp::{Matrix, NodeId, NodeInfo, ParamId, Cell, CellDir};
-use hexodsp::matrix::MatrixError;
+use hexodsp::matrix::{MatrixObserver, MatrixError};
 use hexodsp::dsp::UICategory;
 
 use std::rc::Rc;
@@ -1550,8 +1550,87 @@ fn setup_hx_module(matrix: Arc<Mutex<Matrix>>) -> wlambda::SymbolTable {
     st
 }
 
+struct MatrixRecorder {
+    changes: Mutex<Vec<VVal>>,
+}
+
+impl MatrixRecorder {
+    pub fn new() -> Self {
+        Self {
+            changes: Mutex::new(vec![]),
+        }
+    }
+
+    pub fn get_records(&self) -> VVal {
+        if let Ok(mut changes) = self.changes.lock() {
+
+            if changes.is_empty() {
+                VVal::None
+
+            } else {
+                let vec = VVal::vec();
+                for c in changes.iter() {
+                    vec.push(c.clone());
+                }
+                changes.clear();
+                vec
+            }
+        } else {
+            VVal::None
+        }
+    }
+}
+
+impl MatrixObserver for MatrixRecorder {
+    fn update_prop(&self, key: &str) {
+        if let Ok(mut changes) = self.changes.lock() {
+            changes.push(
+                VVal::pair(
+                    VVal::new_sym("matrix_property"),
+                    VVal::new_str(key)));
+        }
+    }
+
+    fn update_monitor(&self, cell: &Cell) {
+        if let Ok(mut changes) = self.changes.lock() {
+            changes.push(
+                VVal::pair(
+                    VVal::new_sym("matrix_monitor"),
+                    cell2vval(cell)));
+        }
+    }
+
+    fn update_param(&self, param_id: &ParamId) {
+        if let Ok(mut changes) = self.changes.lock() {
+            changes.push(
+                VVal::pair(
+                    VVal::new_sym("matrix_param"),
+                    VVal::new_usr(VValParamId { param: param_id.clone() })));
+        }
+    }
+
+    fn update_matrix(&self) {
+        if let Ok(mut changes) = self.changes.lock() {
+            changes.push(
+                VVal::pair(VVal::new_sym("matrix_graph"), VVal::None));
+        }
+    }
+
+    fn update_all(&self) {
+        if let Ok(mut changes) = self.changes.lock() {
+            changes.push(
+                VVal::pair(VVal::new_sym("matrix_all"), VVal::None));
+        }
+    }
+}
+
 fn main() {
-    synth::start(|matrix| {
+    synth::start(move |matrix| {
+        let matrix_recorder = Arc::new(MatrixRecorder::new());
+        if let Ok(mut matrix) = matrix.lock() {
+            matrix.set_observer(matrix_recorder.clone());
+        }
+
         let global_env = wlambda::GlobalEnv::new_default();
         global_env.borrow_mut().set_module("hx",        setup_hx_module(matrix));
         global_env.borrow_mut().set_module("node_id",   setup_node_id_module());
@@ -1611,10 +1690,17 @@ fn main() {
                     gui_rec.borrow_mut().run(gui_rec_self, wl_ctx, state, *(root_entity.borrow()));
                 })
             .on_idle(move |state| {
+                let recs = matrix_recorder.get_records();
+
                 if idle_cb.is_some() {
-                    match wl_ctx_idle.borrow_mut().call(&idle_cb, &[]) {
+                    match wl_ctx_idle
+                            .borrow_mut()
+                            .call(&idle_cb, &[recs])
+                    {
                         Ok(_) => {},
-                        Err(e) => { panic!("Error in main.wl 'idle': {:?}", e); }
+                        Err(e) => {
+                            panic!("Error in main.wl 'idle': {:?}", e);
+                        }
                     }
                 }
 
