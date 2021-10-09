@@ -537,7 +537,7 @@ impl Widget for HexGrid {
         }
 
         if let Some(window_event) = event.message.downcast::<WindowEvent>() {
-            println!("EV: {:?}", window_event);
+            //d// println!("EV: {:?}", window_event);
 //            let posx = state.data.get_posx(entity);
 //            let posy = state.data.get_posy(entity);
 //            let width = state.data.get_width(entity);

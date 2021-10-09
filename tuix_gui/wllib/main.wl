@@ -263,7 +263,13 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
 };
 
 !:global idle = {
-    std:displayln "IDLE, Matrix changes:" _;
+    if is_some[_] > 0 {
+        std:displayln "IDLE with a change!";
+    };
+
+    iter change _ {
+        std:displayln " * matrix change: " change;
+    };
 };
 
 #    !test_model = hx:create_test_hex_grid_model[];

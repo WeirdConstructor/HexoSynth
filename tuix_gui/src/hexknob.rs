@@ -851,7 +851,7 @@ impl Widget for HexKnob {
         }
 
         if let Some(window_event) = event.message.downcast::<WindowEvent>() {
-            println!("EV: {:?}", window_event);
+            //d// println!("EV: {:?}", window_event);
 
             let mut model = self.model.borrow_mut();
 
