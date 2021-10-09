@@ -70,7 +70,6 @@ pub struct GUIActionRecorder {
     refs:       Vec<GUIRef>,
     free_refs:  Vec<i64>,
     ref_idx:    i64,
-    obj:        VVal,
 }
 
 
@@ -880,135 +879,14 @@ fn btn2vval(btn: tuix::MouseButton) -> VVal {
 }
 
 impl GUIActionRecorder {
-    pub fn new_vval() -> (Rc<RefCell<GUIActionRecorder>>, VVal) {
-        let obj = VVal::map();
-
-        let r =
-            Rc::new(RefCell::new(
-                GUIActionRecorder {
-                    actions:    vec![],
-                    refs:       vec![],
-                    free_refs:  vec![],
-                    ref_idx:    1,
-                    obj:        VVal::None,
-                }));
-
-        set_vval_method!(obj, r, redraw, None, None, env, _argc, {
-            r.borrow_mut().actions.push(GUIAction::Redraw);
-            Ok(VVal::None)
-        });
-
-        set_vval_method!(obj, r, set_text, Some(2), Some(2), env, _argc, {
-            r.borrow_mut().actions.push(
-                GUIAction::SetText(
-                    env.arg(0).i(), env.arg(1).s_raw()));
-            Ok(VVal::None)
-        });
-
-        set_vval_method!(obj, r, emit_to, Some(3), Some(3), env, _argc, {
-            r.borrow_mut().actions.push(
-                GUIAction::EmitTo(
-                    env.arg(0).i(), env.arg(1).i(), env.arg(2)));
-            Ok(VVal::None)
-        });
-
-        set_vval_method!(obj, r, add_theme, Some(1), Some(1), env, _argc, {
-            r.borrow_mut().actions.push(
-                GUIAction::AddTheme(env.arg(0).s_raw()));
-            Ok(VVal::None)
-        });
-
-        set_vval_method!(obj, r, remove, Some(1), Some(1), env, _argc, {
-            r.borrow_mut().actions.push(GUIAction::Remove(env.arg(0).i()));
-            Ok(VVal::None)
-        });
-
-        set_vval_method!(obj, r, remove_all_childs, Some(1), Some(1), env, _argc, {
-            r.borrow_mut().actions.push(GUIAction::RemoveAllChilds(env.arg(0).i()));
-            Ok(VVal::None)
-        });
-
-
-        set_vval_method!(obj, r, new_row, Some(1), Some(2), env, _argc, {
-            let mut r = r.borrow_mut();
-            Ok(VVal::Int(r.new_row(env.arg(0).i(), env.arg(1))))
-        });
-
-        set_vval_method!(obj, r, new_col, Some(1), Some(2), env, _argc, {
-            Ok(VVal::Int(r.borrow_mut().add(|id|
-                GUIAction::NewCol(env.arg(0).i(), id, env.arg(1)))))
-        });
-
-        set_vval_method!(obj, r, new_elem, Some(1), Some(2), env, _argc, {
-            Ok(VVal::Int(r.borrow_mut().add(|id|
-                GUIAction::NewElem(env.arg(0).i(), id, env.arg(1)))))
-        });
-
-        set_vval_method!(obj, r, new_hexknob, Some(2), Some(3), env, _argc, {
-            if let Some(_) = vv2hex_knob_model(env.arg(1)) {
-                Ok(VVal::Int(
-                    r.borrow_mut().add(|id|
-                        GUIAction::NewHexKnob(env.arg(0).i(), id, env.arg(1), env.arg(2)))))
-            } else {
-                Err(StackAction::panic_msg(
-                    "ui.new_hexknob[parent_id, hex_knob_model, build_attrs] not called with a $<UI::HexKnobModel>!"
-                    .to_string()))
-            }
-        });
-
-        set_vval_method!(obj, r, new_hexgrid, Some(1), Some(2), env, _argc, {
-            Ok(VVal::Int(
-                r.borrow_mut().add(|id|
-                    GUIAction::NewHexGrid(env.arg(0).i(), id, env.arg(1)))))
-        });
-
-        set_vval_method!(obj, r, new_octave_keys, Some(1), Some(2), env, _argc, {
-            Ok(VVal::Int(
-                r.borrow_mut().add(|id|
-                    GUIAction::NewOctaveKeys(env.arg(0).i(), id, env.arg(1)))))
-        });
-
-        set_vval_method!(obj, r, new_pattern_editor, Some(1), Some(2), env, _argc, {
-            let mut r = r.borrow_mut();
-            Ok(VVal::Int(r.new_pattern_editor(env.arg(0).i(), env.arg(1))))
-        });
-
-        set_vval_method!(obj, r, new_tabs, Some(2), Some(3), env, _argc, {
-            let mut rr = r.borrow_mut();
-            let mut tabs = vec![];
-            let ids = VVal::vec();
-
-            env.arg(1).for_each(|v| {
-                let id = rr.new_ref();
-                tabs.push((v.clone(), id));
-                ids.push(VVal::Int(id));
-            });
-
-            rr.actions.push(
-                GUIAction::NewTabs(tabs, env.arg(0).i(), env.arg(2)));
-
-            Ok(ids)
-        });
-
-        set_vval_method!(obj, r, new_popup, Some(0), Some(1), env, _argc, {
-            Ok(VVal::Int(
-                r.borrow_mut().add(|id|
-                    GUIAction::NewPopup(id, env.arg(0)))))
-        });
-
-        set_vval_method!(obj, r, new_button, Some(3), Some(4), env, _argc, {
-            let mut r = r.borrow_mut();
-            Ok(VVal::Int(r.new_button(
-                env.arg(0).i(),
-                env.arg(1).s_raw(),
-                env.arg(2),
-                env.arg(3)
-            )))
-        });
-
-        r.borrow_mut().obj = obj.clone();
-
-        (r, obj)
+    pub fn new() -> Rc<RefCell<GUIActionRecorder>> {
+        Rc::new(RefCell::new(
+            GUIActionRecorder {
+                actions:    vec![],
+                refs:       vec![],
+                free_refs:  vec![],
+                ref_idx:    1,
+            }))
     }
 
     pub fn add<F: FnOnce(i64) -> GUIAction>(&mut self, f: F) -> i64 {
@@ -1674,17 +1552,32 @@ fn setup_hx_module(matrix: Arc<Mutex<Matrix>>) -> wlambda::SymbolTable {
 
 fn main() {
     synth::start(|matrix| {
+        let global_env = wlambda::GlobalEnv::new_default();
+        global_env.borrow_mut().set_module("hx",        setup_hx_module(matrix));
+        global_env.borrow_mut().set_module("node_id",   setup_node_id_module());
+
+        let mut wl_ctx  = wlambda::EvalContext::new(global_env.clone());
+        let wl_ctx      = Rc::new(RefCell::new(wl_ctx));
+        let wl_ctx_idle = wl_ctx.clone();
+
+        let mut idle_cb = VVal::None;
+
+        let gui_rec = GUIActionRecorder::new();
+        let gui_rec_idle = gui_rec.clone();
+
+        let mut root_entity = Rc::new(RefCell::new(Entity::null()));
+
         let mut app =
             Application::new(
                 WindowDescription::new(),
                 |state, window| {
-                    let (gui_rec, gui_rec_vval) = GUIActionRecorder::new_vval();
-
                     let gui_rec_self = gui_rec.clone();
 
-                    let thing = (HiddenThingie { }).build(state, window, |builder| builder);
+                    *(root_entity.borrow_mut()) =
+                        (HiddenThingie { })
+                        .build(state, window, |builder| builder);
 
-                    gui_rec_self.borrow_mut().set_root(thing);
+                    gui_rec_self.borrow_mut().set_root(*root_entity.borrow());
 
                     state.add_font_mem(
                         "font_serif",
@@ -1697,32 +1590,41 @@ fn main() {
                     state.set_default_font("font_serif");
 
                     let vizia_st = setup_vizia_module(gui_rec.clone());
+                    global_env.borrow_mut().set_module("vizia", vizia_st);
 
-                    let global_env = wlambda::GlobalEnv::new_default();
-                    global_env.borrow_mut().set_module("hx",        setup_hx_module(matrix));
-                    global_env.borrow_mut().set_module("vizia",     vizia_st);
-                    global_env.borrow_mut().set_module("node_id",   setup_node_id_module());
-
-                    let mut wl_ctx = wlambda::EvalContext::new(global_env);
-
-                    match wl_ctx.eval_file("main.wl") {
+                    match wl_ctx.borrow_mut().eval_file("wllib/main.wl") {
                         Ok(_) => { },
                         Err(e) => { panic!("Error in main.wl: {:?}", e); }
                     }
 
                     let init_fun =
-                        wl_ctx.get_global_var("init")
+                        wl_ctx.borrow_mut().get_global_var("init")
                            .expect("global 'init' function in main.wl defined");
 
-                    match wl_ctx.call(&init_fun, &[]) {
+                    match wl_ctx.borrow_mut().call(&init_fun, &[]) {
                         Ok(_) => {},
                         Err(e) => { panic!("Error in main.wl 'init': {:?}", e); }
                     }
 
-                    let wl_ctx = Rc::new(RefCell::new(wl_ctx));
+                    idle_cb = wl_ctx.borrow_mut().get_global_var("idle").unwrap_or(VVal::None);
 
-                    gui_rec.borrow_mut().run(gui_rec_self, wl_ctx, state, thing);
-                });
+                    gui_rec.borrow_mut().run(gui_rec_self, wl_ctx, state, *(root_entity.borrow()));
+                })
+            .on_idle(move |state| {
+                if idle_cb.is_some() {
+                    match wl_ctx_idle.borrow_mut().call(&idle_cb, &[]) {
+                        Ok(_) => {},
+                        Err(e) => { panic!("Error in main.wl 'idle': {:?}", e); }
+                    }
+                }
+
+                let gui_rec_self = gui_rec_idle.clone();
+
+                gui_rec_idle
+                    .borrow_mut()
+                    .run(gui_rec_self, wl_ctx_idle.clone(),
+                         state, *root_entity.borrow());
+            });
         app.run();
     });
 }

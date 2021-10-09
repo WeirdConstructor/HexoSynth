@@ -7,6 +7,8 @@
 !@import wpp;
 !@import vizia;
 
+!@import observable;
+
 !@import wid_settings = settings_widget;
 
 !NODE_ID_CATEGORIES = node_id:ui_category_node_id_map[];
@@ -260,6 +262,9 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
 #    };
 };
 
+!:global idle = {
+    std:displayln "IDLE";
+};
 
 #    !test_model = hx:create_test_hex_grid_model[];
 #    ui.emit_to 0 grid $p(:hexgrid:set_model, test_model);

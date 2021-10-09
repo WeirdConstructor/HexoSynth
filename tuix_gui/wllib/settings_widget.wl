@@ -1,6 +1,7 @@
 !@wlambda;
 !@import std;
 !@import vizia;
+!@import observable;
 
 !popup        = $n;
 !popup_entity = $n;
@@ -31,33 +32,9 @@
     vizia:emit_to 0 popup $p(:popup:open_at_cursor, $n);
 };
 
-!Observable = ${
-    observable_init = {
-        $data._callbacks = ${};
-    },
-    emit = {!args = @;
-        !ev_cbs = $data._callbacks.(args.0);
-        !new_cbs = $[];
-        $data._callbacks.(args.0) = new_cbs;
-
-        iter cb ev_cbs {
-            cb[[args]];
-            std:push new_cbs cb;
-        };
-    },
-    listen = {!(event, cb) = @;
-        if is_none[$data._callbacks.(event)] {
-            $data._callbacks.(event) = $[];
-        };
-
-        std:push $data._callbacks.(event) cb;
-    },
-};
-!@export Observable = Observable;
-
 !@export SettingsWidget = ${
     # * settings - $[index => label, ...]
-    _proto = Observable,
+    _proto = observable:Observable,
     new = {!(settings) = @;
         !self = $&& ${
             _proto = $self,
