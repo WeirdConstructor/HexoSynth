@@ -273,6 +273,10 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
                 std:displayln "PARAM:" $\.param_id.as_parts[];
                 std:displayln "PARAM:" $\.param_id.name[];
                 std:displayln "PARAM:" $\.param_id.default_value[];
+                std:displayln ~ (hx:to_atom 10);
+                std:displayln ~ (hx:to_atom 10.3);
+                std:displayln ~ (hx:to_atom "foobar");
+                std:displayln ~ (hx:to_atom 0 => 10).micro_sample[];
             }
             {
                 std:displayln " * matrix change: " change;

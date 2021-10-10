@@ -863,6 +863,24 @@ impl vval::VValUserData for VValAtom {
                 }
                 Ok(VVal::Flt(self.atom.f() as f64))
             },
+            "micro_sample" => {
+                if args.len() != 0 {
+                    return Err(StackAction::panic_msg(
+                        "atom.f[] called with wrong number of arguments"
+                        .to_string()));
+                }
+
+                if let SAtom::MicroSample(ms) = &self.atom {
+                    let v = VVal::vec();
+                    for s in ms.iter() {
+                        v.push(VVal::Flt(*s as f64));
+                    }
+
+                    Ok(v)
+                } else {
+                    Ok(VVal::vec1(VVal::Flt(self.atom.f() as f64)))
+                }
+            },
             "default_of" => {
                 if args.len() != 0 {
                     return Err(StackAction::panic_msg(
@@ -1644,6 +1662,30 @@ fn setup_hx_module(matrix: Arc<Mutex<Matrix>>) -> wlambda::SymbolTable {
     st.fun(
         "dir_edge", move |env: &mut Env, argc: usize| {
             Ok(VVal::new_usr(VValCellDir::from_vval_edge(&env.arg(0))))
+        }, Some(1), Some(1), false);
+
+    st.fun(
+        "to_atom", move |env: &mut Env, argc: usize| {
+            let v = env.arg(0);
+            let atom =
+                match v {
+                    VVal::Int(i) => SAtom::setting(i),
+                    VVal::Flt(f) => SAtom::param(f as f32),
+                    VVal::Sym(_) | VVal::Str(_) | VVal::Byt(_)
+                        => v.with_s_ref(|s| SAtom::str(s)),
+                    VVal::Pair(_) if v.v_s(0) == "audio_sample"
+                        => { v.v_with_s_ref(1, |s| SAtom::audio_unloaded(s)) },
+                    _ => {
+                        let mut ms = vec![];
+                        v.with_iter(|iter| {
+                            for (v, _) in iter {
+                                ms.push(v.f() as f32);
+                            }
+                        });
+                        SAtom::MicroSample(ms)
+                    },
+                };
+            Ok(VVal::new_usr(VValAtom::new(atom)))
         }, Some(1), Some(1), false);
 
     st.fun(
