@@ -32,7 +32,7 @@ use hexo_consts::*;
 
 use hexodsp::{Matrix, NodeId, NodeInfo, ParamId, Cell, CellDir};
 use hexodsp::matrix::{MatrixObserver, MatrixError};
-use hexodsp::dsp::UICategory;
+use hexodsp::dsp::{UICategory, SAtom};
 
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -595,7 +595,6 @@ impl vval::VValUserData for VValCellDir {
     fn clone_ud(&self) -> Box<dyn vval::VValUserData> { Box::new(self.clone()) }
 }
 
-
 #[derive(Clone)]
 struct VValCluster {
     cluster: Rc<RefCell<crate::cluster::Cluster>>,
@@ -816,6 +815,91 @@ impl vval::VValUserData for VValNodeInfo {
     fn clone_ud(&self) -> Box<dyn vval::VValUserData> { Box::new(self.clone()) }
 }
 
+#[derive(Clone)]
+struct VValAtom { atom: SAtom }
+
+impl VValAtom {
+    pub fn new(atom: SAtom) -> Self {
+        Self { atom }
+    }
+}
+
+impl vval::VValUserData for VValAtom {
+    fn s(&self) -> String {
+        format!(
+            "$<HexoDSP::SAtom type={}, i={}, f={:8.4}>",
+            self.atom.type_str(),
+            self.atom.i(),
+            self.atom.f())
+    }
+
+    fn call_method(&self, key: &str, env: &mut Env)
+        -> Result<VVal, StackAction>
+    {
+        let args = env.argv_ref();
+
+        match key {
+            "s" => {
+                if args.len() != 0 {
+                    return Err(StackAction::panic_msg(
+                        "atom.s[] called with wrong number of arguments"
+                        .to_string()));
+                }
+                Ok(VVal::new_str_mv(self.atom.s()))
+            },
+            "i" => {
+                if args.len() != 0 {
+                    return Err(StackAction::panic_msg(
+                        "atom.i[] called with wrong number of arguments"
+                        .to_string()));
+                }
+                Ok(VVal::Int(self.atom.i()))
+            },
+            "f" => {
+                if args.len() != 0 {
+                    return Err(StackAction::panic_msg(
+                        "atom.f[] called with wrong number of arguments"
+                        .to_string()));
+                }
+                Ok(VVal::Flt(self.atom.f() as f64))
+            },
+            "default_of" => {
+                if args.len() != 0 {
+                    return Err(StackAction::panic_msg(
+                        "atom.f[] called with wrong number of arguments"
+                        .to_string()));
+                }
+                Ok(VVal::Usr(Box::new(VValAtom {
+                    atom: self.atom.default_of()
+                })))
+            },
+            "is_continous" => {
+                if args.len() != 0 {
+                    return Err(StackAction::panic_msg(
+                        "atom.f[] called with wrong number of arguments"
+                        .to_string()));
+                }
+                Ok(VVal::Bol(self.atom.is_continous()))
+            },
+            "type_str" => {
+                if args.len() != 0 {
+                    return Err(StackAction::panic_msg(
+                        "atom.type_str[] called with wrong number of arguments"
+                        .to_string()));
+                }
+                Ok(VVal::new_sym(self.atom.type_str()))
+            },
+            _ => Ok(VVal::err_msg(&format!("Unknown method called: {}", key))),
+        }
+    }
+
+    fn as_any(&mut self) -> &mut dyn std::any::Any { self }
+    fn clone_ud(&self) -> Box<dyn vval::VValUserData> { Box::new(self.clone()) }
+}
+
+fn vv2atom(mut v: VVal) -> Option<SAtom> {
+    v.with_usr_ref(|model: &mut VValAtom| model.atom.clone())
+}
 
 #[derive(Clone)]
 struct VValHexGridModel {
@@ -860,6 +944,46 @@ impl VValUserData for VValParamId {
             self.param.inp(),
             self.param.name())
     }
+
+    fn call_method(&self, key: &str, env: &mut Env)
+        -> Result<VVal, StackAction>
+    {
+        let args = env.argv_ref();
+
+        match key {
+            "as_parts" => {
+                if args.len() != 0 {
+                    return Err(StackAction::panic_msg(
+                        "param_id.as_parts[] called with wrong number of arguments"
+                        .to_string()));
+                }
+
+                Ok(VVal::pair(
+                    node_id2vv(self.param.node_id()),
+                    VVal::Int(self.param.inp() as i64)))
+            },
+            "name" => {
+                if args.len() != 0 {
+                    return Err(StackAction::panic_msg(
+                        "param_id.name[] called with wrong number of arguments"
+                        .to_string()));
+                }
+
+                Ok(VVal::new_str(self.param.name()))
+            },
+            "default_value" => {
+                if args.len() != 0 {
+                    return Err(StackAction::panic_msg(
+                        "param_id.as_parts[] called with wrong number of arguments"
+                        .to_string()));
+                }
+
+                Ok(VVal::Usr(Box::new(VValAtom::new(self.param.as_atom_def()))))
+            },
+            _ => Ok(VVal::err_msg(&format!("Unknown method called: {}", key))),
+        }
+    }
+
     fn as_any(&mut self) -> &mut dyn std::any::Any { self }
     fn clone_ud(&self) -> Box<dyn vval::VValUserData> { Box::new(self.clone()) }
 }

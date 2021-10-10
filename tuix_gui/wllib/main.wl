@@ -268,7 +268,15 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
     };
 
     iter change _ {
-        std:displayln " * matrix change: " change;
+        match change
+            $p(:matrix_param, param_id) => {
+                std:displayln "PARAM:" $\.param_id.as_parts[];
+                std:displayln "PARAM:" $\.param_id.name[];
+                std:displayln "PARAM:" $\.param_id.default_value[];
+            }
+            {
+                std:displayln " * matrix change: " change;
+            };
     };
 };
 
