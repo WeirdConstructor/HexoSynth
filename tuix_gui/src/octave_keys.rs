@@ -32,17 +32,21 @@ impl PartialEq for OctaveKeysMessage {
 }
 
 pub struct OctaveKeys {
-    key_mask: i64,
-    font:       Option<FontId>,
-    font_mono:  Option<FontId>,
+    key_mask:       i64,
+    font:           Option<FontId>,
+    font_mono:      Option<FontId>,
+    key_areas:      Vec<(usize, Rect)>,
+    hover_index:    Option<usize>,
 }
 
 impl OctaveKeys {
     pub fn new() -> Self {
         Self {
-            key_mask:  0,
-            font:      None,
-            font_mono: None,
+            key_mask:       0,
+            font:           None,
+            font_mono:      None,
+            key_areas:      vec![],
+            hover_index:    None,
         }
     }
 }
@@ -74,8 +78,6 @@ impl Widget for OctaveKeys {
 
         if let Some(window_event) = event.message.downcast::<WindowEvent>() {
             println!("EV: {:?}", window_event);
-
-//            let mut model = self.model.borrow_mut();
 
             match window_event {
                   WindowEvent::MouseDown(MouseButton::Left)
@@ -143,6 +145,20 @@ impl Widget for OctaveKeys {
 //                    }
                 },
                 WindowEvent::MouseMove(x, y) => {
+                    let old_hover = self.hover_index;
+                    self.hover_index = None;
+
+                    for (idx, area) in &self.key_areas {
+                        if area.is_inside(*x, *y) {
+                            self.hover_index = Some(*idx);
+                        }
+                    }
+
+                    if old_hover != self.hover_index {
+                        state.insert_event(
+                            Event::new(WindowEvent::Redraw)
+                                .target(Entity::root()));
+                    }
 //                    let old_hover = self.hover;
 //                    self.hover    = self.cursor_zone(state, entity, *x, *y);
 //
@@ -232,22 +248,34 @@ impl Widget for OctaveKeys {
         let phase_index = (phase * 12.0).floor() as usize;
 
         fn draw_key(p: &mut FemtovgPainter, key_mask: i64,
-                    key: Rect, index: usize, phase_index: usize)
+                    key: Rect, hover_idx: Option<usize>,
+                    index: usize,
+                    phase_index: usize)
         {
             let key_is_set = key_mask & (0x1 << index) > 0;
+
+            let mut hover_this_key = false;
+            if let Some(hover_idx) = hover_idx {
+                hover_this_key = (hover_idx == index);
+            }
 
             let (mut bg_color, mut line_color) =
                 if key_is_set {
 //                    if let HLStyle::None = ui.hl_style_for(id, Some(index)) {
+                    if hover_this_key {
                         (UI_GRPH_LINE_CLR, UI_GRPH_BG)
+                    } else {
+                        (UI_GRPH_PHASE_BG_CLR, UI_GRPH_BG)
+                    }
 //                    } else {
-//                        (UI_GRPH_PHASE_BG_CLR, UI_GRPH_BG)
 //                    }
 //                } else if let HLStyle::None = ui.hl_style_for(id, Some(index)) {
 //                    (UI_GRPH_BG, UI_GRPH_LINE_CLR)
+                } else if hover_this_key {
+//                    (UI_GRPH_LINE_CLR, UI_GRPH_BG)
+                    (UI_GRPH_PHASE_BG_CLR, UI_GRPH_BG)
                 } else {
                     (UI_GRPH_BG, UI_GRPH_LINE_CLR)
-//                    (UI_GRPH_PHASE_BG_CLR, UI_GRPH_BG)
                 };
 
             if phase_index == index {
@@ -265,6 +293,10 @@ impl Widget for OctaveKeys {
             p.rect_fill(bg_color, k2.x, k2.y, k2.w, k2.h);
         }
 
+        let mut hover_idx = self.hover_index;
+        if state.hovered != entity { hover_idx = None; }
+
+        self.key_areas.clear();
         for xw in xoffs_w.iter() {
             let key =
                 Rect {
@@ -274,7 +306,8 @@ impl Widget for OctaveKeys {
                     h: pos.h,
                 };
 
-            draw_key(p, self.key_mask, key, (*xw).0, phase_index);
+            draw_key(p, self.key_mask, key, hover_idx, (*xw).0, phase_index);
+            self.key_areas.push(((*xw).0, key));
         }
 
         let black_width = xd * 0.75;
@@ -288,7 +321,8 @@ impl Widget for OctaveKeys {
                     h: pos.h * 0.5,
                 };
 
-            draw_key(p, self.key_mask, key, (*xb).0, phase_index);
+            draw_key(p, self.key_mask, key, hover_idx, (*xb).0, phase_index);
+            self.key_areas.push(((*xb).0, key));
         }
     }
 }
