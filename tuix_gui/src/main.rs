@@ -99,6 +99,9 @@ fn vv2event(event: &VVal) -> Event {
             => Event::new(PopupEvent::OpenAtCursor),
         "popup:close"
             => Event::new(PopupEvent::Close),
+        "octave_keys:set_mask"
+            => Event::new(
+                octave_keys::OctaveKeysMessage::SetMask(event.v_i(1))),
         "hexknob:set_model" => {
             if let Some(model) = vv2hex_knob_model(event.v_(1)) {
                 Event::new(hexknob::HexKnobMessage::SetModel(model))
@@ -1163,8 +1166,18 @@ impl GUIActionRecorder {
                 },
                 GUIAction::NewOctaveKeys(parent, out, build_attribs) => {
                     if let Some(GUIRef::Ent(parent)) = self.refs.get(*parent as usize) {
+                        let on_change = build_attribs.v_k("on_change");
+                        let sr1       = self_ref.clone();
+                        let wl_ctx1   = wl_ctx.clone();
+
                         self.refs[*out as usize] = GUIRef::Ent(
                             OctaveKeys::new()
+                                .on_change(move |_, state, button, mask| {
+                                    exec_cb(
+                                        sr1.clone(), wl_ctx1.clone(),
+                                        state, button, on_change.clone(),
+                                        &[VVal::Int(mask)]);
+                                })
                                 .build(state, *parent,
                                     |builder| vvbuilder(builder, build_attribs)));
                     }

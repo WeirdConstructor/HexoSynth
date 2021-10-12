@@ -18,14 +18,14 @@ pub const UI_GRPH_BG              : (f32, f32, f32) = UI_LBL_BG_CLR;
 
 #[derive(Clone)]
 pub enum OctaveKeysMessage {
-    SetKeys(i64),
+    SetMask(i64),
 }
 
 impl PartialEq for OctaveKeysMessage {
     fn eq(&self, other: &OctaveKeysMessage) -> bool {
         match self {
-            OctaveKeysMessage::SetKeys(_) =>
-                if let OctaveKeysMessage::SetKeys(_) = other { true }
+            OctaveKeysMessage::SetMask(_) =>
+                if let OctaveKeysMessage::SetMask(_) = other { true }
                 else { false },
         }
     }
@@ -37,6 +37,8 @@ pub struct OctaveKeys {
     font_mono:      Option<FontId>,
     key_areas:      Vec<(usize, Rect)>,
     hover_index:    Option<usize>,
+
+    on_change:      Option<Box<dyn Fn(&mut Self, &mut State, Entity, i64)>>,
 }
 
 impl OctaveKeys {
@@ -47,7 +49,37 @@ impl OctaveKeys {
             font_mono:      None,
             key_areas:      vec![],
             hover_index:    None,
+            on_change:      None,
         }
+    }
+
+    pub fn on_change<F>(mut self, on_change: F) -> Self
+    where
+        F: 'static + Fn(&mut Self, &mut State, Entity, i64),
+    {
+        self.on_change = Some(Box::new(on_change));
+
+        self
+    }
+
+}
+
+impl OctaveKeys {
+    fn get_key_index_at(&self, x: f32, y: f32) -> Option<usize> {
+        let mut ret = None;
+
+        for (idx, area) in &self.key_areas {
+            if area.is_inside(x, y) {
+                ret = Some(*idx);
+            }
+        }
+
+        ret
+    }
+
+    pub fn toggle_index(&mut self, index: usize) {
+        if index >= 64 { return; }
+        self.key_mask ^= 0x1 << index;
     }
 }
 
@@ -68,7 +100,7 @@ impl Widget for OctaveKeys {
     fn on_event(&mut self, state: &mut State, entity: Entity, event: &mut Event) {
         if let Some(grid_msg) = event.message.downcast::<OctaveKeysMessage>() {
             match grid_msg {
-                OctaveKeysMessage::SetKeys(key_mask) => {
+                OctaveKeysMessage::SetMask(key_mask) => {
                     self.key_mask = *key_mask;
                     state.insert_event(
                         Event::new(WindowEvent::Redraw).target(Entity::root()));
@@ -77,106 +109,28 @@ impl Widget for OctaveKeys {
         }
 
         if let Some(window_event) = event.message.downcast::<WindowEvent>() {
-            println!("EV: {:?}", window_event);
-
             match window_event {
-                  WindowEvent::MouseDown(MouseButton::Left)
-                | WindowEvent::MouseDown(MouseButton::Right) => {
-//                    let btn =
-//                        if let WindowEvent::MouseDown(btn) = window_event {
-//                            *btn
-//                        } else {
-//                            MouseButton::Left
-//                        };
-//
-//                    if let Some(zone) =
-//                        self.cursor_zone(
-//                            state, entity,
-//                            state.mouse.cursorx,
-//                            state.mouse.cursory)
-//                    {
-//                        if let Some(mut hvd) =
-//                            HexValueDrag::from_state(state, &mut *model, btn, zone)
-//                        {
-//                            hvd.start(&mut *model);
-//                            self.drag = Some(hvd);
-//
-//                            state.insert_event(
-//                                Event::new(WindowEvent::Redraw)
-//                                    .target(Entity::root()));
-//                        }
-//                    }
-
-                    state.capture(entity);
-//                    state.focused = entity;
-                },
                 WindowEvent::MouseUp(btn) => {
-                    state.release(entity);
+                    let (x, y) = (state.mouse.cursorx, state.mouse.cursory);
 
-//                    if *btn == MouseButton::Right && state.modifiers.ctrl {
-//                        println!("POPUP!");
-//                        entity.emit_to(
-//                            state, self.text_box,
-//                            TextboxEvent::SetValue(model.fmt_to_string()));
-//                        entity.emit_to(
-//                            state, self.text_box_norm,
-//                            TextboxEvent::SetValue(model.fmt_norm_to_string()));
-//                        entity.emit_to(
-//                            state, self.text_box_mod,
-//                            TextboxEvent::SetValue(model.fmt_norm_mod_to_string()));
-//
-//                        entity.emit_to(
-//                            state, self.popup, PopupEvent::OpenAtCursor);
-//                        state.set_focus(self.text_box);
-//                        state.insert_event(
-//                            Event::new(WindowEvent::Redraw)
-//                                .target(Entity::root()));
-//                    }
-//
-//                    if let Some(mut hvd) = self.drag.take() {
-//                        hvd.end(
-//                            &mut *model,
-//                            state.mouse.cursorx,
-//                            state.mouse.cursory);
-//
-//                        state.insert_event(
-//                            Event::new(WindowEvent::Redraw)
-//                                .target(Entity::root()));
-//                    }
+                    if let Some(key_idx) = self.get_key_index_at(x, y) {
+                        self.toggle_index(key_idx);
+
+                        if let Some(callback) = self.on_change.take() {
+                            (callback)(self, state, entity, self.key_mask);
+                            self.on_change = Some(callback);
+                        }
+                    }
                 },
                 WindowEvent::MouseMove(x, y) => {
                     let old_hover = self.hover_index;
-                    self.hover_index = None;
-
-                    for (idx, area) in &self.key_areas {
-                        if area.is_inside(*x, *y) {
-                            self.hover_index = Some(*idx);
-                        }
-                    }
+                    self.hover_index = self.get_key_index_at(*x, *y);
 
                     if old_hover != self.hover_index {
                         state.insert_event(
                             Event::new(WindowEvent::Redraw)
                                 .target(Entity::root()));
                     }
-//                    let old_hover = self.hover;
-//                    self.hover    = self.cursor_zone(state, entity, *x, *y);
-//
-//                    if let Some(ref mut hvd) = self.drag {
-//                        hvd.change(
-//                            &mut *model,
-//                            state.mouse.cursorx,
-//                            state.mouse.cursory);
-//
-//                        state.insert_event(
-//                            Event::new(WindowEvent::Redraw)
-//                                .target(Entity::root()));
-//
-//                    } else if old_hover != self.hover {
-//                        state.insert_event(
-//                            Event::new(WindowEvent::Redraw)
-//                                .target(Entity::root()));
-//                    }
                 },
                 _ => {},
             }
@@ -212,9 +166,6 @@ impl Widget for OctaveKeys {
         let border_color =
             if state.hovered == entity { UI_GRPH_BORDER_HOVER_CLR }
             else { UI_GRPH_BORDER_CLR };
-
-//        let pos =
-//            rect_border(p, UI_GRPH_BORDER, border_color, UI_GRPH_BG, pos);
 
         let xd = (pos.w / 7.0).floor();
         let xd_pad_for_center = ((pos.w - xd * 7.0) * 0.5).floor();
@@ -261,18 +212,12 @@ impl Widget for OctaveKeys {
 
             let (mut bg_color, mut line_color) =
                 if key_is_set {
-//                    if let HLStyle::None = ui.hl_style_for(id, Some(index)) {
                     if hover_this_key {
                         (UI_GRPH_LINE_CLR, UI_GRPH_BG)
                     } else {
                         (UI_GRPH_PHASE_BG_CLR, UI_GRPH_BG)
                     }
-//                    } else {
-//                    }
-//                } else if let HLStyle::None = ui.hl_style_for(id, Some(index)) {
-//                    (UI_GRPH_BG, UI_GRPH_LINE_CLR)
                 } else if hover_this_key {
-//                    (UI_GRPH_LINE_CLR, UI_GRPH_BG)
                     (UI_GRPH_PHASE_BG_CLR, UI_GRPH_BG)
                 } else {
                     (UI_GRPH_BG, UI_GRPH_LINE_CLR)

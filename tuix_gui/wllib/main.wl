@@ -114,6 +114,9 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
 
 !:global TEST_WID = $n;
 
+!oct_keys = $n;
+!g_mask = 0b11001;
+
 !:global init = {
     vizia:add_theme
         ~ replace_colors_in_text
@@ -206,7 +209,13 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
         };
     };
 
-    !keys = vizia:new_octave_keys panel ${ };
+    !keys = vizia:new_octave_keys panel ${
+        on_change = {!(mask) = @;
+            .g_mask = mask;
+        }
+    };
+
+    .oct_keys = keys;
 
     !pf = vizia:new_hexknob panel dmy;
 
@@ -266,6 +275,9 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
     if is_some[_] > 0 {
         std:displayln "IDLE with a change!";
     };
+
+    vizia:emit_to 0 oct_keys
+        $p(:octave_keys:set_mask, g_mask);
 
     iter change _ {
         match change
