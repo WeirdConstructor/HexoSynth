@@ -221,6 +221,24 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
 
     create_node_id_selector 0;
 
+
+
+
+    !buf =
+        hx:new_sample_buf_from
+            $[0.1, 0.2, 0.3, 0.4];
+
+    std:displayln "BUF:" buf;
+
+    std:displayln "0:" buf.0;
+    std:displayln "1:" buf.1;
+    std:displayln "2:" buf.2;
+
+    buf.1 = 23.42;
+    std:displayln "1:" buf.1;
+
+
+
 #    !col = ui.new_col 0 ${ position = "self" };
 #
 #    !par = ui.new_row col "headbar";

@@ -952,6 +952,28 @@ impl vval::VValUserData for VValSampleBuf {
         format!("$<SampleBuf[{}]>", size)
     }
 
+    fn set_key(&self, key: &VVal, val: VVal) -> Result<(), StackAction> {
+        let idx = key.i() as usize;
+
+        if let Ok(mut guard) = self.buf.lock() {
+            if idx < guard.len() {
+                guard[idx] = val.f() as f32;
+            }
+        }
+
+        Ok(())
+    }
+
+    fn get_key(&self, key: &str) -> Option<VVal> {
+        let idx = key.parse::<usize>().unwrap_or(0);
+        let val =
+            self.buf.lock().map_or(
+                None,
+                |guard| guard.get(idx).copied())?;
+
+        Some(VVal::Flt(val as f64))
+    }
+
     fn call_method(&self, key: &str, env: &mut Env)
         -> Result<VVal, StackAction>
     {
