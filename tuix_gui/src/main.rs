@@ -16,6 +16,7 @@ mod grid_models;
 mod cluster;
 mod matrix_param_model;
 mod octave_keys;
+mod cv_array;
 
 mod jack;
 mod synth;
@@ -28,6 +29,7 @@ use hexgrid::{HexGrid, HexGridModel, HexCell, HexDir, HexEdge, HexHLight};
 use hexknob::{HexKnob, ParamModel};
 use pattern_editor::PatternEditor;
 use octave_keys::OctaveKeys;
+use cv_array::CvArray;
 use hexo_consts::*;
 
 use hexodsp::{Matrix, NodeId, NodeInfo, ParamId, Cell, CellDir};
@@ -51,6 +53,7 @@ enum GUIAction {
     NewPatternEditor(i64, i64, Option<String>),
     NewButton(i64, i64, String, VVal, VVal),
     NewOctaveKeys(i64, i64, VVal),
+    NewCvArray(i64, i64, VVal),
     EmitTo(i64, i64, VVal),
     SetText(i64, String),
     AddTheme(String),
@@ -102,6 +105,14 @@ fn vv2event(event: &VVal) -> Event {
         "octave_keys:set_mask"
             => Event::new(
                 octave_keys::OctaveKeysMessage::SetMask(event.v_i(1))),
+        "cv_array:set_array" => {
+            if let Some(ar) = vv2sample_buf(event.v_(1)) {
+                Event::new(cv_array::CvArrayMessage::SetArray(ar.clone()))
+            } else {
+                eprintln!("Bad Event Type sent: {}, bad array arg!", event.s());
+                Event::new(WindowEvent::Redraw)
+            }
+        },
         "hexknob:set_model" => {
             if let Some(model) = vv2hex_knob_model(event.v_(1)) {
                 Event::new(hexknob::HexKnobMessage::SetModel(model))
@@ -923,6 +934,57 @@ fn vv2atom(mut v: VVal) -> Option<SAtom> {
 }
 
 #[derive(Clone)]
+struct VValSampleBuf {
+    buf: Arc<Mutex<Vec<f32>>>,
+}
+
+impl VValSampleBuf {
+    pub fn from_vec(v: Vec<f32>) -> Self {
+        Self {
+            buf: Arc::new(Mutex::new(v)),
+        }
+    }
+}
+
+impl vval::VValUserData for VValSampleBuf {
+    fn s(&self) -> String {
+        let size = self.buf.lock().map_or(0, |guard| guard.len());
+        format!("$<SampleBuf[{}]>", size)
+    }
+
+    fn call_method(&self, key: &str, env: &mut Env)
+        -> Result<VVal, StackAction>
+    {
+        let args = env.argv_ref();
+
+        match key {
+            "len" => {
+                if args.len() != 0 {
+                    return Err(StackAction::panic_msg(
+                        "sample_buf.len[] called with wrong number of arguments"
+                        .to_string()));
+                }
+
+                let size = self.buf.lock().map_or(0, |guard| guard.len());
+                Ok(VVal::Int(size as i64))
+            },
+            _ => Ok(VVal::err_msg(&format!("Unknown method called: {}", key))),
+        }
+    }
+
+    fn as_any(&mut self) -> &mut dyn std::any::Any { self }
+    fn clone_ud(&self) -> Box<dyn vval::VValUserData> { Box::new(self.clone()) }
+}
+
+fn vv2sample_buf(mut v: VVal) -> Option<Arc<Mutex<Vec<f32>>>> {
+    v.with_usr_ref(|model: &mut VValSampleBuf| model.buf.clone())
+}
+
+fn sample_buf2vv(r: Arc<Mutex<Vec<f32>>>) -> VVal {
+    VVal::new_usr(VValSampleBuf { buf: r })
+}
+
+#[derive(Clone)]
 struct VValHexGridModel {
     model: Rc<RefCell<dyn HexGridModel>>,
 }
@@ -1177,6 +1239,24 @@ impl GUIActionRecorder {
                                         sr1.clone(), wl_ctx1.clone(),
                                         state, button, on_change.clone(),
                                         &[VVal::Int(mask)]);
+                                })
+                                .build(state, *parent,
+                                    |builder| vvbuilder(builder, build_attribs)));
+                    }
+                },
+                GUIAction::NewCvArray(parent, out, build_attribs) => {
+                    if let Some(GUIRef::Ent(parent)) = self.refs.get(*parent as usize) {
+                        let on_change = build_attribs.v_k("on_change");
+                        let sr1       = self_ref.clone();
+                        let wl_ctx1   = wl_ctx.clone();
+
+                        self.refs[*out as usize] = GUIRef::Ent(
+                            CvArray::new()
+                                .on_change(move |_, state, button, arr| {
+                                    exec_cb(
+                                        sr1.clone(), wl_ctx1.clone(),
+                                        state, button, on_change.clone(),
+                                        &[sample_buf2vv(arr.clone())]);
                                 })
                                 .build(state, *parent,
                                     |builder| vvbuilder(builder, build_attribs)));
@@ -1603,6 +1683,12 @@ fn setup_vizia_module(r: Rc<RefCell<GUIActionRecorder>>) -> wlambda::SymbolTable
                 GUIAction::NewOctaveKeys(env.arg(0).i(), id, env.arg(1)))))
     });
 
+    set_modfun!(st, r, new_cv_array, Some(1), Some(2), env, _argc, {
+        Ok(VVal::Int(
+            r.borrow_mut().add(|id|
+                GUIAction::NewCvArray(env.arg(0).i(), id, env.arg(1)))))
+    });
+
     set_modfun!(st, r, new_hexgrid, Some(1), Some(2), env, _argc, {
         Ok(VVal::Int(
             r.borrow_mut().add(|id|
@@ -1666,6 +1752,18 @@ fn setup_hx_module(matrix: Arc<Mutex<Matrix>>) -> wlambda::SymbolTable {
         "new_cluster", move |env: &mut Env, argc: usize| {
             Ok(VVal::new_usr(VValCluster::new()))
         }, Some(0), Some(0), false);
+
+    st.fun(
+        "new_sample_buf_from", move |env: &mut Env, argc: usize| {
+            let mut v = vec![];
+            env.arg(0).with_iter(|it| {
+                for (s, _) in it {
+                    v.push(s.f() as f32);
+                }
+            });
+
+            Ok(VVal::new_usr(VValSampleBuf::from_vec(v)))
+        }, Some(1), Some(1), false);
 
     st.fun(
         "dir", move |env: &mut Env, argc: usize| {
