@@ -19,6 +19,15 @@ impl Rect {
         Self { x, y, w, h }
     }
 
+    pub fn floor(&self) -> Self {
+        Self {
+            x: self.x.floor(),
+            y: self.y.floor(),
+            w: self.w.floor(),
+            h: self.h.floor(),
+        }
+    }
+
     pub fn resize(&self, w: f32, h: f32) -> Self {
         Self {
             x: self.x,

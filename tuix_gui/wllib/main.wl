@@ -114,7 +114,7 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
 
 !:global TEST_WID = $n;
 
-!oct_keys = $n;
+#!oct_keys = $n;
 !g_mask = 0b11001;
 
 !:global init = {
@@ -198,26 +198,30 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
         3 => "HighPass",
     ];
 
-    !my_wid =
-        wid_settings:SettingsWidget.new
-            dummy_settings;
-    .TEST_WID = my_wid;
-    my_wid.build panel;
-    my_wid.listen :changed {!(ev, idx) = @;
-        if idx == 3 {
-            .TEST_WID = $n;
-        };
-    };
+#    !my_wid = wid_settings:SettingsWidget.new dummy_settings;
+#    .TEST_WID = my_wid;
+#    my_wid.build panel;
+#    my_wid.listen :changed {!(ev, idx) = @;
+#        if idx == 3 {
+#            .TEST_WID = $n;
+#        };
+#    };
 
-    !keys = vizia:new_octave_keys panel ${
-        on_change = {!(mask) = @;
-            .g_mask = mask;
+#    !keys = vizia:new_octave_keys panel ${
+#        on_change = {!(mask) = @;
+#            .g_mask = mask;
+#        }
+#    };
+#
+#    .oct_keys = keys;
+
+    !cva = vizia:new_cv_array panel ${
+        on_change = {!(array) = @;
+            std:displayln array;
         }
     };
 
-    .oct_keys = keys;
-
-    !pf = vizia:new_hexknob panel dmy;
+#    !pf = vizia:new_hexknob panel dmy;
 
     create_node_id_selector 0;
 
@@ -294,8 +298,8 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
         std:displayln "IDLE with a change!";
     };
 
-    vizia:emit_to 0 oct_keys
-        $p(:octave_keys:set_mask, g_mask);
+#    vizia:emit_to 0 oct_keys
+#        $p(:octave_keys:set_mask, g_mask);
 
     iter change _ {
         match change

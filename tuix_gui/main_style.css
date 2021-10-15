@@ -188,7 +188,7 @@ hex-grid {
     top: 1s;
     height: 400px;
     width: 400px;
-    child-space: 1s;
+    child-space: 40px;
 }
 
 .knob_panel hex-knob {

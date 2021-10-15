@@ -1268,12 +1268,13 @@ impl GUIActionRecorder {
                 },
                 GUIAction::NewCvArray(parent, out, build_attribs) => {
                     if let Some(GUIRef::Ent(parent)) = self.refs.get(*parent as usize) {
+                        let binary    = build_attribs.v_k("binary").b();
                         let on_change = build_attribs.v_k("on_change");
                         let sr1       = self_ref.clone();
                         let wl_ctx1   = wl_ctx.clone();
 
                         self.refs[*out as usize] = GUIRef::Ent(
-                            CvArray::new()
+                            CvArray::new(binary)
                                 .on_change(move |_, state, button, arr| {
                                     exec_cb(
                                         sr1.clone(), wl_ctx1.clone(),
