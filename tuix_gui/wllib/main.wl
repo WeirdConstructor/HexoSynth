@@ -6,9 +6,9 @@
 !@import node_id;
 !@import wpp;
 !@import vizia;
-
 !@import observable;
 
+!@import wid_params   = params_widget;
 !@import wid_settings = settings_widget;
 
 !NODE_ID_CATEGORIES = node_id:ui_category_node_id_map[];
@@ -119,15 +119,33 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
         m                = $n,
         grid_model       = $n,
         place_node_type  = :sin => 0,
+        focus = ${
+            pos     = $n,
+            cell    = $n,
+            node_id = $n,
+        },
+        widgets = ${
+            params = $n,
+        },
     },
     _proto = ${
-        init = {!(matrix, grid_model) = @;
+        init = {!(matrix) = @;
             $data.m          = matrix;
             $data.grid_model = matrix.create_grid_model[];
+            $data.widgets.params =
+                wid_params:ParamsWidget.new[matrix];
+        },
+        build_main_gui = {
+            $data.widgets.params.build 0;
         },
         set_focus = {!(pos) = @;
+            $data.focus.pos  = pos;
+            $data.focus.cell = $data.m.get pos;
+            $data.focus.node_id = $data.focus.cell.node_id;
+
             $data.grid_model.set_focus_cell pos;
             vizia:redraw[];
+            $data.widgets.params.set_node_id $data.focus.node_id;
         },
         set_place_node_type = {!(typ) = @;
             $data.place_node_type = typ;
@@ -143,7 +161,7 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
 };
 
 #!oct_keys = $n;
-!g_mask = 0b11001;
+#!g_mask = 0b11001;
 
 !:global init = {
     vizia:add_theme
@@ -210,6 +228,8 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
             std:displayln "DRAG CELL:" pos "=>" pos2 btn;
         },
     };
+
+    STATE.build_main_gui[];
 
     vizia:emit_to 0 grid $p(:hexgrid:set_model, STATE._data.grid_model);
 

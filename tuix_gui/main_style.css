@@ -258,3 +258,12 @@ octave-keys {
     height: 100px;
     width: 200px;
 }
+
+.node_params {
+    position:   self-directed;
+    bottom:     1s;
+    height:     200px;
+    width:      200px;
+
+    background-color: #000000;
+}

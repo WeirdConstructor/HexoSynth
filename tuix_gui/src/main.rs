@@ -753,10 +753,10 @@ impl vval::VValUserData for VValNodeInfo {
         let args = env.argv_ref();
 
         match key {
-            "add_cluster_at" => {
-                arg_chk!(args, 2, "cluster.add_cluster_at[matrix, $i(x, y)]");
-                Ok(VVal::None)
-            },
+//            "add_cluster_at" => {
+//                arg_chk!(args, 2, "cluster.add_cluster_at[matrix, $i(x, y)]");
+//                Ok(VVal::None)
+//            },
             _ => Ok(VVal::err_msg(&format!("Unknown method called: {}", key))),
         }
     }

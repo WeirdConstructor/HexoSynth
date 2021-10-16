@@ -7,7 +7,7 @@
 !popup_entity = $n;
 
 !init_global_settings_popup = {
-    .popup        = vizia:new_popup ${ class = :setting_popup };
+    .popup        = vizia:new_popup     ${ class = :setting_popup };
     .popup_entity = vizia:new_col popup ${ class = :setting_popup };
 };
 
