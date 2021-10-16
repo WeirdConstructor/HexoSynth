@@ -112,7 +112,35 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
     };
 };
 
-!:global TEST_WID = $n;
+#!:global TEST_WID = $n;
+
+!STATE = ${
+    _data = ${
+        m                = $n,
+        grid_model       = $n,
+        place_node_type  = :sin => 0,
+    },
+    _proto = ${
+        init = {!(matrix, grid_model) = @;
+            $data.m          = matrix;
+            $data.grid_model = matrix.create_grid_model[];
+        },
+        set_focus = {!(pos) = @;
+            $data.grid_model.set_focus_cell pos;
+            vizia:redraw[];
+        },
+        set_place_node_type = {!(typ) = @;
+            $data.place_node_type = typ;
+        },
+        do_place_at = {!(pos) = @;
+            !new_node_id =
+                $data.m.get_unused_instance_node_id
+                    $data.place_node_type;
+            $data.m.set pos ${ node_id = new_node_id };
+            unwrap ~ $data.m.sync[];
+        },
+    },
+};
 
 #!oct_keys = $n;
 !g_mask = 0b11001;
@@ -123,8 +151,7 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
         ~ wpp:run_macro_lang[${}, std:io:file:read_text "main_style.css"];
 
     !matrix = hx:get_main_matrix_handle[];
-    matrix.set $i(1, 1) ${ node_id = CUR_NODE_TYPE };
-    std:displayln ~ matrix.get $i(1, 1);
+    STATE.init matrix;
 
     !grid = vizia:new_hexgrid 0 ${
         position = "self",
@@ -133,10 +160,18 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
 
             match btn
                 :left => {
-                    !new_node_id =
-                        matrix.get_unused_instance_node_id CUR_NODE_TYPE;
-                    matrix.set pos ${ node_id = new_node_id };
-                    unwrap ~ matrix.sync[];
+                    !cell = matrix.get pos;
+                    if cell.node_id.0 == "nop" {
+                        .cell = $n;
+                    };
+
+                    std:displayln "CELL CONT:" cell;
+
+                    if is_some[cell] {
+                        STATE.set_focus pos;
+                    } {
+                        STATE.do_place_at pos;
+                    };
                 }
                 :right => {
                     !cluster = hx:new_cluster[];
@@ -176,11 +211,7 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
         },
     };
 
-    std:displayln "A";
-    !matrix_model = matrix.create_grid_model[];
-    std:displayln "B";
-    vizia:emit_to 0 grid $p(:hexgrid:set_model, matrix_model);
-    std:displayln "C";
+    vizia:emit_to 0 grid $p(:hexgrid:set_model, STATE._data.grid_model);
 
     !panel = vizia:new_elem 0 ${ class = "knob_panel" };
 

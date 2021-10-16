@@ -340,6 +340,23 @@ fn matrix_error2vval_err(err: MatrixError) -> VVal {
         wlambda::vval::SynPos::empty()))))
 }
 
+macro_rules! arg_chk {
+    ($args: expr, $count: expr, $name: literal) => {
+        if $args.len() != $count {
+            return Err(StackAction::panic_msg(format!(
+                "{} called with wrong number of arguments",
+                $name)));
+        }
+    }
+}
+
+macro_rules! wl_panic {
+    ($str: literal) => {
+        return Err(StackAction::panic_msg($str.to_string()));
+    }
+}
+
+
 #[derive(Clone)]
 struct VValMatrix {
     matrix: Arc<Mutex<hexodsp::Matrix>>,
@@ -359,37 +376,26 @@ impl vval::VValUserData for VValMatrix {
 
         match key {
             "create_grid_model" => {
-                if args.len() != 0 {
-                    return Err(StackAction::panic_msg(
-                        "matrix.create_grid_model[] called with wrong number of arguments"
-                        .to_string()));
-                }
+                arg_chk!(args, 0, "matrix.create_grid_model[]");
 
                 let matrix = self.matrix.clone();
 
                 return Ok(VVal::new_usr(VValHexGridModel {
                     model:
-                        Rc::new(RefCell::new(
-                            grid_models::MatrixUIModel::new(matrix))),
+                        HexGridModelType::Matrix(
+                            Rc::new(RefCell::new(
+                                grid_models::MatrixUIModel::new(matrix)))),
                 }));
             },
             "create_hex_knob_dummy_model" => {
-                if args.len() != 0 {
-                    return Err(StackAction::panic_msg(
-                        "matrix.create_hex_knob_model[] called with wrong number of arguments"
-                        .to_string()));
-                }
+                arg_chk!(args, 0, "matrix.create_hex_knob_dummy_model[]");
 
                 return Ok(VVal::new_usr(VValHexKnobModel {
                     model: Rc::new(RefCell::new(DummyParamModel::new()))
                 }));
             },
             "create_hex_knob_model" => {
-                if args.len() != 1 {
-                    return Err(StackAction::panic_msg(
-                        "matrix.create_hex_knob_model[param_id] called with wrong number of arguments"
-                        .to_string()));
-                }
+                arg_chk!(args, 1, "matrix.create_hex_knob_model[param_id]");
 
                 let matrix = self.matrix.clone();
                 if let Some(param_id) = vv2param_id(env.arg(0)) {
@@ -399,9 +405,9 @@ impl vval::VValUserData for VValMatrix {
                     }));
 
                 } else {
-                    return Err(StackAction::panic_msg(
-                        "matrix.create_hex_knob_model[param_id] requires a $<HexoDSP::ParamId> as first argument."
-                        .to_string()));
+                    wl_panic!(
+                        "matrix.create_hex_knob_model[param_id] requires \
+                        a $<HexoDSP::ParamId> as first argument.");
                 }
             },
             _ => {}
@@ -412,11 +418,7 @@ impl vval::VValUserData for VValMatrix {
         if let Ok(mut m) = m {
             match key {
                 "get" => {
-                    if args.len() != 1 {
-                        return Err(StackAction::panic_msg(
-                            "matrix.get[$i(x, y)] called with wrong number of arguments"
-                            .to_string()));
-                    }
+                    arg_chk!(args, 1, "matrix.get[$i(x, y)]");
 
                     if let Some(cell) =
                         m.get(
@@ -429,11 +431,7 @@ impl vval::VValUserData for VValMatrix {
                     }
                 },
                 "set" => {
-                    if args.len() != 2 {
-                        return Err(StackAction::panic_msg(
-                            "matrix.set[$i(x, y), cell] called with wrong number of arguments"
-                            .to_string()));
-                    }
+                    arg_chk!(args, 2, "matrix.set[$i(x, y), cell]");
 
                     if let (Some(vv_cell), Some(pos)) = (env.arg_ref(1), env.arg_ref(0)) {
                         let cell = vv2cell(vv_cell);
@@ -449,19 +447,17 @@ impl vval::VValUserData for VValMatrix {
                     }
                 },
                 "restore_snapshot" => {
+                    arg_chk!(args, 0, "matrix.restore_snapshot[]");
                     m.restore_matrix();
                     Ok(VVal::Bol(true))
                 },
                 "save_snapshot" => {
+                    arg_chk!(args, 0, "matrix.save_snapshot[]");
                     m.save_matrix();
                     Ok(VVal::Bol(true))
                 },
                 "check" => {
-                    if args.len() != 0 {
-                        return Err(StackAction::panic_msg(
-                            "matrix.check[] called with wrong number of arguments"
-                            .to_string()));
-                    }
+                    arg_chk!(args, 0, "matrix.check[]");
 
                     match m.check() {
                         Ok(_)  => Ok(VVal::Bol(true)),
@@ -469,11 +465,7 @@ impl vval::VValUserData for VValMatrix {
                     }
                 },
                 "sync" => {
-                    if args.len() != 0 {
-                        return Err(StackAction::panic_msg(
-                            "matrix.check[] called with wrong number of arguments"
-                            .to_string()));
-                    }
+                    arg_chk!(args, 0, "matrix.sync[]");
 
                     match m.sync() {
                         Ok(_)  => Ok(VVal::Bol(true)),
@@ -481,11 +473,7 @@ impl vval::VValUserData for VValMatrix {
                     }
                 },
                 "get_unused_instance_node_id" => {
-                    if args.len() != 1 {
-                        return Err(StackAction::panic_msg(
-                            "matrix.get_unused_instance_node_id[node_id] called with wrong number of arguments"
-                            .to_string()));
-                    }
+                    arg_chk!(args, 1, "matrix.get_unused_instance_node_id[node_id]");
 
                     let node_id = vv2node_id(&args[0]);
                     let node_id = m.get_unused_instance_node_id(node_id);
@@ -546,47 +534,27 @@ impl vval::VValUserData for VValCellDir {
 
         match key {
             "as_edge" => {
-                if args.len() != 0 {
-                    return Err(StackAction::panic_msg(
-                        "cell_dir.as_edge[] called with wrong number of arguments"
-                        .to_string()));
-                }
+                arg_chk!(args, 0, "cell_dir.as_edge[]");
 
                 Ok(VVal::Int(self.dir.as_edge() as i64))
             },
             "flip" => {
-                if args.len() != 0 {
-                    return Err(StackAction::panic_msg(
-                        "cell_dir.flip[] called with wrong number of arguments"
-                        .to_string()));
-                }
+                arg_chk!(args, 0, "cell_dir.flip[]");
 
                 Ok(cell_dir2vv(self.dir.flip()))
             },
             "is_input" => {
-                if args.len() != 0 {
-                    return Err(StackAction::panic_msg(
-                        "cell_dir.is_input[] called with wrong number of arguments"
-                        .to_string()));
-                }
+                arg_chk!(args, 0, "cell_dir.is_input[]");
 
                 Ok(VVal::Bol(self.dir.is_input()))
             },
             "is_output" => {
-                if args.len() != 0 {
-                    return Err(StackAction::panic_msg(
-                        "cell_dir.is_output[] called with wrong number of arguments"
-                        .to_string()));
-                }
+                arg_chk!(args, 0, "cell_dir.is_output[]");
 
                 Ok(VVal::Bol(self.dir.is_output()))
             },
             "offs_pos" => {
-                if args.len() != 1 {
-                    return Err(StackAction::panic_msg(
-                        "cell_dir.offs_pos[$i(x, y)] called with wrong number of arguments"
-                        .to_string()));
-                }
+                arg_chk!(args, 1, "cell_dir.offs_pos[$i(x, y)]");
 
                 let p = env.arg(0);
 
@@ -632,11 +600,7 @@ impl vval::VValUserData for VValCluster {
 
         match key {
             "add_cluster_at" => {
-                if args.len() != 2 {
-                    return Err(StackAction::panic_msg(
-                        "cluster.add_cluster_at[matrix, $i(x, y)] called with wrong number of arguments"
-                        .to_string()));
-                }
+                arg_chk!(args, 2, "cluster.add_cluster_at[matrix, $i(x, y)]");
 
                 let mut m = env.arg(0);
 
@@ -658,11 +622,7 @@ impl vval::VValUserData for VValCluster {
                 Ok(VVal::None)
             },
             "ignore_pos" => {
-                if args.len() != 1 {
-                    return Err(StackAction::panic_msg(
-                        "cluster.ignore_pos[$i(x, y)] called with wrong number of arguments"
-                        .to_string()));
-                }
+                arg_chk!(args, 1, "cluster.ignore_pos[$i(x, y)]");
 
                 let v = env.arg(0);
 
@@ -673,11 +633,7 @@ impl vval::VValUserData for VValCluster {
                 Ok(VVal::None)
             },
             "position_list" => {
-                if args.len() != 0 {
-                    return Err(StackAction::panic_msg(
-                        "cluster.position_list[] called with wrong number of arguments"
-                        .to_string()));
-                }
+                arg_chk!(args, 0, "cluster.position_list[]");
 
                 let v = VVal::vec();
 
@@ -688,11 +644,7 @@ impl vval::VValUserData for VValCluster {
                 Ok(v)
             },
             "cell_list" => {
-                if args.len() != 0 {
-                    return Err(StackAction::panic_msg(
-                        "cluster.cell_list[] called with wrong number of arguments"
-                        .to_string()));
-                }
+                arg_chk!(args, 0, "cluster.cell_list[]");
 
                 let v = VVal::vec();
 
@@ -703,11 +655,7 @@ impl vval::VValUserData for VValCluster {
                 Ok(v)
             },
             "remove_cells" => {
-                if args.len() != 1 {
-                    return Err(StackAction::panic_msg(
-                        "cluster.remove_cells[matrix] called with wrong number of arguments"
-                        .to_string()));
-                }
+                arg_chk!(args, 1, "cluster.remove_cells[matrix]");
 
                 let mut m = env.arg(0);
 
@@ -722,11 +670,7 @@ impl vval::VValUserData for VValCluster {
                 Ok(VVal::None)
             },
             "place" => {
-                if args.len() != 1 {
-                    return Err(StackAction::panic_msg(
-                        "cluster.place[matrix] called with wrong number of arguments"
-                        .to_string()));
-                }
+                arg_chk!(args, 1, "cluster.place[matrix]");
 
                 let mut m = env.arg(0);
 
@@ -745,11 +689,7 @@ impl vval::VValUserData for VValCluster {
                 Ok(VVal::None)
             },
             "move_cluster_cells_dir_path" => {
-                if args.len() != 1 {
-                    return Err(StackAction::panic_msg(
-                        "cluster.move_cluster_cells_dir_path[$[CellDir, ...]] called with wrong number of arguments"
-                        .to_string()));
-                }
+                arg_chk!(args, 1, "cluster.move_cluster_cells_dir_path[$[CellDir, ...]]");
 
                 let path = env.arg(0);
                 let mut cd_path = vec![];
@@ -814,11 +754,7 @@ impl vval::VValUserData for VValNodeInfo {
 
         match key {
             "add_cluster_at" => {
-                if args.len() != 2 {
-                    return Err(StackAction::panic_msg(
-                        "cluster.add_cluster_at[matrix, $i(x, y)] called with wrong number of arguments"
-                        .to_string()));
-                }
+                arg_chk!(args, 2, "cluster.add_cluster_at[matrix, $i(x, y)]");
                 Ok(VVal::None)
             },
             _ => Ok(VVal::err_msg(&format!("Unknown method called: {}", key))),
@@ -854,35 +790,19 @@ impl vval::VValUserData for VValAtom {
 
         match key {
             "s" => {
-                if args.len() != 0 {
-                    return Err(StackAction::panic_msg(
-                        "atom.s[] called with wrong number of arguments"
-                        .to_string()));
-                }
+                arg_chk!(args, 0, "atom.s[]");
                 Ok(VVal::new_str_mv(self.atom.s()))
             },
             "i" => {
-                if args.len() != 0 {
-                    return Err(StackAction::panic_msg(
-                        "atom.i[] called with wrong number of arguments"
-                        .to_string()));
-                }
+                arg_chk!(args, 0, "atom.i[]");
                 Ok(VVal::Int(self.atom.i()))
             },
             "f" => {
-                if args.len() != 0 {
-                    return Err(StackAction::panic_msg(
-                        "atom.f[] called with wrong number of arguments"
-                        .to_string()));
-                }
+                arg_chk!(args, 0, "atom.f[]");
                 Ok(VVal::Flt(self.atom.f() as f64))
             },
             "micro_sample" => {
-                if args.len() != 0 {
-                    return Err(StackAction::panic_msg(
-                        "atom.f[] called with wrong number of arguments"
-                        .to_string()));
-                }
+                arg_chk!(args, 0, "atom.micro_sample[]");
 
                 if let SAtom::MicroSample(ms) = &self.atom {
                     let v = VVal::vec();
@@ -896,29 +816,20 @@ impl vval::VValUserData for VValAtom {
                 }
             },
             "default_of" => {
-                if args.len() != 0 {
-                    return Err(StackAction::panic_msg(
-                        "atom.f[] called with wrong number of arguments"
-                        .to_string()));
-                }
+                arg_chk!(args, 0, "atom.default_of[]");
+
                 Ok(VVal::Usr(Box::new(VValAtom {
                     atom: self.atom.default_of()
                 })))
             },
             "is_continous" => {
-                if args.len() != 0 {
-                    return Err(StackAction::panic_msg(
-                        "atom.f[] called with wrong number of arguments"
-                        .to_string()));
-                }
+                arg_chk!(args, 0, "atom.is_continous[]");
+
                 Ok(VVal::Bol(self.atom.is_continous()))
             },
             "type_str" => {
-                if args.len() != 0 {
-                    return Err(StackAction::panic_msg(
-                        "atom.type_str[] called with wrong number of arguments"
-                        .to_string()));
-                }
+                arg_chk!(args, 0, "atom.type_str[]");
+
                 Ok(VVal::new_sym(self.atom.type_str()))
             },
             _ => Ok(VVal::err_msg(&format!("Unknown method called: {}", key))),
@@ -981,11 +892,7 @@ impl vval::VValUserData for VValSampleBuf {
 
         match key {
             "len" => {
-                if args.len() != 0 {
-                    return Err(StackAction::panic_msg(
-                        "sample_buf.len[] called with wrong number of arguments"
-                        .to_string()));
-                }
+                arg_chk!(args, 0, "sample_buf.len[]");
 
                 let size = self.buf.lock().map_or(0, |guard| guard.len());
                 Ok(VVal::Int(size as i64))
@@ -1007,18 +914,55 @@ fn sample_buf2vv(r: Arc<Mutex<Vec<f32>>>) -> VVal {
 }
 
 #[derive(Clone)]
+enum HexGridModelType {
+    Test(Rc<RefCell<grid_models::TestGridModel>>),
+    Matrix(Rc<RefCell<grid_models::MatrixUIModel>>),
+}
+
+#[derive(Clone)]
 struct VValHexGridModel {
-    model: Rc<RefCell<dyn HexGridModel>>,
+    model: HexGridModelType,
+}
+
+impl VValHexGridModel {
+    fn as_hex_grid_model(&self) -> Rc<RefCell<dyn HexGridModel>> {
+        match &self.model {
+            HexGridModelType::Test(m)   => m.clone(),
+            HexGridModelType::Matrix(m) => m.clone(),
+        }
+    }
 }
 
 impl VValUserData for VValHexGridModel {
     fn s(&self) -> String { format!("$<UI::HexGridModel>") }
+
+    fn call_method(&self, key: &str, env: &mut Env)
+        -> Result<VVal, StackAction>
+    {
+        let args = env.argv_ref();
+
+        match key {
+            "set_focus_cell" => {
+                arg_chk!(args, 1, "hex_grid_model.set_focus_cell[$i(x, y)]");
+
+                if let HexGridModelType::Matrix(m) = &self.model {
+                    m.borrow_mut().set_focus_cell(
+                        env.arg(0).v_i(0) as usize,
+                        env.arg(0).v_i(1) as usize);
+                }
+
+                Ok(VVal::None)
+            },
+            _ => Ok(VVal::err_msg(&format!("Unknown method called: {}", key))),
+        }
+    }
+
     fn as_any(&mut self) -> &mut dyn std::any::Any { self }
     fn clone_ud(&self) -> Box<dyn vval::VValUserData> { Box::new(self.clone()) }
 }
 
 fn vv2hex_grid_model(mut v: VVal) -> Option<Rc<RefCell<dyn HexGridModel>>> {
-    v.with_usr_ref(|model: &mut VValHexGridModel| model.model.clone())
+    v.with_usr_ref(|model: &mut VValHexGridModel| model.as_hex_grid_model())
 }
 
 #[derive(Clone)]
@@ -1057,31 +1001,19 @@ impl VValUserData for VValParamId {
 
         match key {
             "as_parts" => {
-                if args.len() != 0 {
-                    return Err(StackAction::panic_msg(
-                        "param_id.as_parts[] called with wrong number of arguments"
-                        .to_string()));
-                }
+                arg_chk!(args, 0, "param_id.as_parts[]");
 
                 Ok(VVal::pair(
                     node_id2vv(self.param.node_id()),
                     VVal::Int(self.param.inp() as i64)))
             },
             "name" => {
-                if args.len() != 0 {
-                    return Err(StackAction::panic_msg(
-                        "param_id.name[] called with wrong number of arguments"
-                        .to_string()));
-                }
+                arg_chk!(args, 0, "param_id.name[]");
 
                 Ok(VVal::new_str(self.param.name()))
             },
             "default_value" => {
-                if args.len() != 0 {
-                    return Err(StackAction::panic_msg(
-                        "param_id.as_parts[] called with wrong number of arguments"
-                        .to_string()));
-                }
+                arg_chk!(args, 0, "param_id.as_parts[]");
 
                 Ok(VVal::Usr(Box::new(VValAtom::new(self.param.as_atom_def()))))
             },
@@ -1141,11 +1073,6 @@ impl GUIActionRecorder {
         self.actions.push(GUIAction::NewRow(parent, ret_ref, vv2class(class)));
         ret_ref
     }
-
-//    pub fn recycle_ref(&mut self, id: i64) {
-//        self.refs[id as usize] = GUIRef::None;
-//        self.free_refs.push(id);
-//    }
 
     pub fn new_ref(&mut self) -> i64 {
         if !self.free_refs.is_empty() {
@@ -1268,13 +1195,13 @@ impl GUIActionRecorder {
                 },
                 GUIAction::NewCvArray(parent, out, build_attribs) => {
                     if let Some(GUIRef::Ent(parent)) = self.refs.get(*parent as usize) {
-                        let binary    = build_attribs.v_k("binary").b();
+                        let binary    = build_attribs.v_k("binary");
                         let on_change = build_attribs.v_k("on_change");
                         let sr1       = self_ref.clone();
                         let wl_ctx1   = wl_ctx.clone();
 
                         self.refs[*out as usize] = GUIRef::Ent(
-                            CvArray::new(binary)
+                            CvArray::new(binary.b())
                                 .on_change(move |_, state, button, arr| {
                                     exec_cb(
                                         sr1.clone(), wl_ctx1.clone(),
@@ -1694,9 +1621,9 @@ fn setup_vizia_module(r: Rc<RefCell<GUIActionRecorder>>) -> wlambda::SymbolTable
                 r.borrow_mut().add(|id|
                     GUIAction::NewHexKnob(env.arg(0).i(), id, env.arg(1), env.arg(2)))))
         } else {
-            Err(StackAction::panic_msg(
-                "ui.new_hexknob[parent_id, hex_knob_model, build_attrs] not called with a $<UI::HexKnobModel>!"
-                .to_string()))
+            wl_panic!(
+                "ui.new_hexknob[parent_id, hex_knob_model, build_attrs] \
+                not called with a $<UI::HexKnobModel>!");
         }
     });
 
@@ -1843,7 +1770,10 @@ fn setup_hx_module(matrix: Arc<Mutex<Matrix>>) -> wlambda::SymbolTable {
     st.fun(
         "create_test_hex_grid_model", |env: &mut Env, argc: usize| {
             Ok(VVal::new_usr(VValHexGridModel {
-                model: Rc::new(RefCell::new(grid_models::TestGridModel::new())),
+                model:
+                    HexGridModelType::Test(
+                        Rc::new(RefCell::new(
+                            grid_models::TestGridModel::new()))),
             }))
         }, Some(0), Some(0), false);
 
