@@ -21,16 +21,6 @@ pub enum CvArrayMessage {
     SetArray(Arc<Mutex<Vec<f32>>>),
 }
 
-impl PartialEq for CvArrayMessage {
-    fn eq(&self, other: &CvArrayMessage) -> bool {
-        match self {
-            CvArrayMessage::SetArray(_) =>
-                if let CvArrayMessage::SetArray(_) = other { true }
-                else { false },
-        }
-    }
-}
-
 pub struct CvArray {
     cv_model:       Arc<Mutex<Vec<f32>>>,
     font:           Option<FontId>,

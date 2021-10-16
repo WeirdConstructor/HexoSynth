@@ -139,9 +139,10 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
             $data.widgets.params.build 0;
         },
         set_focus = {!(pos) = @;
-            $data.focus.pos  = pos;
-            $data.focus.cell = $data.m.get pos;
-            $data.focus.node_id = $data.focus.cell.node_id;
+            !focus = $data.focus;
+            focus.pos     = pos;
+            focus.cell    = $data.m.get pos;
+            focus.node_id = $data.focus.cell.node_id;
 
             $data.grid_model.set_focus_cell pos;
             vizia:redraw[];
@@ -211,7 +212,6 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
                 };
         },
         on_cell_drag = {!(pos, pos2, btn) = @;
-
             if btn == :left {
                 !cluster = hx:new_cluster[];
                 cluster.add_cluster_at matrix pos;
@@ -275,9 +275,6 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
 #    !pf = vizia:new_hexknob panel dmy;
 
     create_node_id_selector 0;
-
-
-
 
     !buf =
         hx:new_sample_buf_from

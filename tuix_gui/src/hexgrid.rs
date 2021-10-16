@@ -505,16 +505,6 @@ pub enum HexGridMessage {
     SetModel(Rc<RefCell<dyn HexGridModel>>),
 }
 
-impl PartialEq for HexGridMessage {
-    fn eq(&self, other: &HexGridMessage) -> bool {
-        match self {
-            HexGridMessage::SetModel(_) =>
-                if let HexGridMessage::SetModel(_) = other { true }
-                else { false },
-        }
-    }
-}
-
 impl Widget for HexGrid {
     type Ret  = Entity;
     type Data = ();

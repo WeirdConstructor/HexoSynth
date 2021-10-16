@@ -706,16 +706,6 @@ pub enum HexKnobMessage {
     SetModel(Rc<RefCell<dyn ParamModel>>),
 }
 
-impl PartialEq for HexKnobMessage {
-    fn eq(&self, other: &HexKnobMessage) -> bool {
-        match self {
-            HexKnobMessage::SetModel(_) =>
-                if let HexKnobMessage::SetModel(_) = other { true }
-                else { false },
-        }
-    }
-}
-
 impl HexKnob {
     pub fn cursor_zone(
         &self, state: &mut State, entity: Entity, x: f32, y: f32)

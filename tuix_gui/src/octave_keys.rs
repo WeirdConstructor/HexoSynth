@@ -21,16 +21,6 @@ pub enum OctaveKeysMessage {
     SetMask(i64),
 }
 
-impl PartialEq for OctaveKeysMessage {
-    fn eq(&self, other: &OctaveKeysMessage) -> bool {
-        match self {
-            OctaveKeysMessage::SetMask(_) =>
-                if let OctaveKeysMessage::SetMask(_) = other { true }
-                else { false },
-        }
-    }
-}
-
 pub struct OctaveKeys {
     key_mask:       i64,
     font:           Option<FontId>,
