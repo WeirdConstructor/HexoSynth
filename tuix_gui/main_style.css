@@ -81,14 +81,6 @@ textbox.hex-knob-popup {
 
 
 column {
-//    background-color: #FFFFFF;
-//    border-radius: 1px;
-//    border-color: #FFF;
-//    child-space: 2px;
-//    inner-shadow-color: #F0F;
-//    color: #000;
-//    row-between: 3px;
-    space: 0.01s;
 }
 
 textbox {
@@ -98,7 +90,6 @@ textbox {
 }
 
 hex-knob {
-    width: 30px;
 }
 
 pattern-editor {
@@ -276,11 +267,11 @@ octave-keys {
 }
 
 .node_params_label {
-    height:       0.2s;
+//    height:       0.2s;
     font-size:    10px;
     font:         "font_serif";
-    top:          2px;
-    bottom:       2px;
+//    top:          2px;
+//    bottom:       2px;
     text-align:   center;
 //    border-color: #000000;
 //    border-width: 1px;

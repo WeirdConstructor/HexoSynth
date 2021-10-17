@@ -43,7 +43,9 @@
                     vizia:new_hexknob
                         col param_model ${ class = "node_params_knob" };
                     vizia:new_label
-                        col param.name[] ${ class = "node_params_label" };
+#                        $data.rows.(cur_row)
+                        col
+                        param.name[] ${ class = "node_params_label" };
 
                     std:displayln "GOT KNOB PARAM!" param;
                 };
