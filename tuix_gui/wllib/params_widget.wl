@@ -10,7 +10,7 @@
         !self = $&& ${
             _proto = $self,
             _data = ${
-                matrix       = matrix,
+                m            = matrix,
                 node_id      = $n,
                 root         = $n,
                 rows         = $[],
@@ -20,13 +20,33 @@
     },
     build = {!(parent) = @;
         $data.root = vizia:new_col parent ${ class = "node_params" };
-        iter i 0 => 5 {
+        iter i 0 => 3 {
             $data.rows.(i) = vizia:new_row $data.root;
         };
     },
     update = {
         iter row $data.rows {
             vizia:remove_all_childs row;
+        };
+
+        !cur_row = 0;
+        !num_params = 0;
+        iter param $data.params.inputs {
+            std:displayln param;
+            !atom = param.default_value[];
+
+            match atom.type_str[]
+                :param => {
+                    !param_model = $data.m.create_hex_knob_model param;
+
+                    !col = vizia:new_col $data.rows.(cur_row);
+                    vizia:new_hexknob
+                        col param_model ${ class = "node_params_knob" };
+                    vizia:new_label
+                        col param.name[] ${ class = "node_params_label" };
+
+                    std:displayln "GOT KNOB PARAM!" param;
+                };
         };
 
         std:displayln "PARAMS:" $data.params;

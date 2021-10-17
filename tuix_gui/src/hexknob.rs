@@ -1179,10 +1179,10 @@ impl Widget for HexKnob {
                 let val_s = std::str::from_utf8(&self.lbl_buf[0..len]).unwrap();
                 // + 2.0 for the marker cube, to space it from the minus sign.
                 self.knob.draw_name(p, xo + 2.0, yo, &val_s);
-            } else {
-                let len = model.fmt_name(&mut self.lbl_buf[..]);
-                let val_s = std::str::from_utf8(&self.lbl_buf[0..len]).unwrap();
-                self.knob.draw_name(p, xo, yo, &val_s);
+//            } else {
+//                let len = model.fmt_name(&mut self.lbl_buf[..]);
+//                let val_s = std::str::from_utf8(&self.lbl_buf[0..len]).unwrap();
+//                self.knob.draw_name(p, xo, yo, &val_s);
             }
         }
     }

@@ -44,6 +44,7 @@ use std::sync::{Arc, Mutex};
 #[derive(Debug)]
 enum GUIAction {
     NewElem(i64, i64, VVal),
+    NewLabel(i64, i64, String, VVal),
     NewRow(i64, i64, Option<String>),
     NewCol(i64, i64, VVal),
     NewHexKnob(i64, i64, VVal, VVal),
@@ -1013,7 +1014,7 @@ impl VValUserData for VValParamId {
                 Ok(VVal::new_str(self.param.name()))
             },
             "default_value" => {
-                arg_chk!(args, 0, "param_id.as_parts[]");
+                arg_chk!(args, 0, "param_id.default_value[]");
 
                 Ok(VVal::Usr(Box::new(VValAtom::new(self.param.as_atom_def()))))
             },
@@ -1127,6 +1128,14 @@ impl GUIActionRecorder {
                     if let Some(GUIRef::Ent(parent)) = self.refs.get(*parent as usize) {
                         self.refs[*out as usize] = GUIRef::Ent(
                             Column::new().build(
+                                state, *parent,
+                                |builder| vvbuilder(builder, build_attribs)));
+                    }
+                },
+                GUIAction::NewLabel(parent, out, text, build_attribs) => {
+                    if let Some(GUIRef::Ent(parent)) = self.refs.get(*parent as usize) {
+                        self.refs[*out as usize] = GUIRef::Ent(
+                            Label::new(&text).build(
                                 state, *parent,
                                 |builder| vvbuilder(builder, build_attribs)));
                     }
@@ -1613,6 +1622,11 @@ fn setup_vizia_module(r: Rc<RefCell<GUIActionRecorder>>) -> wlambda::SymbolTable
     set_modfun!(st, r, new_elem, Some(1), Some(2), env, _argc, {
         Ok(VVal::Int(r.borrow_mut().add(|id|
             GUIAction::NewElem(env.arg(0).i(), id, env.arg(1)))))
+    });
+
+    set_modfun!(st, r, new_label, Some(2), Some(3), env, _argc, {
+        Ok(VVal::Int(r.borrow_mut().add(|id|
+            GUIAction::NewLabel(env.arg(0).i(), id, env.arg(1).s_raw(), env.arg(2)))))
     });
 
     set_modfun!(st, r, new_hexknob, Some(2), Some(3), env, _argc, {

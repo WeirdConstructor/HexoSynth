@@ -31,6 +31,13 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
     text
 };
 
+!load_theme = {
+    vizia:add_theme
+        ~ replace_colors_in_text
+        ~ wpp:run_macro_lang[${}, std:io:file:read_text "main_style.css"];
+};
+
+
 !CUR_NODE_TYPE = :sin => 0;
 
 !create_node_id_selector = {!(parent) = @;
@@ -135,8 +142,18 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
             $data.widgets.params =
                 wid_params:ParamsWidget.new[matrix];
         },
-        build_main_gui = {
+        build_main_gui = {!(grid) = @;
+            wid_settings:init_global_settings_popup[];
             $data.widgets.params.build 0;
+
+            vizia:emit_to 0 grid $p(:hexgrid:set_model, $data.grid_model);
+
+            create_node_id_selector 0;
+
+            vizia:new_button 0 "reload" {
+                load_theme[];
+                vizia:redraw[];
+            } ${ width = 90 => :px, height = 20 => :px };
         },
         set_focus = {!(pos) = @;
             !focus = $data.focus;
@@ -165,9 +182,7 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
 #!g_mask = 0b11001;
 
 !:global init = {
-    vizia:add_theme
-        ~ replace_colors_in_text
-        ~ wpp:run_macro_lang[${}, std:io:file:read_text "main_style.css"];
+    load_theme[];
 
     !matrix = hx:get_main_matrix_handle[];
     STATE.init matrix;
@@ -229,25 +244,22 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
         },
     };
 
-    STATE.build_main_gui[];
+    STATE.build_main_gui[grid];
 
-    vizia:emit_to 0 grid $p(:hexgrid:set_model, STATE._data.grid_model);
+#    !dummy_settings = $[
+#        0 => "Off",
+#        1 => "On",
+#        2 => "LowPass",
+#        3 => "HighPass",
+#    ];
 
-    !panel = vizia:new_elem 0 ${ class = "knob_panel" };
 
-    !param_id = node_id:inp_param :sin => 0 "freq";
+#    !panel = vizia:new_elem 0 ${ class = "knob_panel" };
+
+#    !param_id = node_id:inp_param :sin => 0 "freq";
 #    !dmy = matrix.create_hex_knob_dummy_model[];
-    std:displayln :DMY: param_id;
-    !dmy = matrix.create_hex_knob_model[param_id];
-
-    wid_settings:init_global_settings_popup[];
-
-    !dummy_settings = $[
-        0 => "Off",
-        1 => "On",
-        2 => "LowPass",
-        3 => "HighPass",
-    ];
+#    std:displayln :DMY: param_id;
+#    !dmy = matrix.create_hex_knob_model[param_id];
 
 #    !my_wid = wid_settings:SettingsWidget.new dummy_settings;
 #    .TEST_WID = my_wid;
@@ -266,29 +278,27 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
 #
 #    .oct_keys = keys;
 
-    !cva = vizia:new_cv_array panel ${
-        on_change = {!(array) = @;
-            std:displayln array;
-        }
-    };
-
+#    !cva = vizia:new_cv_array panel ${
+#        on_change = {!(array) = @;
+#            std:displayln array;
+#        }
+#    };
+#
 #    !pf = vizia:new_hexknob panel dmy;
 
-    create_node_id_selector 0;
-
-    !buf =
-        hx:new_sample_buf_from
-            $[0.1, 0.2, 0.3, 0.4];
-
-    std:displayln "BUF:" buf;
-
-    std:displayln "0:" buf.0;
-    std:displayln "1:" buf.1;
-    std:displayln "2:" buf.2;
-
-    buf.1 = 23.42;
-    std:displayln "1:" buf.1;
-
+#    !buf =
+#        hx:new_sample_buf_from
+#            $[0.1, 0.2, 0.3, 0.4];
+#
+#    std:displayln "BUF:" buf;
+#
+#    std:displayln "0:" buf.0;
+#    std:displayln "1:" buf.1;
+#    std:displayln "2:" buf.2;
+#
+#    buf.1 = 23.42;
+#    std:displayln "1:" buf.1;
+#
 
 
 #    !col = ui.new_col 0 ${ position = "self" };
@@ -352,13 +362,14 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
     iter change _ {
         match change
             $p(:matrix_param, param_id) => {
-                std:displayln "PARAM:" $\.param_id.as_parts[];
-                std:displayln "PARAM:" $\.param_id.name[];
-                std:displayln "PARAM:" $\.param_id.default_value[];
-                std:displayln ~ (hx:to_atom 10);
-                std:displayln ~ (hx:to_atom 10.3);
-                std:displayln ~ (hx:to_atom "foobar");
-                std:displayln ~ (hx:to_atom 0 => 10).micro_sample[];
+                vizia:redraw[];
+#                std:displayln "PARAM:" $\.param_id.as_parts[];
+#                std:displayln "PARAM:" $\.param_id.name[];
+#                std:displayln "PARAM:" $\.param_id.default_value[];
+#                std:displayln ~ (hx:to_atom 10);
+#                std:displayln ~ (hx:to_atom 10.3);
+#                std:displayln ~ (hx:to_atom "foobar");
+#                std:displayln ~ (hx:to_atom 0 => 10).micro_sample[];
             }
             {
                 std:displayln " * matrix change: " change;

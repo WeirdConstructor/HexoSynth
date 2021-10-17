@@ -134,9 +134,7 @@ tab_manager.ui_category_tab_view > tab_container {
 
 
 tab_container {
-    border-width: 2px;
-    border-color: UI_ACCENT_CLR;
-    background-color: UI_BG_CLR;
+    $PANEL()
 }
 
 tab_bar>.tabx {
@@ -206,6 +204,12 @@ hex-grid {
     outer-shadow:        0px 0px 14px UI_PRIM_CLR;
 }}
 
+!PANEL() {{
+    border-width: 2px;
+    border-color: UI_ACCENT_CLR;
+    background-color: UI_BG_CLR;
+}}
+
 !MARGIN(WIDTH) {{
     top:         $WIDTH;
     bottom:      $WIDTH;
@@ -262,8 +266,34 @@ octave-keys {
 .node_params {
     position:   self-directed;
     bottom:     1s;
-    height:     200px;
-    width:      200px;
+    left:       1s;
+    height:     500px;
+    width:      300px;
+    right:      0px;
+    top:        0px;
 
-    background-color: #000000;
+    $PANEL()
+}
+
+.node_params_label {
+    height:       0.2s;
+    font-size:    10px;
+    font:         "font_serif";
+    top:          2px;
+    bottom:       2px;
+    text-align:   center;
+//    border-color: #000000;
+//    border-width: 1px;
+
+    left: 1px;
+    right: 1px;
+    child-space:  1s;
+
+    background-color: UI_LBL_BG_CLR;
+    color:            UI_PRIM_CLR;
+}
+
+.node_params_knob {
+    width:  1s;
+    height: 1s;
 }
