@@ -38,9 +38,7 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
 };
 
 
-!CUR_NODE_TYPE = :sin => 0;
-
-!create_node_id_selector = {!(parent) = @;
+!create_node_id_selector = {!(parent, select_node_cb) = @;
     !tabs = $[];
 
     !cat_list = node_id:ui_category_list[];
@@ -81,7 +79,7 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
                     tc
                     node_id:label[nid]
                     {||
-                        .CUR_NODE_TYPE = mnid;
+                        select_node_cb mnid;
 
                         std:displayln "pbyidx" ~ node_id:param_by_idx mnid 0;
                         std:displayln "inp_p"  ~ node_id:inp_param mnid "inp";
@@ -148,7 +146,8 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
 
             vizia:emit_to 0 grid $p(:hexgrid:set_model, $data.grid_model);
 
-            create_node_id_selector 0;
+            !self = $w& $self;
+            create_node_id_selector 0 { self.set_place_node_type _ };
 
             vizia:new_button 0 "reload" {
                 load_theme[];
@@ -239,8 +238,6 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
                     _? :err ~ cluster.place matrix;
                 };
             };
-
-            std:displayln "DRAG CELL:" pos "=>" pos2 btn;
         },
     };
 
