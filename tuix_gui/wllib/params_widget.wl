@@ -20,7 +20,7 @@
     },
     build = {!(parent) = @;
         $data.root = vizia:new_col parent ${ class = "node_params" };
-        iter i 0 => 3 {
+        iter i 0 => 4 {
             $data.rows.(i) = vizia:new_row $data.root;
         };
     },

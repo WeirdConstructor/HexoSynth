@@ -1022,24 +1022,24 @@ impl Widget for HexKnob {
             (pos.y + pos.h / 2.0).round()
         );
 
+//        let yo = yo - (UI_ELEM_TXT_H + UI_BG_KNOB_STROKE) * 0.5; // move the whole knob a bit upwards
+
         let size = pos.w.min(pos.h);
 
         let mut no_value_label = false;
-        let mut no_name_label  = false;
 
-        let mut factor = size / (34.0 * 2.0);
+        let mut factor = size / ((34.0 + (UI_ELEM_TXT_H) * 0.4) * 2.0);
         let mut radius_factor = factor;
         if factor < 1.0 {
-            no_value_label = true;
-            no_name_label = true;
+            no_value_label = false;
             radius_factor = factor * 0.9;
             factor = 0.9 * factor + (1.0 - factor) * 0.5;
         }
 
-        // Standard size horizonally is 30.0 + 48.0
-        if (yo + (48.0 * factor)) > (pos.y + pos.h) {
-            no_name_label = true;
-        }
+        no_value_label = factor < 0.8;
+
+        let yo = yo - (UI_ELEM_TXT_H * factor).round() * 0.5;
+        let yo = yo.floor();
 
         if size != self.size {
             self.size = size;
@@ -1061,14 +1061,12 @@ impl Widget for HexKnob {
             UI_BG_KNOB_STROKE_CLR,
             None,
             1.0,
-            no_name_label);
+            false);
 
-        if !no_name_label {
-            let dc1 = self.knob.get_decor_rect1();
-            p.rect_fill(
-                UI_BG_KNOB_STROKE_CLR,
-                xo + dc1.0, yo + dc1.1, dc1.2, dc1.3);
-        }
+        let dc1 = self.knob.get_decor_rect1();
+        p.rect_fill(
+            UI_BG_KNOB_STROKE_CLR,
+            xo + dc1.0, yo + dc1.1, dc1.2, dc1.3);
 
         if !no_value_label {
             let valrect = self.knob.get_value_rect(modamt.is_some());
@@ -1077,17 +1075,15 @@ impl Widget for HexKnob {
                 valrect.0 + xo, valrect.1 + yo, valrect.2, valrect.3);
         }
 
-        if !no_name_label {
-            let lblrect = self.knob.get_label_rect();
-            p.rect_fill(
-                UI_BG_KNOB_STROKE_CLR,
-                lblrect.0 + xo, lblrect.1 + yo, lblrect.2, lblrect.3);
+        let lblrect = self.knob.get_label_rect();
+        p.rect_fill(
+            UI_BG_KNOB_STROKE_CLR,
+            lblrect.0 + xo, lblrect.1 + yo, lblrect.2, lblrect.3);
 
-            let r = self.knob.get_fine_adjustment_mark();
-            p.rect_fill(
-                UI_BG_KNOB_STROKE_CLR,
-                xo + r.0, yo + r.1, r.2, r.3);
-        }
+        let r = self.knob.get_fine_adjustment_mark();
+        p.rect_fill(
+            UI_BG_KNOB_STROKE_CLR,
+            xo + r.0, yo + r.1, r.2, r.3);
 
         let value = model.get_ui_range().clamp(0.0, 1.0);
 
@@ -1125,7 +1121,7 @@ impl Widget for HexKnob {
                     0);
             },
             HLStyle::Hover(fine) => {
-                if !no_name_label && fine_hover {
+                if fine_hover {
                     hover_fine_adj = true;
 
                     let r = self.knob.get_fine_adjustment_mark();
@@ -1173,18 +1169,16 @@ impl Widget for HexKnob {
             }
         }
 
-        if !no_name_label {
-            if hover_fine_adj {
-                let len = model.fmt_norm(&mut self.lbl_buf[..]);
-                let val_s = std::str::from_utf8(&self.lbl_buf[0..len]).unwrap();
-                // + 2.0 for the marker cube, to space it from the minus sign.
-                self.knob.draw_name(p, xo + 2.0, yo, &val_s);
+//        if hover_fine_adj {
+            let len = model.fmt_norm(&mut self.lbl_buf[..]);
+            let val_s = std::str::from_utf8(&self.lbl_buf[0..len]).unwrap();
+            // + 2.0 for the marker cube, to space it from the minus sign.
+            self.knob.draw_name(p, xo + 2.0, yo, &val_s);
 //            } else {
 //                let len = model.fmt_name(&mut self.lbl_buf[..]);
 //                let val_s = std::str::from_utf8(&self.lbl_buf[0..len]).unwrap();
 //                self.knob.draw_name(p, xo, yo, &val_s);
-            }
-        }
+//        }
     }
 }
 
