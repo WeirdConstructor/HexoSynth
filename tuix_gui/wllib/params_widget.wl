@@ -30,7 +30,7 @@
         };
 
         !cur_row = 0;
-        !num_params = 0;
+        !cur_row_count = 0;
         iter param $data.params.inputs {
             std:displayln param;
             !atom = param.default_value[];
@@ -39,13 +39,17 @@
                 :param => {
                     !param_model = $data.m.create_hex_knob_model param;
 
+                    .cur_row_count += 1;
+                    if cur_row_count > 3 {
+                        .cur_row      += 1;
+                        .cur_row_count = 1;
+                    };
+
                     !col = vizia:new_col $data.rows.(cur_row);
                     vizia:new_hexknob
                         col param_model ${ class = "node_params_knob" };
                     vizia:new_label
-#                        $data.rows.(cur_row)
-                        col
-                        param.name[] ${ class = "node_params_label" };
+                        col param.name[] ${ class = "node_params_label" };
 
                     std:displayln "GOT KNOB PARAM!" param;
                 };
