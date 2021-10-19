@@ -186,6 +186,8 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
     !matrix = hx:get_main_matrix_handle[];
     STATE.init matrix;
 
+    matrix.set_param $p(:amp => 0, "att") 0.0;
+
     !grid = vizia:new_hexgrid 0 ${
         position = "self",
         on_click = {!(pos, btn) = @;

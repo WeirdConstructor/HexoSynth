@@ -1025,10 +1025,17 @@ impl Widget for HexKnob {
 //        let yo = yo - (UI_ELEM_TXT_H + UI_BG_KNOB_STROKE) * 0.5; // move the whole knob a bit upwards
 
         let size = pos.w.min(pos.h);
+        let w_factor = pos.w / (32.0 * 2.0);
+        let v_factor = pos.h / ((34.0 + (UI_ELEM_TXT_H) * 0.4) * 2.0);
+
+        let (size, mut factor) =
+            if w_factor < v_factor {
+                (pos.w, w_factor)
+            } else {
+                (pos.h, v_factor)
+            };
 
         let mut no_value_label = false;
-
-        let mut factor = size / ((34.0 + (UI_ELEM_TXT_H) * 0.4) * 2.0);
         let mut radius_factor = factor;
         if factor < 1.0 {
             no_value_label = false;

@@ -447,6 +447,19 @@ impl vval::VValUserData for VValMatrix {
                         Ok(VVal::None)
                     }
                 },
+                "set_param" => {
+                    arg_chk!(args, 2, "matrix.set[param_id, atom or value]");
+
+                    let pid = vv2param_id(env.arg(0));
+                    let at  = vv2atom(env.arg(1));
+
+                    if let Some(pid) = pid {
+                        m.set_param(pid, at);
+                        Ok(VVal::Bol(true))
+                    } else {
+                        Ok(VVal::None)
+                    }
+                },
                 "restore_snapshot" => {
                     arg_chk!(args, 0, "matrix.restore_snapshot[]");
                     m.restore_matrix();
@@ -841,8 +854,30 @@ impl vval::VValUserData for VValAtom {
     fn clone_ud(&self) -> Box<dyn vval::VValUserData> { Box::new(self.clone()) }
 }
 
-fn vv2atom(mut v: VVal) -> Option<SAtom> {
-    v.with_usr_ref(|model: &mut VValAtom| model.atom.clone())
+fn vv2atom(mut v: VVal) -> SAtom {
+    if let Some(at) =
+        v.with_usr_ref(|model: &mut VValAtom| model.atom.clone())
+    {
+        return at;
+    }
+
+    match v {
+        VVal::Int(i) => SAtom::setting(i),
+        VVal::Flt(f) => SAtom::param(f as f32),
+        VVal::Sym(_) | VVal::Str(_) | VVal::Byt(_)
+            => v.with_s_ref(|s| SAtom::str(s)),
+        VVal::Pair(_) if v.v_s(0) == "audio_sample"
+            => { v.v_with_s_ref(1, |s| SAtom::audio_unloaded(s)) },
+        _ => {
+            let mut ms = vec![];
+            v.with_iter(|iter| {
+                for (v, _) in iter {
+                    ms.push(v.f() as f32);
+                }
+            });
+            SAtom::MicroSample(ms)
+        },
+    }
 }
 
 #[derive(Clone)]
@@ -1027,7 +1062,20 @@ impl VValUserData for VValParamId {
 }
 
 fn vv2param_id(mut v: VVal) -> Option<ParamId> {
-    v.with_usr_ref(|s: &mut VValParamId| s.param.clone())
+    if let Some(pid) =
+        v.with_usr_ref(|s: &mut VValParamId| s.param.clone())
+    {
+        return Some(pid);
+    }
+
+    let nid = vv2node_id(&v.v_(0));
+    let p = v.v_(1);
+
+    if p.is_int() {
+        nid.param_by_idx(p.i() as usize)
+    } else {
+        p.with_s_ref(|s| nid.inp_param(s))
+    }
 }
 
 fn btn2vval(btn: tuix::MouseButton) -> VVal {
@@ -1741,26 +1789,7 @@ fn setup_hx_module(matrix: Arc<Mutex<Matrix>>) -> wlambda::SymbolTable {
 
     st.fun(
         "to_atom", move |env: &mut Env, argc: usize| {
-            let v = env.arg(0);
-            let atom =
-                match v {
-                    VVal::Int(i) => SAtom::setting(i),
-                    VVal::Flt(f) => SAtom::param(f as f32),
-                    VVal::Sym(_) | VVal::Str(_) | VVal::Byt(_)
-                        => v.with_s_ref(|s| SAtom::str(s)),
-                    VVal::Pair(_) if v.v_s(0) == "audio_sample"
-                        => { v.v_with_s_ref(1, |s| SAtom::audio_unloaded(s)) },
-                    _ => {
-                        let mut ms = vec![];
-                        v.with_iter(|iter| {
-                            for (v, _) in iter {
-                                ms.push(v.f() as f32);
-                            }
-                        });
-                        SAtom::MicroSample(ms)
-                    },
-                };
-            Ok(VVal::new_usr(VValAtom::new(atom)))
+            Ok(VVal::new_usr(VValAtom::new(vv2atom(env.arg(0)))))
         }, Some(1), Some(1), false);
 
     st.fun(

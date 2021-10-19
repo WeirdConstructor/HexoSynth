@@ -40,7 +40,7 @@
                     !param_model = $data.m.create_hex_knob_model param;
 
                     .cur_row_count += 1;
-                    if cur_row_count > 3 {
+                    if cur_row_count > 4 {
                         .cur_row      += 1;
                         .cur_row_count = 1;
                     };
@@ -50,8 +50,6 @@
                         col param_model ${ class = "node_params_knob" };
                     vizia:new_label
                         col param.name[] ${ class = "node_params_label" };
-
-                    std:displayln "GOT KNOB PARAM!" param;
                 };
         };
 
