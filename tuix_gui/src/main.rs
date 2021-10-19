@@ -448,7 +448,7 @@ impl vval::VValUserData for VValMatrix {
                     }
                 },
                 "set_param" => {
-                    arg_chk!(args, 2, "matrix.set[param_id, atom or value]");
+                    arg_chk!(args, 2, "matrix.set_param[param_id, atom or value]");
 
                     let pid = vv2param_id(env.arg(0));
                     let at  = vv2atom(env.arg(1));
@@ -456,6 +456,56 @@ impl vval::VValUserData for VValMatrix {
                     if let Some(pid) = pid {
                         m.set_param(pid, at);
                         Ok(VVal::Bol(true))
+                    } else {
+                        Ok(VVal::None)
+                    }
+                },
+                "get_param" => {
+                    arg_chk!(args, 1, "matrix.get_param[param_id]");
+
+                    let pid = vv2param_id(env.arg(0));
+
+                    if let Some(pid) = pid {
+                        if let Some(at) = m.get_param(&pid) {
+                            Ok(VVal::new_usr(VValAtom::new(at)))
+                        } else {
+                            Ok(VVal::None)
+                        }
+                    } else {
+                        Ok(VVal::None)
+                    }
+                },
+                "get_param_modamt" => {
+                    arg_chk!(args, 1, "matrix.get_param_modamt[param_id]");
+
+                    let pid = vv2param_id(env.arg(0));
+
+                    if let Some(pid) = pid {
+                        if let Some(ma) = m.get_param_modamt(&pid) {
+                            Ok(VVal::opt(VVal::Flt(ma as f64)))
+                        } else {
+                            Ok(VVal::opt_none())
+                        }
+                    } else {
+                        Ok(VVal::None)
+                    }
+                },
+                "set_param_modamt" => {
+                    arg_chk!(args, 2,
+                        "matrix.set_param_modamt[param_id, none or float]");
+
+                    let pid = vv2param_id(env.arg(0));
+                    let ma = env.arg(1);
+
+                    if let Some(pid) = pid {
+                        let ma =
+                            if ma.is_some() { Some(ma.f() as f32) }
+                            else { None };
+
+                        match m.set_param_modamt(pid, ma) {
+                            Ok(_)  => Ok(VVal::Bol(true)),
+                            Err(e) => Ok(matrix_error2vval_err(e)),
+                        }
                     } else {
                         Ok(VVal::None)
                     }
