@@ -262,6 +262,7 @@ octave-keys {
     width:      300px;
     right:      0px;
     top:        0px;
+    z-index:    10;
 
     $PANEL()
 }

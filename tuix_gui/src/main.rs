@@ -17,6 +17,7 @@ mod cluster;
 mod matrix_param_model;
 mod octave_keys;
 mod cv_array;
+mod connector;
 
 mod jack;
 mod synth;
@@ -55,6 +56,7 @@ enum GUIAction {
     NewButton(i64, i64, String, VVal, VVal),
     NewOctaveKeys(i64, i64, VVal),
     NewCvArray(i64, i64, VVal),
+    NewConnector(i64, i64, VVal),
     EmitTo(i64, i64, VVal),
     SetText(i64, String),
     AddTheme(String),
@@ -1319,6 +1321,24 @@ impl GUIActionRecorder {
                                     |builder| vvbuilder(builder, build_attribs)));
                     }
                 },
+                GUIAction::NewConnector(parent, out, build_attribs) => {
+                    if let Some(GUIRef::Ent(parent)) = self.refs.get(*parent as usize) {
+                        let on_change = build_attribs.v_k("on_change");
+                        let sr1       = self_ref.clone();
+                        let wl_ctx1   = wl_ctx.clone();
+
+                        self.refs[*out as usize] = GUIRef::Ent(
+                            Connector::new(binary.b())
+                                .on_change(move |_, state, button, arr| {
+                                    exec_cb(
+                                        sr1.clone(), wl_ctx1.clone(),
+                                        state, button, on_change.clone(),
+                                        &[sample_buf2vv(arr.clone())]);
+                                })
+                                .build(state, *parent,
+                                    |builder| vvbuilder(builder, build_attribs)));
+                    }
+                },
                 GUIAction::NewPatternEditor(parent, out, class) => {
                     if let Some(GUIRef::Ent(parent)) = self.refs.get(*parent as usize) {
                         self.refs[*out as usize] = GUIRef::Ent(
@@ -1749,6 +1769,12 @@ fn setup_vizia_module(r: Rc<RefCell<GUIActionRecorder>>) -> wlambda::SymbolTable
         Ok(VVal::Int(
             r.borrow_mut().add(|id|
                 GUIAction::NewCvArray(env.arg(0).i(), id, env.arg(1)))))
+    });
+
+    set_modfun!(st, r, new_connector, Some(1), Some(2), env, _argc, {
+        Ok(VVal::Int(
+            r.borrow_mut().add(|id|
+                GUIAction::NewConnector(env.arg(0).i(), id, env.arg(1)))))
     });
 
     set_modfun!(st, r, new_hexgrid, Some(1), Some(2), env, _argc, {
