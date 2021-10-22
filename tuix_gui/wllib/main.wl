@@ -149,6 +149,14 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
             !self = $w& $self;
             create_node_id_selector 0 { self.set_place_node_type _ };
 
+            vizia:new_connector 0 ${
+                width    = 120 => :px,
+                height   = 200 => :px,
+                position = :self,
+                left     = 200,
+                top      = 200,
+            };
+
             vizia:new_button 0 "reload" {
                 load_theme[];
                 vizia:redraw[];

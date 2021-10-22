@@ -18,13 +18,13 @@ pub const UI_CON_BG              : (f32, f32, f32) = UI_LBL_BG_CLR;
 #[derive(Clone)]
 pub enum ConMessage {
     SetConnection(usize, usize),
-    SetItems(Box<(Vec<String>, Vec<String>)>),
+    SetItems(Box<(Vec<(String, bool)>, Vec<(String, bool)>)>),
 }
 
 pub struct Connector {
     font:           Option<FontId>,
     font_mono:      Option<FontId>,
-    items:          Box<(Vec<String>, Vec<String>)>,
+    items:          Box<(Vec<(String, bool)>, Vec<(String, bool)>)>,
     con:            Option<(usize, usize)>,
 
     active_areas:   Vec<Rect>,
@@ -34,6 +34,7 @@ pub struct Connector {
     drag:           bool,
 
     on_change:      Option<Box<dyn Fn(&mut Self, &mut State, Entity, (usize, usize))>>,
+    // TODO: on_hover_port!
 }
 
 impl Connector {
@@ -56,7 +57,7 @@ impl Connector {
 
     pub fn on_change<F>(mut self, on_change: F) -> Self
     where
-        F: 'static + Fn(&mut Self, &mut State, Entity, Arc<Mutex<Vec<f32>>>),
+        F: 'static + Fn(&mut Self, &mut State, Entity, (usize, usize)),
     {
         self.on_change = Some(Box::new(on_change));
 
@@ -82,13 +83,13 @@ impl Widget for Connector {
         if let Some(grid_msg) = event.message.downcast::<ConMessage>() {
             match grid_msg {
                 ConMessage::SetConnection(a, b) => {
-                    self.con = Some((a, b));
+                    self.con = Some((*a, *b));
                     state.insert_event(
                         Event::new(WindowEvent::Redraw)
                         .target(Entity::root()));
                 },
                 ConMessage::SetItems(items) => {
-                    self.items = items;
+                    self.items = items.clone();
                     state.insert_event(
                         Event::new(WindowEvent::Redraw)
                         .target(Entity::root()));
@@ -102,11 +103,6 @@ impl Widget for Connector {
                     let (x, y) = (state.mouse.cursorx, state.mouse.cursory);
                     self.drag = true;
 
-                    if let Some(idx) = self.pos2idx(state, entity, x, y) {
-                        let v = self.pos2value(state, entity, x, y);
-                        self.set(state, entity, idx, v);
-                    }
-
                     state.capture(entity);
                     state.insert_event(
                         Event::new(WindowEvent::Redraw)
@@ -116,35 +112,30 @@ impl Widget for Connector {
                     let (x, y) = (state.mouse.cursorx, state.mouse.cursory);
                     self.drag = false;
 
-                    if let Some(idx) = self.pos2idx(state, entity, x, y) {
-                        let v = self.pos2value(state, entity, x, y);
-                        self.set(state, entity, idx, v);
-                    }
-
                     state.release(entity);
                     state.insert_event(
                         Event::new(WindowEvent::Redraw)
                             .target(Entity::root()));
                 },
                 WindowEvent::MouseMove(x, y) => {
-                    let old_hover = self.hover_idx;
-                    self.hover_idx = self.pos2idx(state, entity, *x, *y);
+//                    let old_hover = self.hover_idx;
+//                    self.hover_idx = self.pos2idx(state, entity, *x, *y);
 
-                    if let Some(idx) = self.hover_idx {
-                        if self.drag {
-                            let v = self.pos2value(state, entity, *x, *y);
-                            self.set(state, entity, idx, v);
-                            state.insert_event(
-                                Event::new(WindowEvent::Redraw)
-                                    .target(Entity::root()));
-                        }
-                    }
+//                    if let Some(idx) = self.hover_idx {
+//                        if self.drag {
+//                            let v = self.pos2value(state, entity, *x, *y);
+//                            self.set(state, entity, idx, v);
+//                            state.insert_event(
+//                                Event::new(WindowEvent::Redraw)
+//                                    .target(Entity::root()));
+//                        }
+//                    }
 
-                    if old_hover != self.hover_idx {
-                        state.insert_event(
-                            Event::new(WindowEvent::Redraw)
-                                .target(Entity::root()));
-                    }
+//                    if old_hover != self.hover_idx {
+//                        state.insert_event(
+//                            Event::new(WindowEvent::Redraw)
+//                                .target(Entity::root()));
+//                    }
                 },
                 _ => {},
             }
@@ -166,6 +157,9 @@ impl Widget for Connector {
 
         let pos : Rect = bounds.into();
         let pos = pos.floor();
+
+
+        let row_h = self.items.0.len().max(self.items.1.len());
 
 //        let highlight = ui.hl_style_for(id, None);
 //        let border_color =

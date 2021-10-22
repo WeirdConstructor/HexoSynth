@@ -32,6 +32,7 @@ use pattern_editor::PatternEditor;
 use octave_keys::OctaveKeys;
 use cv_array::CvArray;
 use hexo_consts::*;
+use connector::Connector;
 
 use hexodsp::{Matrix, NodeId, NodeInfo, ParamId, Cell, CellDir};
 use hexodsp::matrix::{MatrixObserver, MatrixError};
@@ -148,6 +149,10 @@ fn vv2class(class: VVal) -> Option<String> {
 }
 
 fn vv2units(v: &VVal) -> Units {
+    if v.is_int() {
+        return Units::Pixels(v.i() as f32);
+    }
+
     let amt = v.v_f(0) as f32;
     v.v_with_s_ref(1, |s|
         match s {
@@ -158,7 +163,9 @@ fn vv2units(v: &VVal) -> Units {
         })
 }
 
-fn vvbuilder<'a, T>(mut builder: Builder<'a, T>, build_attribs: &VVal) -> Builder<'a, T> {
+fn vvbuilder<'a, T>(mut builder: Builder<'a, T>, build_attribs: &VVal)
+    -> Builder<'a, T>
+{
     let mut attribs = vec![];
 
     println!("VVB: {}", build_attribs.s());
@@ -192,6 +199,10 @@ fn vvbuilder<'a, T>(mut builder: Builder<'a, T>, build_attribs: &VVal) -> Builde
                 "z_order"     => { builder.set_z_order(v.i() as i32) },
                 "width"       => { builder.set_width(vv2units(&v)) },
                 "height"      => { builder.set_height(vv2units(&v)) },
+                "left"        => { builder.set_left(vv2units(&v)) },
+                "top"         => { builder.set_top(vv2units(&v)) },
+                "right"       => { builder.set_right(vv2units(&v)) },
+                "bottom"      => { builder.set_bottom(vv2units(&v)) },
                 "grid_rows" => {
                     let mut rows = vec![];
                     v.for_each(|v| { rows.push(vv2units(v)); });
@@ -1328,12 +1339,15 @@ impl GUIActionRecorder {
                         let wl_ctx1   = wl_ctx.clone();
 
                         self.refs[*out as usize] = GUIRef::Ent(
-                            Connector::new(binary.b())
-                                .on_change(move |_, state, button, arr| {
+                            Connector::new()
+                                .on_change(move |_, state, button, con| {
                                     exec_cb(
                                         sr1.clone(), wl_ctx1.clone(),
                                         state, button, on_change.clone(),
-                                        &[sample_buf2vv(arr.clone())]);
+                                        &[
+                                            VVal::Int(con.0 as i64),
+                                            VVal::Int(con.1 as i64)
+                                        ]);
                                 })
                                 .build(state, *parent,
                                     |builder| vvbuilder(builder, build_attribs)));
