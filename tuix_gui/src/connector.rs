@@ -114,6 +114,40 @@ impl Connector {
             None
         }
     }
+
+    fn get_current_con(&self) -> Option<(bool, (usize, usize))> {
+        let (a_inp, a) =
+            if let Some((inputs, row)) = self.drag_src_idx {
+                (inputs, row)
+            } else {
+                return self.con.map(|con| (false, con));
+            };
+
+        let (b_inp, b) =
+            if let Some((inputs, row)) = self.hover_idx {
+                (inputs, row)
+            } else {
+                return self.con.map(|con| (false, con));
+            };
+
+        if a_inp == b_inp {
+            return self.con.map(|con| (false, con));
+        }
+
+        let (a, b) =
+            if b_inp { (a, b) }
+            else     { (b, a) };
+
+        if !self.items.0.get(a).map(|x| x.1).unwrap_or(false) {
+            return self.con.map(|con| (false, con));
+        }
+
+        if !self.items.1.get(b).map(|x| x.1).unwrap_or(false) {
+            return self.con.map(|con| (false, con));
+        }
+
+        Some((true, (a, b)))
+    }
 }
 
 impl Widget for Connector {
@@ -162,12 +196,10 @@ impl Widget for Connector {
                 WindowEvent::MouseUp(MouseButton::Left) => {
                     let (x, y) = (state.mouse.cursorx, state.mouse.cursory);
 
-                    if let Some((src_inputs, src_row)) = self.drag_src_idx {
-                        if let Some((inputs, row)) =
-                            self.xy2pos(state, entity, x, y)
-                        {
-//                            self.con = Some((
-                        }
+                    if let Some((drag, con)) = self.get_current_con() {
+                        self.con = Some(con);
+                    } else {
+                        self.con = None;
                     }
 
                     self.drag = false;
@@ -289,6 +321,25 @@ impl Widget for Connector {
             }
         }
 
+        if let Some((drag, (a, b))) = self.get_current_con() {
+            let ay = a as f32 * yrow;
+            let by = b as f32 * yrow;
+
+            p.path_stroke(
+                4.0,
+                if drag { UI_CON_HOV_CLR } else { UI_PRIM_CLR },
+                &mut [
+                    (xcol,                         ay + yrow * 0.5),
+                    (xcol + xcol * 0.25,           ay + yrow * 0.5),
+                    (2.0 * xcol - xcol * 0.25,     by + yrow * 0.5),
+                    (2.0 * xcol - UI_CON_BORDER_W, by + yrow * 0.5),
+                ].iter().copied().map(|(x, y)|
+                    ((pos.x + x).floor(),
+                     (pos.y + y).floor())),
+                false);
+
+            println!("STOKE {} => {}", a, b);
+        }
 //        p.path_stroke(
 //            1.0,
 ////                UI_CON_LINE_CLR,

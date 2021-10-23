@@ -286,3 +286,12 @@ octave-keys {
     width:  1s;
     height: 1s;
 }
+
+connector {
+}
+
+.con_panel {
+    $PANEL()
+    child-space: 0.1s;
+    z-index: 12;
+}

@@ -149,13 +149,15 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
             !self = $w& $self;
             create_node_id_selector 0 { self.set_place_node_type _ };
 
-            !con = vizia:new_connector 0 ${
-                width    = 300 => :px,
-                height   = 200 => :px,
-                position = :self,
+            !panel = vizia:new_elem 0 ${
+                class = "con_panel",
+                width    = 380 => :px,
+                height   = 220 => :px,
                 left     = 200,
                 top      = 200,
+                position = :self,
             };
+            !con = vizia:new_connector panel ${ };
             vizia:emit_to 0 con $[
                 :connector:set_items,
                 $[
