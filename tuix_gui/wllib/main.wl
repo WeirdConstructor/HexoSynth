@@ -150,7 +150,7 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
             create_node_id_selector 0 { self.set_place_node_type _ };
 
             !con = vizia:new_connector 0 ${
-                width    = 120 => :px,
+                width    = 300 => :px,
                 height   = 200 => :px,
                 position = :self,
                 left     = 200,
@@ -171,6 +171,8 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
                     $p("inpttt3", $t),
                     $p("i4", $t),
                     $p("i5", $f),
+                    $p("i6", $f),
+                    $p("i8", $f),
                 ]
             ];
 

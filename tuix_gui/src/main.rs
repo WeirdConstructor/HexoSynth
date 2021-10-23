@@ -117,13 +117,13 @@ fn vv2event(event: &VVal) -> Event {
 
             event.v_(1).with_iter(|it| {
                 for (inp, _) in it {
-                    vin.push((inp.v_s(0), inp.v_(1).b()));
+                    vin.push((inp.v_s_raw(0), inp.v_(1).b()));
                 }
             });
 
             event.v_(2).with_iter(|it| {
                 for (out, _) in it {
-                    vout.push((out.v_s(0), out.v_(1).b()));
+                    vout.push((out.v_s_raw(0), out.v_(1).b()));
                 }
             });
 

@@ -1,6 +1,6 @@
 use crate::hexo_consts::*;
 use crate::rect::*;
-use crate::painter::FemtovgPainter;
+use crate::painter::{FemtovgPainter, calc_font_size_from_text};
 
 use tuix::*;
 use femtovg::FontId;
@@ -9,11 +9,11 @@ use std::sync::{Arc, Mutex};
 
 pub const UI_CON_BORDER_CLR      : (f32, f32, f32) = UI_ACCENT_CLR;
 pub const UI_CON_BORDER_HOVER_CLR: (f32, f32, f32) = UI_HLIGHT_CLR;
-pub const UI_CON_LINE_CLR        : (f32, f32, f32) = UI_PRIM_CLR;
-pub const UI_CON_HOV_CLR         : (f32, f32, f32) = UI_ACCENT_CLR;
+pub const UI_CON_HOV_CLR         : (f32, f32, f32) = UI_HLIGHT_CLR;
 pub const UI_CON_PHASE_CLR       : (f32, f32, f32) = UI_ACCENT_DARK_CLR;
 pub const UI_CON_PHASE_BG_CLR    : (f32, f32, f32) = UI_HLIGHT2_CLR;
 pub const UI_CON_BG              : (f32, f32, f32) = UI_LBL_BG_CLR;
+pub const UI_CON_BORDER_W        : f32             = 2.0;
 
 #[derive(Clone)]
 pub enum ConMessage {
@@ -22,6 +22,7 @@ pub enum ConMessage {
 }
 
 pub struct Connector {
+    font_size:      f32,
     font:           Option<FontId>,
     font_mono:      Option<FontId>,
     items:          Box<(Vec<(String, bool)>, Vec<(String, bool)>)>,
@@ -29,17 +30,21 @@ pub struct Connector {
 
     active_areas:   Vec<Rect>,
 
-    x_delta:        f32,
-    hover_idx:      Option<usize>,
+    xcol:           f32,
+    yrow:           f32,
+    hover_idx:      Option<(bool, usize)>,
+    drag_src_idx:   Option<(bool, usize)>,
     drag:           bool,
 
     on_change:      Option<Box<dyn Fn(&mut Self, &mut State, Entity, (usize, usize))>>,
+    on_hover:       Option<Box<dyn Fn(&mut Self, &mut State, Entity, bool, usize)>>,
     // TODO: on_hover_port!
 }
 
 impl Connector {
     pub fn new() -> Self {
         Self {
+            font_size:      14.0,
             font:           None,
             font_mono:      None,
             items:          Box::new((vec![], vec![])),
@@ -47,11 +52,14 @@ impl Connector {
 
             active_areas:   vec![],
 
-            x_delta:        0.0,
+            xcol:           0.0,
+            yrow:           0.0,
             hover_idx:      None,
+            drag_src_idx:   None,
             drag:           false,
 
             on_change:      None,
+            on_hover:       None,
         }
     }
 
@@ -64,6 +72,48 @@ impl Connector {
         self
     }
 
+    pub fn on_hover<F>(mut self, on_hover: F) -> Self
+    where
+        F: 'static + Fn(&mut Self, &mut State, Entity, bool, usize),
+    {
+        self.on_hover = Some(Box::new(on_hover));
+
+        self
+    }
+
+    fn xy2pos(&self, state: &mut State, entity: Entity, x: f32, y: f32)
+        -> Option<(bool, usize)>
+    {
+        let bounds = state.data.get_bounds(entity);
+        let pos : Rect = bounds.into();
+        let x = x - pos.x;
+        let y = y - pos.y;
+
+        let w_half = pos.w * 0.5;
+
+        let old_hover = self.hover_idx;
+
+        if y > 0.0 && x > 0.0 {
+            let idx = (y / self.yrow).floor() as usize;
+            let inputs = x > w_half;
+
+            if inputs {
+                if idx < self.items.1.len() {
+                    Some((inputs, idx))
+                } else {
+                    None
+                }
+            } else {
+                if idx < self.items.0.len() {
+                    Some((inputs, idx))
+                } else {
+                    None
+                }
+            }
+        } else {
+            None
+        }
+    }
 }
 
 impl Widget for Connector {
@@ -102,6 +152,7 @@ impl Widget for Connector {
                 WindowEvent::MouseDown(MouseButton::Left) => {
                     let (x, y) = (state.mouse.cursorx, state.mouse.cursory);
                     self.drag = true;
+                    self.drag_src_idx = self.xy2pos(state, entity, x, y);
 
                     state.capture(entity);
                     state.insert_event(
@@ -110,7 +161,17 @@ impl Widget for Connector {
                 },
                 WindowEvent::MouseUp(MouseButton::Left) => {
                     let (x, y) = (state.mouse.cursorx, state.mouse.cursory);
+
+                    if let Some((src_inputs, src_row)) = self.drag_src_idx {
+                        if let Some((inputs, row)) =
+                            self.xy2pos(state, entity, x, y)
+                        {
+//                            self.con = Some((
+                        }
+                    }
+
                     self.drag = false;
+                    self.drag_src_idx = None;
 
                     state.release(entity);
                     state.insert_event(
@@ -118,24 +179,14 @@ impl Widget for Connector {
                             .target(Entity::root()));
                 },
                 WindowEvent::MouseMove(x, y) => {
-//                    let old_hover = self.hover_idx;
-//                    self.hover_idx = self.pos2idx(state, entity, *x, *y);
+                    let old_hover = self.hover_idx;
+                    self.hover_idx = self.xy2pos(state, entity, *x, *y);
 
-//                    if let Some(idx) = self.hover_idx {
-//                        if self.drag {
-//                            let v = self.pos2value(state, entity, *x, *y);
-//                            self.set(state, entity, idx, v);
-//                            state.insert_event(
-//                                Event::new(WindowEvent::Redraw)
-//                                    .target(Entity::root()));
-//                        }
-//                    }
-
-//                    if old_hover != self.hover_idx {
-//                        state.insert_event(
-//                            Event::new(WindowEvent::Redraw)
-//                                .target(Entity::root()));
-//                    }
+                    if old_hover != self.hover_idx {
+                        state.insert_event(
+                            Event::new(WindowEvent::Redraw)
+                                .target(Entity::root()));
+                    }
                 },
                 _ => {},
             }
@@ -158,19 +209,85 @@ impl Widget for Connector {
         let pos : Rect = bounds.into();
         let pos = pos.floor();
 
-
         let row_h = self.items.0.len().max(self.items.1.len());
 
-//        let highlight = ui.hl_style_for(id, None);
-//        let border_color =
-//            match highlight {
-//                HLStyle::Hover(_) => UI_CON_BORDER_HOVER_CLR,
-//                _                 => UI_CON_BORDER_CLR,
-//            };
-//        let pos =
-//            rect_border(p, UI_CON_BORDER, border_color, UI_CON_BG, pos);
+        // XXX: - 1.0 on height and width for some extra margin so that the
+        //      rectangles for the ports are not clipped.
+        let yrow = ((pos.h - 2.0 * UI_CON_BORDER_W) / (row_h as f32)).floor();
+        let xcol = ((pos.w - 2.0 * UI_CON_BORDER_W) / 3.0).floor();
 
-        p.rect_fill(UI_CON_BG, pos.x, pos.y, pos.w, pos.h);
+        self.xcol = xcol;
+        self.yrow = yrow;
+
+        let pos = Rect {
+            x: pos.x + UI_CON_BORDER_W,
+            y: pos.y + UI_CON_BORDER_W,
+            w: xcol * 3.0,
+            h: yrow * (row_h as f32),
+        };
+
+        p.rect_fill(UI_ACCENT_BG1_CLR,
+            pos.x - UI_CON_BORDER_W,
+            pos.y - UI_CON_BORDER_W,
+            pos.w + UI_CON_BORDER_W,
+            pos.h + UI_CON_BORDER_W);
+
+        println!("ITEMS! {} {:?}", row_h, self.items);
+
+        let does_hover_this_widget =
+            state.hovered == entity;
+
+        for row in 0..row_h {
+            let yo      = row as f32 * yrow;
+            let txt_pad = 2.0 * UI_CON_BORDER_W;
+            let txt_w   = xcol - 2.0 * txt_pad;
+
+            if let Some((lbl, active)) = self.items.0.get(row) {
+                p.rect_stroke(
+                    UI_CON_BORDER_W,
+                    UI_CON_BORDER_CLR,
+                    pos.x, pos.y + yo, xcol, yrow);
+
+                let fs =
+                    calc_font_size_from_text(p, &lbl, self.font_size, txt_w);
+                p.label(
+                    fs, -1, if *active { UI_PRIM_CLR } else { UI_INACTIVE_CLR },
+                    pos.x + txt_pad, pos.y + yo,
+                    txt_w, yrow, &lbl);
+            }
+
+            if let Some((lbl, active)) = self.items.1.get(row) {
+                p.rect_stroke(
+                    UI_CON_BORDER_W,
+                    UI_CON_BORDER_CLR,
+                    pos.x + 2.0 * xcol - 1.0, pos.y + yo, xcol, yrow);
+
+                let fs =
+                    calc_font_size_from_text(p, &lbl, self.font_size, txt_w);
+                p.label(
+                    fs, 1, if *active { UI_PRIM_CLR } else { UI_INACTIVE_CLR },
+                    pos.x + txt_pad + 2.0 * xcol - UI_CON_BORDER_W, pos.y + yo,
+                    txt_w, yrow, &lbl);
+            }
+        }
+
+        if let Some((inputs, row)) = self.hover_idx {
+            let items = if inputs { &self.items.1 } else { &self.items.0 };
+
+            if let Some((lbl, active)) = items.get(row) {
+                if *active {
+                    let xo = if inputs { xcol * 2.0 - 1.0 } else { 0.0 };
+                    let yo = row as f32 * yrow;
+
+                    if does_hover_this_widget {
+                        p.rect_stroke(
+                            UI_CON_BORDER_W,
+                            UI_CON_HOV_CLR,
+                            pos.x + xo, pos.y + yo, xcol, yrow);
+                    }
+                }
+            }
+        }
 
 //        p.path_stroke(
 //            1.0,

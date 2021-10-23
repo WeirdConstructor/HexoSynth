@@ -4,7 +4,7 @@
 
 use crate::hexo_consts::*;
 use crate::rect::*;
-use crate::painter::FemtovgPainter;
+use crate::painter::{FemtovgPainter, calc_font_size_from_text};
 
 use tuix::*;
 use femtovg::FontId;
@@ -808,11 +808,9 @@ impl Widget for HexGrid {
                                             (size * 1.3) as f32
                                         } else { (size * 0.82) as f32 };
 
-                                    let mut fs = fs;
-                                    //d// println!("TEXT: {:8.3} => {} (@{})", p.text_width(fs as f32, false, name_lbl), name_lbl, size * scale);
-                                    while p.text_width(fs as f32, false, name_lbl) > maxwidth {
-                                        fs *= 0.9;
-                                    }
+                                    let fs =
+                                        calc_font_size_from_text(
+                                            p, name_lbl, fs, maxwidth);
 
                                     p.label(
                                         fs, 0, txt_clr,

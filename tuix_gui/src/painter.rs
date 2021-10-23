@@ -280,4 +280,18 @@ impl<'a> FemtovgPainter<'a> {
     }
 }
 
+pub fn calc_font_size_from_text(
+    p: &mut FemtovgPainter,
+    txt: &str,
+    mut max_fs: f32,
+    max_width: f32
+) -> f32
+{
+    while p.text_width(max_fs, false, txt) > max_width {
+        max_fs *= 0.9;
+    }
+
+    max_fs
+}
+
 pub const UI_ELEM_TXT_H     : f32 =  16.0;
