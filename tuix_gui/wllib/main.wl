@@ -149,13 +149,30 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
             !self = $w& $self;
             create_node_id_selector 0 { self.set_place_node_type _ };
 
-            vizia:new_connector 0 ${
+            !con = vizia:new_connector 0 ${
                 width    = 120 => :px,
                 height   = 200 => :px,
                 position = :self,
                 left     = 200,
                 top      = 200,
             };
+            vizia:emit_to 0 con $[
+                :connector:set_items,
+                $[
+                    $p("out1", $t),
+                    $p("output2", $t),
+                    $p("o3", $f),
+                    $p("o4", $f),
+                    $p("o5", $t),
+                ],
+                $[
+                    $p("i1", $t),
+                    $p("input2", $t),
+                    $p("inpttt3", $t),
+                    $p("i4", $t),
+                    $p("i5", $f),
+                ]
+            ];
 
             vizia:new_button 0 "reload" {
                 load_theme[];

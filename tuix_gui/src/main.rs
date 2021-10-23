@@ -106,6 +106,29 @@ fn vv2event(event: &VVal) -> Event {
             => Event::new(PopupEvent::OpenAtCursor),
         "popup:close"
             => Event::new(PopupEvent::Close),
+        "connector:set_connection"
+            => Event::new(
+                connector::ConMessage::SetConnection(
+                    event.v_i(1) as usize,
+                    event.v_i(2) as usize)),
+        "connector:set_items" => {
+            let mut vin  = vec![];
+            let mut vout = vec![];
+
+            event.v_(1).with_iter(|it| {
+                for (inp, _) in it {
+                    vin.push((inp.v_s(0), inp.v_(1).b()));
+                }
+            });
+
+            event.v_(2).with_iter(|it| {
+                for (out, _) in it {
+                    vout.push((out.v_s(0), out.v_(1).b()));
+                }
+            });
+
+            Event::new(connector::ConMessage::SetItems(Box::new((vin, vout))))
+        },
         "octave_keys:set_mask"
             => Event::new(
                 octave_keys::OctaveKeysMessage::SetMask(event.v_i(1))),
