@@ -111,11 +111,17 @@ fn vv2event(event: &VVal) -> Event {
             => Event::new(PopupEvent::OpenAtCursor),
         "popup:close"
             => Event::new(PopupEvent::Close),
-        "connector:set_connection"
-            => Event::new(
+        "connector:set_connection" => {
+            Event::new(
                 connector::ConMessage::SetConnection(
-                    event.v_i(1) as usize,
-                    event.v_i(2) as usize)),
+                    if event.v_(1).is_none() {
+                        None
+                    } else {
+                        Some((
+                            event.v_i(1) as usize,
+                            event.v_i(2) as usize))
+                    }))
+        },
         "connector:set_items" => {
             let mut vin  = vec![];
             let mut vout = vec![];
@@ -327,12 +333,12 @@ fn cell2vval(cell: &Cell) -> VVal {
     let node_id = cell.node_id();
 
     let ports = VVal::vec();
-    ports.push(cell_port2vval(cell, CellDir::T));
-    ports.push(cell_port2vval(cell, CellDir::TL));
-    ports.push(cell_port2vval(cell, CellDir::BL));
     ports.push(cell_port2vval(cell, CellDir::TR));
     ports.push(cell_port2vval(cell, CellDir::BR));
     ports.push(cell_port2vval(cell, CellDir::B));
+    ports.push(cell_port2vval(cell, CellDir::BL));
+    ports.push(cell_port2vval(cell, CellDir::TL));
+    ports.push(cell_port2vval(cell, CellDir::T));
 
     VVal::map3(
         "node_id",
@@ -351,12 +357,12 @@ fn vv2cell(v: &VVal) -> Cell {
 
     let ports = v.v_k("ports");
 
-    cell_set_port(&mut m_cell, ports.v_(0), CellDir::T);
-    cell_set_port(&mut m_cell, ports.v_(1), CellDir::TL);
-    cell_set_port(&mut m_cell, ports.v_(2), CellDir::BL);
-    cell_set_port(&mut m_cell, ports.v_(3), CellDir::TR);
-    cell_set_port(&mut m_cell, ports.v_(4), CellDir::BR);
-    cell_set_port(&mut m_cell, ports.v_(5), CellDir::B);
+    cell_set_port(&mut m_cell, ports.v_(0), CellDir::TR);
+    cell_set_port(&mut m_cell, ports.v_(1), CellDir::BR);
+    cell_set_port(&mut m_cell, ports.v_(2), CellDir::B);
+    cell_set_port(&mut m_cell, ports.v_(3), CellDir::BL);
+    cell_set_port(&mut m_cell, ports.v_(4), CellDir::TL);
+    cell_set_port(&mut m_cell, ports.v_(5), CellDir::T);
 
     m_cell
 }

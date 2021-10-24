@@ -17,7 +17,7 @@ pub const UI_CON_BORDER_W        : f32             = 2.0;
 
 #[derive(Clone)]
 pub enum ConMessage {
-    SetConnection(usize, usize),
+    SetConnection(Option<(usize, usize)>),
     SetItems(Box<(Vec<(String, bool)>, Vec<(String, bool)>)>),
 }
 
@@ -165,8 +165,8 @@ impl Widget for Connector {
     fn on_event(&mut self, state: &mut State, entity: Entity, event: &mut Event) {
         if let Some(grid_msg) = event.message.downcast::<ConMessage>() {
             match grid_msg {
-                ConMessage::SetConnection(a, b) => {
-                    self.con = Some((*a, *b));
+                ConMessage::SetConnection(con) => {
+                    self.con = *con;
                     state.insert_event(
                         Event::new(WindowEvent::Redraw)
                         .target(Entity::root()));

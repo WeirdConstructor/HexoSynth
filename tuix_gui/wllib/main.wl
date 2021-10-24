@@ -120,7 +120,8 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
 
 #!:global TEST_WID = $n;
 
-!STATE = ${
+!STATE = $n;
+.STATE = ${
     _data = ${
         m                = $n,       # The matrix (connection to the audio thread)
         grid_model       = $n,       # HexGrid data model handle
@@ -143,7 +144,11 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
         },
         build_main_gui = {!(grid) = @;
             wid_settings:init_global_settings_popup[];
-            wid_connect:init_global_connect_popup $data.m;
+            wid_connect:init_global_connect_popup $data.m {!(cell_o, cell_i) = @;
+                std:displayln "ONCHANGE:" @;
+                STATE.set_matrix_cells $[cell_o, cell_i];
+                $true
+            };
             $data.widgets.params.build 0;
 
             vizia:emit_to 0 grid $p(:hexgrid:set_model, $data.grid_model);
@@ -208,6 +213,13 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
                     $data.place_node_type;
             $data.m.set pos ${ node_id = new_node_id };
             unwrap ~ $data.m.sync[];
+        },
+        set_matrix_cells = {!(cells) = @;
+            checked_matrix_change $data.m {!(matrix) = @;
+                iter cell cells {
+                    matrix.set cell.pos cell;
+                };
+            };
         },
         move_cluster = {!(pos_a, pos_b) = @;
             !cluster = hx:new_cluster[];
@@ -275,8 +287,8 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
                 };
         },
         on_cell_drag = {!(pos, pos2, btn) = @;
-
             !adj_dir = hx:pos_are_adjacent pos pos2;
+
             if is_some[adj_dir] {
                 if btn == :left {
                     !cell_out = matrix.get pos;
