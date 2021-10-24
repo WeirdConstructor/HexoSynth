@@ -59,6 +59,7 @@ enum GUIAction {
     NewCvArray(i64, i64, VVal),
     NewConnector(i64, i64, VVal),
     EmitTo(i64, i64, VVal),
+    SetProp(i64, &'static str, VVal),
     SetText(i64, String),
     AddTheme(String),
     RemoveAllChilds(i64),
@@ -88,6 +89,10 @@ pub fn exec_cb(
     callback: VVal,
     args:     &[VVal])
 {
+    if callback.is_none() {
+        return;
+    }
+
     match wl_ctx.borrow_mut().call(&callback, args) {
         Ok(_) => {},
         Err(e) => { panic!("Error in callback: {:?}", e); }
@@ -1185,6 +1190,10 @@ impl GUIActionRecorder {
             }))
     }
 
+    pub fn set(&mut self, id: i64, prop: &'static str, v: VVal) {
+        self.actions.push(GUIAction::SetProp(id, prop, v));
+    }
+
     pub fn add<F: FnOnce(i64) -> GUIAction>(&mut self, f: F) -> i64 {
         let ret_ref = self.new_ref();
         self.actions.push(f(ret_ref));
@@ -1358,18 +1367,30 @@ impl GUIActionRecorder {
                 GUIAction::NewConnector(parent, out, build_attribs) => {
                     if let Some(GUIRef::Ent(parent)) = self.refs.get(*parent as usize) {
                         let on_change = build_attribs.v_k("on_change");
+                        let on_hover  = build_attribs.v_k("on_hover");
                         let sr1       = self_ref.clone();
                         let wl_ctx1   = wl_ctx.clone();
+                        let sr2       = self_ref.clone();
+                        let wl_ctx2   = wl_ctx.clone();
 
                         self.refs[*out as usize] = GUIRef::Ent(
                             Connector::new()
-                                .on_change(move |_, state, button, con| {
+                                .on_change(move |_, state, ent, con| {
                                     exec_cb(
                                         sr1.clone(), wl_ctx1.clone(),
-                                        state, button, on_change.clone(),
+                                        state, ent, on_change.clone(),
                                         &[
                                             VVal::Int(con.0 as i64),
                                             VVal::Int(con.1 as i64)
+                                        ]);
+                                })
+                                .on_hover(move |_, state, ent, inputs, idx| {
+                                    exec_cb(
+                                        sr2.clone(), wl_ctx2.clone(),
+                                        state, ent, on_hover.clone(),
+                                        &[
+                                            VVal::Bol(inputs),
+                                            VVal::Int(idx as i64)
                                         ]);
                                 })
                                 .build(state, *parent,
@@ -1502,6 +1523,18 @@ impl GUIActionRecorder {
                         if let Some(GUIRef::Ent(to)) = self.refs.get(*to as usize) {
                             state.insert_event(
                                 vv2event(event).target(*to).origin(*entity));
+                        }
+                    }
+                },
+                GUIAction::SetProp(entity, prop, v) => {
+                    if let Some(GUIRef::Ent(entity)) =
+                        self.refs.get(*entity as usize)
+                    {
+                        println!("SET PROP {} = {}", prop, v.s());
+
+                        match &prop[..] {
+                            "height" => { entity.set_height(state, vv2units(&v)); },
+                            _ => {},
                         }
                     }
                 },
@@ -1683,6 +1716,22 @@ fn setup_node_id_module() -> wlambda::SymbolTable {
         }, Some(1), Some(1), false);
 
     st.fun(
+        "out_list", move |env: &mut Env, argc: usize| {
+            let nid = vv2node_id(&env.arg(0));
+
+            let outputs = VVal::vec();
+            let mut i = 0;
+            while let Some(name) = nid.out_name_by_idx(i) {
+                outputs.push(VVal::pair(
+                    VVal::Int(i as i64),
+                    VVal::new_str(name)));
+                i += 1;
+            }
+
+            Ok(outputs)
+        }, Some(1), Some(1), false);
+
+    st.fun(
         "inp_name2idx", move |env: &mut Env, argc: usize| {
             let nid   = vv2node_id(&env.arg(0));
             let idx = env.arg(1).with_s_ref(|s| nid.inp(s));
@@ -1858,6 +1907,11 @@ fn setup_vizia_module(r: Rc<RefCell<GUIActionRecorder>>) -> wlambda::SymbolTable
         )))
     });
 
+    set_modfun!(st, r, set_height, Some(2), Some(2), env, _argc, {
+        r.borrow_mut().set(env.arg(0).i(), "height", env.arg(1));
+        Ok(VVal::None)
+    });
+
     st
 }
 
@@ -1913,7 +1967,7 @@ fn setup_hx_module(matrix: Arc<Mutex<Matrix>>) -> wlambda::SymbolTable {
             let path =
                 CellDir::path_from_to(
                     (from.v_i(0) as usize, from.v_i(1) as usize),
-                    (to.v_i(0) as usize, to.v_i(1) as usize));
+                    (to.v_i(0)   as usize, to.v_i(1)   as usize));
 
             let pth = VVal::vec();
             for p in path.iter() {
@@ -1921,6 +1975,24 @@ fn setup_hx_module(matrix: Arc<Mutex<Matrix>>) -> wlambda::SymbolTable {
             }
 
             Ok(pth)
+        }, Some(2), Some(2), false);
+
+    st.fun(
+        "pos_are_adjacent", move |env: &mut Env, argc: usize| {
+            let from = env.arg(0);
+            let to   = env.arg(1);
+
+            if let Some(dir) =
+                CellDir::are_adjacent(
+                    (from.v_i(0) as usize, from.v_i(1) as usize),
+                    (to.v_i(0)   as usize, to.v_i(1)   as usize))
+            {
+                Ok(cell_dir2vv(dir))
+            }
+            else
+            {
+                Ok(VVal::None)
+            }
         }, Some(2), Some(2), false);
 
     st.fun(
@@ -2059,7 +2131,7 @@ fn main() {
 
                     match wl_ctx.borrow_mut().eval_file("wllib/main.wl") {
                         Ok(_) => { },
-                        Err(e) => { panic!("Error in main.wl: {:?}", e); }
+                        Err(e) => { panic!("Error in main.wl:\n{}", e); }
                     }
 
                     let init_fun =
@@ -2068,7 +2140,7 @@ fn main() {
 
                     match wl_ctx.borrow_mut().call(&init_fun, &[]) {
                         Ok(_) => {},
-                        Err(e) => { panic!("Error in main.wl 'init': {:?}", e); }
+                        Err(e) => { panic!("Error in main.wl 'init':\n{}", e); }
                     }
 
                     idle_cb = wl_ctx.borrow_mut().get_global_var("idle").unwrap_or(VVal::None);

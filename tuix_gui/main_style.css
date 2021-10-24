@@ -295,3 +295,13 @@ connector {
     child-space: 0.1s;
     z-index: 12;
 }
+
+.connect_popup {
+    position: self-directed;
+    width:  280px;
+    height: 400px;
+    child-space: 0.1s;
+    z-index: 13;
+
+    $FLOAT_PANEL()
+}

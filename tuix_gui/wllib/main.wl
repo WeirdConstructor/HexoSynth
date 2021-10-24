@@ -10,6 +10,7 @@
 
 !@import wid_params   = params_widget;
 !@import wid_settings = settings_widget;
+!@import wid_connect  = connect_widget;
 
 !NODE_ID_CATEGORIES = node_id:ui_category_node_id_map[];
 
@@ -121,16 +122,16 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
 
 !STATE = ${
     _data = ${
-        m                = $n,
-        grid_model       = $n,
-        place_node_type  = :sin => 0,
-        focus = ${
-            pos     = $n,
-            cell    = $n,
-            node_id = $n,
+        m                = $n,       # The matrix (connection to the audio thread)
+        grid_model       = $n,       # HexGrid data model handle
+        place_node_type  = :sin => 0,# Currently selected/placeable node type
+        focus = ${                   # Focused/Selected HexGrid cell
+            pos     = $n,            #  - X/Y pos
+            cell    = $n,            #  - Matrix cell
+            node_id = $n,            #  - NodeId of that cell
         },
-        widgets = ${
-            params = $n,
+        widgets = ${                 # Stores handles to some custom widgets
+            params = $n,             # Stores the ParamsWidget object/structure
         },
     },
     _proto = ${
@@ -142,6 +143,7 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
         },
         build_main_gui = {!(grid) = @;
             wid_settings:init_global_settings_popup[];
+            wid_connect:init_global_connect_popup $data.m;
             $data.widgets.params.build 0;
 
             vizia:emit_to 0 grid $p(:hexgrid:set_model, $data.grid_model);
@@ -149,34 +151,38 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
             !self = $w& $self;
             create_node_id_selector 0 { self.set_place_node_type _ };
 
-            !panel = vizia:new_elem 0 ${
-                class = "con_panel",
-                width    = 380 => :px,
-                height   = 220 => :px,
-                left     = 200,
-                top      = 200,
-                position = :self,
-            };
-            !con = vizia:new_connector panel ${ };
-            vizia:emit_to 0 con $[
-                :connector:set_items,
-                $[
-                    $p("out1", $t),
-                    $p("output2", $t),
-                    $p("o3", $f),
-                    $p("o4", $f),
-                    $p("o5", $t),
-                ],
-                $[
-                    $p("i1", $t),
-                    $p("input2", $t),
-                    $p("inpttt3", $t),
-                    $p("i4", $t),
-                    $p("i5", $f),
-                    $p("i6", $f),
-                    $p("i8", $f),
-                ]
-            ];
+#            !panel = vizia:new_elem 0 ${
+#                class = "con_panel",
+#                width    = 380 => :px,
+#                height   = 220 => :px,
+#                left     = 200,
+#                top      = 200,
+#                position = :self,
+#            };
+#            !con = vizia:new_connector panel ${
+#                on_change = { std:displayln "ONCHANGE:" @; },
+#                on_hover  = { std:displayln "ONHOVER:" @; },
+#            };
+#            vizia:emit_to 0 con $[
+#                :connector:set_items,
+#                $[
+#                    #  name,      assignable or "unused"
+#                    $p("out1",    $t),
+#                    $p("output2", $t),
+#                    $p("o3",      $f),
+#                    $p("o4",      $f),
+#                    $p("o5",      $t),
+#                ],
+#                $[
+#                    $p("i1",      $t),
+#                    $p("input2",  $t),
+#                    $p("inpttt3", $t),
+#                    $p("i4",      $t),
+#                    $p("i5",      $f),
+#                    $p("i6",      $f),
+#                    $p("i8",      $f),
+#                ]
+#            ];
 
             vizia:new_button 0 "reload" {
                 load_theme[];
@@ -190,8 +196,8 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
             focus.node_id = $data.focus.cell.node_id;
 
             $data.grid_model.set_focus_cell pos;
-            vizia:redraw[];
             $data.widgets.params.set_node_id $data.focus.node_id;
+            vizia:redraw[];
         },
         set_place_node_type = {!(typ) = @;
             $data.place_node_type = typ;
@@ -202,6 +208,18 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
                     $data.place_node_type;
             $data.m.set pos ${ node_id = new_node_id };
             unwrap ~ $data.m.sync[];
+        },
+        move_cluster = {!(pos_a, pos_b) = @;
+            !cluster = hx:new_cluster[];
+            cluster.add_cluster_at $data.m pos_a;
+
+            !pth = hx:dir_path_from_to pos_a pos_b;
+
+            checked_matrix_change $data.m {!(matrix) = @;
+                cluster.remove_cells matrix;
+                _? :err ~ cluster.move_cluster_cells_dir_path pth;
+                _? :err ~ cluster.place matrix;
+            };
         },
     },
 };
@@ -257,17 +275,34 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
                 };
         },
         on_cell_drag = {!(pos, pos2, btn) = @;
-            if btn == :left {
-                !cluster = hx:new_cluster[];
-                cluster.add_cluster_at matrix pos;
 
-                !pth = hx:dir_path_from_to pos pos2;
+            !adj_dir = hx:pos_are_adjacent pos pos2;
+            if is_some[adj_dir] {
+                if btn == :left {
+                    !cell_out = matrix.get pos;
+                    !cell_in  = matrix.get pos2;
 
-                checked_matrix_change matrix {!(matrix) = @;
-                    cluster.remove_cells matrix;
-                    _? :err ~ cluster.move_cluster_cells_dir_path pth;
-                    _? :err ~ cluster.place matrix;
+                    if adj_dir.is_input[] {
+                        .(cell_in, cell_out) = $p(cell_out, cell_in);
+                    };
+
+                    if      cell_out.node_id.0 != "nop"
+                       &and cell_in.node_id.0  != "nop" {
+
+                        std:displayln "DRAG ADJ:"
+                            adj_dir.is_output[]
+                            cell_out
+                            cell_in;
+                        wid_connect:connect cell_out cell_in;
+                        return $n;
+                    }
+                } {
+
                 };
+            };
+
+            if btn == :left {
+                STATE.move_cluster pos pos2;
             };
         },
     };

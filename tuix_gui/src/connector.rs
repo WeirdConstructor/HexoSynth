@@ -38,7 +38,6 @@ pub struct Connector {
 
     on_change:      Option<Box<dyn Fn(&mut Self, &mut State, Entity, (usize, usize))>>,
     on_hover:       Option<Box<dyn Fn(&mut Self, &mut State, Entity, bool, usize)>>,
-    // TODO: on_hover_port!
 }
 
 impl Connector {
@@ -198,6 +197,11 @@ impl Widget for Connector {
 
                     if let Some((drag, con)) = self.get_current_con() {
                         self.con = Some(con);
+
+                        if let Some(callback) = self.on_change.take() {
+                            (callback)(self, state, entity, con);
+                            self.on_change = Some(callback);
+                        }
                     } else {
                         self.con = None;
                     }
@@ -215,6 +219,13 @@ impl Widget for Connector {
                     self.hover_idx = self.xy2pos(state, entity, *x, *y);
 
                     if old_hover != self.hover_idx {
+                        if let Some((inputs, idx)) = self.hover_idx {
+                            if let Some(callback) = self.on_hover.take() {
+                                (callback)(self, state, entity, inputs, idx);
+                                self.on_hover = Some(callback);
+                            }
+                        }
+
                         state.insert_event(
                             Event::new(WindowEvent::Redraw)
                                 .target(Entity::root()));
@@ -263,8 +274,6 @@ impl Widget for Connector {
             pos.y - UI_CON_BORDER_W,
             pos.w + UI_CON_BORDER_W,
             pos.h + UI_CON_BORDER_W);
-
-        println!("ITEMS! {} {:?}", row_h, self.items);
 
         let does_hover_this_widget =
             state.hovered == entity;
@@ -321,6 +330,18 @@ impl Widget for Connector {
             }
         }
 
+        if let Some((inputs, row)) = self.drag_src_idx {
+            let xo = if inputs { xcol * 2.0 - 1.0 } else { 0.0 };
+            let yo = row as f32 * yrow;
+
+            if self.drag {
+                p.rect_stroke(
+                    UI_CON_BORDER_W,
+                    UI_SELECT_CLR,
+                    pos.x + xo, pos.y + yo, xcol, yrow);
+            }
+        }
+
         if let Some((drag, (a, b))) = self.get_current_con() {
             let ay = a as f32 * yrow;
             let by = b as f32 * yrow;
@@ -337,17 +358,6 @@ impl Widget for Connector {
                     ((pos.x + x).floor(),
                      (pos.y + y).floor())),
                 false);
-
-            println!("STOKE {} => {}", a, b);
         }
-//        p.path_stroke(
-//            1.0,
-////                UI_CON_LINE_CLR,
-//            UI_ACCENT_CLR,
-//            &mut [
-//                (pos.x,         0.5),
-//                (pos.x + pos.w, 0.5),
-//            ].iter().copied(),
-//            false);
     }
 }
