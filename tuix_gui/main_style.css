@@ -300,8 +300,22 @@ connector {
     position: self-directed;
     width:  280px;
     height: 400px;
-    child-space: 0.1s;
     z-index: 13;
 
     $FLOAT_PANEL()
+
+    background-color: UI_LBL_BG_CLR;
+    border-top-left-radius: 0px;
+    border-top-right-radius: 0px;
+}
+
+label.port_connector {
+    background-color: UI_LBL_BG_CLR;
+    color: UI_PRIM_CLR;
+    child-space: 1s;
+    height: 30px;
+}
+
+connector.port_connector {
+    bottom: 5px;
 }

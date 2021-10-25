@@ -19,7 +19,8 @@ std:displayln NODE_ID_CATEGORIES;
 !COLORS = ${};
 
 iter line (("\n" => 0) hx:hexo_consts_rs) {
-    if line &> $r/*const\ (^UI_$+$S)*hxclr!\(0x(^$+[^\)])\)/ {
+    if line &> $r/*const\ (^UI_$+$S)$<*?hxclr!\(0x(^$+[^\)])\)/ {
+        std:displayln "COLOR" $\.1 $\.2;
         COLORS.($\.1) = "#" $\.2;
     };
 };

@@ -130,6 +130,15 @@ impl Connector {
             };
 
         if a_inp == b_inp {
+            if a_inp {
+                if self.items.0.len() == 1 {
+                    return Some((true, (0, a)))
+                }
+            } else {
+                if self.items.1.len() == 1 {
+                    return Some((true, (a, 0)))
+                }
+            }
             return self.con.map(|con| (false, con));
         }
 
@@ -186,6 +195,18 @@ impl Widget for Connector {
                     let (x, y) = (state.mouse.cursorx, state.mouse.cursory);
                     self.drag = true;
                     self.drag_src_idx = self.xy2pos(state, entity, x, y);
+
+                    if let Some((inputs, _)) = self.drag_src_idx {
+                        if inputs {
+                            if self.items.0.len() == 1 {
+                                self.drag_src_idx = Some((false, 0));
+                            }
+                        } else {
+                            if self.items.1.len() == 1 {
+                                self.drag_src_idx = Some((true, 0));
+                            }
+                        }
+                    }
 
                     state.capture(entity);
                     state.insert_event(
@@ -262,14 +283,17 @@ impl Widget for Connector {
         self.xcol = xcol;
         self.yrow = yrow;
 
+        let new_w = xcol * 3.0;
+        let center_pad = ((pos.w - new_w) / 2.0).floor();
+
         let pos = Rect {
-            x: pos.x + UI_CON_BORDER_W,
+            x: center_pad + pos.x + UI_CON_BORDER_W,
             y: pos.y + UI_CON_BORDER_W,
             w: xcol * 3.0,
             h: yrow * (row_h as f32),
         };
 
-        p.rect_fill(UI_ACCENT_BG1_CLR,
+        p.rect_fill(UI_CON_BG,
             pos.x - UI_CON_BORDER_W,
             pos.y - UI_CON_BORDER_W,
             pos.w + UI_CON_BORDER_W,

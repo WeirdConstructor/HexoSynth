@@ -32,8 +32,12 @@
     build = {!(parent) = @;
         !self = $w& $self;
         $data.parent = parent;
-        $data.root = vizia:new_col parent ${ };
+        $data.root = vizia:new_col parent ${ class = "port_connector" };
+#        !lblrow = vizia:new_row $data.root ${ class = "port_connector" };
+        $data.heading_lbl = vizia:new_label $data.root "?" ${ class = "port_connector" };
+
         $data.con = vizia:new_connector $data.root ${
+            class = "port_connector",
             on_change = {!(out_idx, in_idx) = @;
                 !(cell_o, cell_i) = $p(
                     self._data.cell_o,
@@ -72,12 +76,18 @@
         !out_params = node_id:out_list   $data.cell_o.node_id;
         !in_params  = node_id:param_list $data.cell_i.node_id;
 
+        !title =
+            $F "{} => {}"
+                node_id:label <& $data.cell_o.node_id
+                node_id:label <& $data.cell_i.node_id;
+        vizia:set_text $data.heading_lbl title;
+
         !max_rows = len[out_params];
         if len[in_params.inputs] > max_rows {
             .max_rows = len[in_params.inputs];
         };
 
-        vizia:set_height $data.parent (float[max_rows] * 30.0) => :px;
+        vizia:set_height $data.parent (float[max_rows] * 30.0) + 30 => :px;
 
         !e_idxs = get_cell_edge_idxes $data.cell_o $data.cell_i;
 
