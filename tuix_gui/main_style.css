@@ -114,13 +114,13 @@ tab_bar {
 tab_manager.ui_category_tab_view {
     position: self-directed;
     top: 1s;
-    height: 230px;
+    height: 150px;
     width: 305px;
 }
 
 tab_manager.ui_category_tab_view > tab_container {
     width: 305px;
-    height: 200px;
+    height: 120px;
 }
 
 
@@ -168,22 +168,21 @@ tab_bar>.tab:checked {
 
 hex-grid {
 }
-
-.knob_panel {
-    background-color: UI_BG_CLR;
-    border-width: 2px;
-    border-color: UI_BORDER_CLR;
-    left: 1s;
-    top: 1s;
-    height: 400px;
-    width: 400px;
-    child-space: 40px;
-}
-
-.knob_panel hex-knob {
-//    height: 100px;
-    width: 80px;
-}
+//
+//.knob_panel {
+//    background-color: UI_BG_CLR;
+//    border-width: 2px;
+//    border-color: UI_BORDER_CLR;
+//    top: 1s;
+//    height: 400px;
+//    width: 400px;
+//    child-space: 40px;
+//}
+//
+//.knob_panel hex-knob {
+////    height: 100px;
+//    width: 80px;
+//}
 
 !FLOAT_PANEL() {{
     border-width:        2px;
@@ -256,19 +255,17 @@ octave-keys {
 
 .node_params {
     position:   self-directed;
-    bottom:     1s;
-    left:       1s;
-    height:     500px;
-    width:      300px;
-    right:      0px;
-    top:        0px;
+    top:        1s;
+    left:       305px;
+    height:     225px;
+    width:      595px;
     z-index:    10;
 
     $PANEL()
 }
 
 .node_params_label {
-    height:       0.2s;
+    height:       18px;
     font-size:    14px;
     font:         "font_serif";
     text-align:   center;

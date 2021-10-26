@@ -47,6 +47,7 @@ use std::sync::{Arc, Mutex};
 enum GUIAction {
     NewElem(i64, i64, VVal),
     NewLabel(i64, i64, String, VVal),
+    NewTextArea(i64, i64, VVal),
     NewRow(i64, i64, Option<String>),
     NewCol(i64, i64, VVal),
     NewHexKnob(i64, i64, VVal, VVal),
@@ -1289,6 +1290,14 @@ impl GUIActionRecorder {
                                 |builder| vvbuilder(builder, build_attribs)));
                     }
                 },
+                GUIAction::NewTextArea(parent, out, build_attribs) => {
+                    if let Some(GUIRef::Ent(parent)) = self.refs.get(*parent as usize) {
+//                        self.refs[*out as usize] = GUIRef::Ent(
+//                            TextArea::new(&text).build(
+//                                state, *parent,
+//                                |builder| vvbuilder(builder, build_attribs)));
+                    }
+                },
                 GUIAction::NewHexGrid(parent, out, build_attribs) => {
                     if let Some(GUIRef::Ent(parent)) = self.refs.get(*parent as usize) {
                         let on_click     = build_attribs.v_k("on_click");
@@ -1839,6 +1848,11 @@ fn setup_vizia_module(r: Rc<RefCell<GUIActionRecorder>>) -> wlambda::SymbolTable
             GUIAction::NewLabel(env.arg(0).i(), id, env.arg(1).s_raw(), env.arg(2)))))
     });
 
+    set_modfun!(st, r, new_textarea, Some(2), Some(3), env, _argc, {
+        Ok(VVal::Int(r.borrow_mut().add(|id|
+            GUIAction::NewTextArea(env.arg(0).i(), id, env.arg(1)))))
+    });
+
     set_modfun!(st, r, new_hexknob, Some(2), Some(3), env, _argc, {
         if let Some(_) = vv2hex_knob_model(env.arg(1)) {
             Ok(VVal::Int(
@@ -2112,7 +2126,7 @@ fn main() {
 
         let mut app =
             Application::new(
-                WindowDescription::new(),
+                WindowDescription::new().with_inner_size(900, 760),
                 |state, window| {
                     let gui_rec_self = gui_rec.clone();
 

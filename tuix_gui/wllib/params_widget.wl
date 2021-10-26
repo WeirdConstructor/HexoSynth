@@ -20,7 +20,7 @@
     },
     build = {!(parent) = @;
         $data.root = vizia:new_col parent ${ class = "node_params" };
-        iter i 0 => 4 {
+        iter i 0 => 2 {
             $data.rows.(i) = vizia:new_row $data.root;
         };
     },
@@ -40,7 +40,7 @@
                     !param_model = $data.m.create_hex_knob_model param;
 
                     .cur_row_count += 1;
-                    if cur_row_count > 4 {
+                    if cur_row_count > 8 {
                         .cur_row      += 1;
                         .cur_row_count = 1;
                     };

@@ -54,7 +54,7 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
             cont = ${
                 class       = "ui_category_tab_cont",
                 layout_type = :grid,
-                grid_rows   = $@vec ($iter 0 => 5) {|| $+ 1 => :s },
+                grid_rows   = $@vec ($iter 0 => 4) {|| $+ 1 => :s },
                 grid_cols   = $@vec ($iter 0 => 4) {|| $+ 1 => :s },
             },
         };

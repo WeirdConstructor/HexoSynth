@@ -868,6 +868,11 @@ impl Widget for HexKnob {
                             MouseButton::Left
                         };
 
+                    if btn == MouseButton::Right && state.modifiers.ctrl {
+                        // Handled by MouseUp!
+                        return;
+                    }
+
                     if let Some(zone) =
                         self.cursor_zone(
                             state, entity,
@@ -1026,7 +1031,7 @@ impl Widget for HexKnob {
 
         let size = pos.w.min(pos.h);
         let w_factor = pos.w / (32.0 * 2.0);
-        let v_factor = pos.h / ((34.0 + (UI_ELEM_TXT_H) * 0.4) * 2.0);
+        let v_factor = pos.h / ((36.0 + (UI_ELEM_TXT_H) * 0.4) * 2.0);
 
         let (size, mut factor) =
             if w_factor < v_factor {
