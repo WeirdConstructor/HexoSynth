@@ -536,7 +536,7 @@ struct HexValueDrag {
 
 impl HexValueDrag {
     fn from_state(
-        state: &mut State, model: &mut ParamModel, btn: MouseButton, zone: HexKnobZone)
+        state: &mut State, model: &mut dyn ParamModel, btn: MouseButton, zone: HexKnobZone)
     -> Option<Self>
     {
         let is_modamt = MouseButton::Right == btn.into();
@@ -583,7 +583,7 @@ impl HexValueDrag {
         steps * self.step_dt
     }
 
-    fn delta(&self, x: f32, y: f32) -> f32 {
+    fn delta(&self, _x: f32, y: f32) -> f32 {
         self.mouse_start.1 - y
     }
 
@@ -620,7 +620,7 @@ impl HexValueDrag {
         self.change(model, x, y);
     }
 
-    pub fn enable_fine_key(&mut self, model: &mut dyn ParamModel, x: f32, y: f32) {
+    pub fn enable_fine_key(&mut self, _model: &mut dyn ParamModel, x: f32, y: f32) {
         self.pre_fine_delta = self.calc_delta_value(x, y);
         self.fine_key = true;
         self.mouse_start = (x, y);
@@ -932,7 +932,7 @@ impl Widget for HexKnob {
                                 .target(Entity::root()));
                     }
                 },
-                WindowEvent::MouseScroll(x, y) => {
+                WindowEvent::MouseScroll(_x, y) => {
                     if let Some(zone) =
                         self.cursor_zone(
                             state, entity,
@@ -952,7 +952,7 @@ impl Widget for HexKnob {
                         }
                     }
                 },
-                WindowEvent::KeyDown(code, key) => {
+                WindowEvent::KeyDown(code, _key) => {
                     if    Code::ShiftLeft  == *code
                        || Code::ShiftRight == *code
                     {
@@ -1007,7 +1007,6 @@ impl Widget for HexKnob {
 
 //        let yo = yo - (UI_ELEM_TXT_H + UI_BG_KNOB_STROKE) * 0.5; // move the whole knob a bit upwards
 
-        let size = pos.w.min(pos.h);
         let w_factor = pos.w / (32.0 * 2.0);
         let v_factor = pos.h / ((36.0 + (UI_ELEM_TXT_H) * 0.4) * 2.0);
 
@@ -1018,15 +1017,13 @@ impl Widget for HexKnob {
                 (pos.h, v_factor)
             };
 
-        let mut no_value_label = false;
         let mut radius_factor = factor;
         if factor < 1.0 {
-            no_value_label = false;
             radius_factor = factor * 0.9;
             factor = 0.9 * factor + (1.0 - factor) * 0.5;
         }
 
-        no_value_label = factor < 0.8;
+        let no_value_label = factor < 0.8;
 
         let yo = yo - (UI_ELEM_TXT_H * factor).round() * 0.5;
         let yo = yo.floor();
@@ -1077,9 +1074,6 @@ impl Widget for HexKnob {
 
         let value = model.get_ui_range().clamp(0.0, 1.0);
 
-        let mut hover_fine_adj = false;
-
-        // TODO: Get hover status from `self` (fine vs coarse area)
         let zone_hover =
             if let Some(hvd) = &self.drag { Some(hvd.zone) }
             else if state.hovered == entity { self.hover }
@@ -1111,9 +1105,7 @@ impl Widget for HexKnob {
                     0);
             },
             HLStyle::Hover(fine) => {
-                if fine_hover {
-                    hover_fine_adj = true;
-
+                if fine {
                     let r = self.knob.get_fine_adjustment_mark();
                     p.rect_fill(
                         UI_TXT_KNOB_HOVER_CLR,
@@ -1159,16 +1151,10 @@ impl Widget for HexKnob {
             }
         }
 
-//        if hover_fine_adj {
             let len = model.fmt_norm(&mut self.lbl_buf[..]);
             let val_s = std::str::from_utf8(&self.lbl_buf[0..len]).unwrap();
             // + 2.0 for the marker cube, to space it from the minus sign.
             self.knob.draw_name(p, xo + 2.0, yo, &val_s);
-//            } else {
-//                let len = model.fmt_name(&mut self.lbl_buf[..]);
-//                let val_s = std::str::from_utf8(&self.lbl_buf[0..len]).unwrap();
-//                self.knob.draw_name(p, xo, yo, &val_s);
-//        }
     }
 }
 

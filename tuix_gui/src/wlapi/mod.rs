@@ -3,8 +3,10 @@
 // See README.md and COPYING for details.
 
 pub mod hxdsp;
+pub mod hex_knob;
 
 pub use hxdsp::*;
+pub use hex_knob::*;
 
 #[macro_export]
 macro_rules! arg_chk {
@@ -16,3 +18,11 @@ macro_rules! arg_chk {
         }
     }
 }
+
+#[macro_export]
+macro_rules! wl_panic {
+    ($str: literal) => {
+        return Err(StackAction::panic_msg($str.to_string()));
+    }
+}
+

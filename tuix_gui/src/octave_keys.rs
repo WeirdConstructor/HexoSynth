@@ -5,11 +5,7 @@ use crate::painter::FemtovgPainter;
 use tuix::*;
 use femtovg::FontId;
 
-use std::rc::Rc;
-use std::cell::RefCell;
-
 pub const UI_GRPH_BORDER_CLR      : (f32, f32, f32) = UI_ACCENT_CLR;
-pub const UI_GRPH_BORDER_HOVER_CLR: (f32, f32, f32) = UI_HLIGHT_CLR;
 pub const UI_GRPH_LINE_CLR        : (f32, f32, f32) = UI_PRIM_CLR;
 pub const UI_GRPH_PHASE_CLR       : (f32, f32, f32) = UI_HLIGHT_CLR;
 pub const UI_GRPH_PHASE_BG_CLR    : (f32, f32, f32) = UI_HLIGHT2_CLR;
@@ -99,7 +95,7 @@ impl Widget for OctaveKeys {
 
         if let Some(window_event) = event.message.downcast::<WindowEvent>() {
             match window_event {
-                WindowEvent::MouseUp(btn) => {
+                WindowEvent::MouseUp(_btn) => {
                     let (x, y) = (state.mouse.cursorx, state.mouse.cursory);
 
                     if let Some(key_idx) = self.get_key_index_at(x, y) {
@@ -147,14 +143,9 @@ impl Widget for OctaveKeys {
             h: pos.h.floor(),
         };
 
-        let (xo, yo) = (
-            (pos.x + pos.w / 2.0).round(),
-            (pos.y + pos.h / 2.0).round()
-        );
-
-        let border_color =
-            if state.hovered == entity { UI_GRPH_BORDER_HOVER_CLR }
-            else { UI_GRPH_BORDER_CLR };
+        // let border_color =
+        //     if state.hovered == entity { UI_GRPH_BORDER_HOVER_CLR }
+        //     else { UI_GRPH_BORDER_CLR };
 
         let xd = (pos.w / 7.0).floor();
         let xd_pad_for_center = ((pos.w - xd * 7.0) * 0.5).floor();
@@ -196,7 +187,7 @@ impl Widget for OctaveKeys {
 
             let mut hover_this_key = false;
             if let Some(hover_idx) = hover_idx {
-                hover_this_key = (hover_idx == index);
+                hover_this_key = hover_idx == index;
             }
 
             let (mut bg_color, mut line_color) =

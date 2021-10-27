@@ -5,8 +5,6 @@ use crate::painter::{FemtovgPainter, calc_font_size_from_text};
 use tuix::*;
 use femtovg::FontId;
 
-use std::sync::{Arc, Mutex};
-
 pub const UI_CON_BORDER_CLR      : (f32, f32, f32) = UI_ACCENT_CLR;
 pub const UI_CON_HOV_CLR         : (f32, f32, f32) = UI_HLIGHT_CLR;
 pub const UI_CON_BG              : (f32, f32, f32) = UI_LBL_BG_CLR;
@@ -80,8 +78,6 @@ impl Connector {
         let y = y - pos.y;
 
         let w_half = pos.w * 0.5;
-
-        let old_hover = self.hover_idx;
 
         if y > 0.0 && x > 0.0 {
             let idx = (y / self.yrow).floor() as usize;
@@ -205,9 +201,7 @@ impl Widget for Connector {
                             .target(Entity::root()));
                 },
                 WindowEvent::MouseUp(MouseButton::Left) => {
-                    let (x, y) = (state.mouse.cursorx, state.mouse.cursory);
-
-                    if let Some((drag, con)) = self.get_current_con() {
+                    if let Some((_drag, con)) = self.get_current_con() {
                         self.con = Some(con);
 
                         if let Some(callback) = self.on_change.take() {
@@ -329,7 +323,7 @@ impl Widget for Connector {
         if let Some((inputs, row)) = self.hover_idx {
             let items = if inputs { &self.items.1 } else { &self.items.0 };
 
-            if let Some((lbl, active)) = items.get(row) {
+            if let Some((_lbl, active)) = items.get(row) {
                 if *active {
                     let xo = if inputs { xcol * 2.0 - 1.0 } else { 0.0 };
                     let yo = row as f32 * yrow;

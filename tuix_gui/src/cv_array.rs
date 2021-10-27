@@ -78,7 +78,7 @@ impl CvArray {
         }
     }
 
-    fn pos2value(&self, state: &mut State, entity: Entity, x: f32, y: f32) -> f32 {
+    fn pos2value(&self, state: &mut State, entity: Entity, _x: f32, y: f32) -> f32 {
         let bounds = state.data.get_bounds(entity);
         let pos : Rect = bounds.into();
         let pos = pos.floor();
@@ -88,7 +88,7 @@ impl CvArray {
         1.0 - v.clamp(0.0, 1.0)
     }
 
-    fn pos2idx(&self, state: &mut State, entity: Entity, x: f32, y: f32) -> Option<usize> {
+    fn pos2idx(&self, state: &mut State, entity: Entity, x: f32, _y: f32) -> Option<usize> {
         let bounds = state.data.get_bounds(entity);
         let pos : Rect = bounds.into();
         let pos = pos.floor();

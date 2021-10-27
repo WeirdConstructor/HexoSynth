@@ -15,7 +15,6 @@ mod painter;
 mod hexgrid;
 mod rect;
 mod pattern_editor;
-mod grid_models;
 mod cluster;
 mod matrix_param_model;
 mod octave_keys;
@@ -26,21 +25,27 @@ mod wlapi;
 mod jack;
 mod synth;
 
-use crate::matrix_param_model::KnobParam;
-use crate::hexknob::DummyParamModel;
-
-use hexgrid::{HexGrid, HexGridModel};
-use hexknob::{HexKnob, ParamModel};
+use hexgrid::HexGrid;
+use hexknob::HexKnob;
 use pattern_editor::PatternEditor;
 use octave_keys::OctaveKeys;
 use cv_array::CvArray;
 use connector::Connector;
 
-use wlapi::{vv2node_id, node_id2vv, param_id2vv, vv2param_id, atom2vv, vv2atom};
+use wlapi::{
+    param_id2vv,
+    atom2vv, vv2atom,
+    vv2hex_knob_model, vv2hex_grid_model,
+    matrix2vv,
+    VValCluster,
+    VValCellDir,
+    cell_dir2vv,
+    cell2vval,
+    new_test_grid_model,
+};
 
-use hexodsp::{Matrix, NodeId, ParamId, Cell, CellDir};
-use hexodsp::matrix::{MatrixObserver, MatrixError};
-use hexodsp::dsp::{SAtom};
+use hexodsp::{Matrix, ParamId, Cell, CellDir};
+use hexodsp::matrix::{MatrixObserver};
 
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -51,7 +56,6 @@ use std::sync::{Arc, Mutex};
 pub enum GUIAction {
     NewElem(i64, i64, VVal),
     NewLabel(i64, i64, String, VVal),
-    NewTextArea(i64, i64, VVal),
     NewRow(i64, i64, Option<String>),
     NewCol(i64, i64, VVal),
     NewHexKnob(i64, i64, VVal, VVal),
@@ -286,560 +290,6 @@ fn vvbuilder<'a, T>(mut builder: Builder<'a, T>, build_attribs: &VVal)
     builder
 }
 
-fn output2vval(node_id: NodeId, out: u8) -> VVal {
-    if let Some(name) = node_id.out_name_by_idx(out) {
-        VVal::new_str(name)
-    } else {
-        VVal::Int(out as i64)
-    }
-}
-
-fn cell_port2vval(cell: &Cell, dir: CellDir) -> VVal {
-    let node_id = cell.node_id();
-
-    if let Some(i) = cell.local_port_idx(dir) {
-        if dir.is_input() {
-            if let Some(param) = node_id.inp_param_by_idx(i as usize) {
-                VVal::new_str(param.name())
-            } else {
-                VVal::Int(i as i64)
-            }
-        } else {
-            output2vval(node_id, i)
-        }
-    } else {
-        VVal::None
-    }
-}
-
-fn cell_set_port(cell: &mut Cell, v: VVal, dir: CellDir) -> bool {
-    if v.is_none() {
-        return true;
-    }
-    let name = v.s_raw();
-    let node_id = cell.node_id();
-
-    if dir.is_input() {
-        if let Some(i) = node_id.inp(&name) {
-            cell.set_io_dir(dir, i as usize);
-            true
-        } else {
-            false
-        }
-    } else {
-        if let Some(i) = node_id.out(&name) {
-            cell.set_io_dir(dir, i as usize);
-            true
-        } else {
-            false
-        }
-    }
-}
-
-fn cell2vval(cell: &Cell) -> VVal {
-    let node_id = cell.node_id();
-
-    let ports = VVal::vec();
-    ports.push(cell_port2vval(cell, CellDir::TR));
-    ports.push(cell_port2vval(cell, CellDir::BR));
-    ports.push(cell_port2vval(cell, CellDir::B));
-    ports.push(cell_port2vval(cell, CellDir::BL));
-    ports.push(cell_port2vval(cell, CellDir::TL));
-    ports.push(cell_port2vval(cell, CellDir::T));
-
-    VVal::map3(
-        "node_id",
-        node_id2vv(node_id),
-        "pos",
-        VVal::ivec2(
-            cell.pos().0 as i64,
-            cell.pos().1 as i64),
-        "ports", ports)
-}
-
-fn vv2cell(v: &VVal) -> Cell {
-    let node_id = vv2node_id(&v.v_k("node_id"));
-
-    let mut m_cell = Cell::empty(node_id);
-
-    let ports = v.v_k("ports");
-
-    cell_set_port(&mut m_cell, ports.v_(0), CellDir::TR);
-    cell_set_port(&mut m_cell, ports.v_(1), CellDir::BR);
-    cell_set_port(&mut m_cell, ports.v_(2), CellDir::B);
-    cell_set_port(&mut m_cell, ports.v_(3), CellDir::BL);
-    cell_set_port(&mut m_cell, ports.v_(4), CellDir::TL);
-    cell_set_port(&mut m_cell, ports.v_(5), CellDir::T);
-
-    m_cell
-}
-
-fn matrix_error2vval_err(err: MatrixError) -> VVal {
-    let err_val =
-        match err {
-            MatrixError::CycleDetected => VVal::new_sym("cycle-detected"),
-            MatrixError::PosOutOfRange => VVal::new_sym("pos-out-of-range"),
-            MatrixError::NonEmptyCell { cell } =>
-                VVal::pair(
-                    VVal::new_sym("non-empty-cell"),
-                    cell2vval(&cell)),
-            MatrixError::DuplicatedInput { output1, output2 } =>
-                VVal::vec3(
-                    VVal::new_sym("duplicated-input"),
-                    output2vval(output1.0, output1.1),
-                    output2vval(output2.0, output2.1)),
-        };
-
-    VVal::Err(Rc::new(RefCell::new((
-        err_val,
-        wlambda::vval::SynPos::empty()))))
-}
-
-macro_rules! arg_chk {
-    ($args: expr, $count: expr, $name: literal) => {
-        if $args.len() != $count {
-            return Err(StackAction::panic_msg(format!(
-                "{} called with wrong number of arguments",
-                $name)));
-        }
-    }
-}
-
-macro_rules! wl_panic {
-    ($str: literal) => {
-        return Err(StackAction::panic_msg($str.to_string()));
-    }
-}
-
-
-#[derive(Clone)]
-struct VValMatrix {
-    matrix: Arc<Mutex<hexodsp::Matrix>>,
-}
-
-impl vval::VValUserData for VValMatrix {
-    fn s(&self) -> String { format!("$<HexoDSP::Matrix>") }
-
-    fn get_key(&self, key: &str) -> Option<VVal> {
-        None
-    }
-
-    fn call_method(&self, key: &str, env: &mut Env)
-        -> Result<VVal, StackAction>
-    {
-        let args = env.argv_ref();
-
-        match key {
-            "create_grid_model" => {
-                arg_chk!(args, 0, "matrix.create_grid_model[]");
-
-                let matrix = self.matrix.clone();
-
-                return Ok(VVal::new_usr(VValHexGridModel {
-                    model:
-                        HexGridModelType::Matrix(
-                            Rc::new(RefCell::new(
-                                grid_models::MatrixUIModel::new(matrix)))),
-                }));
-            },
-            "create_hex_knob_dummy_model" => {
-                arg_chk!(args, 0, "matrix.create_hex_knob_dummy_model[]");
-
-                return Ok(VVal::new_usr(VValHexKnobModel {
-                    model: Rc::new(RefCell::new(DummyParamModel::new()))
-                }));
-            },
-            "create_hex_knob_model" => {
-                arg_chk!(args, 1, "matrix.create_hex_knob_model[param_id]");
-
-                let matrix = self.matrix.clone();
-                if let Some(param_id) = vv2param_id(env.arg(0)) {
-                    return Ok(VVal::new_usr(VValHexKnobModel {
-                        model: Rc::new(RefCell::new(
-                            KnobParam::new(matrix, param_id)))
-                    }));
-
-                } else {
-                    wl_panic!(
-                        "matrix.create_hex_knob_model[param_id] requires \
-                        a $<HexoDSP::ParamId> as first argument.");
-                }
-            },
-            _ => {}
-        }
-
-        let m = self.matrix.lock();
-
-        if let Ok(mut m) = m {
-            match key {
-                "get" => {
-                    arg_chk!(args, 1, "matrix.get[$i(x, y)]");
-
-                    if let Some(cell) =
-                        m.get(
-                            env.arg(0).v_i(0) as usize,
-                            env.arg(0).v_i(1) as usize)
-                    {
-                        Ok(cell2vval(cell))
-                    } else {
-                        Ok(VVal::None)
-                    }
-                },
-                "set" => {
-                    arg_chk!(args, 2, "matrix.set[$i(x, y), cell]");
-
-                    if let (Some(vv_cell), Some(pos)) = (env.arg_ref(1), env.arg_ref(0)) {
-                        let cell = vv2cell(vv_cell);
-
-                        let x = pos.v_ik("x") as usize;
-                        let y = pos.v_ik("y") as usize;
-
-                        m.place(x, y, cell);
-
-                        Ok(VVal::Bol(true))
-                    } else {
-                        Ok(VVal::None)
-                    }
-                },
-                "set_param" => {
-                    arg_chk!(args, 2, "matrix.set_param[param_id, atom or value]");
-
-                    let pid = vv2param_id(env.arg(0));
-                    let at  = vv2atom(env.arg(1));
-
-                    if let Some(pid) = pid {
-                        m.set_param(pid, at);
-                        Ok(VVal::Bol(true))
-                    } else {
-                        Ok(VVal::None)
-                    }
-                },
-                "get_param" => {
-                    arg_chk!(args, 1, "matrix.get_param[param_id]");
-
-                    let pid = vv2param_id(env.arg(0));
-
-                    if let Some(pid) = pid {
-                        if let Some(at) = m.get_param(&pid) {
-                            Ok(atom2vv(at))
-                        } else {
-                            Ok(VVal::None)
-                        }
-                    } else {
-                        Ok(VVal::None)
-                    }
-                },
-                "get_param_modamt" => {
-                    arg_chk!(args, 1, "matrix.get_param_modamt[param_id]");
-
-                    let pid = vv2param_id(env.arg(0));
-
-                    if let Some(pid) = pid {
-                        if let Some(ma) = m.get_param_modamt(&pid) {
-                            Ok(VVal::opt(VVal::Flt(ma as f64)))
-                        } else {
-                            Ok(VVal::opt_none())
-                        }
-                    } else {
-                        Ok(VVal::None)
-                    }
-                },
-                "set_param_modamt" => {
-                    arg_chk!(args, 2,
-                        "matrix.set_param_modamt[param_id, none or float]");
-
-                    let pid = vv2param_id(env.arg(0));
-                    let ma = env.arg(1);
-
-                    if let Some(pid) = pid {
-                        let ma =
-                            if ma.is_some() { Some(ma.f() as f32) }
-                            else { None };
-
-                        match m.set_param_modamt(pid, ma) {
-                            Ok(_)  => Ok(VVal::Bol(true)),
-                            Err(e) => Ok(matrix_error2vval_err(e)),
-                        }
-                    } else {
-                        Ok(VVal::None)
-                    }
-                },
-                "restore_snapshot" => {
-                    arg_chk!(args, 0, "matrix.restore_snapshot[]");
-                    m.restore_matrix();
-                    Ok(VVal::Bol(true))
-                },
-                "save_snapshot" => {
-                    arg_chk!(args, 0, "matrix.save_snapshot[]");
-                    m.save_matrix();
-                    Ok(VVal::Bol(true))
-                },
-                "check" => {
-                    arg_chk!(args, 0, "matrix.check[]");
-
-                    match m.check() {
-                        Ok(_)  => Ok(VVal::Bol(true)),
-                        Err(e) => Ok(matrix_error2vval_err(e)),
-                    }
-                },
-                "sync" => {
-                    arg_chk!(args, 0, "matrix.sync[]");
-
-                    match m.sync() {
-                        Ok(_)  => Ok(VVal::Bol(true)),
-                        Err(e) => Ok(matrix_error2vval_err(e)),
-                    }
-                },
-                "get_unused_instance_node_id" => {
-                    arg_chk!(args, 1, "matrix.get_unused_instance_node_id[node_id]");
-
-                    let node_id = vv2node_id(&args[0]);
-                    let node_id = m.get_unused_instance_node_id(node_id);
-                    Ok(node_id2vv(node_id))
-                },
-                _ => Ok(VVal::err_msg(&format!("Unknown method called: {}", key))),
-            }
-        } else {
-             Ok(VVal::err_msg("Can't lock matrix!"))
-        }
-    }
-
-    fn as_any(&mut self) -> &mut dyn std::any::Any { self }
-    fn clone_ud(&self) -> Box<dyn vval::VValUserData> { Box::new(self.clone()) }
-}
-
-#[derive(Clone)]
-struct VValCellDir {
-    dir: CellDir
-}
-
-pub fn vv2cell_dir(v: &VVal) -> CellDir {
-    v.with_s_ref(|s| {
-        match s {
-            "c" | "C" => CellDir::C,
-            "t" | "T" => CellDir::T,
-            "b" | "B" => CellDir::B,
-            "tl" | "TL" => CellDir::TL,
-            "bl" | "BL" => CellDir::BL,
-            "tr" | "TR" => CellDir::TR,
-            "br" | "BR" => CellDir::BR,
-            _ => CellDir::C,
-        }
-    })
-}
-
-impl VValCellDir {
-    pub fn from_vval(v: &VVal) -> Self {
-        Self { dir: vv2cell_dir(v), }
-    }
-
-    pub fn from_vval_edge(v: &VVal) -> Self {
-        Self {
-            dir: CellDir::from(v.i() as u8),
-        }
-    }
-}
-
-fn cell_dir2vv(dir: CellDir) -> VVal { VVal::new_usr(VValCellDir { dir }) }
-
-impl vval::VValUserData for VValCellDir {
-    fn s(&self) -> String { format!("$<CellDir::{:?}>", self.dir) }
-
-    fn call_method(&self, key: &str, env: &mut Env)
-        -> Result<VVal, StackAction>
-    {
-        let args = env.argv_ref();
-
-        match key {
-            "as_edge" => {
-                arg_chk!(args, 0, "cell_dir.as_edge[]");
-
-                Ok(VVal::Int(self.dir.as_edge() as i64))
-            },
-            "flip" => {
-                arg_chk!(args, 0, "cell_dir.flip[]");
-
-                Ok(cell_dir2vv(self.dir.flip()))
-            },
-            "is_input" => {
-                arg_chk!(args, 0, "cell_dir.is_input[]");
-
-                Ok(VVal::Bol(self.dir.is_input()))
-            },
-            "is_output" => {
-                arg_chk!(args, 0, "cell_dir.is_output[]");
-
-                Ok(VVal::Bol(self.dir.is_output()))
-            },
-            "offs_pos" => {
-                arg_chk!(args, 1, "cell_dir.offs_pos[$i(x, y)]");
-
-                let p = env.arg(0);
-
-                let pos = (
-                    p.v_i(0) as usize,
-                    p.v_i(1) as usize
-                );
-
-                if let Some(opos) = self.dir.offs_pos(pos) {
-                    Ok(VVal::ivec2(opos.0 as i64, opos.1 as i64))
-                } else {
-                    Ok(VVal::None)
-                }
-            },
-            _ => Ok(VVal::err_msg(&format!("Unknown method called: {}", key))),
-        }
-    }
-
-    fn as_any(&mut self) -> &mut dyn std::any::Any { self }
-    fn clone_ud(&self) -> Box<dyn vval::VValUserData> { Box::new(self.clone()) }
-}
-
-#[derive(Clone)]
-struct VValCluster {
-    cluster: Rc<RefCell<crate::cluster::Cluster>>,
-}
-
-impl VValCluster {
-    pub fn new() -> Self {
-        Self {
-            cluster: Rc::new(RefCell::new(crate::cluster::Cluster::new())),
-        }
-    }
-}
-
-impl vval::VValUserData for VValCluster {
-    fn s(&self) -> String { format!("$<HexoDSP::Cluster>") }
-
-    fn call_method(&self, key: &str, env: &mut Env)
-        -> Result<VVal, StackAction>
-    {
-        let args = env.argv_ref();
-
-        match key {
-            "add_cluster_at" => {
-                arg_chk!(args, 2, "cluster.add_cluster_at[matrix, $i(x, y)]");
-
-                let mut m = env.arg(0);
-
-                if let Some(matrix) =
-                    m.with_usr_ref(|m: &mut VValMatrix| { m.matrix.clone() })
-                {
-                    if let Ok(mut m) = matrix.lock() {
-                        let v = env.arg(1);
-
-                        self.cluster
-                            .borrow_mut()
-                            .add_cluster_at(
-                                &mut m,
-                                (v.v_i(0) as usize,
-                                 v.v_i(1) as usize));
-                    }
-                }
-
-                Ok(VVal::None)
-            },
-            "ignore_pos" => {
-                arg_chk!(args, 1, "cluster.ignore_pos[$i(x, y)]");
-
-                let v = env.arg(0);
-
-                self.cluster.borrow_mut().ignore_pos((
-                    v.v_i(0) as usize,
-                    v.v_i(1) as usize));
-
-                Ok(VVal::None)
-            },
-            "position_list" => {
-                arg_chk!(args, 0, "cluster.position_list[]");
-
-                let v = VVal::vec();
-
-                self.cluster.borrow().for_poses(|pos| {
-                    v.push(VVal::ivec2(pos.0 as i64, pos.1 as i64));
-                });
-
-                Ok(v)
-            },
-            "cell_list" => {
-                arg_chk!(args, 0, "cluster.cell_list[]");
-
-                let v = VVal::vec();
-
-                self.cluster.borrow().for_cells(|cell| {
-                    v.push(cell2vval(cell));
-                });
-
-                Ok(v)
-            },
-            "remove_cells" => {
-                arg_chk!(args, 1, "cluster.remove_cells[matrix]");
-
-                let mut m = env.arg(0);
-
-                if let Some(matrix) =
-                    m.with_usr_ref(|m: &mut VValMatrix| { m.matrix.clone() })
-                {
-                    if let Ok(mut m) = matrix.lock() {
-                        self.cluster.borrow_mut().remove_cells(&mut m);
-                    }
-                }
-
-                Ok(VVal::None)
-            },
-            "place" => {
-                arg_chk!(args, 1, "cluster.place[matrix]");
-
-                let mut m = env.arg(0);
-
-                if let Some(matrix) =
-                    m.with_usr_ref(|m: &mut VValMatrix| { m.matrix.clone() })
-                {
-                    if let Ok(mut m) = matrix.lock() {
-                        return
-                            match self.cluster.borrow_mut().place(&mut m) {
-                                Ok(_) => Ok(VVal::Bol(true)),
-                                Err(e) => Ok(matrix_error2vval_err(e)),
-                            };
-                    }
-                }
-
-                Ok(VVal::None)
-            },
-            "move_cluster_cells_dir_path" => {
-                arg_chk!(args, 1, "cluster.move_cluster_cells_dir_path[$[CellDir, ...]]");
-
-                let path = env.arg(0);
-                let mut cd_path = vec![];
-
-                path.for_each(|v| {
-                    let mut v = v.clone();
-
-                    if let Some(dir) =
-                        v.with_usr_ref(|v: &mut VValCellDir| v.dir)
-                    {
-                        cd_path.push(dir);
-                    } else {
-                        cd_path.push(vv2cell_dir(&v));
-                    }
-                });
-
-                match self.cluster
-                          .borrow_mut()
-                          .move_cluster_cells_dir_path(&cd_path[..])
-                {
-                    Ok(_)  => Ok(VVal::Bol(true)),
-                    Err(e) => Ok(matrix_error2vval_err(e)),
-                }
-            },
-            _ => Ok(VVal::err_msg(&format!("Unknown method called: {}", key))),
-        }
-    }
-
-    fn as_any(&mut self) -> &mut dyn std::any::Any { self }
-    fn clone_ud(&self) -> Box<dyn vval::VValUserData> { Box::new(self.clone()) }
-}
-
 #[derive(Clone)]
 struct VValSampleBuf {
     buf: Arc<Mutex<Vec<f32>>>,
@@ -907,73 +357,6 @@ fn vv2sample_buf(mut v: VVal) -> Option<Arc<Mutex<Vec<f32>>>> {
 
 fn sample_buf2vv(r: Arc<Mutex<Vec<f32>>>) -> VVal {
     VVal::new_usr(VValSampleBuf { buf: r })
-}
-
-#[derive(Clone)]
-enum HexGridModelType {
-    Test(Rc<RefCell<grid_models::TestGridModel>>),
-    Matrix(Rc<RefCell<grid_models::MatrixUIModel>>),
-}
-
-#[derive(Clone)]
-struct VValHexGridModel {
-    model: HexGridModelType,
-}
-
-impl VValHexGridModel {
-    fn as_hex_grid_model(&self) -> Rc<RefCell<dyn HexGridModel>> {
-        match &self.model {
-            HexGridModelType::Test(m)   => m.clone(),
-            HexGridModelType::Matrix(m) => m.clone(),
-        }
-    }
-}
-
-impl VValUserData for VValHexGridModel {
-    fn s(&self) -> String { format!("$<UI::HexGridModel>") }
-
-    fn call_method(&self, key: &str, env: &mut Env)
-        -> Result<VVal, StackAction>
-    {
-        let args = env.argv_ref();
-
-        match key {
-            "set_focus_cell" => {
-                arg_chk!(args, 1, "hex_grid_model.set_focus_cell[$i(x, y)]");
-
-                if let HexGridModelType::Matrix(m) = &self.model {
-                    m.borrow_mut().set_focus_cell(
-                        env.arg(0).v_i(0) as usize,
-                        env.arg(0).v_i(1) as usize);
-                }
-
-                Ok(VVal::None)
-            },
-            _ => Ok(VVal::err_msg(&format!("Unknown method called: {}", key))),
-        }
-    }
-
-    fn as_any(&mut self) -> &mut dyn std::any::Any { self }
-    fn clone_ud(&self) -> Box<dyn vval::VValUserData> { Box::new(self.clone()) }
-}
-
-fn vv2hex_grid_model(mut v: VVal) -> Option<Rc<RefCell<dyn HexGridModel>>> {
-    v.with_usr_ref(|model: &mut VValHexGridModel| model.as_hex_grid_model())
-}
-
-#[derive(Clone)]
-struct VValHexKnobModel {
-    model: Rc<RefCell<dyn ParamModel>>,
-}
-
-impl VValUserData for VValHexKnobModel {
-    fn s(&self) -> String { format!("$<UI::HexKnobModel>") }
-    fn as_any(&mut self) -> &mut dyn std::any::Any { self }
-    fn clone_ud(&self) -> Box<dyn vval::VValUserData> { Box::new(self.clone()) }
-}
-
-fn vv2hex_knob_model(mut v: VVal) -> Option<Rc<RefCell<dyn ParamModel>>> {
-    v.with_usr_ref(|model: &mut VValHexKnobModel| model.model.clone())
 }
 
 fn btn2vval(btn: tuix::MouseButton) -> VVal {
@@ -1050,7 +433,7 @@ impl GUIActionRecorder {
 
     pub fn run(&mut self, self_ref: Rc<RefCell<GUIActionRecorder>>,
                wl_ctx: Rc<RefCell<EvalContext>>,
-               state: &mut State, entity: Entity)
+               state: &mut State, _entity: Entity)
     {
         for act in self.actions.iter() {
             match act {
@@ -1088,14 +471,6 @@ impl GUIActionRecorder {
                             Label::new(&text).build(
                                 state, *parent,
                                 |builder| vvbuilder(builder, build_attribs)));
-                    }
-                },
-                GUIAction::NewTextArea(parent, out, build_attribs) => {
-                    if let Some(GUIRef::Ent(parent)) = self.refs.get(*parent as usize) {
-//                        self.refs[*out as usize] = GUIRef::Ent(
-//                            TextArea::new(&text).build(
-//                                state, *parent,
-//                                |builder| vvbuilder(builder, build_attribs)));
                     }
                 },
                 GUIAction::NewHexGrid(parent, out, build_attribs) => {
@@ -1212,7 +587,7 @@ impl GUIActionRecorder {
                                     |builder| vvbuilder(builder, build_attribs)));
                     }
                 },
-                GUIAction::NewPatternEditor(parent, out, class) => {
+                GUIAction::NewPatternEditor(parent, out, _class) => {
                     if let Some(GUIRef::Ent(parent)) = self.refs.get(*parent as usize) {
                         self.refs[*out as usize] = GUIRef::Ent(
                             PatternEditor::new(
@@ -1376,11 +751,11 @@ impl Widget for HiddenThingie {
     type Ret = Entity;
     type Data = ();
 
-    fn on_build(&mut self, state: &mut State, entity: Entity) -> Self::Ret {
+    fn on_build(&mut self, _state: &mut State, entity: Entity) -> Self::Ret {
         entity
     }
 
-    fn on_draw(&mut self, state: &mut State, entity: Entity, canvas: &mut Canvas) {
+    fn on_draw(&mut self, _state: &mut State, _entity: Entity, _canvas: &mut Canvas) {
     }
 }
 
@@ -1399,7 +774,7 @@ macro_rules! set_modfun {
 fn setup_vizia_module(r: Rc<RefCell<GUIActionRecorder>>) -> wlambda::SymbolTable {
     let mut st = wlambda::SymbolTable::new();
 
-    set_modfun!(st, r, redraw, Some(0), Some(0), env, argc, {
+    set_modfun!(st, r, redraw, Some(0), Some(0), _env, _argc, {
         r.borrow_mut().actions.push(GUIAction::Redraw);
         Ok(VVal::None)
     });
@@ -1453,11 +828,6 @@ fn setup_vizia_module(r: Rc<RefCell<GUIActionRecorder>>) -> wlambda::SymbolTable
     set_modfun!(st, r, new_label, Some(2), Some(3), env, _argc, {
         Ok(VVal::Int(r.borrow_mut().add(|id|
             GUIAction::NewLabel(env.arg(0).i(), id, env.arg(1).s_raw(), env.arg(2)))))
-    });
-
-    set_modfun!(st, r, new_textarea, Some(2), Some(3), env, _argc, {
-        Ok(VVal::Int(r.borrow_mut().add(|id|
-            GUIAction::NewTextArea(env.arg(0).i(), id, env.arg(1)))))
     });
 
     set_modfun!(st, r, new_hexknob, Some(2), Some(3), env, _argc, {
@@ -1550,17 +920,17 @@ fn setup_hx_module(matrix: Arc<Mutex<Matrix>>) -> wlambda::SymbolTable {
         VVal::new_str(std::include_str!("hexo_consts.rs")));
 
     st.fun(
-        "get_main_matrix_handle", move |env: &mut Env, argc: usize| {
-            Ok(VVal::new_usr(VValMatrix { matrix: matrix.clone() }))
+        "get_main_matrix_handle", move |_env: &mut Env, _argc: usize| {
+            Ok(matrix2vv(matrix.clone()))
         }, Some(0), Some(0), false);
 
     st.fun(
-        "new_cluster", move |env: &mut Env, argc: usize| {
+        "new_cluster", move |_env: &mut Env, _argc: usize| {
             Ok(VVal::new_usr(VValCluster::new()))
         }, Some(0), Some(0), false);
 
     st.fun(
-        "new_sample_buf_from", move |env: &mut Env, argc: usize| {
+        "new_sample_buf_from", move |env: &mut Env, _argc: usize| {
             let mut v = vec![];
             env.arg(0).with_iter(|it| {
                 for (s, _) in it {
@@ -1572,22 +942,22 @@ fn setup_hx_module(matrix: Arc<Mutex<Matrix>>) -> wlambda::SymbolTable {
         }, Some(1), Some(1), false);
 
     st.fun(
-        "dir", move |env: &mut Env, argc: usize| {
+        "dir", move |env: &mut Env, _argc: usize| {
             Ok(VVal::new_usr(VValCellDir::from_vval(&env.arg(0))))
         }, Some(1), Some(1), false);
 
     st.fun(
-        "dir_edge", move |env: &mut Env, argc: usize| {
+        "dir_edge", move |env: &mut Env, _argc: usize| {
             Ok(VVal::new_usr(VValCellDir::from_vval_edge(&env.arg(0))))
         }, Some(1), Some(1), false);
 
     st.fun(
-        "to_atom", move |env: &mut Env, argc: usize| {
+        "to_atom", move |env: &mut Env, _argc: usize| {
             Ok(atom2vv(vv2atom(env.arg(0))))
         }, Some(1), Some(1), false);
 
     st.fun(
-        "dir_path_from_to", move |env: &mut Env, argc: usize| {
+        "dir_path_from_to", move |env: &mut Env, _argc: usize| {
             let from = env.arg(0);
             let to   = env.arg(1);
 
@@ -1605,7 +975,7 @@ fn setup_hx_module(matrix: Arc<Mutex<Matrix>>) -> wlambda::SymbolTable {
         }, Some(2), Some(2), false);
 
     st.fun(
-        "pos_are_adjacent", move |env: &mut Env, argc: usize| {
+        "pos_are_adjacent", move |env: &mut Env, _argc: usize| {
             let from = env.arg(0);
             let to   = env.arg(1);
 
@@ -1623,13 +993,8 @@ fn setup_hx_module(matrix: Arc<Mutex<Matrix>>) -> wlambda::SymbolTable {
         }, Some(2), Some(2), false);
 
     st.fun(
-        "create_test_hex_grid_model", |env: &mut Env, argc: usize| {
-            Ok(VVal::new_usr(VValHexGridModel {
-                model:
-                    HexGridModelType::Test(
-                        Rc::new(RefCell::new(
-                            grid_models::TestGridModel::new()))),
-            }))
+        "create_test_hex_grid_model", |_env: &mut Env, _argc: usize| {
+            Ok(new_test_grid_model())
         }, Some(0), Some(0), false);
 
     st

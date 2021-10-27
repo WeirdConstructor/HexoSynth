@@ -4,8 +4,7 @@
 
 use crate::hexknob::{ParamModel, ChangeRes};
 
-use hexodsp::{Matrix, NodeId, Cell, CellDir, ParamId, NodeInfo};
-use hexodsp::matrix::MatrixError;
+use hexodsp::{Matrix, ParamId, NodeInfo};
 
 use std::sync::{Arc, Mutex};
 use std::io::Write;

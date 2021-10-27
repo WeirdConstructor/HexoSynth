@@ -11,9 +11,6 @@ use femtovg::{
 
 use crate::rect::Rect;
 
-use std::rc::Rc;
-use std::cell::RefCell;
-
 pub struct FemtovgPainter<'a> {
     pub canvas:     &'a mut Canvas<OpenGl>,
     pub font:       FontId,

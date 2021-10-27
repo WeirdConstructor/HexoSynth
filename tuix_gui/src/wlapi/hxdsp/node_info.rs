@@ -4,7 +4,6 @@
 
 use wlambda::*;
 use hexodsp::{NodeId, NodeInfo};
-use super::{vv2node_id, node_id2vv};
 
 use std::rc::Rc;
 
@@ -33,7 +32,7 @@ impl vval::VValUserData for VValNodeInfo {
             self.info.out_count())
     }
 
-    fn call_method(&self, key: &str, env: &mut Env)
+    fn call_method(&self, key: &str, _env: &mut Env)
         -> Result<VVal, StackAction>
     {
 //        let args = env.argv_ref();

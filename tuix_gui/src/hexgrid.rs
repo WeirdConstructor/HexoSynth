@@ -146,7 +146,7 @@ pub trait HexGridModel {
     fn height(&self) -> usize;
     fn cell_visible(&self, x: usize, y: usize) -> bool;
     fn cell_empty(&self, x: usize, y: usize) -> bool;
-    fn cell_color(&self, x: usize, y: usize) -> u8 { 0 }
+    fn cell_color(&self, _x: usize, _y: usize) -> u8 { 0 }
 
     fn cell_label<'a>(&self, x: usize, y: usize, out: &'a mut [u8])
         -> Option<HexCell<'a>>; // (&'a str, HexCell, Option<(f32, f32)>)>;
@@ -165,12 +165,12 @@ pub struct EmptyHexGridModel {
 impl HexGridModel for EmptyHexGridModel {
     fn width(&self) -> usize { 0 }
     fn height(&self) -> usize { 0 }
-    fn cell_visible(&self, x: usize, y: usize) -> bool { false }
-    fn cell_empty(&self, x: usize, y: usize) -> bool { true }
-    fn cell_color(&self, x: usize, y: usize) -> u8 { 0 }
-    fn cell_label<'a>(&self, x: usize, y: usize, out: &'a mut [u8])
+    fn cell_visible(&self, _x: usize, _y: usize) -> bool { false }
+    fn cell_empty(&self, _x: usize, _y: usize) -> bool { true }
+    fn cell_color(&self, _x: usize, _y: usize) -> u8 { 0 }
+    fn cell_label<'a>(&self, _x: usize, _y: usize, _out: &'a mut [u8])
         -> Option<HexCell<'a>> { None }
-    fn cell_edge<'a>(&self, x: usize, y: usize, edge: HexDir, out: &'a mut [u8])
+    fn cell_edge<'a>(&self, _x: usize, _y: usize, _edge: HexDir, _out: &'a mut [u8])
         -> Option<(&'a str, HexEdge)> { None }
 //    fn cell_click(&mut self, x: usize, y: usize, btn: MButton) { }
 //    fn cell_drag(&mut self, x: usize, y: usize, x2: usize, y2: usize, btn: MButton) { }
@@ -467,7 +467,7 @@ impl Widget for HexGrid {
 //            let width = state.data.get_width(entity);
 //            let height = state.data.get_height(entity);
             match window_event {
-                WindowEvent::MouseDown(btn) => {
+                WindowEvent::MouseDown(_btn) => {
                     self.start_tile_pos =
                         Some(self.get_mouse_tile_pos(
                             state, entity,
@@ -572,7 +572,7 @@ impl Widget for HexGrid {
                         }
                     }
                 },
-                WindowEvent::MouseScroll(x, y) => {
+                WindowEvent::MouseScroll(_x, y) => {
                     if *y < 0.0 {
                         self.scale_step += 1;
                     } else {
@@ -683,9 +683,6 @@ impl Widget for HexGrid {
                 let fs  = self.center_font_size * self.scale;
                 let th2 = p.font_height(self.edge_font_size * self.scale, false);
                 let fs2 = self.edge_font_size * self.scale;
-
-                // TODO!!!!
-                let drag_source_pos = Some((10000, 10000));
 
                 let does_hover_this_widget =
                     state.hovered == entity;

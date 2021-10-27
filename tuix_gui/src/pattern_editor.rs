@@ -509,7 +509,7 @@ impl Widget for PatternEditor {
             .set_hoverable(state, true)
     }
 
-    fn on_update(&mut self, state: &mut State, entity: Entity, data: &Self::Data) {
+    fn on_update(&mut self, _state: &mut State, _entity: Entity, data: &Self::Data) {
         self.pattern = data.clone();
     }
 
@@ -519,8 +519,6 @@ impl Widget for PatternEditor {
             match window_event {
                 WindowEvent::FocusOut => {
                     self.enter_mode = EnterMode::None;
-                },
-                WindowEvent::MouseDoubleClick(btn) => {
                 },
                   WindowEvent::MouseDown(MouseButton::Left)
                 | WindowEvent::MouseDown(MouseButton::Right) => {
@@ -553,13 +551,13 @@ impl Widget for PatternEditor {
                         Event::new(WindowEvent::Redraw)
                             .target(Entity::root()));
                 },
-                WindowEvent::MouseUp(MouseButton::Middle) => {
-                },
-                WindowEvent::MouseUp(btn) => {
-                },
-                WindowEvent::MouseMove(x, y) => {
-                },
-                WindowEvent::MouseScroll(x, y) => {
+//                WindowEvent::MouseUp(MouseButton::Middle) => {
+//                },
+//                WindowEvent::MouseUp(btn) => {
+//                },
+//                WindowEvent::MouseMove(x, y) => {
+//                },
+                WindowEvent::MouseScroll(_x, y) => {
                     let pat = self.pattern.lock().unwrap();
 
                     if *y > 0.0 {
@@ -585,7 +583,7 @@ impl Widget for PatternEditor {
                         Event::new(WindowEvent::Redraw)
                             .target(Entity::root()));
                 },
-                WindowEvent::KeyDown(code, key) => {
+                WindowEvent::KeyDown(_code, key) => {
                     //d// println!("KEY: {:?}", key);
 
                     if let Some(key) = key {
