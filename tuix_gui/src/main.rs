@@ -3,7 +3,9 @@
 // See README.md and COPYING for details.
 
 use wlambda::*;
+#[allow(warnings)]
 use tuix::*;
+#[allow(warnings)]
 use tuix::widgets::*;
 
 mod hexknob;
@@ -18,6 +20,7 @@ mod matrix_param_model;
 mod octave_keys;
 mod cv_array;
 mod connector;
+mod wlapi;
 
 mod jack;
 mod synth;
@@ -25,18 +28,18 @@ mod synth;
 use crate::matrix_param_model::KnobParam;
 use crate::hexknob::DummyParamModel;
 
-use painter::FemtovgPainter;
-use hexgrid::{HexGrid, HexGridModel, HexCell, HexDir, HexEdge, HexHLight};
+use hexgrid::{HexGrid, HexGridModel};
 use hexknob::{HexKnob, ParamModel};
 use pattern_editor::PatternEditor;
 use octave_keys::OctaveKeys;
 use cv_array::CvArray;
-use hexo_consts::*;
 use connector::Connector;
 
-use hexodsp::{Matrix, NodeId, NodeInfo, ParamId, Cell, CellDir};
+use wlapi::{vv2node_id, node_id2vv, param_id2vv, vv2param_id, atom2vv, vv2atom};
+
+use hexodsp::{Matrix, NodeId, ParamId, Cell, CellDir};
 use hexodsp::matrix::{MatrixObserver, MatrixError};
-use hexodsp::dsp::{UICategory, SAtom};
+use hexodsp::dsp::{SAtom};
 
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -321,15 +324,6 @@ fn cell_set_port(cell: &mut Cell, v: VVal, dir: CellDir) -> bool {
     }
 }
 
-fn vv2node_id(v: &VVal) -> NodeId {
-    let node_id = v.v_(0).with_s_ref(|s| NodeId::from_str(s));
-    node_id.to_instance(v.v_i(1) as usize)
-}
-
-fn node_id2vv(nid: NodeId) -> VVal {
-    VVal::pair(VVal::new_str(nid.name()), VVal::Int(nid.instance() as i64))
-}
-
 fn cell2vval(cell: &Cell) -> VVal {
     let node_id = cell.node_id();
 
@@ -515,7 +509,7 @@ impl vval::VValUserData for VValMatrix {
 
                     if let Some(pid) = pid {
                         if let Some(at) = m.get_param(&pid) {
-                            Ok(VVal::new_usr(VValAtom::new(at)))
+                            Ok(atom2vv(at))
                         } else {
                             Ok(VVal::None)
                         }
@@ -835,150 +829,6 @@ impl vval::VValUserData for VValCluster {
 }
 
 #[derive(Clone)]
-struct VValNodeInfo {
-    node_id: NodeId,
-    info:    Rc<NodeInfo>,
-}
-
-impl VValNodeInfo {
-    pub fn new(node_id: NodeId) -> Self {
-        Self {
-            info: Rc::new(NodeInfo::from_node_id(node_id)),
-            node_id,
-        }
-    }
-}
-
-impl vval::VValUserData for VValNodeInfo {
-    fn s(&self) -> String {
-        format!(
-            "$<HexoDSP::NodeInfo node={}, at_cnt={}, in_cnt={}, out_cnt={}>",
-            self.node_id.name(),
-            self.info.at_count(),
-            self.info.in_count(),
-            self.info.out_count())
-    }
-
-    fn call_method(&self, key: &str, env: &mut Env)
-        -> Result<VVal, StackAction>
-    {
-        let args = env.argv_ref();
-
-        match key {
-//            "add_cluster_at" => {
-//                arg_chk!(args, 2, "cluster.add_cluster_at[matrix, $i(x, y)]");
-//                Ok(VVal::None)
-//            },
-            _ => Ok(VVal::err_msg(&format!("Unknown method called: {}", key))),
-        }
-    }
-
-    fn as_any(&mut self) -> &mut dyn std::any::Any { self }
-    fn clone_ud(&self) -> Box<dyn vval::VValUserData> { Box::new(self.clone()) }
-}
-
-#[derive(Clone)]
-struct VValAtom { atom: SAtom }
-
-impl VValAtom {
-    pub fn new(atom: SAtom) -> Self {
-        Self { atom }
-    }
-}
-
-impl vval::VValUserData for VValAtom {
-    fn s(&self) -> String {
-        format!(
-            "$<HexoDSP::SAtom type={}, i={}, f={:8.4}>",
-            self.atom.type_str(),
-            self.atom.i(),
-            self.atom.f())
-    }
-
-    fn call_method(&self, key: &str, env: &mut Env)
-        -> Result<VVal, StackAction>
-    {
-        let args = env.argv_ref();
-
-        match key {
-            "s" => {
-                arg_chk!(args, 0, "atom.s[]");
-                Ok(VVal::new_str_mv(self.atom.s()))
-            },
-            "i" => {
-                arg_chk!(args, 0, "atom.i[]");
-                Ok(VVal::Int(self.atom.i()))
-            },
-            "f" => {
-                arg_chk!(args, 0, "atom.f[]");
-                Ok(VVal::Flt(self.atom.f() as f64))
-            },
-            "micro_sample" => {
-                arg_chk!(args, 0, "atom.micro_sample[]");
-
-                if let SAtom::MicroSample(ms) = &self.atom {
-                    let v = VVal::vec();
-                    for s in ms.iter() {
-                        v.push(VVal::Flt(*s as f64));
-                    }
-
-                    Ok(v)
-                } else {
-                    Ok(VVal::vec1(VVal::Flt(self.atom.f() as f64)))
-                }
-            },
-            "default_of" => {
-                arg_chk!(args, 0, "atom.default_of[]");
-
-                Ok(VVal::Usr(Box::new(VValAtom {
-                    atom: self.atom.default_of()
-                })))
-            },
-            "is_continous" => {
-                arg_chk!(args, 0, "atom.is_continous[]");
-
-                Ok(VVal::Bol(self.atom.is_continous()))
-            },
-            "type_str" => {
-                arg_chk!(args, 0, "atom.type_str[]");
-
-                Ok(VVal::new_sym(self.atom.type_str()))
-            },
-            _ => Ok(VVal::err_msg(&format!("Unknown method called: {}", key))),
-        }
-    }
-
-    fn as_any(&mut self) -> &mut dyn std::any::Any { self }
-    fn clone_ud(&self) -> Box<dyn vval::VValUserData> { Box::new(self.clone()) }
-}
-
-fn vv2atom(mut v: VVal) -> SAtom {
-    if let Some(at) =
-        v.with_usr_ref(|model: &mut VValAtom| model.atom.clone())
-    {
-        return at;
-    }
-
-    match v {
-        VVal::Int(i) => SAtom::setting(i),
-        VVal::Flt(f) => SAtom::param(f as f32),
-        VVal::Sym(_) | VVal::Str(_) | VVal::Byt(_)
-            => v.with_s_ref(|s| SAtom::str(s)),
-        VVal::Pair(_) if v.v_s(0) == "audio_sample"
-            => { v.v_with_s_ref(1, |s| SAtom::audio_unloaded(s)) },
-        _ => {
-            let mut ms = vec![];
-            v.with_iter(|iter| {
-                for (v, _) in iter {
-                    ms.push(v.f() as f32);
-                }
-            });
-            SAtom::MicroSample(ms)
-        },
-    }
-}
-
-#[derive(Clone)]
 struct VValSampleBuf {
     buf: Arc<Mutex<Vec<f32>>>,
 }
@@ -1112,68 +962,6 @@ impl VValUserData for VValHexKnobModel {
 
 fn vv2hex_knob_model(mut v: VVal) -> Option<Rc<RefCell<dyn ParamModel>>> {
     v.with_usr_ref(|model: &mut VValHexKnobModel| model.model.clone())
-}
-
-#[derive(Clone)]
-struct VValParamId {
-    param: ParamId,
-}
-
-impl VValUserData for VValParamId {
-    fn s(&self) -> String {
-        format!(
-            "$<HexoDSP::ParamId node_id={}, idx={}, name={}>",
-            self.param.node_id(),
-            self.param.inp(),
-            self.param.name())
-    }
-
-    fn call_method(&self, key: &str, env: &mut Env)
-        -> Result<VVal, StackAction>
-    {
-        let args = env.argv_ref();
-
-        match key {
-            "as_parts" => {
-                arg_chk!(args, 0, "param_id.as_parts[]");
-
-                Ok(VVal::pair(
-                    node_id2vv(self.param.node_id()),
-                    VVal::Int(self.param.inp() as i64)))
-            },
-            "name" => {
-                arg_chk!(args, 0, "param_id.name[]");
-
-                Ok(VVal::new_str(self.param.name()))
-            },
-            "default_value" => {
-                arg_chk!(args, 0, "param_id.default_value[]");
-
-                Ok(VVal::Usr(Box::new(VValAtom::new(self.param.as_atom_def()))))
-            },
-            _ => Ok(VVal::err_msg(&format!("Unknown method called: {}", key))),
-        }
-    }
-
-    fn as_any(&mut self) -> &mut dyn std::any::Any { self }
-    fn clone_ud(&self) -> Box<dyn vval::VValUserData> { Box::new(self.clone()) }
-}
-
-fn vv2param_id(mut v: VVal) -> Option<ParamId> {
-    if let Some(pid) =
-        v.with_usr_ref(|s: &mut VValParamId| s.param.clone())
-    {
-        return Some(pid);
-    }
-
-    let nid = vv2node_id(&v.v_(0));
-    let p = v.v_(1);
-
-    if p.is_int() {
-        nid.param_by_idx(p.i() as usize)
-    } else {
-        p.with_s_ref(|s| nid.inp_param(s))
-    }
 }
 
 fn btn2vval(btn: tuix::MouseButton) -> VVal {
@@ -1585,198 +1373,6 @@ impl Widget for HiddenThingie {
     }
 }
 
-fn ui_category2str(cat: UICategory) -> &'static str {
-    match cat {
-        UICategory::None   => "none",
-        UICategory::Osc    => "Osc",
-        UICategory::Mod    => "Mod",
-        UICategory::NtoM   => "NtoM",
-        UICategory::Signal => "Signal",
-        UICategory::Ctrl   => "Ctrl",
-        UICategory::IOUtil => "IOUtil",
-    }
-}
-
-fn setup_node_id_module() -> wlambda::SymbolTable {
-    let mut st = wlambda::SymbolTable::new();
-
-    st.fun(
-        "list_all", move |env: &mut Env, argc: usize| {
-            let ids = VVal::vec();
-
-            for nid in hexodsp::dsp::ALL_NODE_IDS.iter() {
-                ids.push(VVal::new_str(nid.name()));
-            }
-
-            Ok(ids)
-        }, Some(0), Some(0), false);
-
-    st.fun(
-        "ui_category_list", move |env: &mut Env, argc: usize| {
-            let cats = VVal::vec();
-            cats.push(VVal::new_sym("none"));
-            cats.push(VVal::new_sym("Osc"));
-            cats.push(VVal::new_sym("Mod"));
-            cats.push(VVal::new_sym("NtoM"));
-            cats.push(VVal::new_sym("Signal"));
-            cats.push(VVal::new_sym("Ctrl"));
-            cats.push(VVal::new_sym("IOUtil"));
-            Ok(cats)
-        }, Some(0), Some(0), false);
-
-    st.fun(
-        "ui_category_node_id_map", move |env: &mut Env, argc: usize| {
-            let m = VVal::map();
-
-            for cat in [
-                UICategory::Osc,
-                UICategory::Mod,
-                UICategory::NtoM,
-                UICategory::Signal,
-                UICategory::Ctrl,
-                UICategory::IOUtil
-            ]
-            {
-                let v = VVal::vec();
-                cat.get_node_ids(0, |nid| { v.push(node_id2vv(nid)); });
-                m.set_key_str(ui_category2str(cat), v);
-            }
-
-            Ok(m)
-        }, Some(0), Some(0), false);
-
-    st.fun(
-        "ui_category", move |env: &mut Env, argc: usize| {
-            let nid = vv2node_id(&env.arg(0));
-            Ok(VVal::new_sym(ui_category2str(nid.ui_category())))
-        }, Some(1), Some(1), false);
-
-    st.fun(
-        "instance", move |env: &mut Env, argc: usize| {
-            Ok(VVal::Int(vv2node_id(&env.arg(0)).instance() as i64))
-        }, Some(1), Some(1), false);
-
-    st.fun(
-        "name", move |env: &mut Env, argc: usize| {
-            Ok(VVal::new_str(vv2node_id(&env.arg(0)).name()))
-        }, Some(1), Some(1), false);
-
-    st.fun(
-        "label", move |env: &mut Env, argc: usize| {
-            Ok(VVal::new_str(vv2node_id(&env.arg(0)).label()))
-        }, Some(1), Some(1), false);
-
-    let mut info_map : std::collections::HashMap<String, VVal> =
-        std::collections::HashMap::new();
-
-    for nid in hexodsp::dsp::ALL_NODE_IDS.iter() {
-        info_map.insert(
-            nid.name().to_string(),
-            VVal::new_usr(VValNodeInfo::new(*nid)));
-    }
-
-    st.fun(
-        "info", move |env: &mut Env, argc: usize| {
-            let nid = vv2node_id(&env.arg(0));
-            Ok(info_map.get(nid.name()).map_or(VVal::None, |v| v.clone()))
-        }, Some(1), Some(1), false);
-
-    st.fun(
-        "eq_variant", move |env: &mut Env, argc: usize| {
-            Ok(VVal::Bol(
-                            vv2node_id(&env.arg(0))
-                .eq_variant(&vv2node_id(&env.arg(1)))))
-        }, Some(2), Some(2), false);
-
-    st.fun(
-        "param_by_idx", move |env: &mut Env, argc: usize| {
-            let nid = vv2node_id(&env.arg(0));
-            let param = nid.param_by_idx(env.arg(1).i() as usize);
-
-            Ok(param.map_or(VVal::None,
-                |param| VVal::new_usr(VValParamId { param })))
-        }, Some(2), Some(2), false);
-
-    st.fun(
-        "inp_param", move |env: &mut Env, argc: usize| {
-            let nid = vv2node_id(&env.arg(0));
-            let param = env.arg(1).with_s_ref(|s| nid.inp_param(s));
-
-            Ok(param.map_or(VVal::None,
-                |param| VVal::new_usr(VValParamId { param })))
-        }, Some(2), Some(2), false);
-
-    st.fun(
-        "param_list", move |env: &mut Env, argc: usize| {
-            let nid = vv2node_id(&env.arg(0));
-
-            let atoms = VVal::vec();
-            let mut i = 0;
-            while let Some(param) = nid.atom_param_by_idx(i) {
-                atoms.push(VVal::new_usr(VValParamId { param }));
-                i += 1;
-            }
-
-            let inputs = VVal::vec();
-            let mut i = 0;
-            while let Some(param) = nid.inp_param_by_idx(i) {
-                inputs.push(VVal::new_usr(VValParamId { param }));
-                i += 1;
-            }
-
-            Ok(VVal::map2(
-                "atoms",  atoms,
-                "inputs", inputs,
-            ))
-        }, Some(1), Some(1), false);
-
-    st.fun(
-        "out_list", move |env: &mut Env, argc: usize| {
-            let nid = vv2node_id(&env.arg(0));
-
-            let outputs = VVal::vec();
-            let mut i = 0;
-            while let Some(name) = nid.out_name_by_idx(i) {
-                outputs.push(VVal::pair(
-                    VVal::Int(i as i64),
-                    VVal::new_str(name)));
-                i += 1;
-            }
-
-            Ok(outputs)
-        }, Some(1), Some(1), false);
-
-    st.fun(
-        "inp_name2idx", move |env: &mut Env, argc: usize| {
-            let nid   = vv2node_id(&env.arg(0));
-            let idx = env.arg(1).with_s_ref(|s| nid.inp(s));
-            Ok(idx.map_or(VVal::None, |idx| VVal::Int(idx as i64)))
-        }, Some(2), Some(2), false);
-
-    st.fun(
-        "out_name2idx", move |env: &mut Env, argc: usize| {
-            let nid   = vv2node_id(&env.arg(0));
-            let idx = env.arg(1).with_s_ref(|s| nid.out(s));
-            Ok(idx.map_or(VVal::None, |idx| VVal::Int(idx as i64)))
-        }, Some(2), Some(2), false);
-
-    st.fun(
-        "inp_idx2name", move |env: &mut Env, argc: usize| {
-            let nid = vv2node_id(&env.arg(0));
-            let name = nid.inp_name_by_idx(env.arg(1).i() as u8);
-            Ok(name.map_or(VVal::None, |name| VVal::new_str(name)))
-        }, Some(2), Some(2), false);
-
-    st.fun(
-        "out_idx2name", move |env: &mut Env, argc: usize| {
-            let nid  = vv2node_id(&env.arg(0));
-            let name = nid.out_name_by_idx(env.arg(1).i() as u8);
-            Ok(name.map_or(VVal::None, |name| VVal::new_str(name)))
-        }, Some(2), Some(2), false);
-
-    st
-}
-
 #[macro_export]
 macro_rules! set_modfun {
     ($st: expr, $ref: ident, $fun: tt, $min: expr, $max: expr, $env: ident, $argc: ident, $b: block) => {
@@ -1976,7 +1572,7 @@ fn setup_hx_module(matrix: Arc<Mutex<Matrix>>) -> wlambda::SymbolTable {
 
     st.fun(
         "to_atom", move |env: &mut Env, argc: usize| {
-            Ok(VVal::new_usr(VValAtom::new(vv2atom(env.arg(0)))))
+            Ok(atom2vv(vv2atom(env.arg(0))))
         }, Some(1), Some(1), false);
 
     st.fun(
@@ -2083,7 +1679,7 @@ impl MatrixObserver for MatrixRecorder {
             changes.push(
                 VVal::pair(
                     VVal::new_sym("matrix_param"),
-                    VVal::new_usr(VValParamId { param: param_id.clone() })));
+                    param_id2vv(param_id.clone())));
         }
     }
 
@@ -2111,7 +1707,7 @@ fn main() {
 
         let global_env = wlambda::GlobalEnv::new_default();
         global_env.borrow_mut().set_module("hx",        setup_hx_module(matrix));
-        global_env.borrow_mut().set_module("node_id",   setup_node_id_module());
+        global_env.borrow_mut().set_module("node_id",   wlapi::setup_node_id_module());
 
         let mut wl_ctx  = wlambda::EvalContext::new(global_env.clone());
         let wl_ctx      = Rc::new(RefCell::new(wl_ctx));
