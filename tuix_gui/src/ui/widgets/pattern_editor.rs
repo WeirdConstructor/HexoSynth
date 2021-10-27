@@ -2,15 +2,13 @@
 // This file is a part of HexoDSP. Released under GPL-3.0-or-later.
 // See README.md and COPYING for details.
 
+use crate::ui::*;
+
 use tuix::*;
 use femtovg::FontId;
 
 pub use hexodsp::dsp::tracker::UIPatternModel;
 pub use hexodsp::dsp::tracker::PatternData;
-
-use crate::hexo_consts::*;
-use crate::rect::*;
-use crate::painter::FemtovgPainter;
 
 use std::sync::{Arc, Mutex};
 

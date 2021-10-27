@@ -2,6 +2,21 @@
 // This file is a part of HexoDSP. Released under GPL-3.0-or-later.
 // See README.md and COPYING for details.
 
+mod connector;
+mod cv_array;
+mod hexgrid;
+mod hexknob;
+mod octave_keys;
+mod pattern_editor;
+
+pub use connector::*;
+pub use cv_array::*;
+pub use hexgrid::*;
+pub use hexknob::*;
+pub use octave_keys::*;
+pub use pattern_editor::*;
+
+#[macro_export]
 macro_rules! hxclr {
     ($i: expr) => {
         (
@@ -58,20 +73,3 @@ pub const UI_HLIGHT2_CLR          : (f32, f32, f32) = hxclr!(0xbcf9cd); // b5c41
 pub const UI_SELECT_CLR           : (f32, f32, f32) = hxclr!(0xd73988); // 0xdc1821);
 pub const UI_INACTIVE_CLR         : (f32, f32, f32) = hxclr!(0x6f8782);
 pub const UI_INACTIVE2_CLR        : (f32, f32, f32) = hxclr!(0xa6dbd0);
-
-//#[derive(Debug, Clone, Copy)]
-//pub enum MButton {
-//    Left,
-//    Right,
-//    Middle
-//}
-//
-//impl From<tuix::MouseButton> for MButton {
-//    fn from(btn: tuix::MouseButton) -> Self {
-//        match btn {
-//            tuix::MouseButton::Right    => MButton::Right,
-//            tuix::MouseButton::Middle   => MButton::Middle,
-//            tuix::MouseButton::Left | _ => MButton::Left,
-//        }
-//    }
-//}

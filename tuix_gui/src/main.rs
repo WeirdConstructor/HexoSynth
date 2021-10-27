@@ -8,29 +8,17 @@ use tuix::*;
 #[allow(warnings)]
 use tuix::widgets::*;
 
-mod hexknob;
 #[allow(dead_code)]
-mod hexo_consts;
-mod painter;
-mod hexgrid;
-mod rect;
-mod pattern_editor;
+mod ui;
+#[allow(dead_code)]
 mod cluster;
 mod matrix_param_model;
-mod octave_keys;
-mod cv_array;
-mod connector;
 mod wlapi;
 
 mod jack;
 mod synth;
 
-use hexgrid::HexGrid;
-use hexknob::HexKnob;
-use pattern_editor::PatternEditor;
-use octave_keys::OctaveKeys;
-use cv_array::CvArray;
-use connector::Connector;
+use ui::*;
 
 use wlapi::{
     atom2vv, vv2atom,
@@ -120,7 +108,7 @@ fn vv2event(event: &VVal) -> Event {
             => Event::new(PopupEvent::Close),
         "connector:set_connection" => {
             Event::new(
-                connector::ConMessage::SetConnection(
+                ConMessage::SetConnection(
                     if event.v_(1).is_none() {
                         None
                     } else {
@@ -145,14 +133,14 @@ fn vv2event(event: &VVal) -> Event {
                 }
             });
 
-            Event::new(connector::ConMessage::SetItems(Box::new((vin, vout))))
+            Event::new(ConMessage::SetItems(Box::new((vin, vout))))
         },
         "octave_keys:set_mask"
             => Event::new(
-                octave_keys::OctaveKeysMessage::SetMask(event.v_i(1))),
+                OctaveKeysMessage::SetMask(event.v_i(1))),
         "cv_array:set_array" => {
             if let Some(ar) = vv2sample_buf(event.v_(1)) {
-                Event::new(cv_array::CvArrayMessage::SetArray(ar.clone()))
+                Event::new(CvArrayMessage::SetArray(ar.clone()))
             } else {
                 eprintln!("Bad Event Type sent: {}, bad array arg!", event.s());
                 Event::new(WindowEvent::Redraw)
@@ -160,7 +148,7 @@ fn vv2event(event: &VVal) -> Event {
         },
         "hexknob:set_model" => {
             if let Some(model) = vv2hex_knob_model(event.v_(1)) {
-                Event::new(hexknob::HexKnobMessage::SetModel(model))
+                Event::new(HexKnobMessage::SetModel(model))
             } else {
                 eprintln!("Bad Event Type sent: {}, bad model arg!", event.s());
                 Event::new(WindowEvent::Redraw)
@@ -168,7 +156,7 @@ fn vv2event(event: &VVal) -> Event {
         },
         "hexgrid:set_model" => {
             if let Some(model) = vv2hex_grid_model(event.v_(1)) {
-                Event::new(hexgrid::HexGridMessage::SetModel(model))
+                Event::new(HexGridMessage::SetModel(model))
             } else {
                 eprintln!("Bad Event Type sent: {}, bad model arg!", event.s());
                 Event::new(WindowEvent::Redraw)
@@ -915,7 +903,7 @@ fn setup_hx_module(matrix: Arc<Mutex<Matrix>>) -> wlambda::SymbolTable {
 
     st.set(
         "hexo_consts_rs",
-        VVal::new_str(std::include_str!("hexo_consts.rs")));
+        VVal::new_str(std::include_str!("ui/widgets/mod.rs")));
 
     st.fun(
         "get_main_matrix_handle", move |_env: &mut Env, _argc: usize| {
@@ -1034,11 +1022,11 @@ fn main() {
 
                     state.add_font_mem(
                         "font_serif",
-                        std::include_bytes!("font.ttf"));
+                        std::include_bytes!("ui/widgets/font.ttf"));
 
                     state.add_font_mem(
                         "font_mono",
-                        std::include_bytes!("font_mono.ttf"));
+                        std::include_bytes!("ui/widgets/font_mono.ttf"));
 
                     state.set_default_font("font_serif");
 

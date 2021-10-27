@@ -4,7 +4,7 @@
 
 use wlambda::*;
 use crate::arg_chk;
-use crate::hexgrid::{HexGridModel, HexCell, HexDir, HexEdge, HexHLight};
+use crate::ui::{HexGridModel, HexCell, HexDir, HexEdge, HexHLight};
 
 use hexodsp::{Matrix, NodeId, SAtom};
 

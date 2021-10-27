@@ -6,7 +6,7 @@ use crate::arg_chk;
 use crate::wl_panic;
 
 use crate::wlapi::*;
-use crate::hexknob::{DummyParamModel};
+use crate::ui::{DummyParamModel};
 
 use crate::matrix_param_model::KnobParam;
 

@@ -2,9 +2,7 @@
 // This file is a part of HexoDSP. Released under GPL-3.0-or-later.
 // See README.md and COPYING for details.
 
-use crate::hexo_consts::*;
-use crate::rect::*;
-use crate::painter::{FemtovgPainter, calc_font_size_from_text};
+use crate::ui::*;
 
 use tuix::*;
 use femtovg::FontId;

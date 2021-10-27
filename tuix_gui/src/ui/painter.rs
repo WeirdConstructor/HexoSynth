@@ -2,14 +2,14 @@
 // This file is a part of HexoTK. Released under GPL-3.0-or-later.
 // See README.md and COPYING for details.
 
+use super::Rect;
+
 use femtovg::{
     renderer::OpenGl,
     Canvas,
     FontId,
     Color,
 };
-
-use crate::rect::Rect;
 
 pub struct FemtovgPainter<'a> {
     pub canvas:     &'a mut Canvas<OpenGl>,

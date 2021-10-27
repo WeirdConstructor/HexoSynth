@@ -2,7 +2,7 @@
 // This file is a part of HexoSynth. Released under GPL-3.0-or-later.
 // See README.md and COPYING for details.
 
-use crate::hexknob::{ParamModel, ChangeRes};
+use crate::ui::{ParamModel, ChangeRes};
 
 use hexodsp::{Matrix, ParamId, NodeInfo};
 

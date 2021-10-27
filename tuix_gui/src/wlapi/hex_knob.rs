@@ -3,7 +3,7 @@
 // See README.md and COPYING for details.
 
 use wlambda::*;
-use crate::hexknob::{ParamModel};
+use crate::ui::{ParamModel};
 use std::rc::Rc;
 use std::cell::RefCell;
 

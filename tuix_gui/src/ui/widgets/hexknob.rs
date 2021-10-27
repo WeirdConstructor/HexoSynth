@@ -2,9 +2,7 @@
 // This file is a part of HexoSynth. Released under GPL-3.0-or-later.
 // See README.md and COPYING for details.
 
-use crate::hexo_consts::*;
-use crate::rect::*;
-use crate::painter::FemtovgPainter;
+use crate::ui::*;
 
 use tuix::*;
 use tuix::widgets::*;
