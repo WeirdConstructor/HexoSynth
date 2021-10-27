@@ -307,6 +307,8 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
 
             !a_empty = u:cell_is_empty cell_a;
             !b_empty = u:cell_is_empty cell_b;
+            !both_empty = a_empty &and b_empty;
+            !any_empty  = a_empty &or b_empty;
 
             if is_some[adj_dir] {
                 if btn == :left {
@@ -316,13 +318,7 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
                         .(cell_in, cell_out) = $p(cell_out, cell_in);
                     };
 
-                    if      cell_out.node_id.0 != "nop"
-                       &and cell_in.node_id.0  != "nop" {
-
-                        std:displayln "DRAG ADJ:"
-                            adj_dir.is_output[]
-                            cell_out
-                            cell_in;
+                    if not[any_empty] {
                         wid_connect:connect cell_out cell_in;
                         return $n;
                     }
@@ -331,22 +327,14 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
                 };
             };
 
-            std:displayln "BTN" btn a_empty b_empty cell_a.node_id cell_b.node_id;
             match btn
                 :left => {
-                    if a_empty {
-                        std:displayln "COPY CELL";
-                        STATE.copy_cell pos pos2;
-                    } {
-                        STATE.move_cluster pos pos2;
-                    };
+                    if a_empty { STATE.copy_cell pos pos2; }
+                               { STATE.move_cluster pos pos2; };
                 }
                 :right => {
-                    if a_empty {
-                        STATE.clone_instance_cell pos pos2;
-                    } {
-                        STATE.move_cell pos pos2;
-                    };
+                    if a_empty { STATE.clone_instance_cell pos pos2; }
+                               { STATE.move_cell pos pos2; };
                 };
         },
     };
