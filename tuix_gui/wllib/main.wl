@@ -7,6 +7,7 @@
 !@import wpp;
 !@import vizia;
 !@import observable;
+!@import u util;
 
 !@import wid_params   = params_widget;
 !@import wid_settings = settings_widget;
@@ -222,6 +223,32 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
                 };
             };
         },
+        copy_cell = {!(pos_a, pos_b) = @;
+            checked_matrix_change $data.m {!(matrix) = @;
+                !cell = matrix.get pos_b;
+                matrix.set pos_a cell;
+            };
+        },
+        clone_instance_cell = {!(pos_a, pos_b) = @;
+            !cell = $data.m.get pos_b;
+            if not[u:cell_is_empty cell] {
+                !new_node_id =
+                    $data.m.get_unused_instance_node_id cell.node_id;
+                $data.m.set pos_a ${ node_id = new_node_id };
+                unwrap ~ $data.m.sync[];
+            };
+        },
+        clear_cell = {!(pos) = @;
+                $data.m.set pos ${ node_id = :nop => 0 };
+                unwrap ~ $data.m.sync[];
+        },
+        move_cell = {!(pos_a, pos_b) = @;
+            checked_matrix_change $data.m {!(matrix) = @;
+                !cell = matrix.get pos_a;
+                matrix.set pos_b cell;
+                matrix.set pos_a ${ node_id = :nop => 0 };
+            };
+        },
         move_cluster = {!(pos_a, pos_b) = @;
             !cluster = hx:new_cluster[];
             cluster.add_cluster_at $data.m pos_a;
@@ -269,31 +296,21 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
                     };
                 }
                 :right => {
-                    !cluster = hx:new_cluster[];
-                    cluster.add_cluster_at matrix pos;
-                    std:displayln cluster.cell_list[];
-
-                    checked_matrix_change matrix {!(matrix) = @;
-                        cluster.remove_cells matrix;
-                        _? :err ~ cluster.move_cluster_cells_dir_path $[:B];
-                        _? :err ~ cluster.place matrix;
-                    };
-
-                    !d = hx:dir :T;
-                    !d2 = d.flip[];
-                    std:displayln
-                        d d2
-                        d.is_input[] d2.is_input[]
-                        d2.as_edge[];
+                    STATE.clear_cell pos;
                 };
         },
         on_cell_drag = {!(pos, pos2, btn) = @;
             !adj_dir = hx:pos_are_adjacent pos pos2;
 
+            !cell_a = matrix.get pos;
+            !cell_b = matrix.get pos2;
+
+            !a_empty = u:cell_is_empty cell_a;
+            !b_empty = u:cell_is_empty cell_b;
+
             if is_some[adj_dir] {
                 if btn == :left {
-                    !cell_out = matrix.get pos;
-                    !cell_in  = matrix.get pos2;
+                    !(cell_out, cell_in) = $p(cell_a, cell_b);
 
                     if adj_dir.is_input[] {
                         .(cell_in, cell_out) = $p(cell_out, cell_in);
@@ -314,9 +331,23 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
                 };
             };
 
-            if btn == :left {
-                STATE.move_cluster pos pos2;
-            };
+            std:displayln "BTN" btn a_empty b_empty cell_a.node_id cell_b.node_id;
+            match btn
+                :left => {
+                    if a_empty {
+                        std:displayln "COPY CELL";
+                        STATE.copy_cell pos pos2;
+                    } {
+                        STATE.move_cluster pos pos2;
+                    };
+                }
+                :right => {
+                    if a_empty {
+                        STATE.clone_instance_cell pos pos2;
+                    } {
+                        STATE.move_cell pos pos2;
+                    };
+                };
         },
     };
 
