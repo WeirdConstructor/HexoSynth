@@ -6,12 +6,14 @@ pub mod node_info;
 pub mod param;
 pub mod atom;
 pub mod matrix;
+pub mod matrix_recorder;
 pub mod grid_model;
 
 pub use node_info::*;
 pub use param::*;
 pub use atom::*;
 pub use matrix::*;
+pub use matrix_recorder::*;
 pub use grid_model::*;
 
 use wlambda::*;

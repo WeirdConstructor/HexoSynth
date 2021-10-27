@@ -33,19 +33,17 @@ use cv_array::CvArray;
 use connector::Connector;
 
 use wlapi::{
-    param_id2vv,
     atom2vv, vv2atom,
     vv2hex_knob_model, vv2hex_grid_model,
     matrix2vv,
     VValCluster,
     VValCellDir,
     cell_dir2vv,
-    cell2vval,
     new_test_grid_model,
+    MatrixRecorder,
 };
 
-use hexodsp::{Matrix, ParamId, Cell, CellDir};
-use hexodsp::matrix::{MatrixObserver};
+use hexodsp::{Matrix, CellDir};
 
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -998,80 +996,6 @@ fn setup_hx_module(matrix: Arc<Mutex<Matrix>>) -> wlambda::SymbolTable {
         }, Some(0), Some(0), false);
 
     st
-}
-
-struct MatrixRecorder {
-    changes: Mutex<Vec<VVal>>,
-}
-
-impl MatrixRecorder {
-    pub fn new() -> Self {
-        Self {
-            changes: Mutex::new(vec![]),
-        }
-    }
-
-    pub fn get_records(&self) -> VVal {
-        if let Ok(mut changes) = self.changes.lock() {
-
-            if changes.is_empty() {
-                VVal::None
-
-            } else {
-                let vec = VVal::vec();
-                for c in changes.iter() {
-                    vec.push(c.clone());
-                }
-                changes.clear();
-                vec
-            }
-        } else {
-            VVal::None
-        }
-    }
-}
-
-impl MatrixObserver for MatrixRecorder {
-    fn update_prop(&self, key: &str) {
-        if let Ok(mut changes) = self.changes.lock() {
-            changes.push(
-                VVal::pair(
-                    VVal::new_sym("matrix_property"),
-                    VVal::new_str(key)));
-        }
-    }
-
-    fn update_monitor(&self, cell: &Cell) {
-        if let Ok(mut changes) = self.changes.lock() {
-            changes.push(
-                VVal::pair(
-                    VVal::new_sym("matrix_monitor"),
-                    cell2vval(cell)));
-        }
-    }
-
-    fn update_param(&self, param_id: &ParamId) {
-        if let Ok(mut changes) = self.changes.lock() {
-            changes.push(
-                VVal::pair(
-                    VVal::new_sym("matrix_param"),
-                    param_id2vv(param_id.clone())));
-        }
-    }
-
-    fn update_matrix(&self) {
-        if let Ok(mut changes) = self.changes.lock() {
-            changes.push(
-                VVal::pair(VVal::new_sym("matrix_graph"), VVal::None));
-        }
-    }
-
-    fn update_all(&self) {
-        if let Ok(mut changes) = self.changes.lock() {
-            changes.push(
-                VVal::pair(VVal::new_sym("matrix_all"), VVal::None));
-        }
-    }
 }
 
 fn main() {
