@@ -10,6 +10,7 @@ pub struct Rect {
     pub h: f32,
 }
 
+#[allow(dead_code)]
 impl Rect {
     pub fn from_tpl(t: (f32, f32, f32, f32)) -> Self {
         Self { x: t.0, y: t.1, w: t.2, h: t.3 }

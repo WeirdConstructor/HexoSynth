@@ -8,7 +8,6 @@ use femtovg::FontId;
 use std::rc::Rc;
 use std::cell::RefCell;
 
-pub const UI_GRPH_BORDER          : f32 = 2.0;
 pub const UI_GRPH_BORDER_CLR      : (f32, f32, f32) = UI_ACCENT_CLR;
 pub const UI_GRPH_BORDER_HOVER_CLR: (f32, f32, f32) = UI_HLIGHT_CLR;
 pub const UI_GRPH_LINE_CLR        : (f32, f32, f32) = UI_PRIM_CLR;

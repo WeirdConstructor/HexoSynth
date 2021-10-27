@@ -8,10 +8,7 @@ use femtovg::FontId;
 use std::sync::{Arc, Mutex};
 
 pub const UI_CON_BORDER_CLR      : (f32, f32, f32) = UI_ACCENT_CLR;
-pub const UI_CON_BORDER_HOVER_CLR: (f32, f32, f32) = UI_HLIGHT_CLR;
 pub const UI_CON_HOV_CLR         : (f32, f32, f32) = UI_HLIGHT_CLR;
-pub const UI_CON_PHASE_CLR       : (f32, f32, f32) = UI_ACCENT_DARK_CLR;
-pub const UI_CON_PHASE_BG_CLR    : (f32, f32, f32) = UI_HLIGHT2_CLR;
 pub const UI_CON_BG              : (f32, f32, f32) = UI_LBL_BG_CLR;
 pub const UI_CON_BORDER_W        : f32             = 2.0;
 
@@ -28,9 +25,6 @@ pub struct Connector {
     items:          Box<(Vec<(String, bool)>, Vec<(String, bool)>)>,
     con:            Option<(usize, usize)>,
 
-    active_areas:   Vec<Rect>,
-
-    xcol:           f32,
     yrow:           f32,
     hover_idx:      Option<(bool, usize)>,
     drag_src_idx:   Option<(bool, usize)>,
@@ -49,9 +43,6 @@ impl Connector {
             items:          Box::new((vec![], vec![])),
             con:            None,
 
-            active_areas:   vec![],
-
-            xcol:           0.0,
             yrow:           0.0,
             hover_idx:      None,
             drag_src_idx:   None,
@@ -280,7 +271,6 @@ impl Widget for Connector {
         let yrow = ((pos.h - 2.0 * UI_CON_BORDER_W) / (row_h as f32)).floor();
         let xcol = ((pos.w - 2.0 * UI_CON_BORDER_W) / 3.0).floor();
 
-        self.xcol = xcol;
         self.yrow = yrow;
 
         let new_w = xcol * 3.0;

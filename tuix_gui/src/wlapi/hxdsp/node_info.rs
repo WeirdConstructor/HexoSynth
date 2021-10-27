@@ -36,7 +36,7 @@ impl vval::VValUserData for VValNodeInfo {
     fn call_method(&self, key: &str, env: &mut Env)
         -> Result<VVal, StackAction>
     {
-        let args = env.argv_ref();
+//        let args = env.argv_ref();
 
         match key {
 //            "add_cluster_at" => {

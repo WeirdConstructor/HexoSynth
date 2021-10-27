@@ -51,12 +51,12 @@ pub const UI_GRID_TXT_CENTER_CLR    : (f32, f32, f32) = UI_PRIM_CLR;
 pub const UI_GRID_TXT_CENTER_HL_CLR : (f32, f32, f32) = UI_HLIGHT_CLR;
 pub const UI_GRID_TXT_CENTER_SL_CLR : (f32, f32, f32) = UI_SELECT_CLR;
 pub const UI_GRID_TXT_EDGE_CLR      : (f32, f32, f32) = UI_PRIM_CLR;
-pub const UI_GRID_CELL_BORDER_CLR   : (f32, f32, f32) = UI_ACCENT_CLR;
+//pub const UI_GRID_CELL_BORDER_CLR   : (f32, f32, f32) = UI_ACCENT_CLR;
 pub const UI_GRID_EMPTY_BORDER_CLR  : (f32, f32, f32) = UI_ACCENT_DARK_CLR;
 pub const UI_GRID_HOVER_BORDER_CLR  : (f32, f32, f32) = UI_SELECT_CLR;
 pub const UI_GRID_DRAG_BORDER_CLR   : (f32, f32, f32) = UI_HLIGHT_CLR;
 pub const UI_GRID_BG1_CLR           : (f32, f32, f32) = UI_ACCENT_BG1_CLR;
-pub const UI_GRID_BG2_CLR           : (f32, f32, f32) = UI_ACCENT_BG2_CLR;
+//pub const UI_GRID_BG2_CLR           : (f32, f32, f32) = UI_ACCENT_BG2_CLR;
 pub const UI_GRID_SIGNAL_OUT_CLR    : (f32, f32, f32) = UI_HLIGHT_CLR;
 pub const UI_GRID_LED_CLR           : (f32, f32, f32) = UI_PRIM_CLR;
 pub const UI_GRID_LED_R             : f32             = 5.0;
@@ -116,6 +116,7 @@ impl From<CellDir> for HexDir {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub enum HexEdge {
     NoArrow,
@@ -123,6 +124,7 @@ pub enum HexEdge {
     ArrowValue { value: (f32, f32) },
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub enum HexHLight {
     Normal,
@@ -174,76 +176,8 @@ impl HexGridModel for EmptyHexGridModel {
 //    fn cell_drag(&mut self, x: usize, y: usize, x2: usize, y2: usize, btn: MButton) { }
 }
 
-
-#[derive(Debug, Clone)]
-pub struct HexGridOld {
-    center_font_size: f32,
-    edge_font_size:   f32,
-    bg_color:         (f32, f32, f32),
-    y_offs:           bool,
-    transformable:    bool,
-    cell_size:        f32,
-}
-
-impl HexGridOld {
-    pub fn new(center_font_size: f32, edge_font_size: f32, cell_size: f32) -> Self {
-        Self {
-            center_font_size,
-            edge_font_size,
-            bg_color:   UI_GRID_BG1_CLR,
-            y_offs:     false,
-            transformable: true,
-            cell_size,
-        }
-    }
-
-    pub fn new_y_offs_pinned(center_font_size: f32, edge_font_size: f32, cell_size: f32) -> Self {
-        Self {
-            center_font_size,
-            edge_font_size,
-            bg_color:       UI_GRID_BG1_CLR,
-            y_offs:         true,
-            transformable:  false,
-            cell_size,
-        }
-    }
-
-    pub fn bg_color(mut self, clr: (f32, f32, f32)) -> Self {
-        self.bg_color = clr;
-        self
-    }
-}
-
-#[derive(Clone)]
-pub struct HexGridData {
-    model:          Rc<dyn HexGridModel>,
-    last_hover_pos: (usize, usize),
-//    hex_trans:      HexGridTransform,
-}
-
-impl HexGridData {
-    pub fn new(model: Rc<dyn HexGridModel>) -> Box<Self> {
-        Box::new(Self {
-            model,
-            last_hover_pos: (0, 0),
-            // hex_trans: HexGridTransform::new()
-        })
-    }
-}
-
 fn hex_size2wh(size: f32) -> (f32, f32) {
     (2.0_f32 * size, (3.0_f32).sqrt() * size)
-}
-
-fn hex_at_is_inside(x: f32, y: f32, w: f32, h: f32, pos: Rect) -> bool {
-    let aabb = Rect {
-        x: x - 0.5 * w,
-        y: y - 0.5 * h,
-        w,
-        h,
-    };
-
-    pos.aabb_is_inside(aabb)
 }
 
 enum HexDecorPos {

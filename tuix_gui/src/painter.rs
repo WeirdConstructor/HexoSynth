@@ -131,6 +131,7 @@ impl<'a> FemtovgPainter<'a> {
         self.canvas.restore();
     }
 
+    #[allow(dead_code)]
     pub fn path_stroke_rot(&mut self, width: f32, color: (f32, f32, f32),
                        rot: f32, x: f32, y: f32, xo: f32, yo: f32,
                        segments: &mut dyn std::iter::Iterator<Item = (f32, f32)>,
@@ -200,6 +201,7 @@ impl<'a> FemtovgPainter<'a> {
         self.canvas.stroke_path(&mut p, paint);
     }
 
+    #[allow(dead_code)]
     pub fn rect_stroke_r(&mut self, width: f32, color: (f32, f32, f32), rect: Rect) {
         self.rect_stroke(width, color, rect.x, rect.y, rect.w, rect.h)
     }

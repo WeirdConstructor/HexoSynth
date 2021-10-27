@@ -9,6 +9,7 @@ use tuix::*;
 use tuix::widgets::*;
 
 mod hexknob;
+#[allow(dead_code)]
 mod hexo_consts;
 mod painter;
 mod hexgrid;
@@ -47,7 +48,7 @@ use std::cell::RefCell;
 use std::sync::{Arc, Mutex};
 
 #[derive(Debug)]
-enum GUIAction {
+pub enum GUIAction {
     NewElem(i64, i64, VVal),
     NewLabel(i64, i64, String, VVal),
     NewTextArea(i64, i64, VVal),
@@ -201,6 +202,13 @@ fn vv2units(v: &VVal) -> Units {
         })
 }
 
+fn set_vv_prop(state: &mut State, ent: Entity, prop: &str, v: VVal) {
+    match &prop[..] {
+        "height" => { ent.set_height(state, vv2units(&v)); },
+        _ => {},
+    }
+}
+
 fn vvbuilder<'a, T>(mut builder: Builder<'a, T>, build_attribs: &VVal)
     -> Builder<'a, T>
 {
@@ -212,7 +220,11 @@ fn vvbuilder<'a, T>(mut builder: Builder<'a, T>, build_attribs: &VVal)
         attribs.push((key.to_string(), val.clone()));
     });
 
+
     for (k, v) in attribs {
+        let ent = builder.entity();
+        set_vv_prop(builder.state(), ent, &k[..], v.clone());
+
         builder =
             match &k[..] {
                 "class" => {
@@ -1296,7 +1308,6 @@ impl GUIActionRecorder {
                         }
                     }
 
-                    let mut removed_ids : Vec<Entity> = vec![];
                     for dead_child in removed_entities {
                         let mut remove_idx = None;
 
@@ -1709,18 +1720,18 @@ fn main() {
         global_env.borrow_mut().set_module("hx",        setup_hx_module(matrix));
         global_env.borrow_mut().set_module("node_id",   wlapi::setup_node_id_module());
 
-        let mut wl_ctx  = wlambda::EvalContext::new(global_env.clone());
+        let wl_ctx      = wlambda::EvalContext::new(global_env.clone());
         let wl_ctx      = Rc::new(RefCell::new(wl_ctx));
         let wl_ctx_idle = wl_ctx.clone();
 
         let mut idle_cb = VVal::None;
 
-        let gui_rec = GUIActionRecorder::new();
+        let gui_rec      = GUIActionRecorder::new();
         let gui_rec_idle = gui_rec.clone();
 
-        let mut root_entity = Rc::new(RefCell::new(Entity::null()));
+        let root_entity = Rc::new(RefCell::new(Entity::null()));
 
-        let mut app =
+        let app =
             Application::new(
                 WindowDescription::new().with_inner_size(900, 760),
                 |state, window| {

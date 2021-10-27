@@ -18,19 +18,13 @@ pub const UI_BG_KNOB_STROKE       : f32 = 8.0;
 pub const UI_BG_KNOB_STROKE_CLR   : (f32, f32, f32) = UI_LBL_BG_CLR;
 pub const UI_MG_KNOB_STROKE_CLR   : (f32, f32, f32) = UI_ACCENT_CLR;
 pub const UI_FG_KNOB_STROKE_CLR   : (f32, f32, f32) = UI_PRIM_CLR;
-pub const UI_MG_KNOB_STROKE_HV_CLR: (f32, f32, f32) = UI_ACCENT_DARK_CLR;
-pub const UI_FG_KNOB_STROKE_HV_CLR: (f32, f32, f32) = UI_PRIM2_CLR;
+//pub const UI_MG_KNOB_STROKE_HV_CLR: (f32, f32, f32) = UI_ACCENT_DARK_CLR;
+//pub const UI_FG_KNOB_STROKE_HV_CLR: (f32, f32, f32) = UI_PRIM2_CLR;
 pub const UI_FG_KNOB_MODPOS_CLR   : (f32, f32, f32) = UI_HLIGHT_CLR;
 pub const UI_FG_KNOB_MODNEG_CLR   : (f32, f32, f32) = UI_SELECT_CLR;
 pub const UI_TXT_KNOB_CLR         : (f32, f32, f32) = UI_PRIM_CLR;
 pub const UI_TXT_KNOB_HOVER_CLR   : (f32, f32, f32) = UI_HLIGHT_CLR;
-pub const UI_TXT_KNOB_MOD_CLR     : (f32, f32, f32) = UI_HLIGHT2_CLR;
-pub const UI_GUI_BG_CLR           : (f32, f32, f32) = UI_BG_CLR;
-pub const UI_GUI_CLEAR_CLR        : (f32, f32, f32) = UI_LBL_BG_CLR;
-pub const UI_BORDER_WIDTH         : f32 = 2.0;
-pub const UI_KNOB_RADIUS          : f32 = 25.0;
-pub const UI_KNOB_SMALL_RADIUS    : f32 = 14.0;
-pub const UI_KNOB_FONT_SIZE       : f32 = 11.0;
+//pub const UI_TXT_KNOB_MOD_CLR     : (f32, f32, f32) = UI_HLIGHT2_CLR;
 
 fn circle_point(r: f32, angle: f32) -> (f32, f32) {
     let (y, x) = angle.sin_cos();
@@ -108,11 +102,6 @@ impl Knob {
         }
     }
 
-    pub fn get_center_offset(&self, line_width: f32) -> (f32, f32) {
-        ((self.get_label_rect().2 / 2.0).ceil() + UI_SAFETY_PAD,
-         self.radius + (line_width / 2.0).ceil() + UI_SAFETY_PAD)
-    }
-
     pub fn get_fine_adjustment_mark(&self) -> (f32, f32, f32, f32) {
         let mut r = self.get_fine_adjustment_rect();
         r.1 = (r.1 - self.line_height * 0.5).round();
@@ -130,14 +119,6 @@ impl Knob {
 
     pub fn get_fine_adjustment_rect(&self) -> (f32, f32, f32, f32) {
         self.get_label_rect()
-    }
-
-    pub fn get_coarse_adjustment_rect(&self) -> (f32, f32, f32, f32) {
-        let width = self.radius * 2.0;
-        ((self.sbottom.0 - self.radius).round(),
-         -self.radius,
-         width.round(),
-         (self.radius * 2.0).round())
     }
 
     pub fn get_value_rect(&self, double: bool) -> (f32, f32, f32, f32) {
@@ -524,7 +505,7 @@ impl ParamModel for DummyParamModel {
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd)]
-enum HexKnobZone {
+pub enum HexKnobZone {
     Coarse,
     Fine,
 }
@@ -551,8 +532,6 @@ struct HexValueDrag {
     res:            ChangeRes,
     /// What is actually changed is the modulation amount.
     is_modamt:      bool,
-    /// Mouse button:
-    btn:            MouseButton,
 }
 
 impl HexValueDrag {
@@ -586,7 +565,6 @@ impl HexValueDrag {
             zone,
             res,
             is_modamt,
-            btn,
             pre_fine_delta: 0.0,
             fine_key:       state.modifiers.shift,
             mouse_start: (

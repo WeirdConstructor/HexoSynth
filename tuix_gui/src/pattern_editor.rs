@@ -17,7 +17,6 @@ use std::sync::{Arc, Mutex};
 pub const UI_TRK_ROW_HEIGHT        : f32 = 14.0;
 pub const UI_TRK_COL_WIDTH         : f32 = 38.0;
 pub const UI_TRK_FONT_SIZE         : f32 = 12.0;
-pub const UI_TRK_BORDER            : f32 = 1.0;
 pub const UI_TRK_COL_DIV_PAD       : f32 = 3.0;
 pub const UI_TRK_BG_CLR            : (f32, f32, f32) = UI_LBL_BG_CLR;
 pub const UI_TRK_BG_ALT_CLR        : (f32, f32, f32) = UI_LBL_BG_ALT_CLR;
@@ -33,16 +32,6 @@ pub const UI_TRK_CURSOR_BG_SEL_CLR : (f32, f32, f32) = UI_SELECT_CLR;
 pub const UI_TRK_CURSOR_FG_CLR     : (f32, f32, f32) = UI_LBL_BG_CLR;
 pub const UI_TRK_PHASEROW_BG_CLR   : (f32, f32, f32) = UI_HLIGHT_CLR;
 pub const UI_TRK_PHASEROW_FG_CLR   : (f32, f32, f32) = UI_LBL_BG_CLR;
-
-pub fn rect_border(p: &mut FemtovgPainter,
-    border_w: f32, border_clr: (f32, f32, f32),
-    fill_clr: (f32, f32, f32), pos: Rect) -> Rect
-{
-    p.rect_fill(border_clr, pos.x, pos.y, pos.w, pos.h);
-    let pos = pos.shrink(border_w, border_w);
-    p.rect_fill(fill_clr, pos.x, pos.y, pos.w, pos.h);
-    pos
-}
 
 #[derive(Debug)]
 pub struct PatternEditor {
@@ -647,7 +636,7 @@ impl Widget for PatternEditor {
             self.cursor.0 = pat.rows() - 1;
         }
 
-        let mut notify_click = false;
+        let notify_click = false;
 
 //        let border_color =
 //                match highlight {

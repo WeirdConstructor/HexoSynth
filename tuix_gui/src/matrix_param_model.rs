@@ -25,18 +25,6 @@ impl KnobParam {
         }
     }
 
-    pub fn with<F, R: Default>(&self, fun: F) -> R
-        where F: FnOnce(&mut Matrix, ParamId) -> R
-    {
-        match self.matrix.lock() {
-            Ok(mut lock) => fun(&mut *lock, self.param_id),
-            Err(e) => {
-                eprintln!("Couldn't lock matrix!: {}", e);
-                R::default()
-            },
-        }
-    }
-
     pub fn with_ref<F, R: Default>(&self, fun: F) -> R
         where F: FnOnce(&mut Matrix, &ParamId) -> R
     {

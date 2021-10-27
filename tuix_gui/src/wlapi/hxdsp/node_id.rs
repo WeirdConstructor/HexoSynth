@@ -63,7 +63,7 @@ pub fn setup_node_id_module() -> wlambda::SymbolTable {
             {
                 let v = VVal::vec();
                 cat.get_node_ids(0, |nid| { v.push(node_id2vv(nid)); });
-                m.set_key_str(ui_category2str(cat), v);
+                let _ = m.set_key_str(ui_category2str(cat), v);
             }
 
             Ok(m)

@@ -38,6 +38,7 @@ impl MatrixUIModel {
         self.focus = (x, y);
     }
 
+    #[allow(dead_code)]
     pub fn sync_to_matrix(&self) {
         let mut m = self.matrix.lock().expect("matrix lockable");
 
@@ -73,6 +74,7 @@ impl MatrixUIModel {
         }
     }
 
+    #[allow(dead_code)]
     pub fn set_node_colors(&mut self, node_id: NodeId, color: u8) {
         self.node_colors.insert(node_id, color);
     }
@@ -95,7 +97,7 @@ impl HexGridModel for MatrixUIModel {
 //    }
 
     fn cell_empty(&self, x: usize, y: usize) -> bool {
-        let mut m = self.matrix.lock().expect("matrix lockable");
+        let m = self.matrix.lock().expect("matrix lockable");
 
         if let Some(cell) = m.get(x, y) {
             cell.node_id() == NodeId::Nop
@@ -112,7 +114,7 @@ impl HexGridModel for MatrixUIModel {
     fn cell_color(&self, x: usize, y: usize) -> u8 {
         if x >= self.w || y >= self.h { return 0; }
 
-        let mut m = self.matrix.lock().expect("matrix lockable");
+        let m = self.matrix.lock().expect("matrix lockable");
 
         let node_id : Option<NodeId> = m.get(x, y).map(|c| c.node_id());
 

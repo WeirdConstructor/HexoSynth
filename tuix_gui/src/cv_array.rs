@@ -7,9 +7,6 @@ use femtovg::FontId;
 
 use std::sync::{Arc, Mutex};
 
-pub const UI_GRPH_BORDER          : f32 = 2.0;
-pub const UI_GRPH_BORDER_CLR      : (f32, f32, f32) = UI_ACCENT_CLR;
-pub const UI_GRPH_BORDER_HOVER_CLR: (f32, f32, f32) = UI_HLIGHT_CLR;
 pub const UI_GRPH_LINE_CLR        : (f32, f32, f32) = UI_PRIM_CLR;
 pub const UI_GRPH_HOV_CLR         : (f32, f32, f32) = UI_ACCENT_CLR;
 pub const UI_GRPH_PHASE_CLR       : (f32, f32, f32) = UI_ACCENT_DARK_CLR;
@@ -25,7 +22,6 @@ pub struct CvArray {
     cv_model:       Arc<Mutex<Vec<f32>>>,
     font:           Option<FontId>,
     font_mono:      Option<FontId>,
-    active_area:    Rect,
     x_delta:        f32,
     binary:         bool,
     hover_idx:      Option<usize>,
@@ -41,7 +37,6 @@ impl CvArray {
             font:           None,
             font_mono:      None,
             on_change:      None,
-            active_area:    Rect { x: 0.0, y: 0.0, w: 0.0, h: 0.0 },
             x_delta:        0.0,
             hover_idx:      None,
             drag:           false,
@@ -66,7 +61,11 @@ impl CvArray {
 
         if let Ok(mut cv) = self.cv_model.lock() {
             if idx < cv.len() {
-                cv[idx] = v;
+                if self.binary {
+                    cv[idx] = if v > 0.5 { 1.0 } else { 0.0 };
+                } else {
+                    cv[idx] = v;
+                }
                 changed = true;
             }
         }
@@ -221,8 +220,7 @@ impl Widget for CvArray {
         let xd = pos.w / (data.len() as f32);
         let xd = xd.floor();
 
-        self.active_area = pos;
-        self.x_delta     = xd.max(1.0);
+        self.x_delta = xd.max(1.0);
 
         let phase = 0.0;
 // TODO:
