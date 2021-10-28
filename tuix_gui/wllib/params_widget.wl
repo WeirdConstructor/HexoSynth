@@ -82,27 +82,28 @@
         $data.root = vizia:new_col parent ${ class = "node_settings" };
     },
     update = {
+        !data = $data;
+
         vizia:remove_all_childs $data.root;
 
         iter param $data.params.atoms {
             std:displayln param;
             !atom = param.default_value[];
 
-            !wid = wid_settings:SettingsWidget.new[$[
-                0 => "0",
-                1 => "1",
-                2 => "2",
-                3 => "3",
-                4 => "4",
-            ]];
+            !(min, max) = param.setting_min_max[];
+            !items = $@v iter i min => (max + 1) { $+ i => param.format[i] };
+
+            !wid = wid_settings:SettingsWidget.new items;
+            !m_param = param;
+            wid.listen :changed {!(_, setting_idx) = @;
+                std:displayln "SET PARAM" m_param setting_idx;
+                data.m.set_param m_param setting_idx;
+            };
             std:push $data.set_wids wid;
 
             !col = vizia:new_col $data.root ${ class = "node_settings_col" };
             wid.build col;
-            vizia:new_label
-                col param.name[] ${ class = "node_settings_label" };
-
-            std:displayln "TYPE:" atom.type_str[];
+            vizia:new_label col param.name[] ${ class = "node_settings_label" };
         };
 
         std:displayln "PARAMS:" $data.params;

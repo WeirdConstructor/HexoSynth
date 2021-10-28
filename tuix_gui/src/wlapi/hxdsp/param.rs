@@ -39,6 +39,31 @@ impl VValUserData for VValParamId {
 
                 Ok(VVal::new_str(self.param.name()))
             },
+            "setting_min_max" => {
+                arg_chk!(args, 0, "param_id.setting_min_max[]");
+
+                if let Some((min, max)) = self.param.setting_min_max() {
+                    Ok(VVal::pair(VVal::Int(min), VVal::Int(max)))
+                } else {
+                    Ok(VVal::None)
+                }
+            },
+            "format" => {
+                arg_chk!(args, 1, "param_id.format[float]");
+                use std::io::Write;
+                let mut buf : [u8; 128] = [0; 128];
+
+                let len = {
+                    let mut bw = std::io::BufWriter::new(&mut buf[..]);
+
+                    match self.param.format(&mut bw, env.arg(0).f() as f32) {
+                        Some(Ok(_)) => bw.buffer().len(),
+                        _ => 0,
+                    }
+                };
+
+                Ok(VVal::new_str(std::str::from_utf8(&buf[0..len]).unwrap_or("")))
+            },
             "default_value" => {
                 arg_chk!(args, 0, "param_id.default_value[]");
 

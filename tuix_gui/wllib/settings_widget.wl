@@ -6,9 +6,11 @@
 !popup        = $n;
 !popup_entity = $n;
 
+std:displayln "INIT SETTINGS WIDGET";
 !init_global_settings_popup = {
     .popup        = vizia:new_popup     ${ class = :setting_popup };
     .popup_entity = vizia:new_col popup ${ class = :setting_popup };
+    std:displayln "INIT SETTINGSPOPUP" popup;
 };
 
 !@export init_global_settings_popup = init_global_settings_popup;
@@ -16,6 +18,7 @@
 # * settings - $[index => label, ...]
 # * cb       - Callback
 !global_settings_popup = {!(settings, cb) = @;
+    std:displayln "POPOPOPOP" popup popup_entity;
     vizia:remove_all_childs popup_entity;
 
     iter setting settings {
@@ -23,8 +26,8 @@
         vizia:new_button
             popup_entity setting.1 {
                 cb idx;
-                vizia:emit_to 0 popup $p(:popup:close, $n);
                 vizia:remove_all_childs popup_entity;
+                vizia:emit_to 0 popup $p(:popup:close, $n);
             }
             ${ class = :setting_popup_btn };
     };
