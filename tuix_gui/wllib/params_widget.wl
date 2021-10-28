@@ -4,6 +4,8 @@
 !@import observable;
 !@import node_id;
 
+!@import wid_settings = settings_widget;
+
 !@export ParamsWidget = ${
     _proto = observable:Observable,
     new = {!(matrix) = @;
@@ -51,6 +53,56 @@
                     vizia:new_label
                         col param.name[] ${ class = "node_params_label" };
                 };
+        };
+
+        std:displayln "PARAMS:" $data.params;
+    },
+    set_node_id = {!(node_id) = @;
+        $data.node_id = node_id;
+        $data.params  = node_id:param_list node_id;
+        $self.update[];
+    },
+};
+
+!@export ParamSettingsWidget = ${
+    _proto = observable:Observable,
+    new = {!(matrix) = @;
+        !self = $&& ${
+            _proto = $self,
+            _data = ${
+                m            = matrix,
+                node_id      = $n,
+                set_wids     = $[],
+                root         = $n,
+            },
+        };
+        self
+    },
+    build = {!(parent) = @;
+        $data.root = vizia:new_col parent ${ class = "node_settings" };
+    },
+    update = {
+        vizia:remove_all_childs $data.root;
+
+        iter param $data.params.atoms {
+            std:displayln param;
+            !atom = param.default_value[];
+
+            !wid = wid_settings:SettingsWidget.new[$[
+                0 => "0",
+                1 => "1",
+                2 => "2",
+                3 => "3",
+                4 => "4",
+            ]];
+            std:push $data.set_wids wid;
+
+            !col = vizia:new_col $data.root ${ class = "node_settings_col" };
+            wid.build col;
+            vizia:new_label
+                col param.name[] ${ class = "node_settings_label" };
+
+            std:displayln "TYPE:" atom.type_str[];
         };
 
         std:displayln "PARAMS:" $data.params;

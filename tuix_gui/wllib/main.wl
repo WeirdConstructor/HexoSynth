@@ -143,6 +143,8 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
             $data.grid_model = matrix.create_grid_model[];
             $data.widgets.params =
                 wid_params:ParamsWidget.new[matrix];
+            $data.widgets.settings =
+                wid_params:ParamSettingsWidget.new[matrix];
         },
         build_main_gui = {!(grid) = @;
             wid_settings:init_global_settings_popup[];
@@ -152,6 +154,7 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
                 $true
             };
             $data.widgets.params.build 0;
+            $data.widgets.settings.build 0;
 
             vizia:emit_to 0 grid $p(:hexgrid:set_model, $data.grid_model);
 
@@ -195,6 +198,11 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
                 load_theme[];
                 vizia:redraw[];
             } ${ width = 90 => :px, height = 20 => :px };
+
+            !data = $w& $data;
+            vizia:new_button 0 "save" {
+                data.m.save_patch "init.hxy";
+            } ${ width = 90 => :px, height = 20 => :px, top = 5 => :px };
         },
         set_focus = {!(pos) = @;
             !focus = $data.focus;
@@ -203,7 +211,8 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
             focus.node_id = $data.focus.cell.node_id;
 
             $data.grid_model.set_focus_cell pos;
-            $data.widgets.params.set_node_id $data.focus.node_id;
+            $data.widgets.params.set_node_id   $data.focus.node_id;
+            $data.widgets.settings.set_node_id $data.focus.node_id;
             vizia:redraw[];
         },
         set_place_node_type = {!(typ) = @;

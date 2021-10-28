@@ -264,7 +264,7 @@ octave-keys {
     $PANEL()
 }
 
-.node_params_label {
+!PARAMS_LABEL() {{
     height:       18px;
     font-size:    14px;
     font:         "font_serif";
@@ -276,12 +276,38 @@ octave-keys {
 
     background-color: UI_LBL_BG_CLR;
     color:            UI_PRIM_CLR;
+}}
+
+.node_params_label {
+    $PARAMS_LABEL()
 }
 
 .node_params_knob {
     $MARGIN(2px)
     width:  1s;
     height: 1s;
+}
+
+.node_settings {
+    position:   self-directed;
+    top:    0;
+    left:   1s;
+    width:  200px;
+    height: 400px;
+
+    $PANEL()
+}
+
+.node_settings_col {
+    height: 60px;
+    top:    2px;
+    left:   5px;
+    right:  5px;
+}
+
+.node_settings_label {
+    $PARAMS_LABEL()
+    top: 8px;
 }
 
 connector {

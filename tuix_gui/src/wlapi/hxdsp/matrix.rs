@@ -262,6 +262,25 @@ impl vval::VValUserData for VValMatrix {
                         Err(e) => Ok(matrix_error2vval_err(e)),
                     }
                 },
+                "save_patch" => {
+                    arg_chk!(args, 1, "matrix.check[filepath]");
+
+                    use hexodsp::matrix_repr::save_patch_to_file;
+
+                    match save_patch_to_file(&mut m, &env.arg(0).s_raw()) {
+                        Ok(_) => {
+                            let cwd =
+                                std::env::current_dir()
+                                    .unwrap_or_else(|_|
+                                        std::path::PathBuf::from("."));
+
+                            Ok(VVal::new_str(cwd.to_str().unwrap_or("?")))
+                        },
+                        Err(e) => {
+                            Ok(VVal::err_msg(&format!("{}", e)))
+                        },
+                    }
+                },
                 "sync" => {
                     arg_chk!(args, 0, "matrix.sync[]");
 
