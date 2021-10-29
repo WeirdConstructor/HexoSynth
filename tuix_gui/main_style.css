@@ -247,10 +247,7 @@ column.setting_popup {
 }
 
 octave-keys {
-    top: 10px;
-    bottom:10px;
-    height: 100px;
-    width: 200px;
+    height: 80px;
 }
 
 .node_params {

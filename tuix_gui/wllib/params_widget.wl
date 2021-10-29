@@ -64,6 +64,24 @@
     },
 };
 
+!create_setting_widget = {!(param, matrix, parent) = @;
+    !(min, max) = param.setting_min_max[];
+    !items = $@v iter i min => (max + 1) { $+ i => param.format[i] };
+
+    !wid = wid_settings:SettingsWidget.new items;
+
+    !cur = matrix.get_param param;
+
+    wid.listen :changed {!(_, setting_idx) = @;
+        std:displayln "SET PARAM" param setting_idx;
+        matrix.set_param param setting_idx;
+    };
+
+    wid.update cur.i[];
+    wid.build parent;
+    wid
+};
+
 !@export ParamSettingsWidget = ${
     _proto = observable:Observable,
     new = {!(matrix) = @;
@@ -90,19 +108,29 @@
             std:displayln param;
             !atom = param.default_value[];
 
-            !(min, max) = param.setting_min_max[];
-            !items = $@v iter i min => (max + 1) { $+ i => param.format[i] };
+            !col = vizia:new_col $data.root ${ class = "node_settings_col" };
 
-            !wid = wid_settings:SettingsWidget.new items;
-            !m_param = param;
-            wid.listen :changed {!(_, setting_idx) = @;
-                std:displayln "SET PARAM" m_param setting_idx;
-                data.m.set_param m_param setting_idx;
-            };
+            !wid =
+                match param.name[]
+                    "keys" => {
+                        !cur_val = $data.m.get_param param;
+
+                        !m_param = param;
+                        !oct_keys =
+                            vizia:new_octave_keys col ${ on_change = {!(mask) = @;
+                                data.m.set_param m_param mask;
+                                std:displayln "MASK" mask;
+                            } };
+
+                        vizia:emit_to 0 oct_keys
+                            $p(:octave_keys:set_mask, cur_val.i[]);
+
+                        oct_keys
+                    }
+                    { create_setting_widget param $data.m col };
+
             std:push $data.set_wids wid;
 
-            !col = vizia:new_col $data.root ${ class = "node_settings_col" };
-            wid.build col;
             vizia:new_label col param.name[] ${ class = "node_settings_label" };
         };
 
