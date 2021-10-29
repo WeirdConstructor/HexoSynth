@@ -50,7 +50,6 @@ impl VValUserData for VValParamId {
             },
             "format" => {
                 arg_chk!(args, 1, "param_id.format[float]");
-                use std::io::Write;
                 let mut buf : [u8; 128] = [0; 128];
 
                 let len = {

@@ -244,6 +244,14 @@ impl vval::VValUserData for VValMatrix {
                         Ok(VVal::None)
                     }
                 },
+                "param_input_is_used" => {
+                    arg_chk!(args, 1, "matrix.param_input_is_used[param_id]");
+                    if let Some(pid) = vv2param_id(env.arg(0)) {
+                        Ok(VVal::Bol(m.param_input_is_used(pid)))
+                    } else {
+                        Ok(VVal::None)
+                    }
+                },
                 "restore_snapshot" => {
                     arg_chk!(args, 0, "matrix.restore_snapshot[]");
                     m.restore_matrix();

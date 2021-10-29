@@ -48,10 +48,26 @@
                     };
 
                     !col = vizia:new_col $data.rows.(cur_row);
-                    vizia:new_hexknob
-                        col param_model ${ class = "node_params_knob" };
-                    vizia:new_label
-                        col param.name[] ${ class = "node_params_label" };
+                    !name = param.name[];
+                    if name == "trig" &or (name 0 2) == "t_" {
+                        !m = $data.m;
+                        !p = param;
+                        !param_class =
+                            if m.param_input_is_used <& p
+                                { "node_params_btn_off" }
+                                { "node_params_btn" };
+                        vizia:new_button
+                            col "Trig" {
+                                m.set_param p 0.0;
+                            } ${
+                                class    = param_class,
+                                on_press = {|| m.set_param p 1.0; }
+                            };
+                    } {
+                        vizia:new_hexknob
+                            col param_model ${ class = "node_params_knob" };
+                    };
+                    vizia:new_label col name ${ class = "node_params_label" };
                 };
         };
 
@@ -113,15 +129,15 @@
             !wid =
                 match param.name[]
                     "keys" => {
-                        !cur_val = $data.m.get_param param;
-
                         !m_param = param;
                         !oct_keys =
-                            vizia:new_octave_keys col ${ on_change = {!(mask) = @;
-                                data.m.set_param m_param mask;
-                                std:displayln "MASK" mask;
-                            } };
+                            vizia:new_octave_keys col ${
+                                on_change = {!(mask) = @;
+                                    data.m.set_param m_param mask;
+                                }
+                            };
 
+                        !cur_val = $data.m.get_param param;
                         vizia:emit_to 0 oct_keys
                             $p(:octave_keys:set_mask, cur_val.i[]);
 

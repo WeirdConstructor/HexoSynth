@@ -591,8 +591,11 @@ impl GUIActionRecorder {
                 GUIAction::NewButton(parent, out, label, on_click, build_attribs) => {
                     if let Some(GUIRef::Ent(parent)) = self.refs.get(*parent as usize) {
                         let wl_ctx   = wl_ctx.clone();
+                        let wl_ctx2  = wl_ctx.clone();
                         let on_click = on_click.clone();
+                        let on_press = build_attribs.v_k("on_press");
                         let sr       = self_ref.clone();
+                        let sr2      = self_ref.clone();
 
                         self.refs[*out as usize] = GUIRef::Ent(
                             Button::with_label(label)
@@ -600,6 +603,12 @@ impl GUIActionRecorder {
                                     exec_cb(
                                         sr.clone(), wl_ctx.clone(),
                                         state, button, on_click.clone(),
+                                        &[]);
+                                })
+                                .on_press(move |_, state, button| {
+                                    exec_cb(
+                                        sr2.clone(), wl_ctx2.clone(),
+                                        state, button, on_press.clone(),
                                         &[]);
                                 })
                                 .build(state, *parent,

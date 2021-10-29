@@ -464,8 +464,18 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
 #        $p(:octave_keys:set_mask, g_mask);
 
     iter change _ {
+#        std:displayln "CHANGE" change;
         match change
+            $p(:matrix_graph, $n) => {
+                # XXX: Rebuild the params widget, because some parameters
+                # might be deactivated now and require a different class:
+#                STATE._data.widgets.params.update[];
+
+                vizia:redraw[];
+
+            }
             $p(:matrix_param, param_id) => {
+
                 vizia:redraw[];
 #                std:displayln "PARAM:" $\.param_id.as_parts[];
 #                std:displayln "PARAM:" $\.param_id.name[];
@@ -479,6 +489,8 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
                 std:displayln " * matrix change: " change;
             };
     };
+
+#    vizia:redraw[];
 };
 
 #    !test_model = hx:create_test_hex_grid_model[];

@@ -1,15 +1,3 @@
-!PANEL_SHADOW(A, BBB) {{
-x {
-    $A
-    $A
-    $A
-    $(XXX + $A $BBB)
-    [$XXX]
-}
-}}
-
-$PANEL_SHADOW(323,    43     )
-
 button {
     border-radius: 16px;
     border-corner-shape: bevel;
@@ -283,6 +271,25 @@ octave-keys {
     $MARGIN(2px)
     width:  1s;
     height: 1s;
+}
+
+.node_params_btn {
+    $MARGIN(2px)
+    width:  1s;
+    height: 1s;
+    top:    25%;
+    bottom: 25%;
+}
+
+.node_params_btn_off {
+    $MARGIN(2px)
+    width:  1s;
+    height: 1s;
+    top:    25%;
+    bottom: 25%;
+    color: UI_INACTIVE_CLR;
+    border-color: UI_INACTIVE2_CLR;
+    outer-shadow: 2px 2px 4px UI_INACTIVE2_CLR;
 }
 
 .node_settings {
