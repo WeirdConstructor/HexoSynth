@@ -26,6 +26,8 @@ It will now just skip the delay entirely.
 very small (<0.1) value!
 * Bugfix: The low pass filter for oversampling did a slightly wrong Q
 calculation. Was not audible though.
+* Bugfix: 'PVerb' now also properly handles if only one input
+channel is connected.
 
 0.1.0-alpha-3 (2021-08-13)
 ==========================
