@@ -14,18 +14,22 @@ use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub struct VisBlock {
-    rows:    usize,
-    lbl:     String,
-    inputs:  Vec<Option<String>>,
-    outputs: Vec<Option<String>>,
+    rows:     usize,
+    cols:     usize,
+    contains: (Option<usize>, Option<usize>),
+    expanded: bool,
+    lbl:      String,
+    inputs:   Vec<Option<String>>,
+    outputs:  Vec<Option<String>>,
 }
 
 pub trait BlockCodeModel {
-    fn block_at(&self, x: usize, y: usize) -> Option<&VisBlock>;
+    fn area_label(&self, id: usize) -> &str;
+    fn block_at(&self, id: usize, x: usize, y: usize) -> Option<&VisBlock>;
 }
 
 pub struct DummyBlockCode {
-    blocks: HashMap<(usize, usize), VisBlock>,
+    blocks: HashMap<(usize, usize, usize), VisBlock>,
 }
 
 impl DummyBlockCode {
@@ -34,8 +38,11 @@ impl DummyBlockCode {
             blocks: HashMap::new(),
         };
 
-        s.blocks.insert((1, 2), VisBlock {
+        s.blocks.insert((0, 1, 2), VisBlock {
             rows: 3,
+            cols: 1,
+            contains: (None, None),
+            expanded: false,
             lbl: "get: x".to_string(),
             inputs:  vec![
                 None,
@@ -43,20 +50,29 @@ impl DummyBlockCode {
                 Some("inp".to_string())],
             outputs: vec![None, None, Some("->".to_string())],
         });
-        s.blocks.insert((2, 4), VisBlock {
+        s.blocks.insert((0, 2, 4), VisBlock {
             rows: 1,
+            cols: 1,
+            contains: (None, None),
+            expanded: false,
             lbl: "sin".to_string(),
             inputs:  vec![Some("in".to_string())],
             outputs: vec![Some("->".to_string())],
         });
-        s.blocks.insert((2, 3), VisBlock {
+        s.blocks.insert((0, 2, 3), VisBlock {
             rows: 1,
+            cols: 1,
+            contains: (None, None),
+            expanded: false,
             lbl: "1.2".to_string(),
             inputs:  vec![None],
             outputs: vec![Some("->".to_string())],
         });
-        s.blocks.insert((3, 3), VisBlock {
+        s.blocks.insert((0, 3, 3), VisBlock {
             rows: 2,
+            cols: 1,
+            contains: (None, None),
+            expanded: false,
             lbl: "+".to_string(),
             inputs:  vec![
                 Some("a".to_string()),
@@ -69,8 +85,12 @@ impl DummyBlockCode {
 }
 
 impl BlockCodeModel for DummyBlockCode {
-    fn block_at(&self, x: usize, y: usize) -> Option<&VisBlock> {
-        self.blocks.get(&(x, y))
+    fn area_label(&self, id: usize) -> &str {
+        "Main"
+    }
+
+    fn block_at(&self, id: usize, x: usize, y: usize) -> Option<&VisBlock> {
+        self.blocks.get(&(id, x, y))
     }
 }
 
@@ -88,6 +108,8 @@ pub struct BlockCode {
     block_size:     f32,
 
     on_change:      Option<Box<dyn Fn(&mut Self, &mut State, Entity, (usize, usize))>>,
+    on_expand:      Option<Box<dyn Fn(&mut Self, &mut State, Entity, usize)>>,
+    on_req_val:     Option<Box<dyn Fn(&mut Self, &mut State, Entity, (usize, usize, usize), bool)>>,
     on_hover:       Option<Box<dyn Fn(&mut Self, &mut State, Entity, bool, usize)>>,
 }
 
@@ -102,6 +124,8 @@ impl BlockCode {
             block_size:     30.0,
 
             on_change:      None,
+            on_expand:      None,
+            on_req_val:     None,
             on_hover:       None,
         }
     }
@@ -111,6 +135,24 @@ impl BlockCode {
         F: 'static + Fn(&mut Self, &mut State, Entity, (usize, usize)),
     {
         self.on_change = Some(Box::new(on_change));
+
+        self
+    }
+
+    pub fn on_expand<F>(mut self, on_expand: F) -> Self
+    where
+        F: 'static + Fn(&mut Self, &mut State, Entity, usize),
+    {
+        self.on_expand = Some(Box::new(on_expand));
+
+        self
+    }
+
+    pub fn on_req_val<F>(mut self, on_req_val: F) -> Self
+    where
+        F: 'static + Fn(&mut Self, &mut State, Entity, (usize, usize, usize), bool),
+    {
+        self.on_req_val = Some(Box::new(on_req_val));
 
         self
     }
@@ -296,12 +338,22 @@ impl Widget for BlockCode {
             }
         }
 
+        p.label(
+            self.block_size * 0.7,
+            1,
+            UI_PRIM_CLR,
+            (pos.x + block_h * 0.2).floor(),
+            (pos.y + block_h * 0.2).floor(),
+            block_w * 3.0,
+            block_h,
+            code.area_label(0));
+
         for row in 0..rows {
             for col in 0..cols {
                 let x = col as f32 * block_w;
                 let y = row as f32 * block_h;
 
-                if let Some(block) = code.block_at(col, row) {
+                if let Some(block) = code.block_at(0, col, row) {
                     let w = block_w;
                     let h = block.rows as f32 * block_h;
 
