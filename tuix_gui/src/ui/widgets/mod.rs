@@ -8,6 +8,7 @@ mod hexgrid;
 mod hexknob;
 mod octave_keys;
 mod pattern_editor;
+mod block_code;
 
 pub use connector::*;
 pub use cv_array::*;
@@ -15,6 +16,7 @@ pub use hexgrid::*;
 pub use hexknob::*;
 pub use octave_keys::*;
 pub use pattern_editor::*;
+pub use block_code::*;
 
 #[macro_export]
 macro_rules! hxclr {

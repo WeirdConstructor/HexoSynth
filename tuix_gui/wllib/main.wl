@@ -194,6 +194,9 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
 #                ]
 #            ];
 
+            !bcpanel = vizia:new_elem 0 ${ class = "block_code_panel" };
+            vizia:new_block_code bcpanel ${ };
+
             vizia:new_button 0 "reload" {
                 load_theme[];
                 vizia:redraw[];

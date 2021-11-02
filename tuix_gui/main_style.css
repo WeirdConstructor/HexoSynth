@@ -346,3 +346,15 @@ label.port_connector {
 connector.port_connector {
     bottom: 5px;
 }
+
+.block_code_panel {
+    z-index: 14;
+    position: self-directed;
+    left: 200px;
+    top: 200px;
+    width: 500px;
+    height: 70%;
+
+    $FLOAT_PANEL();
+    border-radius: 0px;
+}

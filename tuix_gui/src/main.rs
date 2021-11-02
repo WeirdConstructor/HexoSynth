@@ -53,6 +53,7 @@ pub enum GUIAction {
     NewOctaveKeys(i64, i64, VVal),
     NewCvArray(i64, i64, VVal),
     NewConnector(i64, i64, VVal),
+    NewBlockCode(i64, i64, VVal),
     EmitTo(i64, i64, VVal),
     SetProp(i64, &'static str, VVal),
     SetText(i64, String),
@@ -573,6 +574,39 @@ impl GUIActionRecorder {
                                     |builder| vvbuilder(builder, build_attribs)));
                     }
                 },
+                GUIAction::NewBlockCode(parent, out, build_attribs) => {
+                    if let Some(GUIRef::Ent(parent)) = self.refs.get(*parent as usize) {
+                        let on_change = build_attribs.v_k("on_change");
+                        let on_hover  = build_attribs.v_k("on_hover");
+                        let sr1       = self_ref.clone();
+                        let wl_ctx1   = wl_ctx.clone();
+                        let sr2       = self_ref.clone();
+                        let wl_ctx2   = wl_ctx.clone();
+
+                        self.refs[*out as usize] = GUIRef::Ent(
+                            BlockCode::new()
+                                .on_change(move |_, state, ent, con| {
+                                    exec_cb(
+                                        sr1.clone(), wl_ctx1.clone(),
+                                        state, ent, on_change.clone(),
+                                        &[
+                                            VVal::Int(con.0 as i64),
+                                            VVal::Int(con.1 as i64)
+                                        ]);
+                                })
+                                .on_hover(move |_, state, ent, inputs, idx| {
+                                    exec_cb(
+                                        sr2.clone(), wl_ctx2.clone(),
+                                        state, ent, on_hover.clone(),
+                                        &[
+                                            VVal::Bol(inputs),
+                                            VVal::Int(idx as i64)
+                                        ]);
+                                })
+                                .build(state, *parent,
+                                    |builder| vvbuilder(builder, build_attribs)));
+                    }
+                }
                 GUIAction::NewPatternEditor(parent, out, _class) => {
                     if let Some(GUIRef::Ent(parent)) = self.refs.get(*parent as usize) {
                         self.refs[*out as usize] = GUIRef::Ent(
@@ -853,6 +887,12 @@ fn setup_vizia_module(r: Rc<RefCell<GUIActionRecorder>>) -> wlambda::SymbolTable
         Ok(VVal::Int(
             r.borrow_mut().add(|id|
                 GUIAction::NewConnector(env.arg(0).i(), id, env.arg(1)))))
+    });
+
+    set_modfun!(st, r, new_block_code, Some(1), Some(2), env, _argc, {
+        Ok(VVal::Int(
+            r.borrow_mut().add(|id|
+                GUIAction::NewBlockCode(env.arg(0).i(), id, env.arg(1)))))
     });
 
     set_modfun!(st, r, new_hexgrid, Some(1), Some(2), env, _argc, {
