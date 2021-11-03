@@ -26,7 +26,7 @@ pub trait BlockCodeModel {
     fn area_size(&self, id: usize) -> (usize, usize);
     fn area_label(&self, id: usize) -> &str;
     fn block_at(&self, id: usize, x: usize, y: usize) -> Option<&VisBlock>;
-    fn get_block_origin_at(&self, id: usize, x: usize, y: usize) -> Option<(usize, usize)>;
+    fn origin_at(&self, id: usize, x: usize, y: usize) -> Option<(usize, usize)>;
 }
 
 pub struct DummyBlockCode {
@@ -130,7 +130,7 @@ impl BlockCodeModel for DummyBlockCode {
         self.blocks.get(&(id, x, y))
     }
 
-    fn get_block_origin_at(&self, id: usize, x: usize, y: usize)
+    fn origin_at(&self, id: usize, x: usize, y: usize)
         -> Option<(usize, usize)>
     {
         for ((area_id, bx, by), b) in self.blocks.iter() {
@@ -150,6 +150,12 @@ pub enum BlockCodeMessage {
     SetCode(Rc<RefCell<dyn BlockCodeModel>>),
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum BlockPos {
+    Block { id: usize, x: usize, y: usize, row: usize, col: usize },
+    Cell  { id: usize, x: usize, y: usize },
+}
+
 pub struct BlockCode {
     font_size:      f32,
     font:           Option<FontId>,
@@ -159,11 +165,13 @@ pub struct BlockCode {
     block_size:     f32,
 
     areas:          Vec<Vec<(usize, Rect)>>,
-    hover:          (usize, usize, usize),
+    hover:          Option<(usize, usize, usize, usize)>,
+
+    m_down:         Option<BlockPos>,
 
     on_change:      Option<Box<dyn Fn(&mut Self, &mut State, Entity, (usize, usize))>>,
     on_expand:      Option<Box<dyn Fn(&mut Self, &mut State, Entity, usize)>>,
-    on_req_val:     Option<Box<dyn Fn(&mut Self, &mut State, Entity, (usize, usize, usize), bool)>>,
+    on_click:       Option<Box<dyn Fn(&mut Self, &mut State, Entity, (usize, usize, usize), bool)>>,
     on_hover:       Option<Box<dyn Fn(&mut Self, &mut State, Entity, bool, usize)>>,
 }
 
@@ -178,11 +186,12 @@ impl BlockCode {
             block_size:     30.0,
 
             areas:          vec![],
-            hover:          (0, 0, 0),
+            hover:          None,
+            m_down:         None,
 
             on_change:      None,
             on_expand:      None,
-            on_req_val:     None,
+            on_click:     None,
             on_hover:       None,
         }
     }
@@ -205,11 +214,11 @@ impl BlockCode {
         self
     }
 
-    pub fn on_req_val<F>(mut self, on_req_val: F) -> Self
+    pub fn on_click<F>(mut self, on_click: F) -> Self
     where
         F: 'static + Fn(&mut Self, &mut State, Entity, (usize, usize, usize), bool),
     {
-        self.on_req_val = Some(Box::new(on_req_val));
+        self.on_click = Some(Box::new(on_click));
 
         self
     }
@@ -278,18 +287,24 @@ impl BlockCode {
                 let y = row as f32 * block_h;
 
                 let mut hover_here =
-                      self.hover.0 == area_id
-                   && col == self.hover.1
-                   && row == self.hover.2;
+                    if let Some(hover) = self.hover {
+                        hover.0 == area_id && col == hover.1 && row == hover.2
+                    } else {
+                        false
+                    };
 
-                if self.hover.0 == area_id {
-                    if let Some((bx, by)) =
-                        self.code.borrow().get_block_origin_at(
-                            self.hover.0,
-                            self.hover.1,
-                            self.hover.2)
-                    {
-                        hover_here = bx == col && by == row;
+                let mut hover_row = -1;
+                let mut hover_col = -1;
+
+                if let Some((area, x, y, subcol)) = self.hover {
+                    if area == area_id {
+                        if let Some((bx, by)) =
+                            self.code.borrow().origin_at(area, x, y)
+                        {
+                            hover_row = (y - by) as i32;
+                            hover_col = subcol as i32;
+                            hover_here = bx == col && by == row;
+                        }
                     }
                 }
 
@@ -300,7 +315,9 @@ impl BlockCode {
                     if hover_here { UI_HLIGHT_CLR }
                     else { UI_PRIM_CLR };
 
-                if let Some(block) = self.code.borrow().block_at(area_id, col, row) {
+                if let Some(block) =
+                    self.code.borrow().block_at(area_id, col, row)
+                {
                     let w = block_w;
                     let h = block.rows as f32 * block_h;
 
@@ -343,6 +360,23 @@ impl BlockCode {
                                 (block_w * 0.5).floor(),
                                 block_h,
                                 lbl);
+
+                            if hover_here
+                               && hover_col == 0
+                               && hover_row == (i as i32)
+                            {
+                                let sel_block_w = (block_w * 0.5 * 0.8).floor();
+                                let sel_block_h = (block_h * 0.8).floor();
+
+                                p.rect_stroke(
+                                    4.0, UI_SELECT_CLR,
+                                    (pos.x + x
+                                     + ((block_w * 0.5 - sel_block_w) * 0.5)).floor(),
+                                    (pos.y + row + y
+                                     + ((block_h - sel_block_h) * 0.5)).floor(),
+                                    sel_block_w,
+                                    sel_block_h);
+                            }
                         }
                     }
 
@@ -366,6 +400,23 @@ impl BlockCode {
                                 (block_w * 0.5).floor(),
                                 block_h,
                                 lbl);
+
+                            if hover_here
+                               && hover_col == 1
+                               && hover_row == (i as i32)
+                            {
+                                let sel_block_w = (block_w * 0.5 * 0.8).floor();
+                                let sel_block_h = (block_h * 0.8).floor();
+
+                                p.rect_stroke(
+                                    4.0, UI_SELECT_CLR,
+                                    (pos.x + x + (block_w * 0.5)
+                                     + ((block_w * 0.5 - sel_block_w) * 0.5)).floor(),
+                                    (pos.y + row + y
+                                     + ((block_h - sel_block_h) * 0.5)).floor(),
+                                    sel_block_w,
+                                    sel_block_h);
+                            }
                         }
                     }
 
@@ -439,6 +490,50 @@ impl BlockCode {
 
         p.reset_clip_region();
     }
+
+    fn find_area_at(&self, x: f32, y: f32) -> Option<(usize, usize, usize, usize)> {
+        let block_h = self.block_size;
+        let block_w = block_h * 2.0;
+
+        for lvl in self.areas.iter().rev() {
+            for a in lvl.iter() {
+                let (id, pos) = *a;
+
+                if pos.is_inside(x, y) {
+                    let xo = x - pos.x;
+                    let yo = y - pos.y;
+                    let xi = (xo / block_w).floor() as usize;
+                    let yi = (yo / block_h).floor() as usize;
+
+                    let sub_col =
+                        if (xo - xi as f32 * block_w) > (block_w * 0.5) {
+                            1
+                        } else {
+                            0
+                        };
+
+                    return Some((a.0, xi, yi, sub_col));
+                }
+            }
+        }
+
+        None
+    }
+
+    fn find_pos_at(&self, x: f32, y: f32) -> Option<BlockPos> {
+        if let Some((area, x, y, subcol)) = self.find_area_at(x, y) {
+            if let Some((ox, oy)) =
+                self.code.borrow().origin_at(area, x, y)
+            {
+                let row = y - oy;
+                Some(BlockPos::Block { id: area, x, y, col: subcol, row })
+            } else {
+                Some(BlockPos::Cell { id: area, x, y })
+            }
+        } else {
+            None
+        }
+    }
 }
 
 fn draw_markers(p: &mut FemtovgPainter, x: f32, y: f32, block_w: f32, block_h: f32, marker_px: f32) {
@@ -511,7 +606,10 @@ impl Widget for BlockCode {
         if let Some(window_event) = event.message.downcast::<WindowEvent>() {
             match window_event {
                 WindowEvent::MouseDown(MouseButton::Left) => {
-//                    let (x, y) = (state.mouse.cursorx, state.mouse.cursory);
+                    let (x, y) = (state.mouse.cursorx, state.mouse.cursory);
+                    self.m_down = self.find_pos_at(x, y);
+
+//                    self.
 //                    self.drag = true;
 //                    self.drag_src_idx = self.xy2pos(state, entity, x, y);
 //
@@ -533,6 +631,17 @@ impl Widget for BlockCode {
                             .target(Entity::root()));
                 },
                 WindowEvent::MouseUp(MouseButton::Left) => {
+                    let (x, y) = (state.mouse.cursorx, state.mouse.cursory);
+
+                    let m_up = self.find_pos_at(x, y);
+                    if m_up == self.m_down {
+                        println!("CLICK: {:?}", m_up);
+                    } else {
+                        println!("DRAG: {:?} => {:?}", self.m_down, m_up);
+                    }
+
+                    self.m_down = None;
+
 //                    if let Some((_drag, con)) = self.get_current_con() {
 //                        self.con = Some(con);
 //
@@ -556,26 +665,7 @@ impl Widget for BlockCode {
                     let old_hover = self.hover;
                     let mut found = false;
 
-                    let block_h = self.block_size;
-                    let block_w = block_h * 2.0;
-
-                    for lvl in self.areas.iter().rev() {
-                        for a in lvl.iter() {
-                            let (id, pos) = *a;
-
-                            if pos.is_inside(*x, *y) {
-                                let xo = *x - pos.x;
-                                let yo = *y - pos.y;
-                                let xi = (xo / block_w).floor() as usize;
-                                let yi = (yo / block_h).floor() as usize;
-
-                                self.hover = (a.0, xi, yi);
-                                found = true;
-                                break;
-                            }
-                        }
-                        if found { break; }
-                    }
+                    self.hover = self.find_area_at(*x, *y);
 
                     if old_hover != self.hover {
                         state.insert_event(
