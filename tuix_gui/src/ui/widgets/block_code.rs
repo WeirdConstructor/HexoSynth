@@ -108,6 +108,34 @@ impl DummyBlockCode {
     }
 }
 
+/*
+
+BlockDSPCode requirements/functionality:
+- Hold VisBlock's for BlockCodeModel trait
+- Support edits of the blocks
+    - adding new blocks (from a LanguageModel)
+    - removing blocks
+    - moving single blocks
+    - moving chains of blocks
+    - splitting chains
+    - growing/shrinking sub areas on adding/removing nodes
+    - provide and set information about the environment
+        - input variables (query from LanguageModel?)
+        - output variables (query from LanguageModel?)
+        - local variables (settable)
+        - persistent variables (settable)
+    - subroutines
+        - adding new ones
+        - removing
+        - adding blocks inside their areas
+        - removing blocks from their areas
+        - adding parameter names
+        - searching the return block
+    - serialize the block code into an AST using an external
+      builder pattern.
+    - undo/redo management?!
+*/
+
 impl BlockCodeModel for DummyBlockCode {
     fn area_label(&self, id: usize) -> &str {
         match id {
