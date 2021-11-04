@@ -28,6 +28,7 @@ pub struct VisBlock {
     rows:     usize,
     contains: (Option<usize>, Option<usize>),
     expanded: bool,
+    typ:      String,
     lbl:      String,
     inputs:   Vec<Option<String>>,
     outputs:  Vec<Option<String>>,
@@ -100,7 +101,45 @@ pub struct BlockDSPArea {
 }
 
 impl BlockDSPArea {
-    fn upate_origin_map(&mut self) {
+    fn new(w: usize, h: usize) -> Self {
+        Self {
+            vis:        vec![],
+            blocks:     HashMap::new(),
+            origin_map: HashMap::new(),
+            size:       (w, h),
+        }
+    }
+
+    fn set_block_at(&mut self, x: usize, y: usize, block: VisBlock) {
+        let vis_idx =
+            if let Some(b) = self.blocks.get(&(x, y)) {
+                self.vis[b.borrow().vis_idx] = block;
+                b.borrow().vis_idx
+            } else {
+                self.vis.push(block);
+                self.vis.len() - 1
+            };
+
+        self.blocks.insert((x, y), Rc::new(RefCell::new(BlockDSPBlock {
+            vis_idx
+        })));
+        self.update_origin_map();
+        self.update_size();
+    }
+
+    fn update_size(&mut self) {
+        let mut min_w = 1;
+        let mut min_h = 1;
+
+        for ((ox, oy), _) in &self.origin_map {
+            if min_w < (ox + 1) { min_w = ox + 1; }
+            if min_h < (oy + 1) { min_h = oy + 1; }
+        }
+
+        self.size = (min_w, min_h);
+    }
+
+    fn update_origin_map(&mut self) {
         self.origin_map.clear();
 
         for ((ox, oy), block) in &self.blocks {
@@ -113,12 +152,139 @@ impl BlockDSPArea {
         }
     }
 
+    fn check_space_at(&self, x: usize, y: usize, rows: usize) -> bool {
+        for i in 0..rows {
+            let yo = y + i;
+
+            if self.origin_map.get(&(x, yo)).is_some() {
+                return false;
+            }
+        }
+
+        true
+    }
+
 //    pub fn add_block(&mut self, 
 }
 
 #[derive(Debug, Clone)]
+pub struct BlockType {
+    category:   String,
+    name:       String,
+    rows:       usize,
+    inputs:     Vec<Option<String>>,
+    outputs:    Vec<Option<String>>,
+    area_count: usize,
+    user_input: bool,
+}
+
+impl BlockType {
+    fn instanciate_vis_block(&self, user_input: Option<String>) -> VisBlock {
+        VisBlock {
+            rows:     self.rows,
+            contains:
+                match self.area_count {
+                    0 => (None, None),
+                    1 => (Some(1), None),
+                    2 => (Some(1), Some(1)),
+                    _ => (None, None),
+                },
+            expanded: true,
+            typ:      self.name.clone(),
+            lbl:
+                if let Some(inp) = user_input { inp }
+                else { self.name.clone() },
+            inputs:   self.inputs.clone(),
+            outputs:  self.outputs.clone(),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct BlockCodeLanguage {
+    types:  HashMap<String, BlockType>,
+}
+
+impl BlockCodeLanguage {
+    pub fn new() -> Self {
+        Self {
+            types: HashMap::new(),
+        }
+    }
+
+    pub fn define(&mut self, typ: BlockType) {
+        self.types.insert(typ.name.clone(), typ);
+    }
+
+    pub fn get_type_list(&self) -> Vec<(String, String, bool)> {
+        let mut out = vec![];
+        for (_, typ) in &self.types {
+            out.push((typ.category.clone(), typ.name.clone(), typ.user_input));
+        }
+        out
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum BlockDSPError {
+    UnknownArea(usize),
+    UnknownLanguageType(String),
+    NoSpaceAvailable(usize, usize, usize),
+}
+
+#[derive(Debug, Clone)]
 pub struct BlockDSPCode {
+    language:   Rc<RefCell<BlockCodeLanguage>>,
     areas:  Vec<BlockDSPArea>,
+}
+
+impl BlockDSPCode {
+    pub fn new(lang: Rc<RefCell<BlockCodeLanguage>>) -> Self {
+        Self {
+            language: lang,
+            areas:    vec![BlockDSPArea::new(16, 16)],
+        }
+    }
+
+    pub fn instanciate_at(
+        &mut self, id: usize, x: usize, y: usize,
+        typ: &str, user_input: Option<String>
+    ) -> Result<(), BlockDSPError>
+    {
+        let lang = self.language.borrow();
+
+        if let Some(area) = self.areas.get_mut(id) {
+            if let Some(typ) = lang.types.get(typ) {
+                if !area.check_space_at(x, y, typ.rows) {
+                    return Err(BlockDSPError::NoSpaceAvailable(x, y, typ.rows));
+                }
+            }
+        } else {
+            return Err(BlockDSPError::UnknownArea(id));
+        }
+
+        if let Some(typ) = lang.types.get(typ) {
+            let mut vis_block = typ.instanciate_vis_block(user_input);
+
+            if let Some(area_id) = &mut vis_block.contains.0 {
+                self.areas.push(BlockDSPArea::new(1, 1));
+                *area_id = self.areas.len() - 1;
+            }
+
+            if let Some(area_id) = &mut vis_block.contains.1 {
+                self.areas.push(BlockDSPArea::new(1, 1));
+                *area_id = self.areas.len() - 1;
+            }
+
+            if let Some(area) = self.areas.get_mut(id) {
+                area.set_block_at(x, y, vis_block);
+            }
+
+            Ok(())
+        } else {
+            return Err(BlockDSPError::UnknownLanguageType(typ.to_string()));
+        }
+    }
 }
 
 impl BlockCodeModel for BlockDSPCode {
@@ -159,6 +325,7 @@ impl DummyBlockCode {
             contains: (None, None),
             expanded: false,
             lbl: "get: x".to_string(),
+            typ: "get".to_string(),
             inputs:  vec![
                 None,
                 Some("a".to_string()),
@@ -170,6 +337,7 @@ impl DummyBlockCode {
             contains: (None, None),
             expanded: false,
             lbl: "sin".to_string(),
+            typ: "sin".to_string(),
             inputs:  vec![Some("".to_string())],
             outputs: vec![Some(">".to_string())],
         });
@@ -178,6 +346,7 @@ impl DummyBlockCode {
             contains: (None, None),
             expanded: false,
             lbl: "1.2".to_string(),
+            typ: "value".to_string(),
             inputs:  vec![None],
             outputs: vec![Some(">".to_string())],
         });
@@ -186,6 +355,7 @@ impl DummyBlockCode {
             contains: (None, None),
             expanded: false,
             lbl: "+".to_string(),
+            typ: "add".to_string(),
             inputs:  vec![
                 Some("".to_string()),
                 Some("".to_string())],
@@ -197,6 +367,7 @@ impl DummyBlockCode {
             contains: (Some(1), Some(2)),
             expanded: true,
             lbl: "if".to_string(),
+            typ: "if".to_string(),
             inputs:  vec![Some("c".to_string())],
             outputs: vec![Some(">".to_string())],
         });
@@ -206,6 +377,7 @@ impl DummyBlockCode {
             contains: (None, None),
             expanded: true,
             lbl: "1.0".to_string(),
+            typ: "value".to_string(),
             inputs:  vec![None],
             outputs: vec![Some(">".to_string())],
         });
@@ -215,6 +387,7 @@ impl DummyBlockCode {
             contains: (None, None),
             expanded: true,
             lbl: "2.0".to_string(),
+            typ: "value".to_string(),
             inputs:  vec![None],
             outputs: vec![Some(">".to_string())],
         });
