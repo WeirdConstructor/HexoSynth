@@ -24,10 +24,74 @@ pub struct VisBlock {
 
 pub trait BlockCodeModel {
     fn area_size(&self, id: usize) -> (usize, usize);
-    fn area_label(&self, id: usize) -> &str;
     fn block_at(&self, id: usize, x: usize, y: usize) -> Option<&VisBlock>;
     fn origin_at(&self, id: usize, x: usize, y: usize) -> Option<(usize, usize)>;
 }
+
+#[derive(Debug, Clone)]
+pub struct BlockDSPBlock {
+    vis_idx: usize,
+}
+
+#[derive(Debug, Clone)]
+pub struct BlockDSPArea {
+    vis:        Vec<VisBlock>,
+    blocks:     HashMap<(usize, usize), Rc<RefCell<BlockDSPBlock>>>,
+    origin_map: HashMap<(usize, usize), (usize, usize)>,
+    size:       (usize, usize),
+}
+
+impl BlockDSPArea {
+    fn upate_origin_map(&mut self) {
+        self.origin_map.clear();
+
+        for ((ox, oy), block) in &self.blocks {
+            let block = block.borrow();
+            let vb = &self.vis[block.vis_idx];
+
+            for r in 0..vb.rows {
+                self.origin_map.insert((*ox, *oy + r), (*ox, *oy));
+            }
+        }
+    }
+
+//    pub fn add_block(&mut self, 
+}
+
+#[derive(Debug, Clone)]
+pub struct BlockDSPCode {
+    areas:  Vec<BlockDSPArea>,
+}
+
+impl BlockCodeModel for BlockDSPCode {
+    fn area_size(&self, id: usize) -> (usize, usize) {
+        self.areas.get(id).map(|a| a.size).unwrap_or((0, 0))
+    }
+
+    fn block_at(&self, id: usize, x: usize, y: usize) -> Option<&VisBlock> {
+        self.areas.get(id).map(|a| {
+            if let Some(idx) =
+                a.blocks
+                 .get(&(x, y))
+                 .map(|b| b.borrow().vis_idx)
+            {
+                a.vis.get(idx)
+            } else {
+                None
+            }
+        }).flatten()
+    }
+
+    fn origin_at(&self, id: usize, x: usize, y: usize)
+        -> Option<(usize, usize)>
+    {
+        self.areas
+            .get(id)
+            .map(|a| a.origin_map.get(&(x, y)).copied())
+            .flatten()
+    }
+}
+
 
 pub struct DummyBlockCode {
     blocks: HashMap<(usize, usize, usize), VisBlock>,
@@ -137,15 +201,6 @@ BlockDSPCode requirements/functionality:
 */
 
 impl BlockCodeModel for DummyBlockCode {
-    fn area_label(&self, id: usize) -> &str {
-        match id {
-            0 => "Main",
-            1 => "then",
-            2 => "else",
-            _ => "?",
-        }
-    }
-
     fn area_size(&self, id: usize) -> (usize, usize) {
         match id {
             1 => (1, 1),
@@ -296,16 +351,6 @@ impl BlockCode {
                     block_w, block_h, marker_px);
             }
         }
-
-//        p.label(
-//            self.block_size * 0.7,
-//            -1,
-//            UI_PRIM2_CLR,
-//            (pos.x + block_h * 0.2).floor(),
-//            pos.y,
-//            block_w * 3.0,
-//            block_h,
-//            self.code.borrow().area_label(0));
 
         let mut next_areas = vec![];
 
