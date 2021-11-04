@@ -12,6 +12,17 @@ use std::cell::RefCell;
 
 use std::collections::HashMap;
 
+pub trait BlockModel {
+    fn rows(&self) -> usize;
+    fn contains(&self, idx: usize) -> Option<usize>;
+    fn expanded(&self) -> bool;
+    fn label(&self, buf: &mut [u8]) -> usize;
+    fn has_input(&self, idx: usize) -> bool;
+    fn has_output(&self, idx: usize) -> bool;
+    fn input_label(&self, idx: usize, buf: &mut [u8]) -> usize;
+    fn output_label(&self, idx: usize, buf: &mut [u8]) -> usize;
+}
+
 #[derive(Debug, Clone)]
 pub struct VisBlock {
     rows:     usize,
@@ -22,9 +33,56 @@ pub struct VisBlock {
     outputs:  Vec<Option<String>>,
 }
 
+impl BlockModel for VisBlock {
+    fn rows(&self) -> usize { self.rows }
+    fn contains(&self, idx: usize) -> Option<usize> {
+        if idx == 0 { self.contains.0 }
+        else { self.contains.1 }
+    }
+    fn expanded(&self) -> bool { true }
+    fn label(&self, buf: &mut [u8]) -> usize {
+        use std::io::Write;
+        let mut bw = std::io::BufWriter::new(buf);
+        match write!(bw, "{}", self.lbl) {
+            Ok(_) => bw.buffer().len(),
+            _ => 0,
+        }
+    }
+    fn has_input(&self, idx: usize) -> bool {
+        self.inputs.get(idx).map(|s| s.is_some()).unwrap_or(false)
+    }
+    fn has_output(&self, idx: usize) -> bool {
+        self.outputs.get(idx).map(|s| s.is_some()).unwrap_or(false)
+    }
+    fn input_label(&self, idx: usize, buf: &mut [u8]) -> usize {
+        use std::io::Write;
+        if let Some(lbl_opt) = self.inputs.get(idx) {
+            if let Some(lbl) = lbl_opt {
+                let mut bw = std::io::BufWriter::new(buf);
+                match write!(bw, "{}", lbl) {
+                    Ok(_) => bw.buffer().len(),
+                    _ => 0,
+                }
+            } else { 0 }
+        } else { 0 }
+    }
+    fn output_label(&self, idx: usize, buf: &mut [u8]) -> usize {
+        use std::io::Write;
+        if let Some(lbl_opt) = self.outputs.get(idx) {
+            if let Some(lbl) = lbl_opt {
+                let mut bw = std::io::BufWriter::new(buf);
+                match write!(bw, "{}", lbl) {
+                    Ok(_) => bw.buffer().len(),
+                    _ => 0,
+                }
+            } else { 0 }
+        } else { 0 }
+    }
+}
+
 pub trait BlockCodeModel {
     fn area_size(&self, id: usize) -> (usize, usize);
-    fn block_at(&self, id: usize, x: usize, y: usize) -> Option<&VisBlock>;
+    fn block_at(&self, id: usize, x: usize, y: usize) -> Option<&dyn BlockModel>;
     fn origin_at(&self, id: usize, x: usize, y: usize) -> Option<(usize, usize)>;
 }
 
@@ -68,18 +126,11 @@ impl BlockCodeModel for BlockDSPCode {
         self.areas.get(id).map(|a| a.size).unwrap_or((0, 0))
     }
 
-    fn block_at(&self, id: usize, x: usize, y: usize) -> Option<&VisBlock> {
-        self.areas.get(id).map(|a| {
-            if let Some(idx) =
-                a.blocks
-                 .get(&(x, y))
-                 .map(|b| b.borrow().vis_idx)
-            {
-                a.vis.get(idx)
-            } else {
-                None
-            }
-        }).flatten()
+    fn block_at(&self, id: usize, x: usize, y: usize) -> Option<&dyn BlockModel> {
+        let area  = self.areas.get(id)?;
+        let block = area.blocks.get(&(x, y))?;
+        let idx   = block.borrow().vis_idx;
+        Some(area.vis.get(idx)?)
     }
 
     fn origin_at(&self, id: usize, x: usize, y: usize)
@@ -209,8 +260,8 @@ impl BlockCodeModel for DummyBlockCode {
         }
     }
 
-    fn block_at(&self, id: usize, x: usize, y: usize) -> Option<&VisBlock> {
-        self.blocks.get(&(id, x, y))
+    fn block_at(&self, id: usize, x: usize, y: usize) -> Option<&dyn BlockModel> {
+        Some(self.blocks.get(&(id, x, y))?)
     }
 
     fn origin_at(&self, id: usize, x: usize, y: usize)
@@ -354,6 +405,8 @@ impl BlockCode {
 
         let mut next_areas = vec![];
 
+        let mut lbl_buf : [u8; 20] = [0; 20];
+
         for row in 0..rows {
             for col in 0..cols {
                 let x = col as f32 * block_w;
@@ -392,7 +445,7 @@ impl BlockCode {
                     self.code.borrow().block_at(area_id, col, row)
                 {
                     let w = block_w;
-                    let h = block.rows as f32 * block_h;
+                    let h = block.rows() as f32 * block_h;
 
                     p.rect_fill(bg_color, pos.x + x, pos.y + y, w, h);
 
@@ -404,17 +457,19 @@ impl BlockCode {
 
                     let hole_px = (0.6 * block_h).ceil();
 
+                    let len = block.label(&mut lbl_buf[..]);
+                    let val_s = std::str::from_utf8(&lbl_buf[0..len]).unwrap();
                     p.label(
                         self.block_size * 0.5,
                         0, UI_PRIM_CLR,
-                        pos.x + x, pos.y + y, w, h, &block.lbl);
+                        pos.x + x, pos.y + y, w, h, val_s);
 
 //                                    let fs =
 //                                        calc_font_size_from_text(
 //                                            p, name_lbl, fs, maxwidth);
 
-                    for (i, lbl) in block.inputs.iter().enumerate() {
-                        if let Some(lbl) = lbl {
+                    for i in 0..block.rows() {
+                        if block.has_input(i) {
                             let row = i as f32 * block_h;
                             p.rect_fill(
                                 bg_color,
@@ -424,6 +479,8 @@ impl BlockCode {
                                 3.0,
                                 hole_px);
 
+                            let len = block.input_label(i, &mut lbl_buf[..]);
+                            let val_s = std::str::from_utf8(&lbl_buf[0..len]).unwrap();
                             p.label(
                                 self.block_size * 0.4,
                                 -1,
@@ -432,7 +489,7 @@ impl BlockCode {
                                 pos.y + row + y - 1.0,
                                 (block_w * 0.5).floor(),
                                 block_h,
-                                lbl);
+                                val_s);
 
                             if hover_here
                                && hover_col == 0
@@ -451,10 +508,8 @@ impl BlockCode {
                                     sel_block_h);
                             }
                         }
-                    }
 
-                    for (i, lbl) in block.outputs.iter().enumerate() {
-                        if let Some(lbl) = lbl {
+                        if block.has_output(i) {
                             let row = i as f32 * block_h;
                             p.rect_fill(
                                 bg_color,
@@ -464,6 +519,8 @@ impl BlockCode {
                                 3.0,
                                 hole_px);
 
+                            let len = block.output_label(i, &mut lbl_buf[..]);
+                            let val_s = std::str::from_utf8(&lbl_buf[0..len]).unwrap();
                             p.label(
                                 self.block_size * 0.3,
                                 1,
@@ -472,7 +529,7 @@ impl BlockCode {
                                 pos.y + row + y - 1.0,
                                 (block_w * 0.5).floor(),
                                 block_h,
-                                lbl);
+                                val_s);
 
                             if hover_here
                                && hover_col == 1
@@ -493,7 +550,7 @@ impl BlockCode {
                         }
                     }
 
-                    if let Some(cont_id) = block.contains.0 {
+                    if let Some(cont_id) = block.contains(0) {
                         let (area_w, area_h) =
                             self.code.borrow().area_size(cont_id);
                         let bpos = Rect {
@@ -505,7 +562,7 @@ impl BlockCode {
 
                         next_areas.push((cont_id, bpos, border_color, bg_color));
 
-                        if let Some(cont_id) = block.contains.1 {
+                        if let Some(cont_id) = block.contains(1) {
                             let (area_w, area_h) =
                                 self.code.borrow().area_size(cont_id);
                             let bpos = Rect {
