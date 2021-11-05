@@ -195,7 +195,57 @@ iter line (("\n" => 0) hx:hexo_consts_rs) {
 #            ];
 
             !bcpanel = vizia:new_elem 0 ${ class = "block_code_panel" };
-            vizia:new_block_code bcpanel ${ };
+            !bc = vizia:new_block_code bcpanel ${ };
+
+            !lang = hx:new_block_language[];
+            !code = hx:new_block_code lang;
+
+            lang.define ${
+                category   = "primitive",
+                name       = "literal",
+                user_input = $t,
+                rows       = 1,
+                area_count = 0,
+                outputs    = $[">"],
+            };
+
+            lang.define ${
+                category   = "primitive",
+                name       = "sin",
+                user_input = $f,
+                rows       = 1,
+                area_count = 0,
+                outputs    = $[">"],
+                inputs     = $[""],
+            };
+
+            lang.define ${
+                category   = "primitive",
+                name       = "set",
+                user_input = $t,
+                rows       = 1,
+                area_count = 0,
+                inputs     = $[""],
+            };
+
+            lang.define ${
+                category   = "arithmetics",
+                name       = "+",
+                user_input = $f,
+                rows       = 2,
+                area_count = 0,
+                outputs    = $[">"],
+                inputs     = $["", ""],
+            };
+
+            code.instanciate_at 0 $i(2, 1) "literal" "2.3";
+            code.instanciate_at 0 $i(3, 1) "+"       $n;
+            code.instanciate_at 0 $i(2, 2) "sin"     $n;
+            code.instanciate_at 0 $i(1, 2) "literal" "0.6";
+            code.instanciate_at 0 $i(4, 1) "sin"     $n;
+            code.instanciate_at 0 $i(5, 1) "set"     "sig";
+
+            vizia:emit_to 0 bc $p(:block_code:set_code, code);
 
             vizia:new_button 0 "reload" {
                 load_theme[];

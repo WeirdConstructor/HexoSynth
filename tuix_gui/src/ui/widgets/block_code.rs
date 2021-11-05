@@ -23,6 +23,12 @@ pub trait BlockModel {
     fn output_label(&self, idx: usize, buf: &mut [u8]) -> usize;
 }
 
+pub trait BlockCodeModel {
+    fn area_size(&self, id: usize) -> (usize, usize);
+    fn block_at(&self, id: usize, x: usize, y: usize) -> Option<&dyn BlockModel>;
+    fn origin_at(&self, id: usize, x: usize, y: usize) -> Option<(usize, usize)>;
+}
+
 #[derive(Debug, Clone)]
 pub struct VisBlock {
     rows:     usize,
@@ -79,12 +85,6 @@ impl BlockModel for VisBlock {
             } else { 0 }
         } else { 0 }
     }
-}
-
-pub trait BlockCodeModel {
-    fn area_size(&self, id: usize) -> (usize, usize);
-    fn block_at(&self, id: usize, x: usize, y: usize) -> Option<&dyn BlockModel>;
-    fn origin_at(&self, id: usize, x: usize, y: usize) -> Option<(usize, usize)>;
 }
 
 #[derive(Debug, Clone)]
@@ -167,15 +167,16 @@ impl BlockDSPArea {
 //    pub fn add_block(&mut self, 
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct BlockType {
-    category:   String,
-    name:       String,
-    rows:       usize,
-    inputs:     Vec<Option<String>>,
-    outputs:    Vec<Option<String>>,
-    area_count: usize,
-    user_input: bool,
+    pub category:       String,
+    pub name:           String,
+    pub rows:           usize,
+    pub inputs:         Vec<Option<String>>,
+    pub outputs:        Vec<Option<String>>,
+    pub area_count:     usize,
+    pub user_input:     bool,
+    pub description:    String,
 }
 
 impl BlockType {
@@ -235,7 +236,7 @@ pub enum BlockDSPError {
 #[derive(Debug, Clone)]
 pub struct BlockDSPCode {
     language:   Rc<RefCell<BlockCodeLanguage>>,
-    areas:  Vec<BlockDSPArea>,
+    areas:      Vec<BlockDSPArea>,
 }
 
 impl BlockDSPCode {
@@ -252,6 +253,8 @@ impl BlockDSPCode {
     ) -> Result<(), BlockDSPError>
     {
         let lang = self.language.borrow();
+
+        println!("TYPES: {:?}", lang.types);
 
         if let Some(area) = self.areas.get_mut(id) {
             if let Some(typ) = lang.types.get(typ) {
@@ -897,8 +900,8 @@ impl Widget for BlockCode {
     fn on_event(&mut self, state: &mut State, entity: Entity, event: &mut Event) {
         if let Some(grid_msg) = event.message.downcast::<BlockCodeMessage>() {
             match grid_msg {
-                BlockCodeMessage::SetCode(con) => {
-//                    self.con = *con;
+                BlockCodeMessage::SetCode(code) => {
+                    self.code = code.clone();
                     state.insert_event(
                         Event::new(WindowEvent::Redraw)
                         .target(Entity::root()));

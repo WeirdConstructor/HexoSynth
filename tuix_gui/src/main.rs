@@ -29,6 +29,9 @@ use wlapi::{
     cell_dir2vv,
     new_test_grid_model,
     MatrixRecorder,
+    VValBlockDSPCode,
+    VValBlockCodeLanguage,
+    vv2block_code_model,
 };
 
 use hexodsp::{Matrix, CellDir};
@@ -158,6 +161,14 @@ fn vv2event(event: &VVal) -> Event {
         "hexgrid:set_model" => {
             if let Some(model) = vv2hex_grid_model(event.v_(1)) {
                 Event::new(HexGridMessage::SetModel(model))
+            } else {
+                eprintln!("Bad Event Type sent: {}, bad model arg!", event.s());
+                Event::new(WindowEvent::Redraw)
+            }
+        },
+        "block_code:set_code" => {
+            if let Some(model) = vv2block_code_model(event.v_(1)) {
+                Event::new(BlockCodeMessage::SetCode(model))
             } else {
                 eprintln!("Bad Event Type sent: {}, bad model arg!", event.s());
                 Event::new(WindowEvent::Redraw)
@@ -958,6 +969,16 @@ fn setup_hx_module(matrix: Arc<Mutex<Matrix>>) -> wlambda::SymbolTable {
         "get_main_matrix_handle", move |_env: &mut Env, _argc: usize| {
             Ok(matrix2vv(matrix.clone()))
         }, Some(0), Some(0), false);
+
+    st.fun(
+        "new_block_language", move |_env: &mut Env, _argc: usize| {
+            Ok(VValBlockCodeLanguage::create())
+        }, Some(0), Some(0), false);
+
+    st.fun(
+        "new_block_code", move |env: &mut Env, argc: usize| {
+            Ok(VValBlockDSPCode::create(env.arg(0)))
+        }, Some(1), Some(1), false);
 
     st.fun(
         "new_cluster", move |_env: &mut Env, _argc: usize| {

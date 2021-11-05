@@ -8,6 +8,7 @@ pub mod atom;
 pub mod matrix;
 pub mod matrix_recorder;
 pub mod grid_model;
+pub mod block_code_model;
 
 pub use node_info::*;
 pub use param::*;
@@ -15,6 +16,7 @@ pub use atom::*;
 pub use matrix::*;
 pub use matrix_recorder::*;
 pub use grid_model::*;
+pub use block_code_model::*;
 
 use wlambda::*;
 use hexodsp::{NodeId};
