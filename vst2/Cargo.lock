@@ -292,7 +292,7 @@ dependencies = [
 
 [[package]]
 name = "hexosynth"
-version = "0.1.0-alpha-3"
+version = "0.1.0-alpha-4"
 dependencies = [
  "hexodsp",
  "hexotk",
@@ -321,7 +321,7 @@ dependencies = [
 [[package]]
 name = "hexotk"
 version = "0.1.0"
-source = "git+https://github.com/WeirdConstructor/HexoTK.git#4de2286bb6620f089eb5dbf713df92bcd48d08f8"
+source = "git+https://github.com/WeirdConstructor/HexoTK.git?tag=hexosynth_compat#56e23deb10ee4aec7cc9ba9ace46c316987864fa"
 dependencies = [
  "baseview",
  "femtovg",

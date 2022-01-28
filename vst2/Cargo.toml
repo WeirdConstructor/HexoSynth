@@ -9,7 +9,7 @@ description = "HexoSynth - A hexagonal modular synthesizer plugin"
 [dependencies]
 hexosynth  = { path = ".." }
 hexodsp    = { git = "https://github.com/WeirdConstructor/HexoDSP.git" }
-hexotk     = { git = "https://github.com/WeirdConstructor/HexoTK.git", features=["driver"] }
+hexotk     = { git = "https://github.com/WeirdConstructor/HexoTK.git", tag = "hexosynth_compat", features=["driver"] }
 raw-window-handle  = "0.3"
 baseplug   = { git = "https://github.com/WeirdConstructor/baseplug.git", branch = "plugin_context" }
 keyboard-types = { version = "0.5.0", default-features = false }
