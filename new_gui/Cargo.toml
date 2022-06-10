@@ -12,4 +12,4 @@ femtovg   = "0.2.5"
 #hexodsp   = { git = "https://github.com/WeirdConstructor/HexoDSP" }
 hexodsp   = { path = "../../hexodsp" }
 jack      = "0.6.6"
-hexosynth = { path = ".." }
+#;hexosynth = { path = ".." }
