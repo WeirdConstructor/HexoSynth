@@ -1,4 +1,6 @@
 !@import ui;
+!@import hx;
+!@import node_id;
 
 !style = ui:style[];
 
@@ -29,6 +31,16 @@ btn.reg :click {
 #};
 
 std:displayln "FOO";
+
+!matrix = hx:get_main_matrix_handle[];
+
+iter y 0 => 10 {
+    iter x 0 => 10 {
+        std:displayln ~ matrix.get $i(x, y);
+    };
+};
+
+#matrix.
 
 root.add btn;
 root.add ent;
