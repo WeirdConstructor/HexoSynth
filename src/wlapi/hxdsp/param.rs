@@ -48,6 +48,16 @@ impl VValUserData for VValParamId {
                     Ok(VVal::None)
                 }
             },
+            "norm" => {
+                arg_chk!(args, 1, "param_id.norm[denorm_float]");
+
+                Ok(VVal::Flt(self.param.norm(env.arg(0).f() as f32) as f64))
+            },
+            "denorm" => {
+                arg_chk!(args, 1, "param_id.denorm[norm_float]");
+
+                Ok(VVal::Flt(self.param.norm(env.arg(0).f() as f32) as f64))
+            },
             "format" => {
                 arg_chk!(args, 1, "param_id.format[float]");
                 let mut buf : [u8; 128] = [0; 128];

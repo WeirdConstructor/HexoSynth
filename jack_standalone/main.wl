@@ -19,8 +19,17 @@ style.set ${
 !btn = ui:widget style;
 btn.set_ctrl :button lbl;
 
+!matrix = hx:get_main_matrix_handle[];
+!freq_s = 440.0;
+!sin_freq = node_id:inp_param $p(:sin, 0) :freq;
+lbl.set ~ sin_freq.format ~ sin_freq.norm freq_s;
+
 btn.reg :click {
     std:displayln "CLICK!" @;
+    lbl.set ~ sin_freq.format ~ sin_freq.norm freq_s;
+    matrix.set_param sin_freq sin_freq.norm[freq_s];
+    matrix.set_param $p($p(:amp, 0), :att) 1.0;
+    .freq_s *= 1.25;
 };
 
 !ent = ui:widget style;
@@ -32,15 +41,14 @@ btn.reg :click {
 
 std:displayln "FOO";
 
-!matrix = hx:get_main_matrix_handle[];
-
 iter y 0 => 10 {
     iter x 0 => 10 {
         std:displayln ~ matrix.get $i(x, y);
     };
 };
 
-#matrix.
+matrix.set_param $p($p(:amp, 0), :att) 0.0;
+std:displayln ~ node_id:param_list $p(:amp, 0);
 
 root.add btn;
 root.add ent;
