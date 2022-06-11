@@ -21,8 +21,16 @@ btn.reg :click {
     std:displayln "CLICK!" @;
 };
 
+!ent = ui:widget style;
+#ent.set_ctrl :entry lbl;
+
+#ent.reg :changed {
+#    std:displayln "CHANGED" @;
+#};
+
 std:displayln "FOO";
 
 root.add btn;
+root.add ent;
 
 $[root]

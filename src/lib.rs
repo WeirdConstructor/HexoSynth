@@ -8,17 +8,20 @@
 use hexotk::{UI, open_window};
 //pub mod ui;
 //pub mod ui_ctrl;
-//mod cluster;
+mod cluster;
 //mod uimsg_queue;
 //mod state;
 //mod actions;
 //mod menu;
 //mod dyn_widgets;
+pub mod wlapi;
 
 //use ui_ctrl::UICtrlRef;
 
 use wlambda::*;
 use wlambda::vval::VVal;
+
+mod matrix_param_model;
 
 use raw_window_handle::RawWindowHandle;
 
@@ -100,24 +103,24 @@ pub fn open_hexosynth(
         OpenHexoSynthConfig::default());
 }
 
-#[macro_export]
-macro_rules! arg_chk {
-    ($args: expr, $count: expr, $name: literal) => {
-        if $args.len() != $count {
-            return Err(StackAction::panic_msg(format!(
-                "{} called with wrong number of arguments",
-                $name)));
-        }
-    }
-}
-
-#[macro_export]
-macro_rules! wl_panic {
-    ($str: literal) => {
-        return Err(StackAction::panic_msg($str.to_string()));
-    }
-}
-
+//#[macro_export]
+//macro_rules! arg_chk {
+//    ($args: expr, $count: expr, $name: literal) => {
+//        if $args.len() != $count {
+//            return Err(StackAction::panic_msg(format!(
+//                "{} called with wrong number of arguments",
+//                $name)));
+//        }
+//    }
+//}
+//
+//#[macro_export]
+//macro_rules! wl_panic {
+//    ($str: literal) => {
+//        return Err(StackAction::panic_msg($str.to_string()));
+//    }
+//}
+//
 #[derive(Clone)]
 pub struct VUIStyle {
     pub style: Rc<RefCell<Rc<hexotk::Style>>>,
@@ -341,13 +344,30 @@ impl VValUserData for VUIWidget {
 
                 env.arg(0).with_s_ref(|typ| {
                     match typ {
+                        // "entry" => {
+                        //     self.0.set_ctrl(hexotk::Control::Entry {
+                        //         entry: Box::new(hexotk::Entry::new(
+                        //             Box::new(
+                        //                 vv2txt_mut(env.arg(1))
+                        //                 .unwrap_or_else(
+                        //                     || Rc::new(RefCell::new(
+                        //                         hexotk::CloneMutable::new(
+                        //                             String::from("?")))))))),
+                        //     });
+                        //     Ok(VVal::Bol(true))
+                        // }
                         "button" => {
                             self.0.set_ctrl(hexotk::Control::Button {
-                                label: Box::new(vv2txt_mut(env.arg(1)).unwrap_or_else(|| Rc::new(RefCell::new(hexotk::CloneMutable::new(String::from("?")))))),
+                                label: Box::new(
+                                    vv2txt_mut(env.arg(1)).unwrap_or_else(
+                                        || Rc::new(RefCell::new(
+                                            hexotk::CloneMutable::new(
+                                                String::from("?")))))),
                             });
                             Ok(VVal::Bol(true))
-                        },
-                        _ => Ok(VVal::None)
+                        }
+                        _ => Ok(VVal::err_msg(
+                            &format!("Unknown control assigned: {}", typ))),
                     }
                 })
             },
@@ -357,7 +377,7 @@ impl VValUserData for VUIWidget {
                 let cb = env.arg(1);
                 let cb = cb.disable_function_arity();
 
-                self.0.reg("click", {
+                self.0.reg(&env.arg(0).s_raw(), {
                     move |ctx, wid, ev| {
                         if let Some(ctx) = ctx.downcast_mut::<EvalContext>() {
                             println!("WID={:?}", wid);
@@ -424,6 +444,8 @@ pub fn open_hexosynth_with_config(
                 }, Some(1), Some(1), false);
 
             global_env.borrow_mut().set_module("ui", ui_st);
+            global_env.borrow_mut().set_module("hx",      wlapi::setup_hx_module(matrix.clone()));
+            global_env.borrow_mut().set_module("node_id", wlapi::setup_node_id_module());
 
             let mut roots = vec![];
 

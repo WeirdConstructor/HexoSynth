@@ -6,6 +6,7 @@ use std::collections::HashSet;
 use hexodsp::{Matrix, Cell, CellDir, NodeId};
 use hexodsp::matrix::MatrixError;
 
+#[derive(Clone)]
 pub struct Cluster {
     cells:          Vec<Cell>,
     poses:          HashSet<(usize, usize)>,
@@ -19,6 +20,14 @@ impl Cluster {
             poses:      HashSet::new(),
             ignore_pos: HashSet::new(),
         }
+    }
+
+    pub fn for_poses<F: FnMut(&(usize, usize))>(&self, mut f: F) {
+        for p in self.poses.iter() { f(p) }
+    }
+
+    pub fn for_cells<F: FnMut(&Cell)>(&self, mut f: F) {
+        for c in self.cells.iter() { f(c) }
     }
 
     pub fn ignore_pos(&mut self, pos: (usize, usize)) {
@@ -35,12 +44,6 @@ impl Cluster {
 
         false
     }
-
-//    pub fn add_cluster_input_tail(&mut self, m: &mut Matrix, pos: (usize, usize)) {
-//    }
-//
-//    pub fn add_cluster_output_tail(&mut self, m: &mut Matrix, pos: (usize, usize)) {
-//    }
 
     pub fn add_cluster_at(&mut self, m: &mut Matrix, pos: (usize, usize)) {
         let mut stack = vec![pos];
