@@ -309,6 +309,10 @@ impl VUIWidget {
     pub fn new(style: Rc<hexotk::Style>) -> Self {
         Self(hexotk::Widget::new(style))
     }
+
+    pub fn from(widget: hexotk::Widget) -> Self {
+        Self(widget)
+    }
 }
 
 impl VValUserData for VUIWidget {
@@ -347,6 +351,26 @@ impl VValUserData for VUIWidget {
                     }
                 })
             },
+            "reg" => {
+                arg_chk!(args, 2, "$<UI::Widget>.reg[event_name, callback_fn]");
+
+                let cb = env.arg(1);
+                let cb = cb.disable_function_arity();
+
+                self.0.reg("click", {
+                    move |ctx, wid, ev| {
+                        if let Some(ctx) = ctx.downcast_mut::<EvalContext>() {
+                            println!("WID={:?}", wid);
+                            println!("EV={:?}", ev);
+                            match ctx.call(&cb, &[VVal::new_usr(VUIWidget::from(wid))]) {
+                                Ok(_) => {},
+                                Err(e) => { println!("ERROR in widget callback: {}", e); }
+                            }
+                        }
+                    }
+                });
+                Ok(VVal::Bol(true))
+            },
             _ => Ok(VVal::err_msg(&format!("Unknown method called: {}", key))),
         }
     }
@@ -367,8 +391,6 @@ pub fn open_hexosynth_with_config(
         "HexoSynth", 1400, 787,
         parent,
         Box::new(move || {
-            let mut ui = Box::new(UI::new());
-
             let global_env = GlobalEnv::new_default();
 
             let argv = VVal::vec();
@@ -377,10 +399,7 @@ pub fn open_hexosynth_with_config(
             }
             global_env.borrow_mut().set_var("ARGV", &argv);
 
-            let ctx = wlambda::EvalContext::new(global_env.clone());
-            let ctx = Rc::new(RefCell::new(ctx));
-
-            let mut ctx = ctx.borrow_mut();
+            let mut ctx = wlambda::EvalContext::new(global_env.clone());
 
             let mut ui_st = wlambda::SymbolTable::new();
 
@@ -406,6 +425,8 @@ pub fn open_hexosynth_with_config(
 
             global_env.borrow_mut().set_module("ui", ui_st);
 
+            let mut roots = vec![];
+
             match ctx.eval_file(
                 &std::env::args().nth(1).unwrap_or("main.wl".to_string()))
             {
@@ -413,7 +434,7 @@ pub fn open_hexosynth_with_config(
                     v.with_iter(|iter| {
                         for (v, _) in iter {
                             if let Some(widget) = vv2widget(v) {
-                                ui.add_layer_root(widget);
+                                roots.push(widget);
                             } else {
                                 println!("ERROR: Expected main.wl to return a list of UI root widgets!");
                             }
@@ -421,6 +442,12 @@ pub fn open_hexosynth_with_config(
                     })
                 },
                 Err(e) => { println!("ERROR: {}", e); }
+            }
+
+            let mut ui = Box::new(UI::new(Rc::new(RefCell::new(ctx))));
+
+            for widget in roots {
+                ui.add_layer_root(widget);
             }
 
             ui
