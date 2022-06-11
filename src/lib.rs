@@ -17,6 +17,9 @@ use hexotk::{UI, open_window};
 
 //use ui_ctrl::UICtrlRef;
 
+use wlambda::*;
+use wlambda::vval::VVal;
+
 use raw_window_handle::RawWindowHandle;
 
 use std::rc::Rc;
@@ -97,6 +100,262 @@ pub fn open_hexosynth(
         OpenHexoSynthConfig::default());
 }
 
+#[macro_export]
+macro_rules! arg_chk {
+    ($args: expr, $count: expr, $name: literal) => {
+        if $args.len() != $count {
+            return Err(StackAction::panic_msg(format!(
+                "{} called with wrong number of arguments",
+                $name)));
+        }
+    }
+}
+
+#[macro_export]
+macro_rules! wl_panic {
+    ($str: literal) => {
+        return Err(StackAction::panic_msg($str.to_string()));
+    }
+}
+
+#[derive(Clone)]
+pub struct VUIStyle {
+    pub style: Rc<RefCell<Rc<hexotk::Style>>>,
+}
+
+impl VUIStyle {
+    pub fn new() -> Self {
+        Self { style: Rc::new(RefCell::new(Rc::new(hexotk::Style::new()))) }
+    }
+}
+
+//pub struct Style {
+//    pub bg_color:               (f32, f32, f32),
+//    pub border_color:           (f32, f32, f32),
+//    pub color:                  (f32, f32, f32),
+//    pub border:                 f32,
+//    pub pad_left:               f32,
+//    pub pad_right:              f32,
+//    pub pad_top:                f32,
+//    pub pad_bottom:             f32,
+//    pub shadow_offs:            (f32, f32),
+//    pub shadow_color:           (f32, f32, f32),
+//    pub hover_shadow_color:     (f32, f32, f32),
+//    pub hover_border_color:     (f32, f32, f32),
+//    pub hover_color:            (f32, f32, f32),
+//    pub active_shadow_color:    (f32, f32, f32),
+//    pub active_border_color:    (f32, f32, f32),
+//    pub active_color:           (f32, f32, f32),
+//    pub text_align:             Align,
+//    pub text_valign:            VAlign,
+//    pub font_size:              f32,
+//    pub colors:                 Vec<(f32, f32, f32)>,
+//}
+
+fn vv2clr(v: &VVal) -> (f32, f32, f32) {
+    (v.v_f(0) as f32,
+     v.v_f(1) as f32,
+     v.v_f(2) as f32)
+}
+
+fn set_style_from_key(style: &mut hexotk::Style, key: &str, v: &VVal) -> bool {
+    match key {
+        "border"              => { style.border     = v.f() as f32; }
+        "font_size"           => { style.font_size  = v.f() as f32; }
+        "pad_left"            => { style.pad_left   = v.f() as f32; }
+        "pad_right"           => { style.pad_right  = v.f() as f32; }
+        "pad_top"             => { style.pad_top    = v.f() as f32; }
+        "pad_bottom"          => { style.pad_bottom = v.f() as f32; }
+        "shadow_offs" => {
+            style.shadow_offs = (v.v_f(0) as f32, v.v_f(1) as f32);
+        }
+        "color"               => { style.color               = vv2clr(v); }
+        "bg_color"            => { style.bg_color            = vv2clr(v); }
+        "border_color"        => { style.border_color        = vv2clr(v); }
+        "shadow_color"        => { style.shadow_color        = vv2clr(v); }
+        "hover_shadow_color"  => { style.hover_shadow_color  = vv2clr(v); }
+        "hover_border_color"  => { style.hover_border_color  = vv2clr(v); }
+        "hover_color"         => { style.hover_color         = vv2clr(v); }
+        "active_shadow_color" => { style.active_shadow_color = vv2clr(v); }
+        "active_border_color" => { style.active_border_color = vv2clr(v); }
+        "active_color"        => { style.active_color        = vv2clr(v); }
+        "text_align" => {
+            style.text_align =
+                v.with_s_ref(|vs| {
+                    match vs {
+                        "center" => hexotk::Align::Center,
+                        "left"   => hexotk::Align::Left,
+                        "right"  => hexotk::Align::Right,
+                        _        => hexotk::Align::Left,
+                    }
+                });
+        },
+        "text_valign" => {
+            style.text_valign =
+                v.with_s_ref(|vs| {
+                    match vs {
+                        "middle" => hexotk::VAlign::Middle,
+                        "top"    => hexotk::VAlign::Top,
+                        "bottom" => hexotk::VAlign::Bottom,
+                        _        => hexotk::VAlign::Middle,
+                    }
+                });
+        },
+        _ => { return false; }
+    }
+
+    true
+}
+
+impl VValUserData for VUIStyle {
+    fn s(&self) -> String { format!("$<UI::Style>") }
+    fn as_any(&mut self) -> &mut dyn std::any::Any { self }
+    fn clone_ud(&self) -> Box<dyn vval::VValUserData> { Box::new(self.clone()) }
+
+    fn call_method(&self, key: &str, env: &mut Env)
+        -> Result<VVal, StackAction>
+    {
+        let args = env.argv_ref();
+
+        match key {
+            "set" => {
+                arg_chk!(args, 1, "$<UI::TextMut>.set[map]");
+
+                let mut cur_style = (**self.style.borrow()).clone();
+
+                let ret = env.arg(0).with_iter(|iter| {
+                    for (v, k) in iter {
+                        if let Some(k) = k {
+                            let mut bad_key = false;
+
+                            k.with_s_ref(|ks| {
+                                if !set_style_from_key(&mut cur_style, ks, &v) {
+                                    bad_key = true;
+                                }
+                            });
+
+                            if bad_key {
+                                return Ok(VVal::err_msg(&format!(
+                                    "$<UI::TextMut>.set called with unknown key: {}",
+                                    k.s_raw())));
+                            }
+                        }
+                    }
+
+                    Ok(VVal::Bol(true))
+                });
+
+                if let Ok(v) = &ret {
+                    if v.b() {
+                        *self.style.borrow_mut() = Rc::new(cur_style);
+                    }
+                }
+
+                ret
+            },
+            _ => Ok(VVal::err_msg(&format!("Unknown method called: {}", key))),
+        }
+    }
+}
+
+pub fn vv2style_rc(mut v: VVal) -> Option<Rc<hexotk::Style>> {
+    v.with_usr_ref(|style: &mut VUIStyle| style.style.borrow().clone())
+}
+
+#[derive(Clone)]
+pub struct VUITextMut {
+    pub txtmut: Rc<RefCell<hexotk::CloneMutable<String>>>,
+}
+
+impl VUITextMut {
+    pub fn new(s: String) -> Self {
+        Self {
+            txtmut: Rc::new(RefCell::new(hexotk::CloneMutable::new(s))),
+        }
+    }
+}
+
+impl VValUserData for VUITextMut {
+    fn s(&self) -> String { format!("$<UI::TextMut({})>", **self.txtmut.borrow()) }
+    fn as_any(&mut self) -> &mut dyn std::any::Any { self }
+    fn clone_ud(&self) -> Box<dyn vval::VValUserData> { Box::new(self.clone()) }
+
+    fn call_method(&self, key: &str, env: &mut Env)
+        -> Result<VVal, StackAction>
+    {
+        let args = env.argv_ref();
+
+        match key {
+            "set" => {
+                arg_chk!(args, 1, "$<UI::TextMut>.set[string]");
+
+                **self.txtmut.borrow_mut() = env.arg(0).s_raw();
+
+                Ok(env.arg(0))
+            },
+            _ => Ok(VVal::err_msg(&format!("Unknown method called: {}", key))),
+        }
+    }
+}
+
+pub fn vv2txt_mut(mut v: VVal) -> Option<Rc<RefCell<hexotk::CloneMutable<String>>>> {
+    v.with_usr_ref(|txtmut: &mut VUITextMut| txtmut.txtmut.clone())
+}
+
+#[derive(Clone)]
+pub struct VUIWidget(hexotk::Widget);
+
+impl VUIWidget {
+    pub fn new(style: Rc<hexotk::Style>) -> Self {
+        Self(hexotk::Widget::new(style))
+    }
+}
+
+impl VValUserData for VUIWidget {
+    fn s(&self) -> String { format!("$<UI::Widget({})>", self.0.id()) }
+    fn as_any(&mut self) -> &mut dyn std::any::Any { self }
+    fn clone_ud(&self) -> Box<dyn vval::VValUserData> { Box::new(self.clone()) }
+
+    fn call_method(&self, key: &str, env: &mut Env)
+        -> Result<VVal, StackAction>
+    {
+        let args = env.argv_ref();
+
+        match key {
+            "add" => {
+                arg_chk!(args, 1, "$<UI::Widget>.add[widget]");
+
+                if let Some(wid) = vv2widget(env.arg(0)) {
+                    self.0.add(wid);
+                    Ok(VVal::Bol(true))
+                } else {
+                    wl_panic!("$<UI::Widget>.add got no widget as argument!")
+                }
+            },
+            "set_ctrl" => {
+                arg_chk!(args, 2, "$<UI::Widget>.set_ctrl[ctrl_type_str, init_ctrl_arg]");
+
+                env.arg(0).with_s_ref(|typ| {
+                    match typ {
+                        "button" => {
+                            self.0.set_ctrl(hexotk::Control::Button {
+                                label: Box::new(vv2txt_mut(env.arg(1)).unwrap_or_else(|| Rc::new(RefCell::new(hexotk::CloneMutable::new(String::from("?")))))),
+                            });
+                            Ok(VVal::Bol(true))
+                        },
+                        _ => Ok(VVal::None)
+                    }
+                })
+            },
+            _ => Ok(VVal::err_msg(&format!("Unknown method called: {}", key))),
+        }
+    }
+}
+
+pub fn vv2widget(mut v: VVal) -> Option<hexotk::Widget> {
+    v.with_usr_ref(|w: &mut VUIWidget| w.0.clone())
+}
+
 /// The same as [open_hexosynth] but with more configuration options, see also
 /// [OpenHexoSynthConfig].
 pub fn open_hexosynth_with_config(
@@ -109,6 +368,61 @@ pub fn open_hexosynth_with_config(
         parent,
         Box::new(move || {
             let mut ui = Box::new(UI::new());
+
+            let global_env = GlobalEnv::new_default();
+
+            let argv = VVal::vec();
+            for e in std::env::args() {
+                argv.push(VVal::new_str_mv(e.to_string()));
+            }
+            global_env.borrow_mut().set_var("ARGV", &argv);
+
+            let ctx = wlambda::EvalContext::new(global_env.clone());
+            let ctx = Rc::new(RefCell::new(ctx));
+
+            let mut ctx = ctx.borrow_mut();
+
+            let mut ui_st = wlambda::SymbolTable::new();
+
+            ui_st.fun(
+                "style", move |env: &mut Env, _argc: usize| {
+                    Ok(VVal::new_usr(VUIStyle::new()))
+                }, Some(0), Some(0), false);
+
+            ui_st.fun(
+                "txt", move |env: &mut Env, _argc: usize| {
+                    Ok(VVal::new_usr(VUITextMut::new(env.arg(0).s_raw())))
+                }, Some(1), Some(1), false);
+
+            ui_st.fun(
+                "widget", move |env: &mut Env, _argc: usize| {
+                    let style = vv2style_rc(env.arg(0));
+                    if let Some(style) = style {
+                        Ok(VVal::new_usr(VUIWidget::new(style)))
+                    } else {
+                        wl_panic!("ui:widget expected $<UI::Style> as first arg!")
+                    }
+                }, Some(1), Some(1), false);
+
+            global_env.borrow_mut().set_module("ui", ui_st);
+
+            match ctx.eval_file(
+                &std::env::args().nth(1).unwrap_or("main.wl".to_string()))
+            {
+                Ok(v) => {
+                    v.with_iter(|iter| {
+                        for (v, _) in iter {
+                            if let Some(widget) = vv2widget(v) {
+                                ui.add_layer_root(widget);
+                            } else {
+                                println!("ERROR: Expected main.wl to return a list of UI root widgets!");
+                            }
+                        }
+                    })
+                },
+                Err(e) => { println!("ERROR: {}", e); }
+            }
+
             ui
         }));
 }

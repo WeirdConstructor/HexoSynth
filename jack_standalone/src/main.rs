@@ -232,11 +232,10 @@ fn start_backend<F: FnMut()>(node_exec: NodeExecutor, mut f: F) {
 }
 
 fn main() {
-
     let (matrix, node_exec) = init_hexosynth();
     let matrix = Arc::new(Mutex::new(matrix));
 
     start_backend(node_exec, move || {
-        open_hexosynth(None, None, matrix.clone());
+        open_hexosynth(None, matrix.clone());
     });
 }

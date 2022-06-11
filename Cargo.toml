@@ -8,6 +8,7 @@ description = "HexoSynth - A hexagonal modular synthesizer plugin"
 
 [dependencies]
 #hexodsp    = { git = "https://github.com/WeirdConstructor/HexoDSP.git" }
+wlambda     = { path = "../wlambda", features=["all"] }
 hexodsp    = { path = "../hexodsp" }
 #hexotk     = { git = "https://github.com/WeirdConstructor/HexoTK.git", tag = "hexosynth_compat", features=["driver"] }
 hexotk     = { path = "../hexotk", features=["driver"] }
