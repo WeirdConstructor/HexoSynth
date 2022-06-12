@@ -38,15 +38,15 @@ impl KnobParam {
 }
 
 impl ParamModel for KnobParam {
-    fn check_change(&mut self) -> bool {
-        false
-    }
-
     fn get(&self) -> f32 {
         self.with_ref(|m, param_id|
            m.get_param(param_id)
             .map(|a| a.f())
             .unwrap_or(0.0))
+    }
+
+    fn get_generation(&mut self) -> u64 {
+        self.with_ref(|m, _param_id| m.get_generation() as u64)
     }
 
     /// Should return true if the UI for the parameter can be changed

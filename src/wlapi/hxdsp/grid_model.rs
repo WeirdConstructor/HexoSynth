@@ -97,6 +97,11 @@ impl HexGridModel for MatrixUIModel {
     fn width(&self) -> usize { self.w }
     fn height(&self) -> usize { self.h }
 
+    fn get_generation(&self) -> u64 {
+        let m = self.matrix.lock().expect("matrix lockable");
+        m.get_generation() as u64
+    }
+
 //    fn cell_click(&self, x: usize, y: usize, btn: MButton, modkey: bool) {
 //        self.ui_ctrl.emit(Msg::matrix_click(x, y, btn, modkey));
 //    }
@@ -210,6 +215,7 @@ impl TestGridModel {
 impl HexGridModel for TestGridModel {
     fn width(&self) -> usize { 16 }
     fn height(&self) -> usize { 16 }
+    fn get_generation(&self) -> u64 { 1 }
     fn cell_visible(&self, x: usize, y: usize) -> bool {
         x < self.width() && y < self.height()
     }
