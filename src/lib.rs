@@ -366,6 +366,20 @@ impl VValUserData for VUIWidget {
                             });
                             Ok(VVal::Bol(true))
                         }
+                        "knob" => {
+                            if let Some(param) = wlapi::vv2hex_knob_model(env.arg(1)) {
+                                self.0.set_ctrl(hexotk::Control::HexKnob {
+                                    knob: Box::new(hexotk::HexKnob::new(param)),
+                                });
+                                Ok(VVal::Bol(true))
+
+                            } else {
+                                Ok(VVal::err_msg(
+                                    &format!(
+                                        "knob has non parameter as argument: {}",
+                                        env.arg(1).s())))
+                            }
+                        }
                         _ => Ok(VVal::err_msg(
                             &format!("Unknown control assigned: {}", typ))),
                     }

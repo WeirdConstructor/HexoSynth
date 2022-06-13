@@ -50,7 +50,17 @@ iter y 0 => 10 {
 matrix.set_param $p($p(:amp, 0), :att) 0.0;
 std:displayln ~ node_id:param_list $p(:amp, 0);
 
+!knob_model = matrix.create_hex_knob_dummy_model[];
+!knob = ui:widget style;
+knob.set_ctrl :knob knob_model;
+
+!knob_freq_model = matrix.create_hex_knob_model sin_freq;
+!knob_freq = ui:widget style;
+knob_freq.set_ctrl :knob knob_freq_model;
+
 root.add btn;
 root.add ent;
+root.add knob;
+root.add knob_freq;
 
 $[root]
