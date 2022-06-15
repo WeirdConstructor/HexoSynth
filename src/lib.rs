@@ -357,6 +357,47 @@ impl VValUserData for VUIWidget {
                     wl_panic!("$<UI::Widget>.remove_child got no widget as argument!")
                 }
             }
+            "change_layout" => {
+                arg_chk!(args, 1, "$<UI::Widget>.change_layout[layout_set_map]");
+
+                self.0.change_layout(|layout| {
+                    env.arg(0).with_iter(|iter| {
+                        for (v, k) in iter {
+                            let k = k.unwrap_or(VVal::None);
+
+                            let err = k.with_s_ref(|ks| {
+                                match ks {
+                                    "layout_type" => {
+                                        if v.is_none() {
+                                            layout.layout_type = None;
+
+                                        } else {
+                                            let ls = v.s_raw();
+                                            layout.layout_type =
+                                                match &ls[..] {
+                                                    "row"    => Some(hexotk::LayoutType::Row),
+                                                    "column" => Some(hexotk::LayoutType::Column),
+                                                    _ => {
+                                                        return Some(VVal::err_msg(
+                                                            &format!("Unknown layout_type assigned: {}", ls)))
+                                                    },
+                                                };
+                                        }
+                                        None
+                                    },
+                                    _ => Some(VVal::err_msg(
+                                        &format!("Unknown layout field assigned: {}", ks))),
+                                }
+                            });
+                            if let Some(err) = err {
+                                return Ok(err);
+                            }
+                        }
+
+                        Ok(VVal::Bol(true))
+                    })
+                })
+            }
             "set_ctrl" => {
                 arg_chk!(args, 2, "$<UI::Widget>.set_ctrl[ctrl_type_str, init_ctrl_arg]");
 

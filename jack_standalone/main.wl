@@ -33,6 +33,9 @@ btn.reg :click {
     matrix.set_param sin_freq sin_freq.norm[freq_s];
     matrix.set_param $p($p(:amp, 0), :att) 1.0;
     root.remove_child btn2;
+    root.change_layout ${
+        layout_type = :row
+    };
     .freq_s *= 1.25;
 };
 
