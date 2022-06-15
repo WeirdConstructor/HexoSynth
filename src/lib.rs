@@ -383,12 +383,16 @@ impl VValUserData for VUIWidget {
                                                     },
                                                 };
                                         }
-                                        None
                                     },
-                                    _ => Some(VVal::err_msg(
-                                        &format!("Unknown layout field assigned: {}", ks))),
+                                    _ => {
+                                        return Some(VVal::err_msg(
+                                            &format!("Unknown layout field assigned: {}", ks)))
+                                    },
                                 }
+
+                                None
                             });
+
                             if let Some(err) = err {
                                 return Ok(err);
                             }
