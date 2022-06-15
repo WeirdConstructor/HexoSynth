@@ -318,6 +318,14 @@ impl VUIWidget {
     }
 }
 
+fn mbutton2vv(btn: hexotk::MButton) -> VVal {
+    match btn {
+        hexotk::MButton::Left   => VVal::new_sym("left"),
+        hexotk::MButton::Middle => VVal::new_sym("middle"),
+        hexotk::MButton::Right  => VVal::new_sym("right"),
+    }
+}
+
 impl VValUserData for VUIWidget {
     fn s(&self) -> String { format!("$<UI::Widget({})>", self.0.id()) }
     fn as_any(&mut self) -> &mut dyn std::any::Any { self }
@@ -338,7 +346,17 @@ impl VValUserData for VUIWidget {
                 } else {
                     wl_panic!("$<UI::Widget>.add got no widget as argument!")
                 }
-            },
+            }
+            "remove_child" => {
+                arg_chk!(args, 1, "$<UI::Widget>.remove_child[widget]");
+
+                if let Some(wid) = vv2widget(env.arg(0)) {
+                    self.0.remove_child(wid);
+                    Ok(VVal::Bol(true))
+                } else {
+                    wl_panic!("$<UI::Widget>.remove_child got no widget as argument!")
+                }
+            }
             "set_ctrl" => {
                 arg_chk!(args, 2, "$<UI::Widget>.set_ctrl[ctrl_type_str, init_ctrl_arg]");
 
@@ -380,6 +398,20 @@ impl VValUserData for VUIWidget {
                                         env.arg(1).s())))
                             }
                         }
+                        "grid" => {
+                            if let Some(model) = wlapi::vv2hex_grid_model(env.arg(1)) {
+                                self.0.set_ctrl(hexotk::Control::HexGrid {
+                                    grid: Box::new(hexotk::HexGrid::new(model)),
+                                });
+                                Ok(VVal::Bol(true))
+
+                            } else {
+                                Ok(VVal::err_msg(
+                                    &format!(
+                                        "grid has no hex grid model as argument: {}",
+                                        env.arg(1).s())))
+                            }
+                        }
                         _ => Ok(VVal::err_msg(
                             &format!("Unknown control assigned: {}", typ))),
                     }
@@ -396,7 +428,32 @@ impl VValUserData for VUIWidget {
                         if let Some(ctx) = ctx.downcast_mut::<EvalContext>() {
                             println!("WID={:?}", wid);
                             println!("EV={:?}", ev);
-                            match ctx.call(&cb, &[VVal::new_usr(VUIWidget::from(wid))]) {
+                            let arg =
+                                match ev.data {
+                                    hexotk::EvPayload::Button(btn) => {
+                                        mbutton2vv(btn)
+                                    }
+                                    hexotk::EvPayload::HexGridClick { x, y, button } => {
+                                        VVal::map3(
+                                            "x",      VVal::Int(x as i64),
+                                            "y",      VVal::Int(y as i64),
+                                            "button", mbutton2vv(button))
+                                    },
+                                    hexotk::EvPayload::HexGridDrag {
+                                        x_src, y_src, x_dst, y_dst, button
+                                    } => {
+                                        let m = VVal::map2(
+                                            "x_src", VVal::Int(x_src as i64),
+                                            "y_src", VVal::Int(y_src as i64));
+                                        m.set_key_str("x_dst", VVal::Int(x_dst as i64));
+                                        m.set_key_str("y_dst", VVal::Int(y_dst as i64));
+                                        m.set_key_str("button", mbutton2vv(button));
+                                        m
+                                    },
+                                    _ => VVal::None,
+                                };
+
+                            match ctx.call(&cb, &[VVal::new_usr(VUIWidget::from(wid)), arg]) {
                                 Ok(_) => {},
                                 Err(e) => { println!("ERROR in widget callback: {}", e); }
                             }

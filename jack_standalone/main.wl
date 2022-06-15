@@ -19,6 +19,9 @@ style.set ${
 !btn = ui:widget style;
 btn.set_ctrl :button lbl;
 
+!btn2 = ui:widget style;
+btn2.set_ctrl :button (ui:txt "wurst");
+
 !matrix = hx:get_main_matrix_handle[];
 !freq_s = 440.0;
 !sin_freq = node_id:inp_param $p(:sin, 0) :freq;
@@ -29,6 +32,7 @@ btn.reg :click {
     lbl.set ~ sin_freq.format ~ sin_freq.norm freq_s;
     matrix.set_param sin_freq sin_freq.norm[freq_s];
     matrix.set_param $p($p(:amp, 0), :att) 1.0;
+    root.remove_child btn2;
     .freq_s *= 1.25;
 };
 
@@ -58,9 +62,24 @@ knob.set_ctrl :knob knob_model;
 !knob_freq = ui:widget style;
 knob_freq.set_ctrl :knob knob_freq_model;
 
+!grid_model = matrix.create_grid_model[];
+!grid = ui:widget style;
+grid.set_ctrl :grid grid_model;
+
+grid.reg :click {
+    std:displayln "GRID CLICK:" @;
+    grid_model.set_focus_cell $i(@.1.x, @.1.y);
+};
+
+grid.reg :drag {
+    std:displayln "GRID DRAG:" @;
+};
+
 root.add btn;
 root.add ent;
 root.add knob;
 root.add knob_freq;
+root.add btn2;
+root.add grid;
 
 $[root]

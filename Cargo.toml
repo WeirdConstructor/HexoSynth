@@ -12,11 +12,11 @@ wlambda     = { path = "../wlambda", features=["all"] }
 hexodsp    = { path = "../hexodsp" }
 #hexotk     = { git = "https://github.com/WeirdConstructor/HexoTK.git", tag = "hexosynth_compat", features=["driver"] }
 hexotk     = { path = "../hexotk", features=["driver"] }
-raw-window-handle  = "0.3"
+raw-window-handle  = "0.4.2"
 serde      = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 ringbuf    = "0.2.2"
-keyboard-types = { version = "0.5.0", default-features = false }
+keyboard-types = { version = "0.6.1", default-features = false }
 triple_buffer = "5.0.6"
 hound       = "3.4.0"
 
