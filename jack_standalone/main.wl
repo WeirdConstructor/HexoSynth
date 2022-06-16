@@ -25,6 +25,7 @@ style.set ${
     font_size  = 24,
     text_align = :left,
     pad_left   = 20,
+    border_style = $[:bevel, $f(5.0, 10.0, 20.0, 2.0)],
 };
 
 !btn = ui:widget style;

@@ -193,6 +193,45 @@ fn set_style_from_key(style: &mut hexotk::Style, key: &str, v: &VVal) -> bool {
                     }
                 });
         },
+        "border_style" => {
+            style.border_style =
+                if v.is_vec() {
+                    let bs = v.v_(0);
+                    bs.with_s_ref(|bs| {
+                        match bs {
+                            "rect"  => hexotk::BorderStyle::Rect,
+                            "hex"   => hexotk::BorderStyle::Hex {
+                                offset: v.v_f(1) as f32,
+                            },
+                            "bevel" => {
+                                let offs = v.v_(1);
+                                hexotk::BorderStyle::Bevel {
+                                    corner_offsets: (
+                                        offs.v_f(0) as f32,
+                                        offs.v_f(1) as f32,
+                                        offs.v_f(2) as f32,
+                                        offs.v_f(3) as f32
+                                    )
+                                }
+                            }
+                            _ => hexotk::BorderStyle::Rect
+                        }
+                    })
+                } else {
+                    v.with_s_ref(|bs| {
+                        match bs {
+                            "rect"  => hexotk::BorderStyle::Rect,
+                            "hex"   => hexotk::BorderStyle::Hex {
+                                offset: 5.0
+                            },
+                            "bevel" => hexotk::BorderStyle::Bevel {
+                                corner_offsets: (5.0, 5.0, 5.0, 5.0)
+                            },
+                            _ => hexotk::BorderStyle::Rect
+                        }
+                    })
+                };
+        }
         "text_valign" => {
             style.text_valign =
                 v.with_s_ref(|vs| {
