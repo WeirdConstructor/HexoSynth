@@ -2,6 +2,17 @@
 !@import hx;
 !@import node_id;
 
+!:global loaded_tests = $[
+    $[
+        { std:displayln "STEP 1" @; },
+        { std:displayln "STEP 2" },
+    ],
+    $[
+        { std:displayln "XXX STEP 1" },
+        { std:displayln "XXX STEP 2" },
+    ],
+];
+
 !style = ui:style[];
 
 !lbl = ui:txt "Test123";

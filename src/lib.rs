@@ -516,6 +516,61 @@ pub fn vv2widget(mut v: VVal) -> Option<hexotk::Widget> {
     v.with_usr_ref(|w: &mut VUIWidget| w.0.clone())
 }
 
+#[derive(Clone)]
+pub struct VTestDriver(Rc<RefCell<Box<hexotk::TestDriver>>>);
+
+impl VValUserData for VTestDriver {
+    fn s(&self) -> String { format!("$<UI::TestDriver>") }
+    fn as_any(&mut self) -> &mut dyn std::any::Any { self }
+    fn clone_ud(&self) -> Box<dyn vval::VValUserData> { Box::new(self.clone()) }
+
+    fn call_method(&self, key: &str, env: &mut Env)
+        -> Result<VVal, StackAction>
+    {
+        let args = env.argv_ref();
+
+        match key {
+//            "set" => {
+//                arg_chk!(args, 1, "$<UI::TextMut>.set[map]");
+//
+//                let mut cur_style = (**self.style.borrow()).clone();
+//
+//                let ret = env.arg(0).with_iter(|iter| {
+//                    for (v, k) in iter {
+//                        if let Some(k) = k {
+//                            let mut bad_key = false;
+//
+//                            k.with_s_ref(|ks| {
+//                                if !set_style_from_key(&mut cur_style, ks, &v) {
+//                                    bad_key = true;
+//                                }
+//                            });
+//
+//                            if bad_key {
+//                                return Ok(VVal::err_msg(&format!(
+//                                    "$<UI::TextMut>.set called with unknown key: {}",
+//                                    k.s_raw())));
+//                            }
+//                        }
+//                    }
+//
+//                    Ok(VVal::Bol(true))
+//                });
+//
+//                if let Ok(v) = &ret {
+//                    if v.b() {
+//                        *self.style.borrow_mut() = Rc::new(cur_style);
+//                    }
+//                }
+//
+//                ret
+//            },
+            _ => Ok(VVal::err_msg(&format!("$<UI::TestDriver> Unknown method called: {}", key))),
+        }
+    }
+}
+
+
 /// The same as [open_hexosynth] but with more configuration options, see also
 /// [OpenHexoSynthConfig].
 pub fn open_hexosynth_with_config(
@@ -582,7 +637,44 @@ pub fn open_hexosynth_with_config(
                 Err(e) => { println!("ERROR: {}", e); }
             }
 
-            let mut ui = Box::new(UI::new(Rc::new(RefCell::new(ctx))));
+            let tests = ctx.get_global_var("loaded_tests");
+
+            let ctx = Rc::new(RefCell::new(ctx));
+            let mut ui = Box::new(UI::new(ctx));
+
+            if let Some(tests) = tests {
+                tests.with_iter(|scripts| {
+                    for (script, _) in scripts {
+                        let mut fs = hexotk::FrameScript::new();
+                        script.with_iter(|steps| {
+                            for (step, _) in steps {
+                                let step = step.disable_function_arity();
+
+                                fs.push_cb(Box::new(move |ctx, driver| {
+                                    let driv_rc = Rc::new(RefCell::new(driver));
+                                    {
+                                        let driver = VVal::new_usr(VTestDriver(driv_rc.clone()));
+                                        if let Some(ctx) = ctx.downcast_mut::<EvalContext>() {
+                                            match ctx.call(&step, &[driver]) {
+                                                Ok(_) => {},
+                                                Err(e) => { println!("ERROR in frame step callback: {}", e); }
+                                            }
+                                        }
+                                    }
+
+                                    match Rc::try_unwrap(driv_rc) {
+                                        Ok(cell) => cell.into_inner(),
+                                        Err(_) => {
+                                            panic!("The test scripts MUST NOT take multiple references to the TestDriver!");
+                                        }
+                                    }
+                                }));
+                            }
+                        });
+                        ui.push_frame_script(fs);
+                    }
+                });
+            }
 
             for widget in roots {
                 ui.add_layer_root(widget);
