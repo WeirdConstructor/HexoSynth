@@ -268,6 +268,40 @@ impl VValUserData for VUIStyle {
                 arg_chk!(args, 0, "$<UI::TextMut>.clone[]");
                 Ok(VVal::new_usr(VUIStyle::from(self.style.borrow().clone())))
             },
+            "clone_set" => {
+                arg_chk!(args, 1, "$<UI::TextMut>.clone_set[map]");
+                let mut new_style = (**self.style.borrow()).clone();
+
+                let ret = env.arg(0).with_iter(|iter| {
+                    for (v, k) in iter {
+                        if let Some(k) = k {
+                            let mut bad_key = false;
+
+                            k.with_s_ref(|ks| {
+                                if !set_style_from_key(&mut new_style, ks, &v) {
+                                    bad_key = true;
+                                }
+                            });
+
+                            if bad_key {
+                                return Ok(VVal::err_msg(&format!(
+                                    "$<UI::TextMut>.clone_set called with unknown key: {}",
+                                    k.s_raw())));
+                            }
+                        }
+                    }
+
+                    Ok(VVal::Bol(true))
+                });
+
+                if let Ok(v) = &ret {
+                    if v.b() {
+                        return Ok(VVal::new_usr(VUIStyle::from(Rc::new(new_style))))
+                    }
+                }
+
+                ret
+            }
             "set" => {
                 arg_chk!(args, 1, "$<UI::TextMut>.set[map]");
 

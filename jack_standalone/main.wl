@@ -26,8 +26,7 @@
         layout_type = :row,
     };
 
-    !close_btn_style = style.clone[];
-    close_btn_style.set ${
+    !close_btn_style = style.clone_set ${
         border = 1,
         border_style = $[:bevel, $f(0, 10, 0, 10)],
     };
@@ -71,8 +70,7 @@
         position_type = :self,
     };
 
-    !panel_style = style.clone[];
-    panel_style.set ${
+    !panel_style = style.clone_set ${
         border       = 2,
         border_style = $[:rect],
     };
@@ -111,6 +109,36 @@ left_panel.change_layout ${
     width       = :percent => 30,
     min_width   = :pixels  => 300
 };
+#left_panel.set_ctrl :rect $n;
+
+
+!param_panel = ui:widget ~ default_style.clone_set ${ };
+param_panel.set_ctrl :rect $n;
+param_panel.change_layout ${
+    height     = :stretch => 3.0,
+    min_height = :pixels => 400,
+};
+!text_panel = ui:widget ~ default_style.clone_set ${ };
+text_panel.change_layout ${
+    height = :stretch => 1.0,
+    min_height = :pixels => 200,
+};
+text_panel.set_ctrl :rect $n;
+
+!signal_panel = ui:widget ~ default_style.clone_set ${ };
+signal_panel.change_layout ${
+    height = :stretch => 1.0,
+    min_height = :pixels => 200,
+};
+signal_panel.set_ctrl :rect $n;
+#param_panel.change_layout ${
+#    left = :pixels => 0,
+#    right = :pixels => 0,
+#};
+
+left_panel.add param_panel;
+left_panel.add text_panel;
+left_panel.add signal_panel;
 
 root.add left_panel;
 root.add grid;
