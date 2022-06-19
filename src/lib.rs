@@ -748,7 +748,7 @@ pub fn open_hexosynth_with_config(
     config: OpenHexoSynthConfig
 ) {
     open_window(
-        "HexoSynth", 1400, 787,
+        "HexoSynth", 1400, 800,
         parent,
         Box::new(move || {
             let global_env = GlobalEnv::new_default();
