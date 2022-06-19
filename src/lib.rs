@@ -5,7 +5,7 @@
 #![allow(incomplete_features)]
 #![feature(generic_associated_types)]
 
-use hexotk::{UI, open_window};
+use hexotk::{UI, open_window, Units};
 //pub mod ui;
 //pub mod ui_ctrl;
 mod cluster;
@@ -129,6 +129,10 @@ pub struct VUIStyle {
 impl VUIStyle {
     pub fn new() -> Self {
         Self { style: Rc::new(RefCell::new(Rc::new(hexotk::Style::new()))) }
+    }
+
+    pub fn from(style: Rc<hexotk::Style>) -> Self {
+        Self { style: Rc::new(RefCell::new(style)) }
     }
 }
 
@@ -260,6 +264,10 @@ impl VValUserData for VUIStyle {
         let args = env.argv_ref();
 
         match key {
+            "clone" => {
+                arg_chk!(args, 0, "$<UI::TextMut>.clone[]");
+                Ok(VVal::new_usr(VUIStyle::from(self.style.borrow().clone())))
+            },
             "set" => {
                 arg_chk!(args, 1, "$<UI::TextMut>.set[map]");
 
@@ -365,6 +373,28 @@ fn mbutton2vv(btn: hexotk::MButton) -> VVal {
     }
 }
 
+fn vv2units(v: &VVal) -> Result<Option<Units>, String> {
+    if v.is_none() {
+        Ok(None)
+    } else if v.is_str() || v.is_sym() {
+        v.with_s_ref(|s|
+            match s {
+                "auto" => Ok(Some(Units::Auto)),
+                _      => Err(format!("Unknown unit: {}", s)),
+            })
+    } else {
+        let unit_type = v.v_(0);
+        let value     = v.v_(1);
+        unit_type.with_s_ref(|unit|
+            match unit {
+                "pixels"  => Ok(Some(Units::Pixels(value.f() as f32))),
+                "percent" => Ok(Some(Units::Percentage(value.f() as f32))),
+                "stretch" => Ok(Some(Units::Stretch(value.f() as f32))),
+                _         => Err(format!("Unknown unit: {}", unit)),
+            })
+    }
+}
+
 impl VValUserData for VUIWidget {
     fn s(&self) -> String { format!("$<UI::Widget({})>", self.0.id()) }
     fn as_any(&mut self) -> &mut dyn std::any::Any { self }
@@ -376,6 +406,25 @@ impl VValUserData for VUIWidget {
         let args = env.argv_ref();
 
         match key {
+            "show" => {
+                arg_chk!(args, 0, "$<UI::Widget>.show[]");
+                self.0.show();
+                Ok(VVal::Bol(true))
+            }
+            "hide" => {
+                arg_chk!(args, 0, "$<UI::Widget>.show[]");
+                self.0.hide();
+                Ok(VVal::Bol(true))
+            }
+            "is_visible" => {
+                arg_chk!(args, 0, "$<UI::Widget>.is_visible[]");
+                Ok(VVal::Bol(self.0.is_visible()))
+            }
+            "auto_hide" => {
+                arg_chk!(args, 0, "$<UI::Widget>.show[]");
+                self.0.auto_hide();
+                Ok(VVal::Bol(true))
+            }
             "add" => {
                 arg_chk!(args, 1, "$<UI::Widget>.add[widget]");
 
@@ -406,6 +455,22 @@ impl VValUserData for VUIWidget {
 
                             let err = k.with_s_ref(|ks| {
                                 match ks {
+                                    "position_type" => {
+                                        if v.is_none() {
+                                            layout.position_type = None;
+
+                                        } else {
+                                            let ls = v.s_raw();
+                                            layout.position_type =
+                                                match &ls[..] {
+                                                    "self"   => Some(hexotk::PositionType::SelfDirected),
+                                                    "parent" => Some(hexotk::PositionType::ParentDirected),
+                                                    _ => {
+                                                        return Err(format!("Unknown position_type assigned: {}", ls));
+                                                    },
+                                                };
+                                        }
+                                    },
                                     "layout_type" => {
                                         if v.is_none() {
                                             layout.layout_type = None;
@@ -416,24 +481,47 @@ impl VValUserData for VUIWidget {
                                                 match &ls[..] {
                                                     "row"    => Some(hexotk::LayoutType::Row),
                                                     "column" => Some(hexotk::LayoutType::Column),
+                                                    "grid"   => Some(hexotk::LayoutType::Grid),
                                                     _ => {
-                                                        return Some(VVal::err_msg(
-                                                            &format!("Unknown layout_type assigned: {}", ls)))
+                                                        return Err(format!("Unknown layout_type assigned: {}", ls));
                                                     },
                                                 };
                                         }
                                     },
+                                    "width"        => { layout.width        = vv2units(&v)? },
+                                    "height"       => { layout.height       = vv2units(&v)? },
+                                    "left"         => { layout.left         = vv2units(&v)? },
+                                    "top"          => { layout.top          = vv2units(&v)? },
+                                    "right"        => { layout.right        = vv2units(&v)? },
+                                    "bottom"       => { layout.bottom       = vv2units(&v)? },
+                                    "max_height"   => { layout.max_height   = vv2units(&v)? },
+                                    "min_height"   => { layout.min_height   = vv2units(&v)? },
+                                    "max_width"    => { layout.max_width    = vv2units(&v)? },
+                                    "min_width"    => { layout.min_width    = vv2units(&v)? },
+                                    "max_left"     => { layout.max_left     = vv2units(&v)? },
+                                    "min_left"     => { layout.min_left     = vv2units(&v)? },
+                                    "max_top"      => { layout.max_top      = vv2units(&v)? },
+                                    "min_top"      => { layout.min_top      = vv2units(&v)? },
+                                    "max_right"    => { layout.max_right    = vv2units(&v)? },
+                                    "min_right"    => { layout.min_right    = vv2units(&v)? },
+                                    "max_bottom"   => { layout.max_bottom   = vv2units(&v)? },
+                                    "min_bottom"   => { layout.min_bottom   = vv2units(&v)? },
+                                    "child_left"   => { layout.child_left   = vv2units(&v)? },
+                                    "child_top"    => { layout.child_top    = vv2units(&v)? },
+                                    "child_right"  => { layout.child_right  = vv2units(&v)? },
+                                    "child_bottom" => { layout.child_bottom = vv2units(&v)? },
+                                    "col_between"  => { layout.col_between  = vv2units(&v)? },
+                                    "row_between"  => { layout.row_between  = vv2units(&v)? },
                                     _ => {
-                                        return Some(VVal::err_msg(
-                                            &format!("Unknown layout field assigned: {}", ks)))
+                                        return Err(format!("Unknown layout field assigned: {}", ks));
                                     },
                                 }
 
-                                None
+                                Ok(())
                             });
 
-                            if let Some(err) = err {
-                                return Ok(err);
+                            if let Err(e) = err {
+                                return Ok(VVal::err_msg(&e));
                             }
                         }
 
@@ -458,6 +546,14 @@ impl VValUserData for VUIWidget {
                         //     });
                         //     Ok(VVal::Bol(true))
                         // }
+                        "none" => {
+                            self.0.set_ctrl(hexotk::Control::None);
+                            Ok(VVal::Bol(true))
+                        }
+                        "rect" => {
+                            self.0.set_ctrl(hexotk::Control::Rect);
+                            Ok(VVal::Bol(true))
+                        }
                         "button" => {
                             self.0.set_ctrl(hexotk::Control::Button {
                                 label: Box::new(
