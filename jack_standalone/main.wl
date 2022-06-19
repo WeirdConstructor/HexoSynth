@@ -52,7 +52,7 @@
     slide_panel
 };
 
-!setup_grid_widget = {!(style, matrix) = @;
+!setup_grid_widget = {!(style, matrix, click_cb) = @;
     !grid_model = matrix.create_grid_model[];
     !grid = ui:widget style;
     grid.set_ctrl :grid grid_model;
@@ -60,6 +60,7 @@
     grid.reg :click {
         std:displayln "GRID CLICK:" @;
         grid_model.set_focus_cell $i(@.1.x, @.1.y);
+        click_cb[];
     };
 
     grid.reg :drag {
@@ -82,6 +83,7 @@
         top    = :stretch => 1.0,
         width  = :percent => 60,
         height = :pixels  => 200,
+        min_width = :pixels => 400,
     };
     !add_node_panel =
         new_slide_panel
@@ -101,10 +103,30 @@
 
 root.change_layout ${ layout_type = :row };
 
-!grid = setup_grid_widget default_style matrix;
+!new_misc_panel = {!(style) = @;
+    !panel = ui:widget style;
+    panel.set_ctrl :rect $n;
+
+    panel.change_layout ${
+        position_type = :self,
+        left = :stretch => 1.0,
+        width = :percent => 30,
+        min_width = :pixels => 200,
+    };
+
+    panel
+};
+
+!misc_panel = new_misc_panel default_style;
+
+!grid = setup_grid_widget default_style matrix {
+    if misc_panel.is_visible[] { misc_panel.hide[]; } { misc_panel.show[] };
+};
 grid.change_layout ${
     height = :stretch => 1.0,
 };
+
+grid.add misc_panel;
 
 !left_panel = ui:widget default_style;
 left_panel.change_layout ${
