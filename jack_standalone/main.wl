@@ -13,11 +13,45 @@
     ],
 ];
 
-!style = ui:style[];
+!default_style = ui:style[];
 
 !lbl = ui:txt "Test123";
 
 !matrix = hx:get_main_matrix_handle[];
+
+!new_slide_panel = {!(style, panel_layout, child) = @;
+    !slide_panel = ui:widget style;
+    slide_panel.change_layout panel_layout;
+    slide_panel.change_layout ${
+        layout_type = :row,
+    };
+
+    !close_btn_style = style.clone[];
+    close_btn_style.set ${
+        border = 1,
+        border_style = $[:bevel, $f(0, 10, 0, 10)],
+    };
+    !slide_btn = ui:widget close_btn_style;
+    slide_btn.change_layout ${
+        width = :pixels => 30,
+    };
+    !close_btn_text = ui:txt "<";
+    slide_btn.set_ctrl :button close_btn_text;
+    slide_btn.reg :click {
+        if child.is_visible[] {
+            child.hide[];
+            close_btn_text.set ">";
+        } {
+            child.show[];
+            close_btn_text.set "<";
+        };
+    };
+
+    slide_panel.add child;
+    slide_panel.add slide_btn;
+
+    slide_panel
+};
 
 !setup_grid_widget = {!(style, matrix) = @;
     !grid_model = matrix.create_grid_model[];
@@ -43,33 +77,19 @@
         border_style = $[:rect],
     };
 
-    !add_node_panel = ui:widget panel_style;
-    add_node_panel.change_layout ${
+    !add_node_panel_inner = ui:widget panel_style;
+    add_node_panel_inner.set_ctrl :rect $n;
+
+    !slide_panel_layout = ${
         top    = :stretch => 1.0,
         width  = :percent => 60,
         height = :pixels  => 200,
     };
-
-    !add_node_panel_inner = ui:widget panel_style;
-    add_node_panel_inner.set_ctrl :rect $n;
-
-    !close_btn = ui:widget style;
-    !close_btn_text = ui:txt "<";
-    close_btn.set_ctrl :button close_btn_text;
-    close_btn.reg :click {
-        if add_node_panel_inner.is_visible[] {
-            add_node_panel_inner.hide[];
-            close_btn_text.set ">";
-        } {
-            add_node_panel_inner.show[];
-            close_btn_text.set "<";
-        };
-    };
-
-    add_node_panel.add close_btn;
-    add_node_panel.add add_node_panel_inner;
-
-#    add_node_panel.set_ctrl :rect $n;
+    !add_node_panel =
+        new_slide_panel
+            style
+            slide_panel_layout
+            add_node_panel_inner;
 
     !grid_panel = ui:widget style;
 
@@ -79,13 +99,13 @@
     grid_panel
 };
 
-!root = ui:widget style;
+!root = ui:widget default_style;
 
 root.change_layout ${ layout_type = :row };
 
-!grid = setup_grid_widget style matrix;
+!grid = setup_grid_widget default_style matrix;
 
-!left_panel = ui:widget style;
+!left_panel = ui:widget default_style;
 left_panel.change_layout ${
     layout_type = :column,
     width       = :percent => 30,
