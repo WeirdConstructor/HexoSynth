@@ -102,6 +102,9 @@
 root.change_layout ${ layout_type = :row };
 
 !grid = setup_grid_widget default_style matrix;
+grid.change_layout ${
+    height = :stretch => 1.0,
+};
 
 !left_panel = ui:widget default_style;
 left_panel.change_layout ${
@@ -113,22 +116,22 @@ left_panel.change_layout ${
 
 
 !param_panel = ui:widget ~ default_style.clone_set ${ };
-#param_panel.set_ctrl :rect $n;
+param_panel.set_ctrl :rect $n;
 param_panel.change_layout ${
     height     = :stretch => 2.0,
     min_height = :pixels => 300,
 };
 !text_panel = ui:widget ~ default_style.clone_set ${ };
+text_panel.set_ctrl :rect $n;
 text_panel.change_layout ${
-    height = :stretch => 1.0,
+    height     = :stretch => 1.0,
     min_height = :pixels => 200,
 };
-#text_panel.set_ctrl :rect $n;
 
 !signal_panel = ui:widget ~ default_style.clone_set ${ };
-#signal_panel.set_ctrl :rect $n;
+signal_panel.set_ctrl :rect $n;
 signal_panel.change_layout ${
-    height = :stretch => 1.0,
+    height     = :stretch => 1.0,
     min_height = :pixels => 300,
 };
 #param_panel.change_layout ${
@@ -140,9 +143,8 @@ left_panel.add param_panel;
 left_panel.add text_panel;
 left_panel.add signal_panel;
 
-.root = left_panel;
-#root.add left_panel;
-#root.add grid;
+root.add left_panel;
+root.add grid;
 
 #style.set ${
 #    bg_color   = std:v:hex2rgba_f "222",
