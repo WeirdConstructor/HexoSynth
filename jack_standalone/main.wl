@@ -19,7 +19,7 @@
 
 !matrix = hx:get_main_matrix_handle[];
 
-!build_dsp_node_create_buttons = {!(style) = @;
+!build_dsp_node_picker = {!(style) = @;
     !parent = ui:widget style;
     parent.change_layout ${
         layout_type = :column,
@@ -180,7 +180,7 @@
     };
 
     !add_node_panel_inner = ui:widget panel_style;
-    add_node_panel_inner.add ~ build_dsp_node_create_buttons style;
+    add_node_panel_inner.add ~ build_dsp_node_picker style;
 
     !slide_panel_layout = ${
         top    = :stretch => 1.0,
