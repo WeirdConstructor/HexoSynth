@@ -19,6 +19,65 @@
 
 !matrix = hx:get_main_matrix_handle[];
 
+!build_dsp_node_create_buttons = {!(style) = @;
+    !parent = ui:widget style;
+    parent.change_layout ${
+        layout_type = :column,
+    };
+
+    !button_bar = ui:widget style;
+    button_bar.change_layout ${
+        layout_type = :row,
+        height = :pixels => 30,
+    };
+    !stack_container = ui:widget style;
+    stack_container.set_ctrl :rect $n;
+
+    parent.add button_bar;
+    parent.add stack_container;
+
+    !btn_style = style.clone_set ${
+        border = 1,
+        border_style = $[:bevel, $f(5, 5, 0, 0)],
+    };
+    !btn_layout = ${
+        left  = :pixels => 1,
+        right = :pixels => 1,
+    };
+
+    !cat_map = node_id:ui_category_node_id_map[];
+    std:displayln cat_map;
+    !all_pages = $[];
+    iter cat node_id:ui_category_list[] {
+        if cat == :none {
+            next[];
+        };
+
+        !tab_btn = ui:widget btn_style;
+        tab_btn.change_layout btn_layout;
+        tab_btn.set_ctrl :button (ui:txt cat);
+        button_bar.add tab_btn;
+
+        !cat_node_page = ui:widget style;
+        cat_node_page.hide[];
+        tab_btn.reg :click {
+            iter pg all_pages { pg.hide[] };
+            cat_node_page.show[];
+        };
+        std:push all_pages cat_node_page;
+        stack_container.add cat_node_page;
+
+        iter node (cat cat_map) {
+            !node_id_widget = ui:widget style;
+            node_id_widget.set_ctrl :button (ui:txt node.0);
+            cat_node_page.add node_id_widget;
+            std:displayln "ADD ID:" node.0;
+        };
+    };
+
+    parent
+};
+
 !new_slide_panel = {!(style, panel_layout, child) = @;
     !slide_panel = ui:widget style;
     slide_panel.change_layout panel_layout;
@@ -77,7 +136,7 @@
     };
 
     !add_node_panel_inner = ui:widget panel_style;
-    add_node_panel_inner.set_ctrl :rect $n;
+    add_node_panel_inner.add ~ build_dsp_node_create_buttons style;
 
     !slide_panel_layout = ${
         top    = :stretch => 1.0,
