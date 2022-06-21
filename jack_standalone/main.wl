@@ -60,6 +60,9 @@
 
         !cat_node_page = ui:widget style;
         cat_node_page.hide[];
+        cat_node_page.change_layout ${
+            layout_type = :column,
+        };
         tab_btn.reg :click {
             iter pg all_pages { pg.hide[] };
             cat_node_page.show[];
@@ -67,11 +70,52 @@
         std:push all_pages cat_node_page;
         stack_container.add cat_node_page;
 
+        !row_style = style.clone_set ${
+            pad_top = 1,
+            pad_bottom = 6,
+        };
+        !row = ui:widget row_style;
+        !row_layout = ${
+            layout_type = :row,
+            height = :percent => 20,
+        };
+        row.change_layout row_layout;
+        !row_count = 0;
+
+        !btn_style = style.clone_set ${
+            border_style = $[:hex, 10],
+            shadow_offs = $f(4, 4),
+        };
+
+        !btn_layout = ${
+            left   = :pixels => 5,
+            right  = :pixels => 5,
+            width  = :stretch => 1,
+            height = :percent => 100,
+        };
+
         iter node (cat cat_map) {
-            !node_id_widget = ui:widget style;
+            if row_count >= 5 {
+                cat_node_page.add row;
+                .row = ui:widget row_style;
+                row.change_layout row_layout;
+                .row_count = 0;
+            };
+
+            !node_id_widget = ui:widget btn_style;
             node_id_widget.set_ctrl :button (ui:txt node.0);
-            cat_node_page.add node_id_widget;
-            std:displayln "ADD ID:" node.0;
+            node_id_widget.change_layout btn_layout;
+            row.add node_id_widget;
+            .row_count += 1;
+        };
+
+        if row_count > 0 {
+            iter i row_count => 5 {
+                !dummy = ui:widget style;
+                row.add dummy;
+                dummy.change_layout btn_layout;
+            };
+            cat_node_page.add row;
         };
     };
 
