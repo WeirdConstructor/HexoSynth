@@ -783,6 +783,20 @@ pub fn open_hexosynth_with_config(
                     }
                 }, Some(1), Some(1), false);
 
+
+            for (name, clr) in hexotk::style::get_ui_colors() {
+                ui_st.set(
+                    name,
+                    VVal::fvec3(clr.0 as f64, clr.1 as f64, clr.2 as f64));
+            }
+
+            let std_clrs = VVal::vec();
+            for clr in hexotk::style::get_standard_colors() {
+                std_clrs.push(
+                    VVal::fvec3(clr.0 as f64, clr.1 as f64, clr.2 as f64));
+            }
+            ui_st.set("STD_COLORS", std_clrs);
+
             global_env.borrow_mut().set_module("ui", ui_st);
             global_env.borrow_mut().set_module("hx",      wlapi::setup_hx_module(matrix.clone()));
             global_env.borrow_mut().set_module("node_id", wlapi::setup_node_id_module());

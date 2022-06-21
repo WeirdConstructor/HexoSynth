@@ -15,6 +15,18 @@
 
 !default_style = ui:style[];
 
+!set_button_colors = {!(style_map) = @;
+    style_map.bg_color     = ui:UI_LBL_BG_CLR;
+    style_map.border_color = ui:UI_ACCENT_CLR;
+    style_map
+};
+
+!set_panel_colors = {!(style_map) = @;
+    style_map.bg_color     = ui:UI_BG3_CLR;
+    style_map.border_color = ui:UI_BORDER_CLR;
+    style_map
+};
+
 !lbl = ui:txt "Test123";
 
 !matrix = hx:get_main_matrix_handle[];
@@ -30,17 +42,17 @@
         layout_type = :row,
         height = :pixels => 30,
     };
-    !stack_container = ui:widget style;
+    !stack_container = ui:widget ~ style.clone_set ~ set_panel_colors ${};
     stack_container.set_ctrl :rect $n;
 
     parent.add button_bar;
     parent.add stack_container;
 
-    !btn_style = style.clone_set ${
-        border = 1,
+    !btn_style = style.clone_set ~ set_button_colors ${
+        border = 2,
         border_style = $[:bevel, $f(5, 5, 0, 0)],
     };
-    !btn_layout = ${
+    !tab_btn_layout = ${
         left  = :pixels => 1,
         right = :pixels => 1,
     };
@@ -54,7 +66,7 @@
         };
 
         !tab_btn = ui:widget btn_style;
-        tab_btn.change_layout btn_layout;
+        tab_btn.change_layout tab_btn_layout;
         tab_btn.set_ctrl :button (ui:txt cat);
         button_bar.add tab_btn;
 
@@ -82,9 +94,10 @@
         row.change_layout row_layout;
         !row_count = 0;
 
-        !btn_style = style.clone_set ${
+        !btn_style = style.clone_set ~ set_button_colors ${
             border_style = $[:hex, 10],
-            shadow_offs = $f(4, 4),
+            border = 2,
+            shadow_offs = $f(3, 3),
         };
 
         !btn_layout = ${
@@ -130,12 +143,18 @@
     };
 
     !close_btn_style = style.clone_set ${
-        border = 1,
+        border = 2,
         border_style = $[:bevel, $f(0, 10, 0, 10)],
+        border_color = ui:UI_ACCENT_CLR,
+        bg_color     = ui:UI_BG2_CLR,
     };
     !slide_btn = ui:widget close_btn_style;
     slide_btn.change_layout ${
-        width = :pixels => 30,
+        width  = :pixels => 30,
+        top    = :stretch => 1,
+        bottom = :stretch => 1,
+        height = :percent => 25,
+        left   = :pixels => -2,
     };
     !close_btn_text = ui:txt "<";
     slide_btn.set_ctrl :button close_btn_text;
