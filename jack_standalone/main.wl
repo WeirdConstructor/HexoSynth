@@ -42,7 +42,11 @@
         layout_type = :row,
         height = :pixels => 30,
     };
-    !stack_container = ui:widget ~ style.clone_set ~ set_panel_colors ${};
+    !stack_container = ui:widget ~ style.clone_set ${
+        border = 1,
+        border_color = ui:UI_ACCENT_CLR,
+        bg_color     = ui:UI_BG3_CLR,
+    };
     stack_container.set_ctrl :rect $n;
 
     parent.add button_bar;
@@ -83,7 +87,7 @@
         stack_container.add cat_node_page;
 
         !row_style = style.clone_set ${
-            pad_top = 1,
+            pad_top = 2,
             pad_bottom = 6,
         };
         !row = ui:widget row_style;
