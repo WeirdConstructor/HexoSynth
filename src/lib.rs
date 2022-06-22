@@ -493,6 +493,20 @@ impl VValUserData for VUIWidget {
                     wl_panic!("$<UI::Widget>.remove_child got no widget as argument!")
                 }
             }
+            "style" => {
+                arg_chk!(args, 0, "$<UI::Widget>.style[]");
+                Ok(VVal::new_usr(VUIStyle::from(self.0.style())))
+            }
+            "set_style" => {
+                arg_chk!(args, 1, "$<UI::Widget>.set_style[style]");
+                let style = vv2style_rc(env.arg(0));
+                if let Some(style) = style {
+                    self.0.set_style(style);
+                    Ok(VVal::Bol(true))
+                } else {
+                    wl_panic!("$<UI::Widget>.set_style got no style as argument!")
+                }
+            }
             "change_layout" => {
                 arg_chk!(args, 1, "$<UI::Widget>.change_layout[layout_set_map]");
 

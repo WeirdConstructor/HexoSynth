@@ -15,6 +15,11 @@
 
 !default_style = ui:style[];
 
+!set_button_active_colors = {!(style_map) = @;
+    style_map.bg_color     = ui:UI_LBL_BG_CLR;
+    style_map.border_color = ui:UI_HLIGHT_CLR;
+    style_map
+};
 !set_button_colors = {!(style_map) = @;
     style_map.bg_color     = ui:UI_LBL_BG_CLR;
     style_map.border_color = ui:UI_ACCENT_CLR;
@@ -56,6 +61,10 @@
         border = 2,
         border_style = $[:bevel, $f(5, 5, 0, 0)],
     };
+    !btn_style_active = style.clone_set ~ set_button_active_colors ${
+        border = 2,
+        border_style = $[:bevel, $f(5, 5, 0, 0)],
+    };
     !tab_btn_layout = ${
         left  = :pixels => 1,
         right = :pixels => 1,
@@ -64,6 +73,7 @@
     !cat_map = node_id:ui_category_node_id_map[];
     std:displayln cat_map;
     !all_pages = $[];
+    !all_tabs  = $[];
     iter cat node_id:ui_category_list[] {
         if cat == :none {
             next[];
@@ -73,14 +83,17 @@
         tab_btn.change_layout tab_btn_layout;
         tab_btn.set_ctrl :button (ui:txt cat);
         button_bar.add tab_btn;
+        std:push all_tabs tab_btn;
 
         !cat_node_page = ui:widget style;
         cat_node_page.hide[];
         cat_node_page.change_layout ${
             layout_type = :column,
         };
-        tab_btn.reg :click {
+        tab_btn.reg :click {!(wid) = @;
             iter pg all_pages { pg.hide[] };
+            iter bt all_tabs { bt.set_style btn_style };
+            wid.set_style btn_style_active;
             cat_node_page.show[];
         };
         std:push all_pages cat_node_page;
@@ -148,6 +161,9 @@
             cat_node_page.add row;
         };
     };
+
+    all_pages.0.show[];
+    all_tabs.0.set_style btn_style_active;
 
     parent
 };
