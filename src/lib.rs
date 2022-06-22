@@ -5,7 +5,7 @@
 #![allow(incomplete_features)]
 #![feature(generic_associated_types)]
 
-use hexotk::{UI, open_window, Units};
+use hexotk::{UI, open_window, Units, Rect};
 //pub mod ui;
 //pub mod ui_ctrl;
 mod cluster;
@@ -429,6 +429,15 @@ fn vv2units(v: &VVal) -> Result<Option<Units>, String> {
     }
 }
 
+fn vv2rect(v: &VVal) -> Rect {
+    Rect {
+        x: v.v_f(0) as f32,
+        y: v.v_f(1) as f32,
+        w: v.v_f(2) as f32,
+        h: v.v_f(3) as f32,
+    }
+}
+
 impl VValUserData for VUIWidget {
     fn s(&self) -> String { format!("$<UI::Widget({})>", self.0.id()) }
     fn as_any(&mut self) -> &mut dyn std::any::Any { self }
@@ -469,6 +478,11 @@ impl VValUserData for VUIWidget {
                     wl_panic!("$<UI::Widget>.add got no widget as argument!")
                 }
             }
+            "set_pos" => {
+                arg_chk!(args, 1, "$<UI::Widget>.set_pos[rect]");
+                self.0.set_pos(vv2rect(&env.arg(0)));
+                Ok(VVal::Bol(true))
+            },
             "remove_child" => {
                 arg_chk!(args, 1, "$<UI::Widget>.remove_child[widget]");
 
@@ -563,6 +577,16 @@ impl VValUserData for VUIWidget {
                     })
                 })
             }
+            "set_drag_widget" => {
+                arg_chk!(args, 1, "$<UI::Widget>.set_drag_widget[widget]");
+
+                if let Some(wid) = vv2widget(env.arg(0)) {
+                    self.0.set_drag_widget(wid);
+                    Ok(VVal::Bol(true))
+                } else {
+                    wl_panic!("$<UI::Widget>.set_drag_widget got no widget as argument!")
+                }
+            }
             "set_ctrl" => {
                 arg_chk!(args, 2, "$<UI::Widget>.set_ctrl[ctrl_type_str, init_ctrl_arg]");
 
@@ -586,6 +610,16 @@ impl VValUserData for VUIWidget {
                         }
                         "rect" => {
                             self.0.set_ctrl(hexotk::Control::Rect);
+                            Ok(VVal::Bol(true))
+                        }
+                        "label" => {
+                            self.0.set_ctrl(hexotk::Control::Label {
+                                label: Box::new(
+                                    vv2txt_mut(env.arg(1)).unwrap_or_else(
+                                        || Rc::new(RefCell::new(
+                                            hexotk::CloneMutable::new(
+                                                String::from("?")))))),
+                            });
                             Ok(VVal::Bol(true))
                         }
                         "button" => {
@@ -639,36 +673,68 @@ impl VValUserData for VUIWidget {
 
                 self.0.reg(&env.arg(0).s_raw(), {
                     move |ctx, wid, ev| {
+                        let mut user_data_out = None;
+                        let mut drop_accept   = None;
+
                         if let Some(ctx) = ctx.downcast_mut::<EvalContext>() {
                             println!("WID={:?}", wid);
                             println!("EV={:?}", ev);
                             let arg =
-                                match ev.data {
+                                match &ev.data {
                                     hexotk::EvPayload::Button(btn) => {
-                                        mbutton2vv(btn)
+                                        mbutton2vv(*btn)
                                     }
                                     hexotk::EvPayload::HexGridClick { x, y, button } => {
                                         VVal::map3(
-                                            "x",      VVal::Int(x as i64),
-                                            "y",      VVal::Int(y as i64),
-                                            "button", mbutton2vv(button))
+                                            "x",      VVal::Int(*x as i64),
+                                            "y",      VVal::Int(*y as i64),
+                                            "button", mbutton2vv(*button))
                                     },
                                     hexotk::EvPayload::HexGridDrag {
                                         x_src, y_src, x_dst, y_dst, button
                                     } => {
                                         let m = VVal::map2(
-                                            "x_src", VVal::Int(x_src as i64),
-                                            "y_src", VVal::Int(y_src as i64));
-                                        m.set_key_str("x_dst", VVal::Int(x_dst as i64));
-                                        m.set_key_str("y_dst", VVal::Int(y_dst as i64));
-                                        m.set_key_str("button", mbutton2vv(button));
+                                            "x_src", VVal::Int(*x_src as i64),
+                                            "y_src", VVal::Int(*y_src as i64));
+                                        m.set_key_str("x_dst", VVal::Int(*x_dst as i64));
+                                        m.set_key_str("y_dst", VVal::Int(*y_dst as i64));
+                                        m.set_key_str("button", mbutton2vv(*button));
+                                        m
+                                    },
+                                    hexotk::EvPayload::UserData(rc) => {
+                                        user_data_out = Some(rc.clone());
+                                        VVal::None
+                                    }
+                                    hexotk::EvPayload::DropAccept(rc) => {
+                                        drop_accept = Some(rc.clone());
+
+                                        if let Some(d) = rc.borrow().0.borrow().downcast_ref::<VVal>() {
+                                            d.clone()
+                                        } else {
+                                            VVal::None
+                                        }
+                                    }
+                                    hexotk::EvPayload::HexGridDropData { x, y, data: rc } => {
+                                        let m = VVal::map2(
+                                            "x", VVal::Int(*x as i64),
+                                            "y", VVal::Int(*y as i64));
+                                        if let Some(d) = rc.borrow().as_ref().downcast_ref::<VVal>() {
+                                            m.set_key_str("data", d.clone());
+                                        }
                                         m
                                     },
                                     _ => VVal::None,
                                 };
 
                             match ctx.call(&cb, &[VVal::new_usr(VUIWidget::from(wid)), arg]) {
-                                Ok(_) => {},
+                                Ok(v) => {
+                                    if let Some(drop_acc) = drop_accept {
+                                        drop_acc.borrow_mut().1 = v.b();
+                                    } else if let Some(ud) = user_data_out {
+//                                        let data : Box<dyn std::any::Any> = Box::new(10_usize);
+                                        *ud.borrow_mut() = Box::new(v);
+                                    }
+                                },
                                 Err(e) => { println!("ERROR in widget callback: {}", e); }
                             }
                         }

@@ -111,6 +111,13 @@
             height = :percent => 100,
         };
 
+        !drag_txt = ui:txt "?";
+        !drag_btn = ui:widget ~ btn_style.clone_set ${
+            border_style = $[:hex, 20],
+        };
+        drag_btn.set_ctrl :label drag_txt;
+        drag_btn.set_pos $f(0, 0, 90, (2.0/3.0) * 90);
+
         iter node (cat cat_map) {
             if row_count >= 5 {
                 cat_node_page.add row;
@@ -122,6 +129,12 @@
             !node_id_widget = ui:widget btn_style;
             node_id_widget.set_ctrl :button (ui:txt node.0);
             node_id_widget.change_layout btn_layout;
+            node_id_widget.set_drag_widget drag_btn;
+            !node_drag_lbl = node.0;
+            node_id_widget.reg :drag {
+                drag_txt.set node_drag_lbl;
+                $[:node_type, ${ node = node_drag_lbl }]
+            };
             row.add node_id_widget;
             .row_count += 1;
         };
@@ -189,8 +202,23 @@
         click_cb[];
     };
 
-    grid.reg :drag {
+    grid.reg :hex_drag {
         std:displayln "GRID DRAG:" @;
+    };
+
+    grid.reg :drop_query {
+        std:displayln "DROP QUERY:" @;
+        $t
+    };
+    grid.reg :drop {!(wid, drop_data) = @;
+        !pos = $i(drop_data.x, drop_data.y);
+        !cell = matrix.get pos;
+        !new_node_id =
+            matrix.get_unused_instance_node_id
+                $p(drop_data.data.1.node, 0);
+        cell.node_id = new_node_id;
+        matrix.set pos cell;
+        matrix.sync[];
     };
 
     grid.change_layout ${
