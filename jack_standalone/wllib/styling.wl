@@ -87,17 +87,50 @@ style.pick_node_bg_panel = ${
     bg_color     = ui:UI_BG3_CLR,
 };
 
+layout.knob_row = ${
+    layout_type = :row,
+    max_height  = :pixels => 130,
+    height      = :stretch => 1,
+};
+
+layout.knob_container = ${
+    height = :stretch => 1,
+};
+style.knob_container = ${
+#    typ    = :rect,
+    border = 2,
+    border_color = ui:UI_ACCENT_CLR,
+};
+style.knob = ${
+    border = 0,
+};
+style.knob_label = ${
+    border = 0,
+    bg_color = ui:UI_ACCENT_BG1_CLR,
+    color = ui:UI_PRIM_CLR,
+};
+layout.knob_label = ${
+    height = :pixels => 20,
+    left   = :pixels => 2,
+    right  = :pixels => 2,
+};
+
 !apply_class = $n;
-.apply_class = {!(class, style_map, layout_map) = @;
+.apply_class = {!(class, style_map, layout_map, set_ctrl) = @;
     !st = style.(class);
 
     if is_some[st] {
         if is_some[st.parent] {
-            apply_class st.parent style_map $n;
+            apply_class st.parent style_map $n set_ctrl;
         };
 
         iter kv st {
             if kv.1 == "parent" { next[]; };
+            if kv.1 == "typ" {
+                match kv.0
+                    :rect => { .*set_ctrl = $[:rect, $n] };
+                next[];
+            };
 
             style_map.(kv.1) = kv.0;
         };
@@ -106,7 +139,7 @@ style.pick_node_bg_panel = ${
     if is_some[layout.(class)] {
         !ly = layout.(class);
         if is_some[ly.parent] {
-            apply_class ly.parent $n layout_map;
+            apply_class ly.parent $n layout_map set_ctrl;
         };
 
         iter kv ly {
@@ -122,14 +155,21 @@ style.pick_node_bg_panel = ${
 !new_widget = {
     !layout = ${};
     !style  = ${};
+    !set_ctrl = $&& $n;
     iter class @ {
-        apply_class class style layout;
+        apply_class class style layout set_ctrl;
     };
-    std:displayln "NEW WID" @ style;
+
     !wid = ui:widget ~ default_style.clone_set style;
     if len[layout] > 0 {
         wid.change_layout layout;
     };
+
+    if is_some[$*set_ctrl] {
+        !(t, a) = $*set_ctrl;
+        wid.set_ctrl t a;
+    };
+
     wid
 };
 
@@ -147,7 +187,7 @@ style.pick_node_bg_panel = ${
     !style  = ${};
     iter idx 1 => len[@] {
         iter class @ {
-            apply_class class style layout;
+            apply_class class style layout $n;
         };
     };
     if len[style] > 0 {

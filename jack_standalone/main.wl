@@ -2,6 +2,7 @@
 !@import hx;
 !@import node_id;
 !@import styling wllib:styling;
+!@import editor wllib:editor;
 
 !:global loaded_tests = $[
     $[
@@ -19,6 +20,16 @@
 !lbl = ui:txt "Test123";
 
 !matrix = hx:get_main_matrix_handle[];
+
+!editor = editor:EditorClass.new matrix;
+
+editor.reg :set_focus {!(cell) = @;
+    std:displayln "SET FOCUS:" cell;
+    !info = node_id:info cell.node_id;
+    std:displayln "INFO:" info;
+    !plist = node_id:param_list cell.node_id;
+    std:displayln "PARAMS:" plist;
+};
 
 !build_dsp_node_picker = {!(style) = @;
     !parent = ui:widget style;
@@ -143,13 +154,12 @@
 };
 
 !setup_grid_widget = {!(style, matrix, click_cb) = @;
-    !grid_model = matrix.create_grid_model[];
     !grid = styling:new_widget :matrix_grid;
-    grid.set_ctrl :grid grid_model;
+    grid.set_ctrl :grid editor.get_grid_model[];
 
     grid.reg :click {
         std:displayln "GRID CLICK:" @;
-        grid_model.set_focus_cell $i(@.1.x, @.1.y);
+        editor.set_focus_cell $i(@.1.x, @.1.y);
         click_cb[];
     };
 
@@ -162,14 +172,9 @@
         $t
     };
     grid.reg :drop {!(wid, drop_data) = @;
-        !pos = $i(drop_data.x, drop_data.y);
-        !cell = matrix.get pos;
-        !new_node_id =
-            matrix.get_unused_instance_node_id
-                drop_data.data.1.node;
-        cell.node_id = new_node_id;
-        matrix.set pos cell;
-        matrix.sync[];
+        editor.place_new_instance_at
+            drop_data.data.1.node
+            $i(drop_data.x, drop_data.y);
     };
 
     !add_node_panel_inner = styling:new_widget :panel;
@@ -234,6 +239,47 @@ signal_panel.change_layout ${
     height     = :stretch => 1.0,
     min_height = :pixels => 300,
 };
+
+editor.reg :update_param_ui {
+    param_panel.remove_childs[];
+    !plist = editor.get_current_param_list[];
+
+    !knob_row = styling:new_widget :knob_row;
+
+    !row_fill = 0;
+
+    iter input_param plist.inputs {
+        if row_fill > 4 {
+            param_panel.add knob_row;
+            .knob_row = styling:new_widget :knob_row;
+            .row_fill = 0;
+        };
+
+        !cont = styling:new_widget :knob_container;
+
+        !knob = styling:new_widget :knob;
+        !knob_model = matrix.create_hex_knob_model input_param;
+        knob.set_ctrl :knob knob_model;
+
+        !lbl = styling:new_widget :knob_label;
+        lbl.set_ctrl :label (ui:txt input_param.name[]);
+
+        cont.add knob;
+        cont.add lbl;
+        knob_row.add cont;
+        .row_fill += 1;
+    };
+
+    if row_fill > 0 {
+        while row_fill < 5 {
+            !cont = styling:new_widget :knob_container;
+            knob_row.add cont;
+            .row_fill += 1;
+        };
+        param_panel.add knob_row;
+    };
+};
+
 #param_panel.change_layout ${
 #    left = :pixels => 0,
 #    right = :pixels => 0,

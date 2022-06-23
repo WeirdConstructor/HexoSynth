@@ -483,6 +483,12 @@ impl VValUserData for VUIWidget {
                 self.0.set_pos(vv2rect(&env.arg(0)));
                 Ok(VVal::Bol(true))
             },
+            "remove_childs" => {
+                arg_chk!(args, 0, "$<UI::Widget>.remove_childs[]");
+
+                self.0.remove_childs();
+                Ok(VVal::Bol(true))
+            }
             "remove_child" => {
                 arg_chk!(args, 1, "$<UI::Widget>.remove_child[widget]");
 
