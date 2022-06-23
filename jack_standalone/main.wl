@@ -16,11 +16,6 @@
 
 !default_style = ui:style[];
 
-!set_button_active_colors = {!(style_map) = @;
-    style_map.bg_color     = ui:UI_LBL_BG_CLR;
-    style_map.border_color = ui:UI_HLIGHT_CLR;
-    style_map
-};
 !set_button_colors = {!(style_map) = @;
     style_map.bg_color     = ui:UI_LBL_BG_CLR;
     style_map.border_color = ui:UI_ACCENT_CLR;
@@ -43,16 +38,8 @@
         layout_type = :column,
     };
 
-    !button_bar = ui:widget style;
-    button_bar.change_layout ${
-        layout_type = :row,
-        height = :pixels => 30,
-    };
-    !stack_container = ui:widget ~ style.clone_set ${
-        border = 1,
-        border_color = ui:UI_ACCENT_CLR,
-        bg_color     = ui:UI_BG3_CLR,
-    };
+    !button_bar = styling:new_widget :button_bar;
+    !stack_container = styling:new_widget :pick_node_bg_panel;
     stack_container.set_ctrl :rect $n;
 
     parent.add button_bar;
@@ -86,54 +73,28 @@
         std:push all_pages cat_node_page;
         stack_container.add cat_node_page;
 
-        !row_style = style.clone_set ${
-            pad_top = 2,
-            pad_bottom = 6,
-        };
-        !row = ui:widget row_style;
-        !row_layout = ${
-            layout_type = :row,
-            height = :percent => 20,
-        };
-        row.change_layout row_layout;
+        !row = styling:new_widget :pick_node_row;
         !row_count = 0;
 
-        !btn_style = style.clone_set ~ set_button_colors ${
-            border_style = $[:hex, 10],
-            border = 2,
-            shadow_offs = $f(3, 3),
-        };
-
-        !btn_layout = ${
-            left   = :pixels => 5,
-            right  = :pixels => 5,
-            width  = :stretch => 1,
-            height = :percent => 100,
-        };
-
         !drag_txt = ui:txt "?";
-        !drag_btn = ui:widget ~ btn_style.clone_set ${
-            border_style = $[:hex, 20],
-        };
+        !drag_btn = styling:new_widget :pick_node_drag_btn;
         drag_btn.set_ctrl :label drag_txt;
         drag_btn.set_pos $f(0, 0, 90, (2.0/3.0) * 90);
 
         iter node (cat cat_map) {
             if row_count >= 5 {
                 cat_node_page.add row;
-                .row = ui:widget row_style;
-                row.change_layout row_layout;
+                .row = styling:new_widget :pick_node_row;
                 .row_count = 0;
             };
 
-            !node_id_widget = ui:widget btn_style;
+            !node_id_widget = styling:new_widget :pick_node_btn;
             node_id_widget.set_ctrl :button (ui:txt ~ node_id:label node);
-            node_id_widget.change_layout btn_layout;
             node_id_widget.set_drag_widget drag_btn;
-            !node_drag_lbl = node.0;
+            !node_drag = node;
             node_id_widget.reg :drag {
-                drag_txt.set node_drag_lbl;
-                $[:node_type, ${ node = node_drag_lbl }]
+                drag_txt.set ~ node_id:label node_drag;
+                $[:node_type, ${ node = node_drag }]
             };
             row.add node_id_widget;
             .row_count += 1;
@@ -141,9 +102,8 @@
 
         if row_count > 0 {
             iter i row_count => 5 {
-                !dummy = ui:widget style;
+                !dummy = styling:new_widget :pick_node_btn;
                 row.add dummy;
-                dummy.change_layout btn_layout;
             };
             cat_node_page.add row;
         };
@@ -218,7 +178,7 @@
         !cell = matrix.get pos;
         !new_node_id =
             matrix.get_unused_instance_node_id
-                $p(drop_data.data.1.node, 0);
+                drop_data.data.1.node;
         cell.node_id = new_node_id;
         matrix.set pos cell;
         matrix.sync[];
