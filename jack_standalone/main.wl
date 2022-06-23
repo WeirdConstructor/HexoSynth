@@ -1,6 +1,7 @@
 !@import ui;
 !@import hx;
 !@import node_id;
+!@import styling wllib:styling;
 
 !:global loaded_tests = $[
     $[
@@ -57,19 +58,6 @@
     parent.add button_bar;
     parent.add stack_container;
 
-    !btn_style = style.clone_set ~ set_button_colors ${
-        border = 2,
-        border_style = $[:bevel, $f(5, 5, 0, 0)],
-    };
-    !btn_style_active = style.clone_set ~ set_button_active_colors ${
-        border = 2,
-        border_style = $[:bevel, $f(5, 5, 0, 0)],
-    };
-    !tab_btn_layout = ${
-        left  = :pixels => 1,
-        right = :pixels => 1,
-    };
-
     !cat_map = node_id:ui_category_node_id_map[];
     std:displayln cat_map;
     !all_pages = $[];
@@ -79,8 +67,7 @@
             next[];
         };
 
-        !tab_btn = ui:widget btn_style;
-        tab_btn.change_layout tab_btn_layout;
+        !tab_btn = styling:new_widget :tab_hor;
         tab_btn.set_ctrl :button (ui:txt cat);
         button_bar.add tab_btn;
         std:push all_tabs tab_btn;
@@ -92,8 +79,8 @@
         };
         tab_btn.reg :click {!(wid) = @;
             iter pg all_pages { pg.hide[] };
-            iter bt all_tabs { bt.set_style btn_style };
-            wid.set_style btn_style_active;
+            iter bt all_tabs { styling:restyle bt :tab_hor };
+            styling:restyle wid :tab_hor :button_active;
             cat_node_page.show[];
         };
         std:push all_pages cat_node_page;
@@ -140,7 +127,7 @@
             };
 
             !node_id_widget = ui:widget btn_style;
-            node_id_widget.set_ctrl :button (ui:txt node.0);
+            node_id_widget.set_ctrl :button (ui:txt ~ node_id:label node);
             node_id_widget.change_layout btn_layout;
             node_id_widget.set_drag_widget drag_btn;
             !node_drag_lbl = node.0;
@@ -163,7 +150,7 @@
     };
 
     all_pages.0.show[];
-    all_tabs.0.set_style btn_style_active;
+    styling:restyle all_tabs.0 :tab_hor :button_active;
 
     parent
 };
