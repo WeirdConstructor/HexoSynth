@@ -5,6 +5,32 @@
 !:global style  = ${};
 !:global layout = ${};
 
+layout.root = ${
+    layout_type = :row,
+};
+
+style.panel = ${
+    border       = 2,
+    border_style = $[:rect],
+};
+
+layout.misc_panel = ${
+    position_type = :self,
+    left          = :stretch => 1.0,
+    width         = :percent => 30,
+    min_width     = :pixels => 200,
+};
+
+layout.main_panel = ${
+    layout_type = :column,
+    width       = :percent => 30,
+    min_width   = :pixels  => 300
+};
+
+layout.matrix_grid = ${
+    position_type = :self,
+};
+
 style.button = ${
     bg_color     = ui:UI_LBL_BG_CLR,
     border_color = ui:UI_ACCENT_CLR,
@@ -93,7 +119,7 @@ style.pick_node_bg_panel = ${
 
 !default_style = ui:style[];
 
-!@export new_widget = {
+!new_widget = {
     !layout = ${};
     !style  = ${};
     iter class @ {
@@ -104,6 +130,14 @@ style.pick_node_bg_panel = ${
     if len[layout] > 0 {
         wid.change_layout layout;
     };
+    wid
+};
+
+!@export new_widget = new_widget;
+
+!@export new_rect = {
+    !wid = new_widget[[@]];
+    wid.set_ctrl :rect $n;
     wid
 };
 

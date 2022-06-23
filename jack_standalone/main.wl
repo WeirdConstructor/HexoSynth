@@ -16,18 +16,6 @@
 
 !default_style = ui:style[];
 
-!set_button_colors = {!(style_map) = @;
-    style_map.bg_color     = ui:UI_LBL_BG_CLR;
-    style_map.border_color = ui:UI_ACCENT_CLR;
-    style_map
-};
-
-!set_panel_colors = {!(style_map) = @;
-    style_map.bg_color     = ui:UI_BG3_CLR;
-    style_map.border_color = ui:UI_BORDER_CLR;
-    style_map
-};
-
 !lbl = ui:txt "Test123";
 
 !matrix = hx:get_main_matrix_handle[];
@@ -156,7 +144,7 @@
 
 !setup_grid_widget = {!(style, matrix, click_cb) = @;
     !grid_model = matrix.create_grid_model[];
-    !grid = ui:widget style;
+    !grid = styling:new_widget :matrix_grid;
     grid.set_ctrl :grid grid_model;
 
     grid.reg :click {
@@ -184,16 +172,7 @@
         matrix.sync[];
     };
 
-    grid.change_layout ${
-        position_type = :self,
-    };
-
-    !panel_style = style.clone_set ${
-        border       = 2,
-        border_style = $[:rect],
-    };
-
-    !add_node_panel_inner = ui:widget panel_style;
+    !add_node_panel_inner = styling:new_widget :panel;
     add_node_panel_inner.add ~ build_dsp_node_picker style;
 
     !slide_panel_layout = ${
@@ -216,25 +195,14 @@
     grid_panel
 };
 
-!root = ui:widget default_style;
+!root = styling:new_widget :root;
 
-root.change_layout ${ layout_type = :row };
-
-!new_misc_panel = {!(style) = @;
-    !panel = ui:widget style;
-    panel.set_ctrl :rect $n;
-
-    panel.change_layout ${
-        position_type = :self,
-        left = :stretch => 1.0,
-        width = :percent => 30,
-        min_width = :pixels => 200,
-    };
-
+!new_misc_panel = {
+    !panel = styling:new_rect :misc_panel;
     panel
 };
 
-!misc_panel = new_misc_panel default_style;
+!misc_panel = new_misc_panel[];
 
 !grid = setup_grid_widget default_style matrix {
     if misc_panel.is_visible[] { misc_panel.hide[]; } { misc_panel.show[] };
@@ -245,14 +213,7 @@ grid.change_layout ${
 
 grid.add misc_panel;
 
-!left_panel = ui:widget default_style;
-left_panel.change_layout ${
-    layout_type = :column,
-    width       = :percent => 30,
-    min_width   = :pixels  => 300
-};
-#left_panel.set_ctrl :rect $n;
-
+!left_panel = styling:new_widget :main_panel;
 
 !param_panel = ui:widget ~ default_style.clone_set ${ };
 param_panel.set_ctrl :rect $n;
