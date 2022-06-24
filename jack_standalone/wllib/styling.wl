@@ -39,6 +39,12 @@ style.button_active = ${
     parent = :button,
     border_color = ui:UI_HLIGHT_CLR,
 };
+style.button_label = ${
+    parent = :button,
+};
+layout.button_label = ${
+    height = :pixels => 30,
+};
 style.tab_hor = ${
     parent       = :button,
     border       = 2,
@@ -49,6 +55,9 @@ layout.tab_hor = ${
     right  = :pixels => 1,
 };
 
+style.connector = ${
+    bg_color = ui:UI_LBL_BG_CLR,
+};
 
 style.pick_node_btn = ${
     parent = :button,
@@ -178,6 +187,13 @@ layout.knob_label = ${
 !@export new_rect = {
     !wid = new_widget[[@]];
     wid.set_ctrl :rect $n;
+    wid
+};
+
+!@export new_button_with_label = {!(class, label, cb) = @;
+    !wid = new_widget class;
+    wid.set_ctrl :button (ui:txt label);
+    wid.reg :click cb;
     wid
 };
 

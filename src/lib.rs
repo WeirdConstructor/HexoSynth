@@ -468,6 +468,11 @@ impl VValUserData for VUIWidget {
                 self.0.auto_hide();
                 Ok(VVal::Bol(true))
             }
+            "popup_at_mouse" => {
+                arg_chk!(args, 0, "$<UI::Widget>.popup_at_mouse[]");
+                self.0.popup_at(hexotk::PopupPos::MousePos);
+                Ok(VVal::Bol(true))
+            },
             "add" => {
                 arg_chk!(args, 1, "$<UI::Widget>.add[widget]");
 
@@ -556,6 +561,9 @@ impl VValUserData for VUIWidget {
                                                 };
                                         }
                                     },
+                                    "visible" => {
+                                        layout.visible = v.b();
+                                    }
                                     "width"        => { layout.width        = vv2units(&v)? },
                                     "height"       => { layout.height       = vv2units(&v)? },
                                     "left"         => { layout.left         = vv2units(&v)? },
@@ -677,6 +685,20 @@ impl VValUserData for VUIWidget {
                                 Ok(VVal::err_msg(
                                     &format!(
                                         "grid has no hex grid model as argument: {}",
+                                        env.arg(1).s())))
+                            }
+                        }
+                        "connector" => {
+                            if let Some(data) = wlapi::vv2connector_data(env.arg(1)) {
+                                self.0.set_ctrl(hexotk::Control::Connector {
+                                    con: Box::new(hexotk::Connector::new(data)),
+                                });
+                                Ok(VVal::Bol(true))
+
+                            } else {
+                                Ok(VVal::err_msg(
+                                    &format!(
+                                        "connector has non connector data as argument: {}",
                                         env.arg(1).s())))
                             }
                         }
@@ -858,6 +880,11 @@ pub fn open_hexosynth_with_config(
                 "txt", move |env: &mut Env, _argc: usize| {
                     Ok(VVal::new_usr(VUITextMut::new(env.arg(0).s_raw())))
                 }, Some(1), Some(1), false);
+
+            ui_st.fun(
+                "connector_data", move |env: &mut Env, _argc: usize| {
+                    Ok(VVal::new_usr(wlapi::VValConnectorData::new()))
+                }, Some(0), Some(0), false);
 
             ui_st.fun(
                 "widget", move |env: &mut Env, _argc: usize| {

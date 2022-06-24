@@ -201,6 +201,7 @@ editor.reg :set_focus {!(cell) = @;
 };
 
 !root = styling:new_widget :root;
+!popup_layer = styling:new_widget :popup_layer;
 
 !new_misc_panel = {
     !panel = styling:new_rect :misc_panel;
@@ -239,6 +240,54 @@ signal_panel.change_layout ${
     height     = :stretch => 1.0,
     min_height = :pixels => 300,
 };
+
+
+!pop = styling:new_widget :panel;
+
+!con = styling:new_widget :connector;
+!con_data = ui:connector_data[];
+con.set_ctrl :connector con_data;
+con.reg :change {
+    std:displayln "NEW CON:" con_data.get_connection[];
+    pop.hide[];
+};
+
+con_data.add_input :abc $t;
+con_data.add_input :abc2 $t;
+con_data.add_input :abc3 $t;
+con_data.add_input :abc4 $t;
+
+con_data.add_output :ifi $t;
+con_data.add_output :ifi2 $t;
+con_data.add_output :ifi4 $t;
+con_data.add_output :ifi5 $t;
+
+pop.set_ctrl :rect $n;
+pop.auto_hide[];
+pop.add con;
+
+con_data.set_connection $p(2, 1);
+
+!clear_con = styling:new_button_with_label :button_label "Clear" {
+    con_data.clear_connection[];
+    pop.hide[];
+};
+pop.add clear_con;
+
+!popuptest = styling:new_button_with_label :button_label "Test Popup" {
+    std:displayln "POPUP";
+    pop.popup_at_mouse[];
+};
+pop.change_layout ${
+    position_type = :self,
+    layout_type   = :column,
+    height = :pixels => 200,
+    width = :pixels => 300,
+    visible = $f,
+};
+popup_layer.add pop;
+
+signal_panel.add popuptest;
 
 editor.reg :update_param_ui {
     param_panel.remove_childs[];
@@ -358,4 +407,4 @@ root.add grid;
 #root.add btn2;
 #root.add grid;
 
-$[root]
+$[root, popup_layer]

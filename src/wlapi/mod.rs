@@ -11,6 +11,9 @@ pub use hex_knob::*;
 pub mod sample_buf;
 pub use sample_buf::*;
 
+pub mod connector;
+pub use connector::*;
+
 use wlambda::*;
 use std::sync::{Arc, Mutex};
 
