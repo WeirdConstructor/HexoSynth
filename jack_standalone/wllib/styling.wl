@@ -124,6 +124,15 @@ layout.knob_label = ${
     right  = :pixels => 2,
 };
 
+style.wichtext = ${
+    bg_color = ui:UI_ACCENT_BG1_CLR,
+    border = 0,
+    pad_left = 4,
+    pad_right = 4,
+    pad_top = 4,
+    pad_bottom = 4,
+};
+
 !apply_class = $n;
 .apply_class = {!(class, style_map, layout_map, set_ctrl) = @;
     !st = style.(class);

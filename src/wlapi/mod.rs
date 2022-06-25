@@ -14,6 +14,9 @@ pub use sample_buf::*;
 pub mod connector;
 pub use connector::*;
 
+pub mod wichtext;
+pub use wichtext::*;
+
 use wlambda::*;
 use std::sync::{Arc, Mutex};
 

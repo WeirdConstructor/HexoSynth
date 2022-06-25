@@ -95,6 +95,24 @@ editor.reg :set_focus {!(cell) = @;
                 drag_txt.set ~ node_id:label node_drag;
                 $[:node_type, ${ node = node_drag }]
             };
+            node_id_widget.reg :hover {
+                !info = node_id:info node_drag;
+                !desc = info.desc[];
+                !lines = desc $p("\n", 0);
+                !title = lines.0;
+                !rest  = $i(1, -1) lines;
+                !wichtext_string = $@s iter line rest {
+                    $+ ~ $F "[R:]{}" ~ line $p("]", "]]");
+                    $+ "\n";
+                };
+                editor.emit
+                    :update_status_help_text
+                    (std:str:cat
+                        ($F "[R][f20c11:{}] - [f20c15:{}]\n" node_id:label[node_drag] title)
+                        wichtext_string);
+                std:displayln "INFO:" info;
+                std:displayln "WICHT:" wichtext_string;
+            };
             row.add node_id_widget;
             .row_count += 1;
         };
@@ -235,6 +253,16 @@ text_panel.change_layout ${
     height     = :stretch => 1.0,
     min_height = :pixels => 200,
 };
+
+!wt = styling:new_widget :wichtext;
+!wtd = ui:wichtext_simple_data_store[];
+wt.set_ctrl :wichtext wtd;
+
+editor.reg :update_status_help_text {!(new_text) = @;
+    wtd.set_text new_text;
+};
+
+text_panel.add wt;
 
 !signal_panel = ui:widget ~ default_style.clone_set ${ };
 signal_panel.set_ctrl :rect $n;

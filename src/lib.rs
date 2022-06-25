@@ -702,6 +702,20 @@ impl VValUserData for VUIWidget {
                                         env.arg(1).s())))
                             }
                         }
+                        "wichtext" => {
+                            if let Some(data) = wlapi::vv2wichtext_data(env.arg(1)) {
+                                self.0.set_ctrl(hexotk::Control::WichText {
+                                    wt: Box::new(hexotk::WichText::new(data)),
+                                });
+                                Ok(VVal::Bol(true))
+
+                            } else {
+                                Ok(VVal::err_msg(
+                                    &format!(
+                                        "wichtext has non wichtext data as argument: {}",
+                                        env.arg(1).s())))
+                            }
+                        }
                         _ => Ok(VVal::err_msg(
                             &format!("Unknown control assigned: {}", typ))),
                     }
@@ -884,6 +898,11 @@ pub fn open_hexosynth_with_config(
             ui_st.fun(
                 "connector_data", move |env: &mut Env, _argc: usize| {
                     Ok(VVal::new_usr(wlapi::VValConnectorData::new()))
+                }, Some(0), Some(0), false);
+
+            ui_st.fun(
+                "wichtext_simple_data_store", move |env: &mut Env, _argc: usize| {
+                    Ok(VVal::new_usr(wlapi::VValWichTextSimpleDataStore::new()))
                 }, Some(0), Some(0), false);
 
             ui_st.fun(

@@ -3,6 +3,7 @@
 // See README.md and COPYING for details.
 
 use wlambda::*;
+use crate::arg_chk;
 use hexodsp::{NodeId, NodeInfo};
 
 use std::rc::Rc;
@@ -32,12 +33,20 @@ impl vval::VValUserData for VValNodeInfo {
             self.info.out_count())
     }
 
-    fn call_method(&self, key: &str, _env: &mut Env)
+    fn call_method(&self, key: &str, env: &mut Env)
         -> Result<VVal, StackAction>
     {
-//        let args = env.argv_ref();
+        let args = env.argv_ref();
 
         match key {
+            "help" => {
+                arg_chk!(args, 0, "$<HexoDSP::NodeInfo>.help[]");
+                Ok(VVal::new_str(self.info.help()))
+            },
+            "desc" => {
+                arg_chk!(args, 0, "$<HexoDSP::NodeInfo>.desc[]");
+                Ok(VVal::new_str(self.info.desc()))
+            },
 //            "add_cluster_at" => {
 //                arg_chk!(args, 2, "cluster.add_cluster_at[matrix, $i(x, y)]");
 //                Ok(VVal::None)
