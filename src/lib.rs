@@ -407,6 +407,17 @@ fn mbutton2vv(btn: hexotk::MButton) -> VVal {
     }
 }
 
+fn vv2mbutton(vv: &VVal) -> hexotk::MButton {
+    vv.with_s_ref(|s| {
+        match s {
+            "0" | "1" | "left" | "l" | "L" => hexotk::MButton::Left,
+            "2" | "right" | "r" | "R"      => hexotk::MButton::Right,
+            "3" | "middle" | "m" | "M"     => hexotk::MButton::Middle,
+            _ => hexotk::MButton::Left,
+        }
+    })
+}
+
 fn vv2units(v: &VVal) -> Result<Option<Units>, String> {
     if v.is_none() {
         Ok(None)
@@ -436,6 +447,14 @@ fn vv2rect(v: &VVal) -> Rect {
         w: v.v_f(2) as f32,
         h: v.v_f(3) as f32,
     }
+}
+
+fn rect2vv(r: &Rect) -> VVal {
+    VVal::fvec4(
+        r.x as f64,
+        r.y as f64,
+        r.h as f64,
+        r.w as f64)
 }
 
 impl VValUserData for VUIWidget {
@@ -821,6 +840,58 @@ impl VValUserData for VTestDriver {
         let args = env.argv_ref();
 
         match key {
+            "mouse_press_at" => {
+                arg_chk!(args, 2, "$<UI::TestDriver>.mouse_press_at[pos, btn]");
+
+                let btn = vv2mbutton(&args[1]);
+                self.0.borrow_mut().inject_mouse_press_at(
+                    args[0].v_f(0) as f32,
+                    args[0].v_f(1) as f32,
+                    btn);
+                Ok(VVal::Bol(true))
+            },
+            "mouse_to" => {
+                arg_chk!(args, 2, "$<UI::TestDriver>.mouse_to[pos]");
+
+                self.0.borrow_mut().inject_mouse_to(
+                    args[0].v_f(0) as f32,
+                    args[0].v_f(1) as f32);
+                Ok(VVal::Bol(true))
+            },
+            "mouse_release_at" => {
+                arg_chk!(args, 2, "$<UI::TestDriver>.mouse_release_at[pos, btn]");
+
+                let btn = vv2mbutton(&args[1]);
+                self.0.borrow_mut().inject_mouse_release_at(
+                    args[0].v_f(0) as f32,
+                    args[0].v_f(1) as f32,
+                    btn);
+                Ok(VVal::Bol(true))
+            },
+            "list_labels" => {
+                arg_chk!(args, 0, "$<UI::TestDriver>.list_labels[]");
+
+                let ret = VVal::vec();
+                for entry in self.0.borrow().get_all_labels() {
+                    let ent =
+                        VVal::map2(
+                            "source", VVal::new_str_mv(entry.0),
+                            "label",  VVal::new_str_mv(entry.1));
+                    ent.set_key_str(
+                        "logic_pos",
+                        VVal::ivec2(entry.2.0 as i64, entry.2.1 as i64));
+                    ent.set_key_str("pos", rect2vv(&entry.3));
+                    ret.push(ent);
+                }
+
+                Ok(ret)
+            },
+//            "find_label_by" => {
+//                arg_chk!(args, 2, "$<UI::TextMut>.mouse_release_at[source, text_substr]");
+
+//                let res =
+//                    self.0.borrow().find_label_by(
+//            },
 //            "set" => {
 //                arg_chk!(args, 1, "$<UI::TextMut>.set[map]");
 //

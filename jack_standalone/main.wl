@@ -6,12 +6,23 @@
 
 !:global loaded_tests = $[
     $[
-        { std:displayln "STEP 1" @; },
-        { std:displayln "STEP 2" },
+        { std:displayln "STEP 1" @;
+            _.mouse_press_at $f(480, 150) :left;
+#            iter lbl _.list_labels[] {
+#                std:displayln lbl;
+#            };
+        },
+        { 
+            _.mouse_release_at $f(480, 150) :left;
+        },
     ],
     $[
         { std:displayln "XXX STEP 1" },
-        { std:displayln "XXX STEP 2" },
+        { std:displayln "XXX STEP 2";
+            iter lbl _.list_labels[] {
+                std:displayln lbl;
+            };
+        },
     ],
 ];
 
