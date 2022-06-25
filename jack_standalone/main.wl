@@ -163,8 +163,10 @@ editor.reg :set_focus {!(cell) = @;
         click_cb[];
     };
 
-    grid.reg :hex_drag {
-        std:displayln "GRID DRAG:" @;
+    grid.reg :hex_drag {!(wid, ev) = @;
+        !src = $i(ev.x_src, ev.y_src);
+        !dst = $i(ev.x_dst, ev.y_dst);
+        editor.handle_drag_gesture src dst;
     };
 
     grid.reg :drop_query {
@@ -241,53 +243,69 @@ signal_panel.change_layout ${
     min_height = :pixels => 300,
 };
 
-
-!pop = styling:new_widget :panel;
+!connector_popup = styling:new_widget :panel;
 
 !con = styling:new_widget :connector;
 !con_data = ui:connector_data[];
 con.set_ctrl :connector con_data;
+!connect_cb = $n;
 con.reg :change {
     std:displayln "NEW CON:" con_data.get_connection[];
-    pop.hide[];
+    connector_popup.hide[];
+    connect_cb con_data.get_connection[];
 };
 
-con_data.add_input :abc $t;
-con_data.add_input :abc2 $t;
-con_data.add_input :abc3 $t;
-con_data.add_input :abc4 $t;
-
-con_data.add_output :ifi $t;
-con_data.add_output :ifi2 $t;
-con_data.add_output :ifi4 $t;
-con_data.add_output :ifi5 $t;
-
-pop.set_ctrl :rect $n;
-pop.auto_hide[];
-pop.add con;
-
-con_data.set_connection $p(2, 1);
+connector_popup.set_ctrl :rect $n;
+connector_popup.auto_hide[];
+connector_popup.add con;
 
 !clear_con = styling:new_button_with_label :button_label "Clear" {
     con_data.clear_connection[];
-    pop.hide[];
+    connector_popup.hide[];
 };
-pop.add clear_con;
+connector_popup.add clear_con;
+clear_con.reg :click {
+    connect_cb $n;
+};
 
-!popuptest = styling:new_button_with_label :button_label "Test Popup" {
-    std:displayln "POPUP";
-    pop.popup_at_mouse[];
-};
-pop.change_layout ${
+connector_popup.change_layout ${
     position_type = :self,
     layout_type   = :column,
     height = :pixels => 200,
     width = :pixels => 300,
     visible = $f,
 };
-popup_layer.add pop;
+popup_layer.add connector_popup;
 
-signal_panel.add popuptest;
+editor.reg :setup_edit_connection {
+    !(src_cell, dst_cell,
+      output_port_list,
+      input_port_list,
+      con, con_cb) = @;
+
+    .connect_cb = con_cb;
+
+    std:displayln "INPUT LIST:" input_port_list;
+    std:displayln "oUTP LIST:" output_port_list;
+
+    con_data.clear[];
+    iter out output_port_list {
+        con_data.add_output out $t;
+    };
+
+    iter inp input_port_list {
+        con_data.add_input inp $t;
+    };
+
+    if is_some[con] {
+        con_data.set_connection con;
+    } {
+        con_data.clear_connection[];
+    };
+
+    connector_popup.popup_at_mouse[];
+    std:displayln "SETUP EDIT CON:" con;
+};
 
 editor.reg :update_param_ui {
     param_panel.remove_childs[];

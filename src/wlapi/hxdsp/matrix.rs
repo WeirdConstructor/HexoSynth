@@ -174,8 +174,8 @@ impl vval::VValUserData for VValMatrix {
                     if let (Some(vv_cell), Some(pos)) = (env.arg_ref(1), env.arg_ref(0)) {
                         let cell = vv2cell(vv_cell);
 
-                        let x = pos.v_ik("x") as usize;
-                        let y = pos.v_ik("y") as usize;
+                        let x = pos.v_i(0) as usize;
+                        let y = pos.v_i(1) as usize;
 
                         m.place(x, y, cell);
 
