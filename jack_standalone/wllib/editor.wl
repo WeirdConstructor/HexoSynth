@@ -139,6 +139,11 @@
 
         std:displayln "GRID DRAG:" adj;
 
+        if adj.is_input[] {
+            .(src, dst) = $p(dst, src);
+            .adj = adj.flip[];
+        };
+
         if is_some[adj] {
             !edge_idx     = adj.as_edge[];
             !dst_edge_idx = adj.flip[].as_edge[];

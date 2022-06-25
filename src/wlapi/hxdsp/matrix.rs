@@ -274,7 +274,7 @@ impl vval::VValUserData for VValMatrix {
                     }
                 },
                 "save_patch" => {
-                    arg_chk!(args, 1, "matrix.check[filepath]");
+                    arg_chk!(args, 1, "matrix.save_patch[filepath]");
 
                     use hexodsp::matrix_repr::save_patch_to_file;
 
