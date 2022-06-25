@@ -96,22 +96,7 @@ editor.reg :set_focus {!(cell) = @;
                 $[:node_type, ${ node = node_drag }]
             };
             node_id_widget.reg :hover {
-                !info = node_id:info node_drag;
-                !desc = info.desc[];
-                !lines = desc $p("\n", 0);
-                !title = lines.0;
-                !rest  = $i(1, -1) lines;
-                !wichtext_string = $@s iter line rest {
-                    $+ ~ $F "[R:]{}" ~ line $p("]", "]]");
-                    $+ "\n";
-                };
-                editor.emit
-                    :update_status_help_text
-                    (std:str:cat
-                        ($F "[R][f20c11:{}] - [f20c15:{}]\n" node_id:label[node_drag] title)
-                        wichtext_string);
-                std:displayln "INFO:" info;
-                std:displayln "WICHT:" wichtext_string;
+                editor.handle_hover :node_picker node_drag;
             };
             row.add node_id_widget;
             .row_count += 1;
@@ -299,9 +284,9 @@ clear_con.reg :click {
 connector_popup.change_layout ${
     position_type = :self,
     layout_type   = :column,
-    height = :pixels => 200,
-    width = :pixels => 300,
-    visible = $f,
+    height        = :pixels => 300,
+    width         = :pixels => 300,
+    visible       = $f,
 };
 popup_layer.add connector_popup;
 
@@ -355,6 +340,10 @@ editor.reg :update_param_ui {
         !knob = styling:new_widget :knob;
         !knob_model = matrix.create_hex_knob_model input_param;
         knob.set_ctrl :knob knob_model;
+        !in_param = input_param;
+        knob.reg :hover {
+            editor.handle_hover :param_knob in_param;
+        };
 
         !lbl = styling:new_widget :knob_label;
         lbl.set_ctrl :label (ui:txt input_param.name[]);

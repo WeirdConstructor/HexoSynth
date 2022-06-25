@@ -3,6 +3,32 @@
 !@import hx;
 !@import node_id;
 
+!format_txt2wichtext = {|1<2| !(txt, lbl) = @;
+    !lines = txt $p("\n", 0);
+    !title = lines.0;
+    !body_lines = $i(1, -1) lines;
+
+    if body_lines.0 != "" {
+        std:unshift body_lines "";
+    };
+
+    !wichtext_string = $@s iter line body_lines {
+        $+ ~ $F "[R:]{}" ~ line $p("]", "]]");
+        $+ "\n";
+    };
+
+    if is_some[lbl] {
+        $F "[R][f20c11:{}] - [f20c15:{}]\n{}"
+            lbl
+            title
+            wichtext_string
+    } {
+        $F "[R][f20c15:{}]\n{}"
+            title
+            wichtext_string
+    }
+};
+
 !EditorClass = ${
     new = {!(matrix) = @;
         !grid_model = matrix.create_grid_model[];
@@ -30,6 +56,10 @@
         $data.focus_cell = cell;
         $self.emit :change_focus cell;
         $self.emit :update_param_ui;
+        std:displayln "FOCUS:" cell cell.node_id cell.node_id.0 cell.node_id.0 != "nop";
+        if is_some[cell.node_id] &and cell.node_id.0 != "nop" {
+            $self.show_node_id_desc cell.node_id;
+        };
     },
     get_current_param_list = {
         if is_none[$data.focus_cell]
@@ -169,6 +199,34 @@
                     };
                 };
         };
+    },
+    show_param_id_desc = {!(param_id) = @;
+        !(node_id, idx) = param_id.as_parts[];
+        !info = node_id:info node_id;
+        !help = info.in_help idx;
+
+        $self.emit
+            :update_status_help_text
+            ~ format_txt2wichtext help;
+    },
+    show_node_id_desc = {!(node_id) = @;
+        !info = node_id:info node_id;
+        !desc = info.desc[];
+
+        !node_lbl = node_id:label[node_id];
+
+        $self.emit
+            :update_status_help_text
+            ~ format_txt2wichtext desc node_lbl;
+    },
+    handle_hover = {!(where, arg1) = @;
+        match where
+            :node_picker => {
+                $self.show_node_id_desc arg1;
+            }
+            :param_knob => {
+                $self.show_param_id_desc arg1;
+            };
     },
 };
 

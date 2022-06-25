@@ -47,6 +47,14 @@ impl vval::VValUserData for VValNodeInfo {
                 arg_chk!(args, 0, "$<HexoDSP::NodeInfo>.desc[]");
                 Ok(VVal::new_str(self.info.desc()))
             },
+            "in_help" => {
+                arg_chk!(args, 1, "$<HexoDSP::NodeInfo>.in_help[index]");
+                if let Some(txt) = self.info.in_help(args[0].i() as usize) {
+                    Ok(VVal::new_str(txt))
+                } else {
+                    Ok(VVal::None)
+                }
+            },
 //            "add_cluster_at" => {
 //                arg_chk!(args, 2, "cluster.add_cluster_at[matrix, $i(x, y)]");
 //                Ok(VVal::None)
