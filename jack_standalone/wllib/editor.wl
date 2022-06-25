@@ -169,7 +169,11 @@
                     $none
                 };
 
-            .dst_ins  = $@vec iter inp dst_ins.inputs { $+ inp.name[] };
+            .dst_ins =
+                $@vec iter inp dst_ins.inputs {
+                    $+ $p(inp.name[],
+                          not $data.matrix.param_input_is_used[inp])
+                };
             .src_outs = $@vec iter out src_outs { $+ out.1 };
 
             #d# std:displayln "INS"  dst_ins;
@@ -189,12 +193,12 @@
                             this.matrix_set_connection_by_io_names
                                 src dst
                                 src_outs.(con.0)
-                                dst_ins.(con.1);
+                                dst_ins.(con.1).0;
                             return ~ $F "Set connection between {} output {} and {} input {}"
                                 src_cell.node_id
                                 src_outs.(con.0)
                                 dst_cell.node_id
-                                dst_ins.(con.1);
+                                dst_ins.(con.1).0;
                         };
                     };
                 };

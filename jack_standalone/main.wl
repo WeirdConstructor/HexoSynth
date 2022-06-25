@@ -307,7 +307,7 @@ editor.reg :setup_edit_connection {
     };
 
     iter inp input_port_list {
-        con_data.add_input inp $t;
+        con_data.add_input inp.0 inp.1;
     };
 
     if is_some[con] {
