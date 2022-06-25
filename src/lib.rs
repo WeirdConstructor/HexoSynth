@@ -851,7 +851,7 @@ impl VValUserData for VTestDriver {
                 Ok(VVal::Bol(true))
             },
             "mouse_to" => {
-                arg_chk!(args, 2, "$<UI::TestDriver>.mouse_to[pos]");
+                arg_chk!(args, 1, "$<UI::TestDriver>.mouse_to[pos]");
 
                 self.0.borrow_mut().inject_mouse_to(
                     args[0].v_f(0) as f32,
@@ -875,12 +875,13 @@ impl VValUserData for VTestDriver {
                 for entry in self.0.borrow().get_all_labels() {
                     let ent =
                         VVal::map2(
-                            "source", VVal::new_str_mv(entry.0),
-                            "label",  VVal::new_str_mv(entry.1));
+                            "source", VVal::new_str_mv(entry.1),
+                            "label",  VVal::new_str_mv(entry.2));
                     ent.set_key_str(
                         "logic_pos",
-                        VVal::ivec2(entry.2.0 as i64, entry.2.1 as i64));
-                    ent.set_key_str("pos", rect2vv(&entry.3));
+                        VVal::ivec2(entry.3.0 as i64, entry.3.1 as i64));
+                    ent.set_key_str("pos", rect2vv(&entry.4));
+                    ent.set_key_str("id", VVal::Int(entry.0 as i64));
                     ret.push(ent);
                 }
 
