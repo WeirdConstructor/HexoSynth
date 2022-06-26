@@ -995,14 +995,28 @@ pub fn open_hexosynth_with_config(
 
             let lfmr = Rc::new(RefCell::new(
                 wlambda::compiler::LocalFileModuleResolver::new()));
-            lfmr.borrow_mut().preload(
-                "main.wl",          include_str!("wlcode/main.wl").to_string());
-            lfmr.borrow_mut().preload(
-                "wllib/styling.wl", include_str!("wlcode/wllib/styling.wl").to_string());
-            lfmr.borrow_mut().preload(
-                "wllib/editor.wl",  include_str!("wlcode/wllib/editor.wl").to_string());
-            lfmr.borrow_mut().preload(
-                "wllib/tests.wl",   include_str!("wlcode/wllib/tests.wl").to_string());
+
+            let env_path = std::env::var("HEXOSYNTH_WLAMBDA_PATH").unwrap_or_else(|_| "".to_string());
+
+            if env_path.len() > 0 {
+                lfmr.borrow_mut().preload(
+                    "main.wl", std::fs::read_to_string(env_path.to_string() + "/main.wl").unwrap().to_string());
+                lfmr.borrow_mut().preload(
+                    "wllib/styling.wl", std::fs::read_to_string(env_path.to_string() + "/wllib/styling.wl").unwrap().to_string());
+                lfmr.borrow_mut().preload(
+                    "wllib/editor.wl", std::fs::read_to_string(env_path.to_string() + "/wllib/editor.wl").unwrap().to_string());
+                lfmr.borrow_mut().preload(
+                    "wllib/tests.wl", std::fs::read_to_string(env_path.to_string() + "/wllib/tests.wl").unwrap().to_string());
+            } else {
+                lfmr.borrow_mut().preload(
+                    "main.wl",          include_str!("wlcode/main.wl").to_string());
+                lfmr.borrow_mut().preload(
+                    "wllib/styling.wl", include_str!("wlcode/wllib/styling.wl").to_string());
+                lfmr.borrow_mut().preload(
+                    "wllib/editor.wl",  include_str!("wlcode/wllib/editor.wl").to_string());
+                lfmr.borrow_mut().preload(
+                    "wllib/tests.wl",   include_str!("wlcode/wllib/tests.wl").to_string());
+            }
             global_env.borrow_mut().set_resolver(lfmr);
 
             let argv = VVal::vec();
