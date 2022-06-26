@@ -21,12 +21,14 @@
 
 !do_click = {
     !pos = _1.pos + $f(1.0, 1.0);
+    std:displayln ">>> click(LMB)@" pos;
     _.mouse_press_at pos :left;
     _.mouse_release_at pos :left;
 };
 
 !do_hover= {
     !pos = _1.pos + $f(1.0, 1.0);
+    std:displayln ">>> hover@" pos;
     _.mouse_to pos;
 };
 
@@ -45,25 +47,29 @@
 
 !@export install = {
     !test = ui:test_script "knob_hover_help_desc";
-    test.add_step :matrix_setup {!(td, labels) = @;
-        !matrix = hx:get_main_matrix_handle[];
-        matrix.clear[];
-
-        matrix.
-    };
+#    test.add_step :matrix_setup {!(td, labels) = @;
+#        !matrix = hx:get_main_matrix_handle[];
+#        matrix.clear[];
+#    };
+#    test.add_step :sleep {|| std:thread:sleep :ms => 500 };
     test.add_step :click_cell {!(td, labels) = @;
         !res = $S(*:{source=cell_name, label=Amp}) labels;
         do_click td res.0;
+        $t
     };
+#    test.add_step :sleep {|| std:thread:sleep :ms => 500 };
     test.add_step :hover_knob {!(td, labels) = @;
-#        dump_labels td;
         do_hover td
             ($S(*:{tag=knob, source=value, label=*060*}) labels)
             .0;
+        $t
     };
+#    test.add_step :sleep {|| std:thread:sleep :ms => 500 };
     test.add_step :check_desc {!(td, labels) = @;
+#        dump_labels td;
         !doc = ($S(*:{label=*Amp\ gain*}) labels).0;
         std:assert doc;
+        $t
     };
     ui:install_test test;
 };

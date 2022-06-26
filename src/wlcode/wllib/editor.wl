@@ -218,20 +218,29 @@
             :update_status_help_text
             ~ format_txt2wichtext help;
     },
-    show_node_id_desc = {!(node_id) = @;
+    show_node_id_desc = {|1<2| !(node_id, source) = @;
         !info = node_id:info node_id;
         !desc = info.desc[];
 
         !node_lbl = node_id:label[node_id];
 
+        !text = format_txt2wichtext desc node_lbl;
+        if source == :picker {
+            .text = text "\n[c17f18:(drag the button to place!)]";
+        };
+
+        $self.emit :update_status_help_text text;
+    },
+    show_color_info = {
+        !text = $@s iter clr 0 => 19 { $+ ~ $F"[c{}:XX {:02!i} XX]\n" clr clr; };
         $self.emit
             :update_status_help_text
-            ~ format_txt2wichtext desc node_lbl;
+            text;
     },
     handle_hover = {!(where, arg1) = @;
         match where
             :node_picker => {
-                $self.show_node_id_desc arg1;
+                $self.show_node_id_desc arg1 :picker;
             }
             :param_knob => {
                 $self.show_param_id_desc arg1;

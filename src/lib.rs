@@ -993,6 +993,19 @@ pub fn open_hexosynth_with_config(
         Box::new(move || {
             let global_env = GlobalEnv::new_default();
 
+            let lfmr = Rc::new(RefCell::new(
+                wlambda::compiler::LocalFileModuleResolver::new()));
+
+            lfmr.borrow_mut().preload(
+                "main.wl", include_str!("wlcode/main.wl").to_string());
+            lfmr.borrow_mut().preload(
+                "wllib/styling.wl", include_str!("wlcode/wllib/styling.wl").to_string());
+            lfmr.borrow_mut().preload(
+                "wllib/editor.wl", include_str!("wlcode/wllib/editor.wl").to_string());
+            lfmr.borrow_mut().preload(
+                "wllib/tests.wl", include_str!("wlcode/wllib/tests.wl").to_string());
+            global_env.borrow_mut().set_resolver(lfmr);
+
             let argv = VVal::vec();
             for e in std::env::args() {
                 argv.push(VVal::new_str_mv(e.to_string()));
@@ -1073,9 +1086,7 @@ pub fn open_hexosynth_with_config(
 
             let mut roots = vec![];
 
-            match ctx.eval_file(
-                &std::env::args().nth(1).unwrap_or("main.wl".to_string()))
-            {
+            match ctx.eval_string("!@import main; main:root", "top_main") {
                 Ok(v) => {
                     v.with_iter(|iter| {
                         for (v, _) in iter {

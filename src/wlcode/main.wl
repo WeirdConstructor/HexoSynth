@@ -1,3 +1,5 @@
+!@wlambda;
+!@import std;
 !@import ui;
 !@import hx;
 !@import node_id;
@@ -242,13 +244,10 @@ connector_popup.auto_hide[];
 connector_popup.add con;
 
 !clear_con = styling:new_button_with_label :button_label "Clear" {
-    con_data.clear_connection[];
     connector_popup.hide[];
-};
-connector_popup.add clear_con;
-clear_con.reg :click {
     connect_cb $n;
 };
+connector_popup.add clear_con;
 
 connector_popup.change_layout ${
     position_type = :self,
@@ -342,6 +341,11 @@ left_panel.add param_panel;
 left_panel.add text_panel;
 left_panel.add signal_panel;
 
+!color_btn = styling:new_button_with_label :button_label "Colors" {
+    editor.show_color_info[];
+};
+signal_panel.add color_btn;
+
 root.add left_panel;
 root.add grid;
 
@@ -411,4 +415,4 @@ root.add grid;
 #root.add btn2;
 #root.add grid;
 
-$[root, popup_layer]
+!@export root = $[root, popup_layer];
