@@ -995,15 +995,14 @@ pub fn open_hexosynth_with_config(
 
             let lfmr = Rc::new(RefCell::new(
                 wlambda::compiler::LocalFileModuleResolver::new()));
-
             lfmr.borrow_mut().preload(
-                "main.wl", include_str!("wlcode/main.wl").to_string());
+                "main.wl",          include_str!("wlcode/main.wl").to_string());
             lfmr.borrow_mut().preload(
                 "wllib/styling.wl", include_str!("wlcode/wllib/styling.wl").to_string());
             lfmr.borrow_mut().preload(
-                "wllib/editor.wl", include_str!("wlcode/wllib/editor.wl").to_string());
+                "wllib/editor.wl",  include_str!("wlcode/wllib/editor.wl").to_string());
             lfmr.borrow_mut().preload(
-                "wllib/tests.wl", include_str!("wlcode/wllib/tests.wl").to_string());
+                "wllib/tests.wl",   include_str!("wlcode/wllib/tests.wl").to_string());
             global_env.borrow_mut().set_resolver(lfmr);
 
             let argv = VVal::vec();

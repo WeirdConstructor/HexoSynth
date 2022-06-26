@@ -1,0 +1,19 @@
+[package]
+name = "gain_gui_iced"
+version = "0.1.0"
+edition = "2021"
+authors = ["Weird Constructor <weirdconstructor@m8geil.de>"]
+license = "AGPL-3.0-or-later"
+
+description = "A modular synthesizer with hexagonal nodes"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+nih_plug  = { path = "../../../", features = ["assert_process_allocs"] }
+hexosynth = { path = "../../../../../hexosynth" }
+hexodsp   = { path = "../../../../../hexodsp" }
+hexotk    = { path = "../../../../../hexotk" }
+
+atomic_float = "0.1"
