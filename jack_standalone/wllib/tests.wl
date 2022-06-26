@@ -18,14 +18,14 @@
 };
 
 !do_click = {
-    !pos = _.pos + $f(1.0, 1.0);
-    _1.mouse_press_at pos :left;
-    _1.mouse_release_at pos :left;
+    !pos = _1.pos + $f(1.0, 1.0);
+    _.mouse_press_at pos :left;
+    _.mouse_release_at pos :left;
 };
 
 !do_hover= {
-    !pos = _.pos + $f(1.0, 1.0);
-    _1.mouse_to pos;
+    !pos = _1.pos + $f(1.0, 1.0);
+    _.mouse_to pos;
 };
 
 !click_on_source_label = {!(td, source, label) = @;
@@ -35,22 +35,25 @@
         { do_click _ td; }
 };
 
+!dump_labels = {!(td) = @;
+    iter l td.list_labels[] {
+        std:displayln l;
+    };
+};
+
 !@export list = $[
     $[
-        {!(td) = @;
-            click_on_source_label td "cell_name" "Amp";
+        {!(td, labels) = @;
+            !res = $S(*:{source=cell_name, label=Amp}) labels;
+            do_click td res.0;
         },
-        {!(td) = @;
-            with_first
-                _.list_labels[]
-                { is_some ~ (std:str:find "060" _.label) }
-                { do_hover _ td; }
+        {!(td, labels) = @;
+            do_hover td
+                ($S(*:{tag=knob, source=value, label=*060*}) labels)
+                .0;
         },
-        {!(td) = @;
-            !doc =
-                with_first _.list_labels[]
-                    { is_some ~ std:str:find "Amp gain" _.label }
-                    { _ };
+        {!(td, labels) = @;
+            !doc = ($S(*:{label=*Amp\ gain*}) labels).0;
             std:assert doc "FOO";
         },
     ],

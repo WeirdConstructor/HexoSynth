@@ -507,6 +507,11 @@ impl VValUserData for VUIWidget {
                 self.0.set_pos(vv2rect(&env.arg(0)));
                 Ok(VVal::Bol(true))
             },
+            "set_tag" => {
+                arg_chk!(args, 1, "$<UI::Widget>.set_tag[tag_string]");
+                self.0.set_tag(args[0].s_raw());
+                Ok(VVal::Bol(true))
+            },
             "remove_childs" => {
                 arg_chk!(args, 0, "$<UI::Widget>.remove_childs[]");
 
@@ -829,6 +834,32 @@ pub fn vv2widget(mut v: VVal) -> Option<hexotk::Widget> {
 #[derive(Clone)]
 pub struct VTestDriver(Rc<RefCell<Box<hexotk::TestDriver>>>);
 
+impl VTestDriver {
+    pub fn list_labels(&self) -> VVal {
+        let ret = VVal::vec();
+        for entry in self.0.borrow().get_all_labels() {
+            let ent =
+                VVal::map2(
+                    "source", VVal::new_str(entry.source),
+                    "label",  VVal::new_str_mv(entry.text));
+            ent.set_key_str(
+                "logic_pos",
+                VVal::ivec2(
+                    entry.logic_pos.0 as i64,
+                    entry.logic_pos.1 as i64));
+            ent.set_key_str("pos",     rect2vv(&entry.pos));
+            ent.set_key_str("wid_pos", rect2vv(&entry.wid_pos));
+            ent.set_key_str("id",      VVal::Int(entry.wid_id as i64));
+            ent.set_key_str("tag",     VVal::new_str_mv(entry.tag));
+            ent.set_key_str("path",    VVal::new_str_mv(entry.tag_path));
+            ent.set_key_str("ctrl",    VVal::new_str_mv(entry.ctrl));
+            ret.push(ent);
+        }
+
+        ret
+    }
+}
+
 impl VValUserData for VTestDriver {
     fn s(&self) -> String { format!("$<UI::TestDriver>") }
     fn as_any(&mut self) -> &mut dyn std::any::Any { self }
@@ -870,65 +901,10 @@ impl VValUserData for VTestDriver {
             },
             "list_labels" => {
                 arg_chk!(args, 0, "$<UI::TestDriver>.list_labels[]");
-
-                let ret = VVal::vec();
-                for entry in self.0.borrow().get_all_labels() {
-                    let ent =
-                        VVal::map2(
-                            "source", VVal::new_str_mv(entry.1),
-                            "label",  VVal::new_str_mv(entry.2));
-                    ent.set_key_str(
-                        "logic_pos",
-                        VVal::ivec2(entry.3.0 as i64, entry.3.1 as i64));
-                    ent.set_key_str("pos", rect2vv(&entry.4));
-                    ent.set_key_str("id", VVal::Int(entry.0 as i64));
-                    ret.push(ent);
-                }
-
-                Ok(ret)
+                Ok(self.list_labels())
             },
-//            "find_label_by" => {
-//                arg_chk!(args, 2, "$<UI::TextMut>.mouse_release_at[source, text_substr]");
-
-//                let res =
-//                    self.0.borrow().find_label_by(
-//            },
-//            "set" => {
-//                arg_chk!(args, 1, "$<UI::TextMut>.set[map]");
-//
-//                let mut cur_style = (**self.style.borrow()).clone();
-//
-//                let ret = env.arg(0).with_iter(|iter| {
-//                    for (v, k) in iter {
-//                        if let Some(k) = k {
-//                            let mut bad_key = false;
-//
-//                            k.with_s_ref(|ks| {
-//                                if !set_style_from_key(&mut cur_style, ks, &v) {
-//                                    bad_key = true;
-//                                }
-//                            });
-//
-//                            if bad_key {
-//                                return Ok(VVal::err_msg(&format!(
-//                                    "$<UI::TextMut>.set called with unknown key: {}",
-//                                    k.s_raw())));
-//                            }
-//                        }
-//                    }
-//
-//                    Ok(VVal::Bol(true))
-//                });
-//
-//                if let Ok(v) = &ret {
-//                    if v.b() {
-//                        *self.style.borrow_mut() = Rc::new(cur_style);
-//                    }
-//                }
-//
-//                ret
-//            },
-            _ => Ok(VVal::err_msg(&format!("$<UI::TestDriver> Unknown method called: {}", key))),
+            _ => Ok(VVal::err_msg(
+                &format!("$<UI::TestDriver> Unknown method called: {}", key))),
         }
     }
 }
@@ -1040,9 +1016,11 @@ pub fn open_hexosynth_with_config(
                                 fs.push_cb(Box::new(move |ctx, driver| {
                                     let driv_rc = Rc::new(RefCell::new(driver));
                                     {
-                                        let driver = VVal::new_usr(VTestDriver(driv_rc.clone()));
+                                        let driver = VTestDriver(driv_rc.clone());
+                                        let labels = driver.list_labels();
+                                        let driver = VVal::new_usr(driver);
                                         if let Some(ctx) = ctx.downcast_mut::<EvalContext>() {
-                                            match ctx.call(&step, &[driver]) {
+                                            match ctx.call(&step, &[driver, labels]) {
                                                 Ok(_) => {},
                                                 Err(e) => { println!("ERROR in frame step callback: {}", e); }
                                             }

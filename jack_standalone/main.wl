@@ -23,8 +23,8 @@ editor.reg :set_focus {!(cell) = @;
     std:displayln "PARAMS:" plist;
 };
 
-!build_dsp_node_picker = {!(style) = @;
-    !parent = ui:widget style;
+!build_dsp_node_picker = {
+    !parent = styling:new_widget :node_picker;
     parent.change_layout ${
         layout_type = :column,
     };
@@ -50,7 +50,7 @@ editor.reg :set_focus {!(cell) = @;
         button_bar.add tab_btn;
         std:push all_tabs tab_btn;
 
-        !cat_node_page = ui:widget style;
+        !cat_node_page = styling:new_widget :cat_node_page;
         cat_node_page.hide[];
         cat_node_page.change_layout ${
             layout_type = :column,
@@ -109,27 +109,10 @@ editor.reg :set_focus {!(cell) = @;
     parent
 };
 
-!new_slide_panel = {!(style, panel_layout, child) = @;
-    !slide_panel = ui:widget style;
-    slide_panel.change_layout panel_layout;
-    slide_panel.change_layout ${
-        layout_type = :row,
-    };
+!new_slide_panel = {!(class, child) = @;
+    !slide_panel = styling:new_widget class;
 
-    !close_btn_style = style.clone_set ${
-        border = 2,
-        border_style = $[:bevel, $f(0, 10, 0, 10)],
-        border_color = ui:UI_ACCENT_CLR,
-        bg_color     = ui:UI_BG2_CLR,
-    };
-    !slide_btn = ui:widget close_btn_style;
-    slide_btn.change_layout ${
-        width  = :pixels => 30,
-        top    = :stretch => 1,
-        bottom = :stretch => 1,
-        height = :percent => 25,
-        left   = :pixels => -2,
-    };
+    !slide_btn = styling:new_widget :close_hor_slide_panel_btn;
     !close_btn_text = ui:txt "<";
     slide_btn.set_ctrl :button close_btn_text;
     slide_btn.reg :click {
@@ -148,7 +131,7 @@ editor.reg :set_focus {!(cell) = @;
     slide_panel
 };
 
-!setup_grid_widget = {!(style, matrix, click_cb) = @;
+!setup_grid_widget = {!(matrix, click_cb) = @;
     !grid = styling:new_widget :matrix_grid;
     grid.set_ctrl :grid editor.get_grid_model[];
 
@@ -175,21 +158,14 @@ editor.reg :set_focus {!(cell) = @;
     };
 
     !add_node_panel_inner = styling:new_widget :panel;
-    add_node_panel_inner.add ~ build_dsp_node_picker style;
+    add_node_panel_inner.add ~ build_dsp_node_picker[];
 
-    !slide_panel_layout = ${
-        top    = :stretch => 1.0,
-        width  = :percent => 60,
-        height = :pixels  => 200,
-        min_width = :pixels => 400,
-    };
     !add_node_panel =
         new_slide_panel
-            style
-            slide_panel_layout
+            :picker_slide_panel
             add_node_panel_inner;
 
-    !grid_panel = ui:widget style;
+    !grid_panel = styling:new_widget :grid_panel;
 
     grid_panel.add grid;
     grid_panel.add add_node_panel;
@@ -207,7 +183,7 @@ editor.reg :set_focus {!(cell) = @;
 
 !misc_panel = new_misc_panel[];
 
-!grid = setup_grid_widget default_style matrix {
+!grid = setup_grid_widget matrix {
     if misc_panel.is_visible[] { misc_panel.hide[]; } { misc_panel.show[] };
 };
 grid.change_layout ${
@@ -218,13 +194,14 @@ grid.add misc_panel;
 
 !left_panel = styling:new_widget :main_panel;
 
-!param_panel = ui:widget ~ default_style.clone_set ${ };
+!param_panel = styling:new_widget :param_panel;
 param_panel.set_ctrl :rect $n;
 param_panel.change_layout ${
     height     = :stretch => 2.0,
     min_height = :pixels => 300,
 };
-!text_panel = ui:widget ~ default_style.clone_set ${ };
+
+!text_panel = styling:new_widget :help_text_panel;
 text_panel.set_ctrl :rect $n;
 text_panel.change_layout ${
     height     = :stretch => 1.0,
@@ -241,7 +218,7 @@ editor.reg :update_status_help_text {!(new_text) = @;
 
 text_panel.add wt;
 
-!signal_panel = ui:widget ~ default_style.clone_set ${ };
+!signal_panel = styling:new_widget :signal_panel;
 signal_panel.set_ctrl :rect $n;
 signal_panel.change_layout ${
     height     = :stretch => 1.0,

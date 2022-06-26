@@ -27,6 +27,28 @@ layout.main_panel = ${
     min_width   = :pixels  => 300
 };
 
+layout.picker_slide_panel = ${
+    top         = :stretch => 1.0,
+    width       = :percent => 60,
+    height      = :pixels  => 200,
+    min_width   = :pixels => 400,
+    layout_type = :row,
+};
+
+style.close_hor_slide_panel_btn = ${
+    border       = 2,
+    border_style = $[:bevel, $f(0, 10, 0, 10)],
+    border_color = ui:UI_ACCENT_CLR,
+    bg_color     = ui:UI_BG2_CLR,
+};
+layout.close_hor_slide_panel_btn = ${
+    width  = :pixels => 30,
+    top    = :stretch => 1,
+    bottom = :stretch => 1,
+    height = :percent => 25,
+    left   = :pixels => -2,
+};
+
 layout.matrix_grid = ${
     position_type = :self,
 };
@@ -188,10 +210,18 @@ style.wichtext = ${
         wid.set_ctrl t a;
     };
 
+    wid.set_tag @.0;
+
     wid
 };
 
 !@export new_widget = new_widget;
+
+!@export new_tagged_widget = {
+    !wid = new_widget[[($p(1, -1) @)]];
+    wid.set_tag @.0;
+    wid
+};
 
 !@export new_rect = {
     !wid = new_widget[[@]];
