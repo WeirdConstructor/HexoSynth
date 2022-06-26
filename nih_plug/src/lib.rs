@@ -11,6 +11,7 @@ struct Gain {
     params:     Arc<GainParams>,
     matrix:     Arc<Mutex<Matrix>>,
     node_exec:  Box<NodeExecutor>,
+    proc_log:   bool,
 }
 
 #[derive(Params)]
@@ -21,13 +22,37 @@ struct GainParams {
 
 impl Default for Gain {
     fn default() -> Self {
-        let (matrix, node_exec) = init_hexosynth();
+        let (matrix, mut node_exec) = init_hexosynth();
+        node_exec.no_logging();
+
+        hexodsp::log::init_thread_logger("init");
+
+        std::thread::spawn(|| {
+            loop {
+                hexodsp::log::retrieve_log_messages(|name, s| {
+                    use std::io::Write;
+                    let mut file = std::fs::OpenOptions::new()
+                        .write(true)
+                        .append(true)
+                        .open("/tmp/hexosynth.log").unwrap();
+                    let _ = writeln!(file, "{}/{}", name, s);
+                });
+
+                std::thread::sleep(
+                    std::time::Duration::from_millis(100));
+            };
+        });
+        use std::io::Write;
+        use hexodsp::log::log;
+
+        log(|w| write!(w, "INIT").unwrap());
 
         Self {
             matrix:    Arc::new(Mutex::new(matrix)),
             node_exec: Box::new(node_exec),
 
             params: Arc::new(GainParams::default()),
+            proc_log: false,
 //            editor_state: editor::default_state(),
 
 //            peak_meter_decay_weight: 1.0,
@@ -54,6 +79,15 @@ impl Default for GainParams {
     }
 }
 
+fn blip(s: &str) {
+    use std::io::Write;
+    let mut file = std::fs::OpenOptions::new()
+        .write(true)
+        .append(true)
+        .open("/tmp/hexosynth.log").unwrap();
+    let _ = writeln!(file, "- {}", s);
+}
+
 impl Plugin for Gain {
     const NAME: &'static str = "HexoSynth";
     const VENDOR: &'static str = "WeirdConstructor";
@@ -72,6 +106,10 @@ impl Plugin for Gain {
     }
 
     fn editor(&self) -> Option<Box<dyn Editor>> {
+        hexodsp::log::init_thread_logger("editor");
+        use std::io::Write;
+        use hexodsp::log::log;
+
         Some(Box::new(HexoSynthEditor {
             matrix: self.matrix.clone()
         }))
@@ -92,8 +130,11 @@ impl Plugin for Gain {
         buffer_config: &BufferConfig,
         _context: &mut impl InitContext,
     ) -> bool {
+        use std::io::Write;
+        use hexodsp::log::log;
+        hexodsp::log::init_thread_logger("proc_init");
+        log(|w| write!(w, "PROC INIT").unwrap());
         self.node_exec.set_sample_rate(buffer_config.sample_rate);
-        hexodsp::log::init_thread_logger("init");
         true
     }
 
@@ -103,7 +144,16 @@ impl Plugin for Gain {
         _aux: &mut AuxiliaryBuffers,
         _context: &mut impl ProcessContext,
     ) -> ProcessStatus {
-        eprintln!("PROCESS");
+        use std::io::Write;
+        use hexodsp::log::log;
+
+        if !self.proc_log {
+//            hexodsp::log::init_thread_logger("proc");
+            self.proc_log = true;
+        }
+//        return ProcessStatus::Normal;
+//        log(|w| write!(w, "P").unwrap());
+
         self.node_exec.process_graph_updates();
 
         let mut frames_left = buffer.len();
@@ -113,7 +163,10 @@ impl Plugin for Gain {
 
         let mut input_bufs = [[0.0; hexodsp::dsp::MAX_BLOCK_SIZE]; 2];
 
+        let mut cnt = 0;
         while frames_left > 0 {
+//            log(|w| write!(w, "FRAM LEFT: {}", frames_left).unwrap());
+
             let cur_nframes =
                 if frames_left >= hexodsp::dsp::MAX_BLOCK_SIZE {
                     hexodsp::dsp::MAX_BLOCK_SIZE
@@ -121,16 +174,14 @@ impl Plugin for Gain {
                     frames_left
                 };
 
-            frames_left -= cur_nframes;
-
             input_bufs[0].copy_from_slice(
                 &channel_buffers[0][offs..(offs + cur_nframes)]);
             input_bufs[1].copy_from_slice(
                 &channel_buffers[1][offs..(offs + cur_nframes)]);
 
             let input = &[
-                &input_bufs[0][offs..(offs + cur_nframes)],
-                &input_bufs[1][offs..(offs + cur_nframes)],
+                &input_bufs[0][0..cur_nframes],
+                &input_bufs[1][0..cur_nframes],
             ];
 
             let split = channel_buffers.split_at_mut(1);
@@ -165,6 +216,13 @@ impl Plugin for Gain {
 //            }
 
             offs += cur_nframes;
+            frames_left -= cur_nframes;
+
+//            if cnt >= 1 {
+//                return ProcessStatus::Normal;
+//            }
+
+//            cnt += 1;
         }
 
         ProcessStatus::Normal
