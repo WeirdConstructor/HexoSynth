@@ -5,7 +5,7 @@
 !@import editor wllib:editor;
 !@import tests wllib:tests;
 
-!:global loaded_tests = tests:list;
+tests:install[];
 
 !default_style = ui:style[];
 

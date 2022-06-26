@@ -300,6 +300,12 @@ impl vval::VValUserData for VValMatrix {
                         Err(e) => Ok(matrix_error2vval_err(e)),
                     }
                 },
+                "clear" => {
+                    arg_chk!(args, 0, "matrix.clear[]");
+
+                    m.clear();
+                    Ok(VVal::Bol(true))
+                },
                 "get_unused_instance_node_id" => {
                     arg_chk!(args, 1, "matrix.get_unused_instance_node_id[node_id]");
 

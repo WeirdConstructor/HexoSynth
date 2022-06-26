@@ -5,7 +5,7 @@
 #![allow(incomplete_features)]
 #![feature(generic_associated_types)]
 
-use hexotk::{UI, open_window, Units, Rect};
+use hexotk::{UI, open_window, Units, Rect, TestScript};
 //pub mod ui;
 //pub mod ui_ctrl;
 mod cluster;
@@ -832,6 +832,76 @@ pub fn vv2widget(mut v: VVal) -> Option<hexotk::Widget> {
 }
 
 #[derive(Clone)]
+pub struct VTestScript(Rc<RefCell<TestScript>>);
+
+impl VTestScript {
+    pub fn new(name: String) -> Self {
+        Self(Rc::new(RefCell::new(TestScript::new(name))))
+    }
+}
+
+impl VValUserData for VTestScript {
+    fn s(&self) -> String { format!("$<UI::TestScript({})>", self.0.borrow().name()) }
+    fn as_any(&mut self) -> &mut dyn std::any::Any { self }
+    fn clone_ud(&self) -> Box<dyn vval::VValUserData> { Box::new(self.clone()) }
+
+    fn call_method(&self, key: &str, env: &mut Env)
+        -> Result<VVal, StackAction>
+    {
+        let args = env.argv_ref();
+
+        match key {
+            "add_step" => {
+                arg_chk!(args, 2, "$<UI::TestScript>.add_step[step_name, step_callback]");
+
+                let step_name = args[0].s_raw();
+                let step      = args[1].disable_function_arity();
+
+                let name = self.0.borrow().name().to_string();
+
+                self.0.borrow_mut().push_cb(step_name.clone(), Rc::new(move |ctx, driver| {
+                    let driv_rc = Rc::new(RefCell::new(driver));
+
+                    let ret = {
+                        let driver = VTestDriver(driv_rc.clone());
+                        let labels = driver.list_labels();
+
+                        let driver = VVal::new_usr(driver);
+                        if let Some(ctx) = ctx.downcast_mut::<EvalContext>() {
+                            match ctx.call(&step, &[driver, labels]) {
+                                Ok(_) => true,
+                                Err(e) => {
+                                    println!(
+                                        "FAIL - {} - step {}: {}", name, step_name, e);
+                                    false
+                                }
+                            }
+                        } else {
+                            false
+                        }
+                    };
+
+                    match Rc::try_unwrap(driv_rc) {
+                        Ok(cell) => (ret, cell.into_inner()),
+                        Err(_) => {
+                            panic!("The test scripts MUST NOT take multiple references to the TestDriver!");
+                        }
+                    }
+                }));
+
+                Ok(VVal::Bol(true))
+            },
+            _ => Ok(VVal::err_msg(
+                &format!("$<UI::TestScript> Unknown method called: {}", key))),
+        }
+    }
+}
+
+pub fn vv2test_script(mut v: VVal) -> Option<TestScript> {
+    v.with_usr_ref(|w: &mut VTestScript| w.0.borrow().clone())
+}
+
+#[derive(Clone)]
 pub struct VTestDriver(Rc<RefCell<Box<hexotk::TestDriver>>>);
 
 impl VTestDriver {
@@ -963,6 +1033,26 @@ pub fn open_hexosynth_with_config(
                     }
                 }, Some(1), Some(1), false);
 
+            ui_st.fun(
+                "test_script", move |env: &mut Env, _argc: usize| {
+                    let name = env.arg(0).s_raw();
+                    Ok(VVal::new_usr(VTestScript::new(name)))
+                }, Some(1), Some(1), false);
+
+            let test_scripts : Rc<RefCell<Vec<TestScript>>> =
+                Rc::new(RefCell::new(vec![]));
+
+            let tscr = test_scripts.clone();
+            ui_st.fun(
+                "install_test", move |env: &mut Env, _argc: usize| {
+                    if let Some(script) = vv2test_script(env.arg(0)) {
+                        tscr.borrow_mut().push(script);
+                    } else {
+                        wl_panic!("ui:install_test expected $<UI::TestScript> as first arg!")
+                    }
+
+                    Ok(VVal::None)
+                }, Some(1), Some(1), false);
 
             for (name, clr) in hexotk::style::get_ui_colors() {
                 ui_st.set(
@@ -1000,45 +1090,11 @@ pub fn open_hexosynth_with_config(
                 Err(e) => { println!("ERROR: {}", e); }
             }
 
-            let tests = ctx.get_global_var("loaded_tests");
-
             let ctx = Rc::new(RefCell::new(ctx));
             let mut ui = Box::new(UI::new(ctx));
 
-            if let Some(tests) = tests {
-                tests.with_iter(|scripts| {
-                    for (script, _) in scripts {
-                        let mut fs = hexotk::FrameScript::new();
-                        script.with_iter(|steps| {
-                            for (step, _) in steps {
-                                let step = step.disable_function_arity();
-
-                                fs.push_cb(Box::new(move |ctx, driver| {
-                                    let driv_rc = Rc::new(RefCell::new(driver));
-                                    {
-                                        let driver = VTestDriver(driv_rc.clone());
-                                        let labels = driver.list_labels();
-                                        let driver = VVal::new_usr(driver);
-                                        if let Some(ctx) = ctx.downcast_mut::<EvalContext>() {
-                                            match ctx.call(&step, &[driver, labels]) {
-                                                Ok(_) => {},
-                                                Err(e) => { println!("ERROR in frame step callback: {}", e); }
-                                            }
-                                        }
-                                    }
-
-                                    match Rc::try_unwrap(driv_rc) {
-                                        Ok(cell) => cell.into_inner(),
-                                        Err(_) => {
-                                            panic!("The test scripts MUST NOT take multiple references to the TestDriver!");
-                                        }
-                                    }
-                                }));
-                            }
-                        });
-                        ui.push_frame_script(fs);
-                    }
-                });
+            for test_script in test_scripts.borrow().iter() {
+                ui.install_test_script(test_script.clone());
             }
 
             for widget in roots {

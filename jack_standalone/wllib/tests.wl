@@ -1,5 +1,7 @@
 !@wlambda;
 !@import std;
+!@import ui;
+!@import hx;
 
 !inside_rect = {!(target, test) = @;
          test.x >= target.x
@@ -41,28 +43,27 @@
     };
 };
 
-!@export list = $[
-    $[
-        {!(td, labels) = @;
-            !res = $S(*:{source=cell_name, label=Amp}) labels;
-            do_click td res.0;
-        },
-        {!(td, labels) = @;
-            do_hover td
-                ($S(*:{tag=knob, source=value, label=*060*}) labels)
-                .0;
-        },
-        {!(td, labels) = @;
-            !doc = ($S(*:{label=*Amp\ gain*}) labels).0;
-            std:assert doc "FOO";
-        },
-    ],
-    $[
-        { std:displayln "XXX STEP 1" },
-        { std:displayln "XXX STEP 2";
-#            iter lbl _.list_labels[] {
-#                std:displayln lbl;
-#            };
-        },
-    ],
-];
+!@export install = {
+    !test = ui:test_script "knob_hover_help_desc";
+    test.add_step :matrix_setup {!(td, labels) = @;
+        !matrix = hx:get_main_matrix_handle[];
+        matrix.clear[];
+
+        matrix.
+    };
+    test.add_step :click_cell {!(td, labels) = @;
+        !res = $S(*:{source=cell_name, label=Amp}) labels;
+        do_click td res.0;
+    };
+    test.add_step :hover_knob {!(td, labels) = @;
+#        dump_labels td;
+        do_hover td
+            ($S(*:{tag=knob, source=value, label=*060*}) labels)
+            .0;
+    };
+    test.add_step :check_desc {!(td, labels) = @;
+        !doc = ($S(*:{label=*Amp\ gain*}) labels).0;
+        std:assert doc;
+    };
+    ui:install_test test;
+};
