@@ -418,6 +418,11 @@ root.add grid;
 !@export on_frame = {!(matrix_records) = @;
     iter r matrix_records {
         std:displayln "REC:" r;
+        match r
+            $p(:matrix_graph, _?) => {
+                editor.handle_matrix_graph_change[];
+                std:displayln "GRAPH UPDATE";
+            };
     };
 };
 

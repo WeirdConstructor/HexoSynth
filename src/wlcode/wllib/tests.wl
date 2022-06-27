@@ -26,6 +26,18 @@
     _.mouse_release_at pos :left;
 };
 
+!do_pick = {
+    !pos = _1.pos + $f(1.0, 1.0);
+    std:displayln ">>> pick(LMB)@" pos;
+    _.mouse_press_at pos :left;
+};
+
+!do_drop = {
+    !pos = _1.pos + $f(1.0, 1.0);
+    std:displayln ">>> drop(LMB)@" pos;
+    _.mouse_release_at pos :left;
+};
+
 !do_hover= {
     !pos = _1.pos + $f(1.0, 1.0);
     std:displayln ">>> hover@" pos;
@@ -55,21 +67,43 @@
     test.add_step :click_cell {!(td, labels) = @;
         !res = $S(*:{source=cell_name, label=Amp}) labels;
         do_click td res.0;
-        $t
     };
 #    test.add_step :sleep {|| std:thread:sleep :ms => 500 };
     test.add_step :hover_knob {!(td, labels) = @;
         do_hover td
             ($S(*:{tag=knob, source=value, label=*060*}) labels)
             .0;
-        $t
     };
 #    test.add_step :sleep {|| std:thread:sleep :ms => 500 };
     test.add_step :check_desc {!(td, labels) = @;
-#        dump_labels td;
+        dump_labels td;
         !doc = ($S(*:{label=*Amp\ gain*}) labels).0;
         std:assert doc;
-        $t
+    };
+    ui:install_test test;
+
+
+    .test = ui:test_script "param_panel_update_on_matrix_change";
+    !amp_node_info = $n;
+    test.add_step :click_amp {!(td, labels) = @;
+        !res = $S(*:{source=cell_name, label=Amp}) labels;
+        .amp_node_info = res.0;
+        do_click td res.0;
+    };
+    test.add_step :check_amp_labels {!(td, labels) = @;
+        !lbls = $S(*:{path=*param_panel*knob_label}/label) labels;
+        std:assert_str_eq (std:sort lbls) $["att","gain","inp"];
+    };
+    test.add_step :start_drag_new_node {!(td, labels) = @;
+        !res = $S(*:{path=*pick_node_btn, label=Noise}) labels;
+        do_pick td res.0;
+    };
+    test.add_step :drop_new_node {!(td, labels) = @;
+        do_drop td amp_node_info;
+    };
+    test.add_step :check_noise_labels {!(td, labels) = @;
+        !lbls = $S(*:{path=*param_panel*knob_label}/label) labels;
+        std:assert_str_eq lbls $["atv","offs"];
     };
     ui:install_test test;
 };

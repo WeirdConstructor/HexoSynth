@@ -246,6 +246,9 @@
                 $self.show_param_id_desc arg1;
             };
     },
+    handle_matrix_graph_change = {
+        $self.set_focus_cell $data.focus_cell.pos;
+    },
 };
 
 !@export EditorClass = EditorClass;
