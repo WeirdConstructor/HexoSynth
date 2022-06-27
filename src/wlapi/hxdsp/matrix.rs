@@ -95,6 +95,71 @@ fn matrix_error2vval_err(err: MatrixError) -> VVal {
         wlambda::vval::SynPos::empty()))))
 }
 
+fn build_cell_chain(
+    matrix: &mut Matrix, mut pos: (i32, i32), dir: CellDir, v: &VVal
+) -> Vec<((usize, usize), Cell)>
+{
+    let mut chain = vec![];
+
+    let vv_chain = v.v_k("chain");
+
+    let mut last_unused = std::collections::HashMap::new();
+
+    vv_chain.with_iter(|iter| {
+        for (v, _) in iter {
+            let (node_id, in_name, out_name) =
+                if v.len() == 1 {
+                    (NodeId::from_str(&v.v_s_raw(0)), VVal::None, VVal::None)
+                } else if v.len() == 2 {
+                    (NodeId::from_str(&v.v_s_raw(0)), VVal::None, v.v_(1))
+                } else {
+                    (NodeId::from_str(&v.v_s_raw(1)), v.v_(0), v.v_(2))
+                };
+
+
+            let node_name = node_id.name();
+
+            let node_id =
+                if let Some(i) = last_unused.get(node_name).cloned() {
+                    last_unused.insert(node_name, i + 1);
+                    node_id.to_instance(i + 1)
+                } else {
+                    let node_id = matrix.get_unused_instance_node_id(node_id);
+                    last_unused.insert(node_name, node_id.instance());
+                    node_id
+                };
+
+            let mut cell = Cell::empty(node_id);
+
+            let in_dir  = if dir.is_input() { dir } else { dir.flip() };
+            let out_dir = in_dir.flip();
+
+            if in_name.is_some() {
+                in_name.with_s_ref(|name| {
+                    if let Some(idx) = node_id.inp(name) {
+                        cell.set_io_dir(in_dir, idx as usize);
+                    }
+                });
+            }
+            if out_name.is_some() {
+                out_name.with_s_ref(|name| {
+                    if let Some(idx) = node_id.out(name) {
+                        cell.set_io_dir(out_dir, idx as usize);
+                    }
+                });
+            }
+
+            chain.push(((pos.0 as usize, pos.1 as usize), cell));
+
+            let offs = dir.as_offs(pos.0 as usize);
+            pos.0 += offs.0;
+            pos.1 += offs.1;
+        }
+    });
+
+    chain
+}
+
 #[derive(Clone)]
 pub struct VValMatrix {
     matrix: Arc<Mutex<hexodsp::Matrix>>,
@@ -183,6 +248,43 @@ impl vval::VValUserData for VValMatrix {
                     } else {
                         Ok(VVal::None)
                     }
+                },
+                "place_chain" => {
+                    arg_chk!(args, 3, "matrix.place_chain[pos, dir, chain]");
+
+                    let (x, y) = (
+                        args[0].v_i(0) as i32,
+                        args[0].v_i(1) as i32
+                    );
+
+                    let dir = vv2cell_dir(&args[1]);
+
+                    let chain = build_cell_chain(&mut m, (x, y), dir, &args[2]);
+
+                    let params = args[2].v_k("params");
+
+                    for (i, (pos, cell)) in chain.into_iter().enumerate() {
+                        let node_id = cell.node_id();
+                        let paras = params.v_(i);
+                        paras.with_iter(|iter| {
+                            for (v, _) in iter {
+                                if let Some(pid) =
+                                    node_id.inp_param(&v.v_s_raw(0))
+                                {
+                                    m.set_param(
+                                        pid,
+                                        hexodsp::SAtom::param(pid.norm(v.v_f(1) as f32)));
+                                }
+                            }
+                        });
+
+                        m.place(pos.0, pos.1, cell);
+                        println!("PLACE: {:?} => {:?}", pos, cell);
+                    }
+
+//                    println!("CHAIN: {:?}", chain);
+
+                    Ok(VVal::None)
                 },
                 "set_param" => {
                     arg_chk!(args, 2, "matrix.set_param[param_id, atom or value]");
@@ -316,7 +418,7 @@ impl vval::VValUserData for VValMatrix {
                 _ => Ok(VVal::err_msg(&format!("Unknown method called: {}", key))),
             }
         } else {
-             Ok(VVal::err_msg("Can't lock matrix!"))
+            Ok(VVal::err_msg("Can't lock matrix!"))
         }
     }
 
@@ -448,7 +550,6 @@ pub fn vv2cell(v: &VVal) -> Cell {
 
     m_cell
 }
-
 
 #[derive(Clone)]
 pub struct VValCluster {
