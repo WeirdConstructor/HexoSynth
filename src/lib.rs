@@ -1097,9 +1097,12 @@ pub fn open_hexosynth_with_config(
             global_env.borrow_mut().set_module("hx",      wlapi::setup_hx_module(matrix.clone()));
             global_env.borrow_mut().set_module("node_id", wlapi::setup_node_id_module());
 
+            let matrix_obs = Arc::new(wlapi::MatrixRecorder::new());
+            matrix.lock().unwrap().set_observer(matrix_obs.clone());
+
             let mut roots = vec![];
 
-            match ctx.eval_string("!@import main; main:root", "top_main") {
+            match ctx.eval_string("!@import main; !:global on_frame = main:on_frame; main:root", "top_main") {
                 Ok(v) => {
                     v.with_iter(|iter| {
                         for (v, _) in iter {
@@ -1114,8 +1117,23 @@ pub fn open_hexosynth_with_config(
                 Err(e) => { println!("ERROR: {}", e); }
             }
 
+            let frame_cb = ctx.get_global_var("on_frame").unwrap_or(VVal::None);
+
             let ctx = Rc::new(RefCell::new(ctx));
             let mut ui = Box::new(UI::new(ctx));
+
+            ui.set_frame_callback(Box::new(move |ctx| {
+                if frame_cb.is_none() {
+                    return;
+                }
+                if let Some(ctx) = ctx.downcast_mut::<EvalContext>() {
+                    let recs = matrix_obs.get_records();
+                    match ctx.call(&frame_cb, &[recs]) {
+                        Ok(_) => { },
+                        Err(e) => { println!("ERROR in frame callback: {}", e); }
+                    }
+                }
+            }));
 
             for test_script in test_scripts.borrow().iter() {
                 ui.install_test_script(test_script.clone());

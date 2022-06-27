@@ -415,4 +415,10 @@ root.add grid;
 #root.add btn2;
 #root.add grid;
 
+!@export on_frame = {!(matrix_records) = @;
+    iter r matrix_records {
+        std:displayln "REC:" r;
+    };
+};
+
 !@export root = $[root, popup_layer];
