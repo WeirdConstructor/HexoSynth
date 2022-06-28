@@ -408,7 +408,7 @@ editor.reg :update_param_ui {
                     create_mode_button list init {
                         matrix.set_param cur_atom _1.1;
                     }
-                };
+                }
                 {
                     !wid = styling:new_widget :atom_wid;
                     wid.set_ctrl :label (ui:txt atom.atom_ui[]);
