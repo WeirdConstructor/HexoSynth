@@ -263,6 +263,70 @@ popup_layer.add connector_popup;
 popup_layer.add mode_selector_popup;
 
 
+!create_mode_button = {!(val_list, init_idx, change_cb) = @;
+    !val_idx = init_idx;
+    !val_lbl = ui:txt "";
+
+    !value_inc = {
+        .val_idx += 1;
+        .val_idx = val_idx % len[val_list];
+        val_lbl.set val_list.(val_idx);
+        change_cb val_idx val_list.(val_idx);
+    };
+    !value_dec = {
+        .val_idx -= 1;
+        if val_idx < 0 { .val_idx = len[val_list] - 1; };
+        val_lbl.set val_list.(val_idx);
+        change_cb val_idx val_list.(val_idx);
+    };
+    !value_set = {
+        .val_idx = _;
+        val_lbl.set val_list.(val_idx);
+        change_cb val_idx val_list.(val_idx);
+    };
+    value_set val_idx;
+
+    !mode_cont = styling:new_widget :mode_btn_cont;
+
+    !mode_less_btn = styling:new_widget :mode_button_less;
+    mode_less_btn.set_ctrl :button (ui:txt "-");
+    mode_less_btn.reg :click value_dec;
+
+    !mode_more_btn = styling:new_widget :mode_button_more;
+    mode_more_btn.set_ctrl :button (ui:txt "+");
+    mode_more_btn.reg :click value_inc;
+
+    !mode_btn = styling:new_widget :mode_button;
+    mode_btn.set_ctrl :button val_lbl;
+
+    mode_btn.reg :click {
+        mode_selector_popup.remove_childs[];
+
+        !i = 0;
+        iter v val_list {
+            !btn = styling:new_widget :mode_selector_item;
+            btn.set_ctrl :button (ui:txt v);
+
+            !idx = i;
+            btn.reg :click {
+                value_set idx; mode_selector_popup.hide[];
+            };
+
+            mode_selector_popup.add btn;
+            .i += 1;
+        };
+
+        mode_selector_popup.popup_at_mouse[];
+    };
+
+    mode_cont.add mode_more_btn;
+    mode_cont.add mode_btn;
+    mode_cont.add mode_less_btn;
+
+    mode_cont
+};
+
+
 
 editor.reg :setup_edit_connection {
     !(src_cell, dst_cell,
@@ -369,49 +433,9 @@ left_panel.add signal_panel;
 };
 signal_panel.add color_btn;
 
-
-!val_list = $[0, 1, 2, 3, 4];
-!val_idx = 0;
-!val_lbl = ui:txt val_list.(0);
-!value_inc = {
-    .val_idx += 1;
-    .val_idx = val_idx % len[val_list];
-    val_lbl.set val_list.(val_idx);
+!mode_cont = create_mode_button $[:a, :b, :c, :d] 2 {!(idx, val) = @;
+    std:displayln "SELECTED:" @;
 };
-!value_dec = {
-    .val_idx -= 1;
-    if val_idx < 0 { .val_idx = len[val_list] - 1; };
-    val_lbl.set val_list.(val_idx);
-};
-!value_set = {
-    val_lbl.set val_list.(_);
-};
-
-!mode_cont = styling:new_widget :mode_btn_cont;
-!mode_less_btn = styling:new_widget :mode_button_less;
-mode_less_btn.set_ctrl :button (ui:txt "-");
-mode_less_btn.reg :click value_dec;
-!mode_more_btn = styling:new_widget :mode_button_more;
-mode_more_btn.set_ctrl :button (ui:txt "+");
-mode_more_btn.reg :click value_inc;
-!mode_btn = styling:new_widget :mode_button;
-mode_btn.set_ctrl :button val_lbl;
-mode_btn.reg :click {
-    mode_selector_popup.remove_childs[];
-    !i = 0;
-    iter v val_list {
-        !btn = styling:new_widget :mode_selector_item;
-        btn.set_ctrl :button (ui:txt v);
-        !idx = i;
-        btn.reg :click { value_set idx; mode_selector_popup.hide[]; };
-        mode_selector_popup.add btn;
-        .i += 1;
-    };
-    mode_selector_popup.popup_at_mouse[];
-};
-mode_cont.add mode_more_btn;
-mode_cont.add mode_btn;
-mode_cont.add mode_less_btn;
 signal_panel.add mode_cont;
 
 root.add left_panel;
