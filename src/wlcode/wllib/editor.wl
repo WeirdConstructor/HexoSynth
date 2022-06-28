@@ -135,21 +135,39 @@
         };
     },
     handle_drag_gesture = {!(src, dst) = @;
+        !this = $self;
         !adj = hx:pos_are_adjacent src dst;
 
         std:displayln "GRID DRAG:" adj;
 
-        if adj.is_input[] {
-            .(src, dst) = $p(dst, src);
-            .adj = adj.flip[];
+        !src_cell   = $data.matrix.get src;
+        !dst_cell   = $data.matrix.get dst;
+        !src_exists = src_cell.node_id.0 != "nop";
+        !dst_exists = dst_cell.node_id.0 != "nop";
+
+        std:displayln "s:" src_exists dst_exists;
+
+        if src_exists &and not[dst_exists] {
+            !clust = hx:new_cluster[];
+            this.matrix_apply_change {!(matrix) = @;
+                clust.add_cluster_at matrix src;
+                clust.remove_cells matrix;
+                !path = hx:dir_path_from_to src dst;
+                clust.move_cluster_cells_dir_path path;
+                clust.place matrix;
+                # TODO: check if path is error!
+            };
+            return $n;
         };
 
         if is_some[adj] {
+            if adj.is_input[] {
+                .(src, dst) = $p(dst, src);
+                .adj = adj.flip[];
+            };
+
             !edge_idx     = adj.as_edge[];
             !dst_edge_idx = adj.flip[].as_edge[];
-
-            !src_cell     = $data.matrix.get src;
-            !dst_cell     = $data.matrix.get dst;
 
             if dst_cell.node_id.0 == "nop" \return $n;
             if src_cell.node_id.0 == "nop" \return $n;
@@ -184,7 +202,6 @@
             #d# std:displayln "INS"  dst_ins;
             #d# std:displayln "OUTS" src_outs;
 
-            !this   = $self;
             $self.emit :setup_edit_connection
                 src_cell dst_cell
                 src_outs dst_ins
