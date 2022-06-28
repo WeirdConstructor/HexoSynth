@@ -134,7 +134,7 @@
                 };
         };
     },
-    handle_drag_gesture = {!(src, dst) = @;
+    handle_drag_gesture = {!(src, dst, btn) = @;
         !this = $self;
         !adj = hx:pos_are_adjacent src dst;
 
@@ -148,15 +148,23 @@
         std:displayln "s:" src_exists dst_exists;
 
         if src_exists &and not[dst_exists] {
-            !clust = hx:new_cluster[];
-            this.matrix_apply_change {!(matrix) = @;
-                clust.add_cluster_at matrix src;
-                clust.remove_cells matrix;
-                !path = hx:dir_path_from_to src dst;
-                clust.move_cluster_cells_dir_path path;
-                clust.place matrix;
-                # TODO: check if path is error!
+            if btn == :right {
+                this.matrix_apply_change {!(matrix) = @;
+                    matrix.set src dst_cell;
+                    matrix.set dst src_cell;
+                };
+            } {
+                !clust = hx:new_cluster[];
+                this.matrix_apply_change {!(matrix) = @;
+                    clust.add_cluster_at matrix src;
+                    clust.remove_cells matrix;
+                    !path = hx:dir_path_from_to src dst;
+                    clust.move_cluster_cells_dir_path path;
+                    clust.place matrix;
+                    # TODO: check if path is error!
+                };
             };
+
             return $n;
         };
 

@@ -144,7 +144,7 @@ editor.reg :set_focus {!(cell) = @;
     grid.reg :hex_drag {!(wid, ev) = @;
         !src = $i(ev.x_src, ev.y_src);
         !dst = $i(ev.x_dst, ev.y_dst);
-        editor.handle_drag_gesture src dst;
+        editor.handle_drag_gesture src dst ev.button;
     };
 
     grid.reg :drop_query {
