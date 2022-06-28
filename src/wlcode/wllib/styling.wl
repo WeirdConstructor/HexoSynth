@@ -124,10 +124,10 @@ layout.knob_row = ${
     height      = :stretch => 1,
 };
 
-layout.knob_container = ${
+layout.param_container = ${
     height = :stretch => 1,
 };
-style.knob_container = ${
+style.param_container = ${
 #    typ    = :rect,
     border = 2,
     border_color = ui:UI_ACCENT_CLR,
@@ -149,20 +149,27 @@ layout.knob_label = ${
 layout.mode_btn_cont = ${
     layout_type = :column,
     height = :pixels => 100,
+    top = :stretch => 1,
 };
 style.mode_button_more = ${
     parent = :button,
     border_style = $[:bevel, $f(15, 15, 0, 0)],
 };
-layout.mode_button_more = ${
+layout.mode_button_updown = ${
+    width = :pixels => 40,
+    left = :stretch => 1,
+    right = :stretch => 1,
     height = :stretch => 1,
+};
+layout.mode_button_more = ${
+    parent = :mode_button_updown,
 };
 style.mode_button_less = ${
     parent = :button,
     border_style = $[:bevel, $f(0, 0, 15, 15)],
 };
 layout.mode_button_less = ${
-    height = :stretch => 1,
+    parent = :mode_button_updown,
 };
 style.mode_button = ${ parent = :button };
 layout.mode_button = ${

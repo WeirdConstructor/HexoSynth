@@ -270,18 +270,18 @@ popup_layer.add mode_selector_popup;
     !value_inc = {
         .val_idx += 1;
         .val_idx = val_idx % len[val_list];
-        val_lbl.set val_list.(val_idx);
+        val_lbl.set val_list.(val_idx).0;
         change_cb val_idx val_list.(val_idx);
     };
     !value_dec = {
         .val_idx -= 1;
         if val_idx < 0 { .val_idx = len[val_list] - 1; };
-        val_lbl.set val_list.(val_idx);
+        val_lbl.set val_list.(val_idx).0;
         change_cb val_idx val_list.(val_idx);
     };
     !value_set = {
         .val_idx = _;
-        val_lbl.set val_list.(val_idx);
+        val_lbl.set val_list.(val_idx).0;
         change_cb val_idx val_list.(val_idx);
     };
     value_set val_idx;
@@ -305,7 +305,7 @@ popup_layer.add mode_selector_popup;
         !i = 0;
         iter v val_list {
             !btn = styling:new_widget :mode_selector_item;
-            btn.set_ctrl :button (ui:txt v);
+            btn.set_ctrl :button (ui:txt v.0);
 
             !idx = i;
             btn.reg :click {
@@ -373,7 +373,7 @@ editor.reg :update_param_ui {
             .row_fill = 0;
         };
 
-        !cont = styling:new_widget :knob_container;
+        !cont = styling:new_widget :param_container;
 
         !knob = styling:new_widget :knob;
         !knob_model = matrix.create_hex_knob_model input_param;
@@ -393,12 +393,28 @@ editor.reg :update_param_ui {
     };
 
     iter atom plist.atoms {
-        !cont = styling:new_widget :knob_container;
+        !cur_atom = atom;
+        !cont = styling:new_widget :param_container;
 
-        std:displayln "ATOM:" atom;
+        !wid =
+            match atom.atom_ui[]
+                :mode => {
+                    !(min, max) = atom.setting_min_max[];
+                    !init = (matrix.get_param atom).i[];
+                    !list = $@vec
+                        iter s min => (max + 1) {
+                            $+ $p((atom.format s), s);
+                        };
+                    create_mode_button list init {
+                        matrix.set_param cur_atom _1.1;
+                    }
+                };
+                {
+                    !wid = styling:new_widget :atom_wid;
+                    wid.set_ctrl :label (ui:txt atom.atom_ui[]);
+                    wid
+                };
 
-        !wid = styling:new_widget :atom_wid;
-        wid.set_ctrl :label (ui:txt atom.atom_ui[]);
 
         !lbl = styling:new_widget :knob_label;
         lbl.set_ctrl :label (ui:txt atom.name[]);
@@ -411,7 +427,7 @@ editor.reg :update_param_ui {
 
     if row_fill > 0 {
         while row_fill < 5 {
-            !cont = styling:new_widget :knob_container;
+            !cont = styling:new_widget :param_container;
             knob_row.add cont;
             .row_fill += 1;
         };
@@ -432,11 +448,6 @@ left_panel.add signal_panel;
     editor.show_color_info[];
 };
 signal_panel.add color_btn;
-
-!mode_cont = create_mode_button $[:a, :b, :c, :d] 2 {!(idx, val) = @;
-    std:displayln "SELECTED:" @;
-};
-signal_panel.add mode_cont;
 
 root.add left_panel;
 root.add grid;
