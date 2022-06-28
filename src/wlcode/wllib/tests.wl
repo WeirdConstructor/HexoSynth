@@ -26,7 +26,7 @@
     _.mouse_release_at pos :left;
 };
 
-!do_pick = {
+!do_drag = {
     !pos = _1.pos + $f(1.0, 1.0);
     std:displayln ">>> pick(LMB)@" pos;
     _.mouse_press_at pos :left;
@@ -114,11 +114,11 @@
     };
     test.add_step :check_amp_labels {!(td, labels) = @;
         !lbls = $S(*:{path=*param_panel*knob_label}/label) labels;
-        std:assert_str_eq (std:sort lbls) $["att","gain","inp"];
+        std:assert_str_eq (std:sort lbls) $["att","gain","inp","neg_att"];
     };
     test.add_step :start_drag_new_node {!(td, labels) = @;
         !res = $S(*:{path=*pick_node_btn, label=Noise}) labels;
-        do_pick td res.0;
+        do_drag td res.0;
     };
     test.add_step :drop_new_node {!(td, labels) = @;
         do_drop td amp_node_info;

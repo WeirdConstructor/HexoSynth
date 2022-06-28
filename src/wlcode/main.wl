@@ -11,8 +11,6 @@ tests:install[];
 
 !default_style = ui:style[];
 
-!lbl = ui:txt "Test123";
-
 !matrix = hx:get_main_matrix_handle[];
 
 !editor = editor:EditorClass.new matrix;
@@ -317,6 +315,23 @@ editor.reg :update_param_ui {
         lbl.set_ctrl :label (ui:txt input_param.name[]);
 
         cont.add knob;
+        cont.add lbl;
+        knob_row.add cont;
+        .row_fill += 1;
+    };
+
+    iter atom plist.atoms {
+        !cont = styling:new_widget :knob_container;
+
+        std:displayln "ATOM:" atom;
+
+        !wid = styling:new_widget :atom_wid;
+        wid.set_ctrl :label (ui:txt atom.atom_ui[]);
+
+        !lbl = styling:new_widget :knob_label;
+        lbl.set_ctrl :label (ui:txt atom.name[]);
+
+        cont.add wid;
         cont.add lbl;
         knob_row.add cont;
         .row_fill += 1;

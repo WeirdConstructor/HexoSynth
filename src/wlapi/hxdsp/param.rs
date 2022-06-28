@@ -58,6 +58,15 @@ impl VValUserData for VValParamId {
 
                 Ok(VVal::Flt(self.param.norm(env.arg(0).f() as f32) as f64))
             },
+            "atom_ui" => {
+                arg_chk!(args, 0, "param_id.atom_ui[]");
+
+                if let Some(ui) = self.param.atom_ui() {
+                    Ok(VVal::new_sym(ui))
+                } else {
+                    Ok(VVal::None)
+                }
+            },
             "format" => {
                 arg_chk!(args, 1, "param_id.format[float]");
                 let mut buf : [u8; 128] = [0; 128];
