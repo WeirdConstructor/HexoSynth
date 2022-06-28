@@ -146,6 +146,41 @@ layout.knob_label = ${
     right  = :pixels => 2,
 };
 
+layout.mode_btn_cont = ${
+    layout_type = :column,
+    height = :pixels => 100,
+};
+style.mode_button_more = ${
+    parent = :button,
+    border_style = $[:bevel, $f(15, 15, 0, 0)],
+};
+layout.mode_button_more = ${
+    height = :stretch => 1,
+};
+style.mode_button_less = ${
+    parent = :button,
+    border_style = $[:bevel, $f(0, 0, 15, 15)],
+};
+layout.mode_button_less = ${
+    height = :stretch => 1,
+};
+style.mode_button = ${ parent = :button };
+layout.mode_button = ${
+    height = :stretch => 1,
+};
+
+layout.mode_selector_popup = ${
+    position_type = :self,
+    layout_type   = :column,
+    height        = :auto,
+    width         = :pixels => 90,
+    visible       = $f,
+};
+style.mode_selector_item = ${ parent = :button };
+layout.mode_selector_item = ${
+    height = :pixels => 30,
+};
+
 style.wichtext = ${
     bg_color = ui:UI_ACCENT_BG1_CLR,
     border = 0,

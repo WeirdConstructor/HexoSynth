@@ -125,7 +125,7 @@
     };
     test.add_step :check_noise_labels {!(td, labels) = @;
         !lbls = $S(*:{path=*param_panel*knob_label}/label) labels;
-        std:assert_str_eq (std:sort lbls) $["atv","offs"];
+        std:assert_str_eq (std:sort lbls) $["atv","mode","offs"];
 
     };
     ui:install_test test;

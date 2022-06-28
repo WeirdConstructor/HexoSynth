@@ -254,7 +254,15 @@ connector_popup.change_layout ${
     width         = :pixels => 300,
     visible       = $f,
 };
+
+!mode_selector_popup = styling:new_widget :mode_selector_popup;
+mode_selector_popup.auto_hide[];
+
+
 popup_layer.add connector_popup;
+popup_layer.add mode_selector_popup;
+
+
 
 editor.reg :setup_edit_connection {
     !(src_cell, dst_cell,
@@ -361,74 +369,53 @@ left_panel.add signal_panel;
 };
 signal_panel.add color_btn;
 
+
+!val_list = $[0, 1, 2, 3, 4];
+!val_idx = 0;
+!val_lbl = ui:txt val_list.(0);
+!value_inc = {
+    .val_idx += 1;
+    .val_idx = val_idx % len[val_list];
+    val_lbl.set val_list.(val_idx);
+};
+!value_dec = {
+    .val_idx -= 1;
+    if val_idx < 0 { .val_idx = len[val_list] - 1; };
+    val_lbl.set val_list.(val_idx);
+};
+!value_set = {
+    val_lbl.set val_list.(_);
+};
+
+!mode_cont = styling:new_widget :mode_btn_cont;
+!mode_less_btn = styling:new_widget :mode_button_less;
+mode_less_btn.set_ctrl :button (ui:txt "-");
+mode_less_btn.reg :click value_dec;
+!mode_more_btn = styling:new_widget :mode_button_more;
+mode_more_btn.set_ctrl :button (ui:txt "+");
+mode_more_btn.reg :click value_inc;
+!mode_btn = styling:new_widget :mode_button;
+mode_btn.set_ctrl :button val_lbl;
+mode_btn.reg :click {
+    mode_selector_popup.remove_childs[];
+    !i = 0;
+    iter v val_list {
+        !btn = styling:new_widget :mode_selector_item;
+        btn.set_ctrl :button (ui:txt v);
+        !idx = i;
+        btn.reg :click { value_set idx; mode_selector_popup.hide[]; };
+        mode_selector_popup.add btn;
+        .i += 1;
+    };
+    mode_selector_popup.popup_at_mouse[];
+};
+mode_cont.add mode_more_btn;
+mode_cont.add mode_btn;
+mode_cont.add mode_less_btn;
+signal_panel.add mode_cont;
+
 root.add left_panel;
 root.add grid;
-
-#style.set ${
-#    bg_color   = std:v:hex2rgba_f "222",
-#    color      = $f(1.0, 1.0, 0.0),
-#    font_size  = 24,
-#    text_align = :left,
-#    pad_left   = 20,
-#    border_style = $[:bevel, $f(5.0, 10.0, 20.0, 2.0)],
-#};
-#
-#!btn = ui:widget style;
-#btn.set_ctrl :button lbl;
-#
-#!btn2 = ui:widget style;
-#btn2.set_ctrl :button (ui:txt "wurst");
-#
-#!matrix = hx:get_main_matrix_handle[];
-#!freq_s = 440.0;
-#!sin_freq = node_id:inp_param $p(:sin, 0) :freq;
-#lbl.set ~ sin_freq.format ~ sin_freq.norm freq_s;
-#
-#btn.reg :click {
-#    std:displayln "CLICK!" @;
-#    lbl.set ~ sin_freq.format ~ sin_freq.norm freq_s;
-#    matrix.set_param sin_freq sin_freq.norm[freq_s];
-#    matrix.set_param $p($p(:amp, 0), :att) 1.0;
-#    root.remove_child btn2;
-#    root.change_layout ${
-#        layout_type = :row
-#    };
-#    .freq_s *= 1.25;
-#};
-#
-#!ent = ui:widget style;
-##ent.set_ctrl :entry lbl;
-#
-##ent.reg :changed {
-##    std:displayln "CHANGED" @;
-##};
-#
-#std:displayln "FOO";
-#
-#iter y 0 => 10 {
-#    iter x 0 => 10 {
-#        std:displayln ~ matrix.get $i(x, y);
-#    };
-#};
-#
-#matrix.set_param $p($p(:amp, 0), :att) 0.0;
-#std:displayln ~ node_id:param_list $p(:amp, 0);
-#
-#!knob_model = matrix.create_hex_knob_dummy_model[];
-#!knob = ui:widget style;
-#knob.set_ctrl :knob knob_model;
-#
-#!knob_freq_model = matrix.create_hex_knob_model sin_freq;
-#!knob_freq = ui:widget style;
-#knob_freq.set_ctrl :knob knob_freq_model;
-#
-#
-#root.add btn;
-#root.add ent;
-#root.add knob;
-#root.add knob_freq;
-#root.add btn2;
-#root.add grid;
 
 !@export on_frame = {!(matrix_records) = @;
     iter r matrix_records {
