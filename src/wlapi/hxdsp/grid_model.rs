@@ -135,18 +135,22 @@ impl HexGridModel for MatrixUIModel {
         }
     }
 
+    fn cell_led(&self, x: usize, y: usize) -> Option<(f32, f32)> {
+        if x >= self.w || y >= self.h { return None; }
+        let mut m   = self.matrix.lock().expect("matrix lockable");
+        let cell    = m.get_copy(x, y)?;
+        let node_id = cell.node_id();
+        Some(m.filtered_led_for(&node_id))
+    }
+
     fn cell_label<'a>(&self, x: usize, y: usize, buf: &'a mut [u8])
         -> Option<HexCell<'a>>
     {
         if x >= self.w || y >= self.h { return None; }
-        let (cell, led_value) = {
+        let cell = {
             let mut m = self.matrix.lock().expect("matrix lockable");
-
-            let cell    = m.get_copy(x, y)?;
-            let node_id = cell.node_id();
-            let v       = m.filtered_led_for(&node_id);
-
-            (cell, v)
+            let cell  = m.get_copy(x, y)?;
+            cell
         };
 
         let label = cell.label(buf)?;
@@ -158,9 +162,29 @@ impl HexGridModel for MatrixUIModel {
         Some(HexCell {
             label,
             hlight: hl,
-            rg_colors: Some(led_value)
         })
     }
+
+//    fn cell_edge_led(&self, x: usize, y: usize, edge: HexDir) -> Option<HexEdge> {
+//        let mut m = self.matrix.lock().expect("matrix lockable");
+//        let mut out_fb_info = None;
+//
+//        if let Some(cell) = m.get(x, y) {
+//            let cell_dir = edge.into();
+//
+//            if let Some((lbl, is_connected)) =
+//                m.edge_label(&cell, cell_dir, buf)
+//            {
+//                edge_lbl = Some(lbl);
+//
+//                if is_connected {
+//                    if let Some(out_idx) = cell.local_port_idx(cell_dir) {
+//                        out_fb_info = Some((cell.node_id(), out_idx));
+//                    }
+//                }
+//            }
+//        }
+//    }
 
     fn cell_edge<'a>(&self, x: usize, y: usize, edge: HexDir, buf: &'a mut [u8]) -> Option<(&'a str, HexEdge)> {
         let mut m = self.matrix.lock().expect("matrix lockable");
@@ -225,6 +249,10 @@ impl HexGridModel for TestGridModel {
 
     fn cell_color(&self, _x: usize, _y: usize) -> u8 { 0 }
 
+    fn cell_led(&self, x: usize, y: usize) -> Option<(f32, f32)> {
+        Some((1.0, 1.0))
+    }
+
     fn cell_label<'a>(&self, x: usize, y: usize, out: &'a mut [u8])
         -> Option<HexCell<'a>>
     {
@@ -265,7 +293,6 @@ impl HexGridModel for TestGridModel {
                 std::str::from_utf8(&(cur.into_inner())[0..len])
                 .unwrap(),
             hlight,
-            rg_colors: Some(( 1.0, 1.0,)),
         })
     }
 

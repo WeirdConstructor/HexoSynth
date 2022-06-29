@@ -35,6 +35,10 @@ layout.picker_slide_panel = ${
     layout_type = :row,
 };
 
+layout.grid_panel = ${
+    layout_type = :column,
+};
+
 style.close_hor_slide_panel_btn = ${
     border       = 2,
     border_style = $[:bevel, $f(0, 10, 0, 10)],

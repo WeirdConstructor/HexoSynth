@@ -1126,6 +1126,9 @@ pub fn open_hexosynth_with_config(
                 if frame_cb.is_none() {
                     return;
                 }
+
+                matrix.lock().unwrap().update_filters();
+
                 if let Some(ctx) = ctx.downcast_mut::<EvalContext>() {
                     let recs = matrix_obs.get_records();
                     match ctx.call(&frame_cb, &[recs]) {
