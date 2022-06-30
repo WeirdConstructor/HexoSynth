@@ -20,6 +20,8 @@ pub struct MatrixUIModel {
     h:              usize,
     node_colors:    HashMap<NodeId, u8>,
     focus:          (usize, usize),
+    edge_led_cache_generation: Rc<RefCell<usize>>,
+    edge_led_cache:  Rc<RefCell<std::collections::HashMap<(usize, usize, HexDir), (NodeId, u8)>>>,
 }
 
 impl MatrixUIModel {
@@ -32,6 +34,8 @@ impl MatrixUIModel {
             h,
             node_colors: HashMap::new(),
             focus:  (0, 0),
+            edge_led_cache_generation: Rc::new(RefCell::new(0)),
+            edge_led_cache: Rc::new(RefCell::new(std::collections::HashMap::new())),
         };
 
         s.sync_from_matrix();
@@ -186,39 +190,46 @@ impl HexGridModel for MatrixUIModel {
 //        }
 //    }
 
-    fn cell_edge<'a>(&self, x: usize, y: usize, edge: HexDir, buf: &'a mut [u8]) -> Option<(&'a str, HexEdge)> {
+    fn cell_edge(&self, x: usize, y: usize, edge: HexDir) -> HexEdge {
         let mut m = self.matrix.lock().expect("matrix lockable");
+        let cache = self.edge_led_cache.borrow();
 
+        if let Some((node_id, out_idx)) = cache.get(&(x, y, edge)) {
+            let val = m.filtered_out_fb_for(node_id, *out_idx);
+
+            HexEdge::ArrowValue { value: val }
+        } else {
+            HexEdge::NoArrow
+        }
+    }
+
+    fn cell_edge_label<'a>(&self, x: usize, y: usize, edge: HexDir, buf: &'a mut [u8]) -> Option<&'a str> {
+        let mut m = self.matrix.lock().expect("matrix lockable");
         let mut edge_lbl = None;
-        let mut out_fb_info = None;
+
+        let matrix_gen = m.get_generation();
+        if *self.edge_led_cache_generation.borrow() != matrix_gen {
+            self.edge_led_cache.borrow_mut().clear();
+            *self.edge_led_cache_generation.borrow_mut() = matrix_gen;
+        }
 
         if let Some(cell) = m.get(x, y) {
             let cell_dir = edge.into();
 
-            if let Some((lbl, is_connected)) =
-                m.edge_label(&cell, cell_dir, buf)
-            {
+            if let Some((lbl, is_connected)) = m.edge_label(&cell, cell_dir, buf) {
                 edge_lbl = Some(lbl);
 
                 if is_connected {
                     if let Some(out_idx) = cell.local_port_idx(cell_dir) {
-                        out_fb_info = Some((cell.node_id(), out_idx));
+                        self.edge_led_cache.borrow_mut().insert(
+                            (x, y, edge),
+                            (cell.node_id(), out_idx));
                     }
                 }
             }
         }
 
-        if let Some(lbl) = edge_lbl {
-            if let Some((node_id, out)) = out_fb_info {
-                let val = m.filtered_out_fb_for(&node_id, out);
-
-                Some((lbl, HexEdge::ArrowValue { value: val }))
-            } else {
-                Some((lbl, HexEdge::NoArrow))
-            }
-        } else {
-            None
-        }
+        edge_lbl
     }
 }
 
@@ -296,9 +307,17 @@ impl HexGridModel for TestGridModel {
         })
     }
 
+    fn cell_edge(&self, x: usize, y: usize, edge: HexDir) -> HexEdge {
+        let w = self.width();
+        let h = self.height();
+        if x >= w || y >= h { return HexEdge::NoArrow; }
+
+        HexEdge::ArrowValue { value: (1.0, 1.0) }
+    }
+
     /// Edge: 0 top-right, 1 bottom-right, 2 bottom, 3 bottom-left, 4 top-left, 5 top
-    fn cell_edge<'a>(&self, x: usize, y: usize, edge: HexDir, out: &'a mut [u8])
-        -> Option<(&'a str, HexEdge)>
+    fn cell_edge_label<'a>(&self, x: usize, y: usize, edge: HexDir, out: &'a mut [u8])
+        -> Option<&'a str>
     {
         let w = self.width();
         let h = self.height();
@@ -309,11 +328,10 @@ impl HexGridModel for TestGridModel {
         match write!(cur, "{:?}", edge) {
             Ok(_)  => {
                 let len = cur.position() as usize;
-                Some((
+                Some(
                     std::str::from_utf8(&(cur.into_inner())[0..len])
-                    .unwrap(),
-                    HexEdge::ArrowValue { value: (1.0, 1.0) },
-                ))
+                    .unwrap()
+                )
             },
             Err(_) => None,
         }

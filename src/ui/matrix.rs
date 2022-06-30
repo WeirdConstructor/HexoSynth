@@ -222,9 +222,11 @@ impl HexGridModel for MatrixUIMenu {
 }
 
 pub struct MatrixUIModel {
-    ui_ctrl: UICtrlRef,
-    w:      usize,
-    h:      usize,
+    ui_ctrl:        UICtrlRef,
+    w:              usize,
+    h:              usize,
+    edge_led_cache_generation: usize,
+    edge_led_cache: Rc<RefCell<std::collections::HashMap<(usize, usize, HexDir), (NodeId, u8)>>>,
 }
 
 impl HexGridModel for MatrixUIModel {
@@ -287,10 +289,25 @@ impl HexGridModel for MatrixUIModel {
         Some(HexCell { label, hlight: hl, rg_colors: Some(led_value) })
     }
 
-    fn cell_edge<'a>(&self, x: usize, y: usize, edge: HexDir, buf: &'a mut [u8]) -> Option<(&'a str, HexEdge)> {
+    fn cell_edge(&self, x: usize, y: usize, edge: HexDir) -> HexEdge {
+        let cache = self.edge_led_cache.borrow();
+
+        if let Some((node_id, out_idx)) = cache.get(&(x, y, edge)) {
+            let val = m.filtered_out_fb_for(&node_id, out_idx);
+
+            HexEdge::ArrowValue { value: val }
+        } else {
+            HexEdge::NoArrow
+        }
+    }
+
+    fn cell_edge_label<'a>(&self, x: usize, y: usize, edge: HexDir, buf: &'a mut [u8]) -> Option<&'a str> {
         self.ui_ctrl.with_matrix(move |m| {
-            let mut edge_lbl = None;
-            let mut out_fb_info = None;
+            let mut edge_lbl    = None;
+
+            if self.edge_led_cache_generation != m.get_generation() {
+                self.edge_led_cache.borrow_mut().clear();
+            }
 
             if let Some(cell) = m.get(x, y) {
                 let cell_dir = edge.into();
@@ -300,24 +317,15 @@ impl HexGridModel for MatrixUIModel {
 
                     if is_connected {
                         if let Some(out_idx) = cell.local_port_idx(cell_dir) {
-                            out_fb_info = Some((cell.node_id(), out_idx));
+                            self.edge_led_cache.borrow_mut().insert(
+                                &(x, y, edge),
+                                (cell.node_id(), out_idx));
                         }
                     }
                 }
             }
 
-            if let Some(lbl) = edge_lbl {
-                if let Some((node_id, out)) = out_fb_info {
-                    let val =
-                        m.filtered_out_fb_for(&node_id, out);
-
-                    Some((lbl, HexEdge::ArrowValue { value: val }))
-                } else {
-                    Some((lbl, HexEdge::NoArrow))
-                }
-            } else {
-                None
-            }
+            edge_lbl
         })
     }
 }
@@ -371,6 +379,8 @@ impl NodeMatrixData {
             ui_ctrl:        ui_ctrl.clone(),
             w:              size.0,
             h:              size.1,
+            edge_led_cache_generation: 0,
+            edge_led_cache: Rc::new(RefCell::new(std::collections::HashMap::new())),
         });
 
         let wt_node_panel = Rc::new(NodePanel::new());
