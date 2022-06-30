@@ -1,7 +1,7 @@
 # HexoSynth - A hexagonal modular synthesizer
 
-This project aims to create a modular synthesizer. Like those encountered
-in projects like VCVRack or Bitwigs Polygrid.
+This project aims to create a modular synthesizer plugin (VST3, CLAP). Like
+those encountered in projects like VCVRack or Bitwig's Grid.
 
 The core idea is having a hexagonal tile map for laying out module
 instances and connect them at the edges to route audio signals and control signals
@@ -20,14 +20,42 @@ Here is a screenshot of how it looks:
 
 ## State of Development
 
-This project is still (2021-08-03) under heavy development and is considered
-alpha stage. There are only few nodes (aka modules) implemented yet. The
-interface is mostly functional though. But not tested in all hosts yet and
-there are known bugs.
+Since June 2022 the project is under heavy development again.  A rewrite of
+HexoTK took longer than anticipated, but provides all required features now.
+All development currently takes place on the "hexosynth\_2022" branch.  As of
+2022-06-30 a raw skeleton of the original functionality is done. There is still
+more than 2-3 months until we are on the same feature level as HexoSynth was in
+2021.
+
+The "master" branch is still the state from 2021.
+
+If you want to stay up to date, follow my devlog:
+
+- https://m8geil.de/posts/hexosynth-1/
+- https://m8geil.de/posts/hexosynth-2/
+- for an up to date list, look here: https://m8geil.de/tags/hexosynth/
 
 Make sure to follow [Weird Constructors Mastodon
 account](https://mastodon.online/@weirdconstructor) or the releases of this
 project to be notified once I release a beta or stable release.
+
+If you want to do chat, feel free to join the RustAudio Discord / Community
+here: https://rust.audio/
+
+### What is differnt in the HexoSynth 2022 Version?
+
+The new branch 'hexosynth\_2022' moves all GUI logic to the scripting
+language [WLambda](http://wlambda.m8geil.de/), which is an easily embeddable
+scripting language for Rust. All higher level functionality will be realised
+in WLambda. As well as the test suite for the GUI.
+
+The Rust code contains all the low level functionality, such as the DSP code,
+the hexagonal grid data structure and the implementation of all the GUI
+widgets.
+
+The scripting language code will be linked into the HexoSynth application at
+compile time. The goal is to deploy a single binary. But you could load the
+WLambda code from a different place using an environment variable later.
 
 ### Implemented Features
 
@@ -77,6 +105,8 @@ this is the rough road map:
 with new modules.
 - DONE: Take a bit of care that there is online help.
 - DONE: Factor out the DSP code into it's own crate.
+- Redo the UI with performance optimized and overhauled HexoTK.
+- Rebuild the UI logic of HexoSynth from 2021 with WLambda.
 - Add preset/patch management to the UI.
 - Add lots (many more than above listed) of modules (Oscillators, Filters, Envelopes, LFOs, Quantizers, ...).
 - Add a MIDI-Ctrl interface for receiving pitch control signals, gate and clock from the DAW
