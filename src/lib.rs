@@ -478,6 +478,11 @@ impl VValUserData for VUIWidget {
                 self.0.hide();
                 Ok(VVal::Bol(true))
             }
+            "enable_cache" => {
+                arg_chk!(args, 0, "$<UI::Widget>.enable_cache[]");
+                self.0.enable_cache();
+                Ok(VVal::Bol(true))
+            },
             "is_visible" => {
                 arg_chk!(args, 0, "$<UI::Widget>.is_visible[]");
                 Ok(VVal::Bol(self.0.is_visible()))

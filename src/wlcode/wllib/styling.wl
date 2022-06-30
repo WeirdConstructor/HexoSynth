@@ -29,7 +29,7 @@ layout.main_panel = ${
 
 layout.picker_slide_panel = ${
     top         = :stretch => 1.0,
-    width       = :percent => 60,
+    width       = :percent => 50,
     height      = :pixels  => 200,
     min_width   = :pixels => 400,
     layout_type = :row,
@@ -54,7 +54,8 @@ layout.close_hor_slide_panel_btn = ${
 };
 
 layout.matrix_grid = ${
-    position_type = :self,
+#    position_type = :self,
+    height = :stretch => 1,
 };
 
 style.button = ${

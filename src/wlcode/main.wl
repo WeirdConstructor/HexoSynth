@@ -157,23 +157,14 @@ editor.reg :set_focus {!(cell) = @;
             $i(drop_data.x, drop_data.y);
     };
 
-    !add_node_panel_inner = styling:new_widget :panel;
-    add_node_panel_inner.add ~ build_dsp_node_picker[];
+#    grid_panel.add grid;
+#    grid_panel.add add_node_panel;
 
-    !add_node_panel =
-        new_slide_panel
-            :picker_slide_panel
-            add_node_panel_inner;
-
-    !grid_panel = styling:new_widget :grid_panel;
-
-    grid_panel.add grid;
-    grid_panel.add add_node_panel;
-
-    grid_panel
+    grid
 };
 
-!root = styling:new_widget :root;
+!root     = styling:new_widget :root;
+!root_mid = styling:new_widget :root;
 !popup_layer = styling:new_widget :popup_layer;
 
 !new_misc_panel = {
@@ -191,6 +182,19 @@ grid.change_layout ${
 };
 
 grid.add misc_panel;
+
+!add_node_panel_inner = styling:new_widget :panel;
+add_node_panel_inner.add ~ build_dsp_node_picker[];
+
+!add_node_panel =
+    new_slide_panel
+        :picker_slide_panel
+        add_node_panel_inner;
+
+!left_panel_dummy = styling:new_widget :main_panel;
+root_mid.add left_panel_dummy;
+root_mid.add add_node_panel;
+
 
 !left_panel = styling:new_widget :main_panel;
 
@@ -258,10 +262,8 @@ connector_popup.change_layout ${
 !mode_selector_popup = styling:new_widget :mode_selector_popup;
 mode_selector_popup.auto_hide[];
 
-
 popup_layer.add connector_popup;
 popup_layer.add mode_selector_popup;
-
 
 !create_mode_button = {!(val_list, init_idx, change_cb) = @;
     !val_idx = init_idx;
@@ -325,8 +327,6 @@ popup_layer.add mode_selector_popup;
 
     mode_cont
 };
-
-
 
 editor.reg :setup_edit_connection {
     !(src_cell, dst_cell,
@@ -463,4 +463,4 @@ root.add grid;
     };
 };
 
-!@export root = $[root, popup_layer];
+!@export root = $[root, root_mid, popup_layer];
