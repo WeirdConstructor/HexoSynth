@@ -8,6 +8,7 @@ use crate::wl_panic;
 use crate::wlapi::*;
 
 use super::super::VValHexKnobModel;
+use super::super::VOctaveKeysModel;
 
 use crate::matrix_param_model::KnobParam;
 
@@ -210,6 +211,23 @@ impl vval::VValUserData for VValMatrix {
                 } else {
                     wl_panic!(
                         "matrix.create_hex_knob_model[param_id] requires \
+                        a $<HexoDSP::ParamId> as first argument.");
+                }
+            },
+            "create_octave_keys_model" => {
+                arg_chk!(args, 1, "matrix.create_octave_keys_model[param_id]");
+
+                let matrix = self.matrix.clone();
+                if let Some(param_id) = vv2param_id(env.arg(0)) {
+                    return Ok(VVal::None);
+//                    return Ok(VVal::new_usr(VValHexKnobModel {
+//                        model: Rc::new(RefCell::new(
+//                            KnobParam::new(matrix, param_id)))
+//                    }));
+
+                } else {
+                    wl_panic!(
+                        "matrix.create_octave_keys_model[param_id] requires \
                         a $<HexoDSP::ParamId> as first argument.");
                 }
             },
