@@ -117,7 +117,6 @@ fn build_cell_chain(
                     (NodeId::from_str(&v.v_s_raw(1)), v.v_(0), v.v_(2))
                 };
 
-
             let node_name = node_id.name();
 
             let node_id =
@@ -219,11 +218,8 @@ impl vval::VValUserData for VValMatrix {
 
                 let matrix = self.matrix.clone();
                 if let Some(param_id) = vv2param_id(env.arg(0)) {
-                    return Ok(VVal::None);
-//                    return Ok(VVal::new_usr(VValHexKnobModel {
-//                        model: Rc::new(RefCell::new(
-//                            KnobParam::new(matrix, param_id)))
-//                    }));
+                    return Ok(VVal::new_usr(
+                        VOctaveKeysModel::new(matrix, param_id)));
 
                 } else {
                     wl_panic!(
@@ -289,9 +285,13 @@ impl vval::VValUserData for VValMatrix {
                                 if let Some(pid) =
                                     node_id.inp_param(&v.v_s_raw(0))
                                 {
-                                    m.set_param(
-                                        pid,
-                                        hexodsp::SAtom::param(pid.norm(v.v_f(1) as f32)));
+                                    if let VVal::Flt(denorm) = v.v_(1) {
+                                        m.set_param(pid,
+                                            hexodsp::SAtom::param(
+                                                pid.norm(denorm as f32)));
+                                    } else {
+                                        m.set_param(pid, vv2atom(v.v_(1)));
+                                    }
                                 }
                             }
                         });
@@ -389,6 +389,23 @@ impl vval::VValUserData for VValMatrix {
                     arg_chk!(args, 0, "matrix.check[]");
 
                     match m.check() {
+                        Ok(_)  => Ok(VVal::Bol(true)),
+                        Err(e) => Ok(matrix_error2vval_err(e)),
+                    }
+                },
+                "load_patch" => {
+                    arg_chk!(args, 1, "matrix.load_patch[filepath]");
+
+                    use hexodsp::matrix_repr::load_patch_from_file;
+
+                    match load_patch_from_file(&mut m, &env.arg(0).s_raw()) {
+                        Ok(_) => { },
+                        Err(e) => {
+                            return Ok(VVal::err_msg(&format!("{:?}", e)));
+                        },
+                    }
+
+                    match m.sync() {
                         Ok(_)  => Ok(VVal::Bol(true)),
                         Err(e) => Ok(matrix_error2vval_err(e)),
                     }

@@ -117,6 +117,6 @@ impl VValUserData for VOctaveKeysModel {
     }
 }
 
-pub fn vv2octave_keys_atom_bind(mut v: VVal) -> Option<Rc<RefCell<dyn OctaveKeysModel>>> {
+pub fn vv2octave_keys_model(mut v: VVal) -> Option<Rc<RefCell<dyn OctaveKeysModel>>> {
     v.with_usr_ref(|model: &mut VOctaveKeysModel| model.0.clone())
 }

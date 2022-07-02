@@ -745,6 +745,20 @@ impl VValUserData for VUIWidget {
                                         env.arg(1).s())))
                             }
                         }
+                        "octave_keys" => {
+                            if let Some(data) = wlapi::vv2octave_keys_model(env.arg(1)) {
+                                self.0.set_ctrl(hexotk::Control::OctaveKeys {
+                                    keys: Box::new(hexotk::OctaveKeys::new(data)),
+                                });
+                                Ok(VVal::Bol(true))
+
+                            } else {
+                                Ok(VVal::err_msg(
+                                    &format!(
+                                        "octave_keys has non octave_keys_model data as argument: {}",
+                                        env.arg(1).s())))
+                            }
+                        }
                         _ => Ok(VVal::err_msg(
                             &format!("Unknown control assigned: {}", typ))),
                     }
