@@ -21,6 +21,7 @@ editor.reg :set_focus {!(cell) = @;
     std:displayln "INFO:" info;
     !plist = node_id:param_list cell.node_id;
     std:displayln "PARAMS:" plist;
+
 };
 
 !build_dsp_node_picker = {
@@ -173,9 +174,10 @@ editor.reg :set_focus {!(cell) = @;
 };
 
 !misc_panel = new_misc_panel[];
+misc_panel.hide[];
 
 !grid = setup_grid_widget matrix {
-    if misc_panel.is_visible[] { misc_panel.hide[]; } { misc_panel.show[] };
+#    if misc_panel.is_visible[] { misc_panel.hide[]; } { misc_panel.show[] };
 };
 grid.change_layout ${
     height = :stretch => 1.0,
@@ -265,7 +267,7 @@ mode_selector_popup.auto_hide[];
 popup_layer.add connector_popup;
 popup_layer.add mode_selector_popup;
 
-!create_mode_button = {!(val_list, init_idx, change_cb) = @;
+!create_mode_button = {!(val_list, init_idx, change_cb, hover_cb) = @;
     !val_idx = init_idx;
     !val_lbl = ui:txt "";
 
@@ -293,13 +295,16 @@ popup_layer.add mode_selector_popup;
     !mode_less_btn = styling:new_widget :mode_button_less;
     mode_less_btn.set_ctrl :button (ui:txt "-");
     mode_less_btn.reg :click value_dec;
+    mode_less_btn.reg :hover hover_cb;
 
     !mode_more_btn = styling:new_widget :mode_button_more;
     mode_more_btn.set_ctrl :button (ui:txt "+");
     mode_more_btn.reg :click value_inc;
+    mode_more_btn.reg :hover hover_cb;
 
     !mode_btn = styling:new_widget :mode_button;
     mode_btn.set_ctrl :button val_lbl;
+    mode_btn.reg :hover hover_cb;
 
     mode_btn.reg :click {
         mode_selector_popup.remove_childs[];
@@ -363,6 +368,7 @@ editor.reg :update_param_ui {
     !plist = editor.get_current_param_list[];
 
     !knob_row = styling:new_widget :knob_row;
+    !extra_widgets = $[];
 
     !row_fill = 0;
 
@@ -396,6 +402,7 @@ editor.reg :update_param_ui {
         !cur_atom = atom;
         !cont = styling:new_widget :param_container;
 
+        std:displayln "FOFO" atom atom.atom_ui[];
         !wid =
             match atom.atom_ui[]
                 :mode => {
@@ -405,15 +412,33 @@ editor.reg :update_param_ui {
                         iter s min => (max + 1) {
                             $+ $p((atom.format s), s);
                         };
+                    !my_atom = atom;
                     create_mode_button list init {
                         matrix.set_param cur_atom _1.1;
-                    }
+                    } {
+                        editor.handle_hover :param_knob my_atom;
+                    };
+                }
+                :keys => {
+                    !wid = styling:new_widget :keys;
+                    !model = matrix.create_octave_keys_model atom;
+                    wid.set_ctrl :octave_keys model;
+                    !my_atom = atom;
+                    wid.reg :hover {
+                        editor.handle_hover :param_knob my_atom;
+                    };
+                    std:push extra_widgets wid;
+                    $n
                 }
                 {
                     !wid = styling:new_widget :atom_wid;
                     wid.set_ctrl :label (ui:txt atom.atom_ui[]);
                     wid
                 };
+
+        if is_none[wid] {
+            next[];
+        };
 
 
         !lbl = styling:new_widget :knob_label;
@@ -433,6 +458,11 @@ editor.reg :update_param_ui {
         };
         param_panel.add knob_row;
     };
+
+    iter exwid extra_widgets {
+        std:displayln "ADD:" exwid;
+        param_panel.add exwid;
+    };
 };
 
 #param_panel.change_layout ${
@@ -448,6 +478,14 @@ left_panel.add signal_panel;
     editor.show_color_info[];
 };
 signal_panel.add color_btn;
+!save_btn = styling:new_button_with_label :button_label "Save Init" {
+    matrix.save_patch "init.hxy";
+};
+signal_panel.add save_btn;
+!load_btn = styling:new_button_with_label :button_label "Load Init" {
+    matrix.load_patch "init.hxy";
+};
+signal_panel.add load_btn;
 
 root.add left_panel;
 root.add grid;

@@ -202,6 +202,11 @@ style.wichtext = ${
     pad_bottom = 4,
 };
 
+layout.keys = ${
+    bottom = :pixels => 0,
+    max_height = :pixels => 180,
+};
+
 !apply_class = $n;
 .apply_class = {!(class, style_map, layout_map, set_ctrl) = @;
     !st = style.(class);

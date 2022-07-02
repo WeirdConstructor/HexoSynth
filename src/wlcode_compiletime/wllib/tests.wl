@@ -129,4 +129,29 @@
 
     };
     ui:install_test test;
+
+    .test = ui:test_script "param_panel_update_on_matrix_change";
+    test.add_step :init {||
+        matrix_init  $i(0, 3) :TR ${chain=$[
+            $[:tslfo, :sig],
+            $[:inp,  :cqnt, :sig],
+            $[:freq, :bosc, :sig],
+            $[:in_l, :pverb, :sig_l],
+            $[:ch1, :out, $n],
+        ], params = $[
+            $[:time => 4000.0],
+            $n,
+            $[:wtype => 2],
+            $[:size   => 0.2,
+              :predly => 40.0,
+              :dcy    => 0.3],
+            $[:gain => 0.1,
+              :mono => 1],
+        ]};
+    };
+    test.add_step :click_cqnt {!(td, labels) = @;
+        !res = $S(*:{source=cell_name, label=CQnt}) labels;
+        do_click td res.0;
+    };
+    ui:install_test test;
 };
