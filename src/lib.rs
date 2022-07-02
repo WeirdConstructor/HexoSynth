@@ -759,6 +759,23 @@ impl VValUserData for VUIWidget {
                                         env.arg(1).s())))
                             }
                         }
+                        "graph" => {
+                            // Args: sample factor, live/static
+                            let sfactor = env.arg(1).v_f(0) as f32;
+                            let live    = env.arg(1).v_b(1);
+                            if let Some(data) = wlapi::vv2graph_model(env.arg(1)) {
+                                self.0.set_ctrl(hexotk::Control::Graph {
+                                    graph: Box::new(hexotk::Graph::new(data, sfactor, live)),
+                                });
+                                Ok(VVal::Bol(true))
+
+                            } else {
+                                Ok(VVal::err_msg(
+                                    &format!(
+                                        "graph has non graph_model data as argument: {}",
+                                        env.arg(1).s())))
+                            }
+                        }
                         _ => Ok(VVal::err_msg(
                             &format!("Unknown control assigned: {}", typ))),
                     }

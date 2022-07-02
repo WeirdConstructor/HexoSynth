@@ -9,6 +9,7 @@ pub mod matrix;
 pub mod matrix_recorder;
 pub mod grid_model;
 pub mod octave_keys;
+pub mod graph;
 
 pub use node_info::*;
 pub use param::*;
@@ -17,6 +18,7 @@ pub use matrix::*;
 pub use matrix_recorder::*;
 pub use grid_model::*;
 pub use octave_keys::*;
+pub use graph::*;
 
 use wlambda::*;
 use hexodsp::{NodeId};
