@@ -203,7 +203,13 @@ style.wichtext = ${
 };
 
 layout.keys = ${
-    bottom = :pixels => 0,
+    max_height = :pixels => 180,
+};
+
+style.node_graph = ${
+    bg_color = ui:UI_ACCENT_BG1_CLR,
+};
+layout.node_graph = ${
     max_height = :pixels => 180,
 };
 
@@ -303,4 +309,10 @@ layout.keys = ${
     if len[layout] > 0 {
         wid.change_layout layout;
     };
+};
+
+!@export apply_color_idx_border = {!(wid, idx) = @;
+    !st = wid.style[];
+    st.set ${ border_color = ui:STD_COLORS.(idx) };
+    wid.set_style st;
 };

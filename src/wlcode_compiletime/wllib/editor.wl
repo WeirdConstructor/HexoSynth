@@ -61,6 +61,9 @@
             $self.show_node_id_desc cell.node_id;
         };
     },
+    get_current_graph_fun = {
+        $data.matrix.create_graph_model $data.focus_cell.node_id
+    },
     get_current_param_list = {
         if is_none[$data.focus_cell]
             { $[] }
@@ -122,6 +125,12 @@
         matrix.save_snapshot[];
 
         !change_text = cb matrix;
+        match change_text
+            ($error v) => {
+                std:displayln "ERROR1:" $\.v;
+                matrix.restore_snapshot[];
+                return $n;
+            };
 
         !check_res = matrix.check[];
         if check_res {
@@ -130,7 +139,7 @@
             matrix.restore_snapshot[];
             match check_res
                 ($error v) => {
-                    std:displayln change_text "ERRROR:" $\.v;
+                    std:displayln change_text "ERROR2:" $\.v;
                 };
         };
     },
@@ -159,9 +168,9 @@
                     clust.add_cluster_at matrix src;
                     clust.remove_cells matrix;
                     !path = hx:dir_path_from_to src dst;
-                    clust.move_cluster_cells_dir_path path;
-                    clust.place matrix;
-                    # TODO: check if path is error!
+                    _? ~ clust.move_cluster_cells_dir_path path;
+                    _? ~ clust.place matrix;
+                    $true
                 };
             };
 

@@ -150,7 +150,7 @@
         ]};
     };
     test.add_step :click_cqnt {!(td, labels) = @;
-        !res = $S(*:{source=cell_name, label=CQnt}) labels;
+        !res = $S(*:{source=cell_name, label=TsLFO}) labels;
         do_click td res.0;
     };
     ui:install_test test;

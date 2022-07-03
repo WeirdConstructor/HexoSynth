@@ -237,7 +237,6 @@ impl Editor for HexoSynthEditor {
     fn spawn(&self, parent: ParentWindowHandle, _context: Arc<dyn GuiContext>)
         -> Box<dyn Any + Send + Sync>
     {
-        eprintln!("OPEN HEX GUI");
         open_hexosynth(Some(parent.handle), self.matrix.clone());
         Box::new(0)
     }

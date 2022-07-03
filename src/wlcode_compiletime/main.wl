@@ -38,18 +38,22 @@ editor.reg :set_focus {!(cell) = @;
     parent.add stack_container;
 
     !cat_map = node_id:ui_category_node_id_map[];
-    std:displayln cat_map;
+    std:displayln "CAT MAP:" cat_map;
     !all_pages = $[];
     !all_tabs  = $[];
     iter cat node_id:ui_category_list[] {
-        if cat == :none {
+        !cat_name      = cat.0;
+        !cat_color_idx = cat.1;
+        if cat_name == :none {
             next[];
         };
 
         !tab_btn = styling:new_widget :tab_hor;
-        tab_btn.set_ctrl :button (ui:txt cat);
+        styling:apply_color_idx_border tab_btn cat_color_idx;
+        tab_btn.set_ctrl :button (ui:txt cat_name);
+
         button_bar.add tab_btn;
-        std:push all_tabs tab_btn;
+        std:push all_tabs $[tab_btn, tab_btn.style[]];
 
         !cat_node_page = styling:new_widget :cat_node_page;
         cat_node_page.hide[];
@@ -58,7 +62,7 @@ editor.reg :set_focus {!(cell) = @;
         };
         tab_btn.reg :click {!(wid) = @;
             iter pg all_pages { pg.hide[] };
-            iter bt all_tabs { styling:restyle bt :tab_hor };
+            iter bt all_tabs { bt.0.set_style bt.1 };
             styling:restyle wid :tab_hor :button_active;
             cat_node_page.show[];
         };
@@ -70,10 +74,11 @@ editor.reg :set_focus {!(cell) = @;
 
         !drag_txt = ui:txt "?";
         !drag_btn = styling:new_widget :pick_node_drag_btn;
+        styling:apply_color_idx_border drag_btn cat_color_idx;
         drag_btn.set_ctrl :label drag_txt;
         drag_btn.set_pos $f(0, 0, 90, (2.0/3.0) * 90);
 
-        iter node (cat cat_map) {
+        iter node (cat_name cat_map) {
             if row_count >= 5 {
                 cat_node_page.add row;
                 .row = styling:new_widget :pick_node_row;
@@ -81,6 +86,7 @@ editor.reg :set_focus {!(cell) = @;
             };
 
             !node_id_widget = styling:new_widget :pick_node_btn;
+            styling:apply_color_idx_border node_id_widget cat_color_idx;
             node_id_widget.set_ctrl :button (ui:txt ~ node_id:label node);
             node_id_widget.set_drag_widget drag_btn;
             !node_drag = node;
@@ -105,7 +111,7 @@ editor.reg :set_focus {!(cell) = @;
     };
 
     all_pages.0.show[];
-    styling:restyle all_tabs.0 :tab_hor :button_active;
+    styling:restyle all_tabs.0.0 :tab_hor :button_active;
 
     parent
 };
@@ -369,6 +375,13 @@ editor.reg :update_param_ui {
 
     !knob_row = styling:new_widget :knob_row;
     !extra_widgets = $[];
+
+    !grph_model = editor.get_current_graph_fun[];
+    if is_some[grph_model] {
+        !grph = styling:new_widget :node_graph;
+        grph.set_ctrl :graph $[128, $f, grph_model];
+        std:push extra_widgets grph
+    };
 
     !row_fill = 0;
 
