@@ -242,7 +242,7 @@ impl Editor for HexoSynthEditor {
     }
 
     fn size(&self) -> (u32, u32) {
-        (1000, 800)
+        (1280, 800)
     }
 
     fn set_scale_factor(&self, factor: f32) -> bool {
