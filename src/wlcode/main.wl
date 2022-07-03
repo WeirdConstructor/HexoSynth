@@ -373,7 +373,7 @@ editor.reg :update_param_ui {
     !grph_model = editor.get_current_graph_fun[];
     if is_some[grph_model] {
         !grph = styling:new_widget :node_graph;
-        grph.set_ctrl :graph $[128, $t, grph_model];
+        grph.set_ctrl :graph $[128, $f, grph_model];
         std:push extra_widgets grph
     };
 
