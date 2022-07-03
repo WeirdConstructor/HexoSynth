@@ -62,13 +62,22 @@ pub fn setup_node_id_module() -> wlambda::SymbolTable {
     st.fun(
         "ui_category_list", move |_env: &mut Env, _argc: usize| {
             let cats = VVal::vec();
-            cats.push(VVal::new_sym("none"));
-            cats.push(VVal::new_sym("Osc"));
-            cats.push(VVal::new_sym("Mod"));
-            cats.push(VVal::new_sym("NtoM"));
-            cats.push(VVal::new_sym("Signal"));
-            cats.push(VVal::new_sym("Ctrl"));
-            cats.push(VVal::new_sym("IOUtil"));
+
+            for cat in [
+                UICategory::None,
+                UICategory::Osc,
+                UICategory::Mod,
+                UICategory::NtoM,
+                UICategory::Signal,
+                UICategory::Ctrl,
+                UICategory::IOUtil
+            ]
+            {
+                cats.push(VVal::pair(
+                    VVal::new_sym(ui_category2str(cat)),
+                    VVal::Int(cat.default_color_idx() as i64)));
+            }
+
             Ok(cats)
         }, Some(0), Some(0), false);
 

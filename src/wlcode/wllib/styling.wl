@@ -310,3 +310,9 @@ layout.node_graph = ${
         wid.change_layout layout;
     };
 };
+
+!@export apply_color_idx_border = {!(wid, idx) = @;
+    !st = wid.style[];
+    st.set ${ border_color = ui:STD_COLORS.(idx) };
+    wid.set_style st;
+};
