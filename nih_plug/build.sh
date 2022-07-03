@@ -1,1 +1,1 @@
-cargo xtask bundle hexosynth
+cargo xtask bundle hexosynth_plug
