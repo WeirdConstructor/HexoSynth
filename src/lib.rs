@@ -26,10 +26,8 @@ mod matrix_param_model;
 use raw_window_handle::RawWindowHandle;
 
 use std::rc::Rc;
-use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::cell::RefCell;
-use std::io::Write;
 
 //pub use uimsg_queue::Msg;
 pub use hexodsp::*;
@@ -761,11 +759,12 @@ impl VValUserData for VUIWidget {
                         }
                         "graph" => {
                             // Args: sample factor, live/static
-                            let sfactor = env.arg(1).v_f(0) as f32;
+                            let samples = env.arg(1).v_i(0) as u16;
                             let live    = env.arg(1).v_b(1);
-                            if let Some(data) = wlapi::vv2graph_model(env.arg(1)) {
+                            let graph   = env.arg(1).v_(2);
+                            if let Some(data) = wlapi::vv2graph_model(graph) {
                                 self.0.set_ctrl(hexotk::Control::Graph {
-                                    graph: Box::new(hexotk::Graph::new(data, sfactor, live)),
+                                    graph: Box::new(hexotk::Graph::new(data, samples, live)),
                                 });
                                 Ok(VVal::Bol(true))
 
@@ -812,9 +811,9 @@ impl VValUserData for VUIWidget {
                                         let m = VVal::map2(
                                             "x_src", VVal::Int(*x_src as i64),
                                             "y_src", VVal::Int(*y_src as i64));
-                                        m.set_key_str("x_dst", VVal::Int(*x_dst as i64));
-                                        m.set_key_str("y_dst", VVal::Int(*y_dst as i64));
-                                        m.set_key_str("button", mbutton2vv(*button));
+                                        let _ = m.set_key_str("x_dst", VVal::Int(*x_dst as i64));
+                                        let _ = m.set_key_str("y_dst", VVal::Int(*y_dst as i64));
+                                        let _ = m.set_key_str("button", mbutton2vv(*button));
                                         m
                                     },
                                     hexotk::EvPayload::UserData(rc) => {
@@ -835,7 +834,7 @@ impl VValUserData for VUIWidget {
                                             "x", VVal::Int(*x as i64),
                                             "y", VVal::Int(*y as i64));
                                         if let Some(d) = rc.borrow().as_ref().downcast_ref::<VVal>() {
-                                            m.set_key_str("data", d.clone());
+                                            let _ = m.set_key_str("data", d.clone());
                                         }
                                         m
                                     },
@@ -948,17 +947,17 @@ impl VTestDriver {
                 VVal::map2(
                     "source", VVal::new_str(entry.source),
                     "label",  VVal::new_str_mv(entry.text));
-            ent.set_key_str(
+            let _ = ent.set_key_str(
                 "logic_pos",
                 VVal::ivec2(
                     entry.logic_pos.0 as i64,
                     entry.logic_pos.1 as i64));
-            ent.set_key_str("pos",     rect2vv(&entry.pos));
-            ent.set_key_str("wid_pos", rect2vv(&entry.wid_pos));
-            ent.set_key_str("id",      VVal::Int(entry.wid_id as i64));
-            ent.set_key_str("tag",     VVal::new_str_mv(entry.tag));
-            ent.set_key_str("path",    VVal::new_str_mv(entry.tag_path));
-            ent.set_key_str("ctrl",    VVal::new_str_mv(entry.ctrl));
+            let _ = ent.set_key_str("pos",     rect2vv(&entry.pos));
+            let _ = ent.set_key_str("wid_pos", rect2vv(&entry.wid_pos));
+            let _ = ent.set_key_str("id",      VVal::Int(entry.wid_id as i64));
+            let _ = ent.set_key_str("tag",     VVal::new_str_mv(entry.tag));
+            let _ = ent.set_key_str("path",    VVal::new_str_mv(entry.tag_path));
+            let _ = ent.set_key_str("ctrl",    VVal::new_str_mv(entry.ctrl));
             ret.push(ent);
         }
 
@@ -1066,7 +1065,7 @@ pub fn open_hexosynth_with_config(
             let mut ui_st = wlambda::SymbolTable::new();
 
             ui_st.fun(
-                "style", move |env: &mut Env, _argc: usize| {
+                "style", move |_env: &mut Env, _argc: usize| {
                     Ok(VVal::new_usr(VUIStyle::new()))
                 }, Some(0), Some(0), false);
 
@@ -1076,12 +1075,12 @@ pub fn open_hexosynth_with_config(
                 }, Some(1), Some(1), false);
 
             ui_st.fun(
-                "connector_data", move |env: &mut Env, _argc: usize| {
+                "connector_data", move |_env: &mut Env, _argc: usize| {
                     Ok(VVal::new_usr(wlapi::VValConnectorData::new()))
                 }, Some(0), Some(0), false);
 
             ui_st.fun(
-                "wichtext_simple_data_store", move |env: &mut Env, _argc: usize| {
+                "wichtext_simple_data_store", move |_env: &mut Env, _argc: usize| {
                     Ok(VVal::new_usr(wlapi::VValWichTextSimpleDataStore::new()))
                 }, Some(0), Some(0), false);
 

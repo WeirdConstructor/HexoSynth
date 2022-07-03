@@ -6,7 +6,6 @@ use crate::arg_chk;
 use wlambda::*;
 use hexotk::{WichTextData, WichTextSimpleDataStore};
 use std::rc::Rc;
-use std::cell::RefCell;
 
 #[derive(Clone)]
 pub struct VValWichTextSimpleDataStore(WichTextSimpleDataStore);

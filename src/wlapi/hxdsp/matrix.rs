@@ -226,7 +226,19 @@ impl vval::VValUserData for VValMatrix {
                         "matrix.create_octave_keys_model[param_id] requires \
                         a $<HexoDSP::ParamId> as first argument.");
                 }
-            },
+            }
+            "create_graph_model" => {
+                arg_chk!(args, 1, "matrix.create_graph_model[node_id]");
+
+                let matrix = self.matrix.clone();
+                let node_id = vv2node_id(&args[0]);
+                if node_id.graph_fun().is_some() {
+                    return Ok(VVal::new_usr(
+                        VGraphModel::new(matrix, node_id)));
+                } else {
+                    return Ok(VVal::None);
+                }
+            }
             _ => {}
         }
 

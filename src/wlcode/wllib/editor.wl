@@ -61,6 +61,9 @@
             $self.show_node_id_desc cell.node_id;
         };
     },
+    get_current_graph_fun = {
+        $data.matrix.create_graph_model $data.focus_cell.node_id
+    },
     get_current_param_list = {
         if is_none[$data.focus_cell]
             { $[] }

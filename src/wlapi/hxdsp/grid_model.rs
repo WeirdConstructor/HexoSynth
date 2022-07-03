@@ -152,9 +152,8 @@ impl HexGridModel for MatrixUIModel {
     {
         if x >= self.w || y >= self.h { return None; }
         let cell = {
-            let mut m = self.matrix.lock().expect("matrix lockable");
-            let cell  = m.get_copy(x, y)?;
-            cell
+            let m = self.matrix.lock().expect("matrix lockable");
+            m.get_copy(x, y)?
         };
 
         let label = cell.label(buf)?;
@@ -204,7 +203,7 @@ impl HexGridModel for MatrixUIModel {
     }
 
     fn cell_edge_label<'a>(&self, x: usize, y: usize, edge: HexDir, buf: &'a mut [u8]) -> Option<&'a str> {
-        let mut m = self.matrix.lock().expect("matrix lockable");
+        let m = self.matrix.lock().expect("matrix lockable");
         let mut edge_lbl = None;
 
         let matrix_gen = m.get_generation();
@@ -260,7 +259,7 @@ impl HexGridModel for TestGridModel {
 
     fn cell_color(&self, _x: usize, _y: usize) -> u8 { 0 }
 
-    fn cell_led(&self, x: usize, y: usize) -> Option<(f32, f32)> {
+    fn cell_led(&self, _x: usize, _y: usize) -> Option<(f32, f32)> {
         Some((1.0, 1.0))
     }
 
@@ -307,7 +306,7 @@ impl HexGridModel for TestGridModel {
         })
     }
 
-    fn cell_edge(&self, x: usize, y: usize, edge: HexDir) -> HexEdge {
+    fn cell_edge(&self, x: usize, y: usize, _edge: HexDir) -> HexEdge {
         let w = self.width();
         let h = self.height();
         if x >= w || y >= h { return HexEdge::NoArrow; }

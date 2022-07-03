@@ -370,6 +370,13 @@ editor.reg :update_param_ui {
     !knob_row = styling:new_widget :knob_row;
     !extra_widgets = $[];
 
+    !grph_model = editor.get_current_graph_fun[];
+    if is_some[grph_model] {
+        !grph = styling:new_widget :node_graph;
+        grph.set_ctrl :graph $[128, $t, grph_model];
+        std:push extra_widgets grph
+    };
+
     !row_fill = 0;
 
     iter input_param plist.inputs {

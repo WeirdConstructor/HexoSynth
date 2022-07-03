@@ -4,7 +4,6 @@
 
 use crate::arg_chk;
 use std::sync::{Arc, Mutex};
-use hexodsp::Matrix;
 use wlambda::*;
 
 #[derive(Clone)]

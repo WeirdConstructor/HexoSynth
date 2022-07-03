@@ -2,10 +2,9 @@
 // This file is a part of HexoSynth. Released under GPL-3.0-or-later.
 // See README.md and COPYING for details.
 
-use crate::arg_chk;
 use wlambda::*;
 use hexodsp::{Matrix, NodeId, ParamId, SAtom};
-use hexotk::{OctaveKeysModel, DummyOctaveKeysData};
+use hexotk::OctaveKeysModel;
 use std::rc::Rc;
 use std::cell::RefCell;
 use std::sync::{Arc, Mutex};
@@ -59,7 +58,7 @@ impl VValUserData for VOctaveKeysModel {
     fn as_any(&mut self) -> &mut dyn std::any::Any { self }
     fn clone_ud(&self) -> Box<dyn vval::VValUserData> { Box::new(self.clone()) }
 
-    fn call_method(&self, key: &str, env: &mut Env)
+    fn call_method(&self, _key: &str, _env: &mut Env)
         -> Result<VVal, StackAction>
     {
 //        let args = env.argv_ref();

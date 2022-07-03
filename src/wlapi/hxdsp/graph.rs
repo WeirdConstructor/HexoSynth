@@ -2,9 +2,9 @@
 // This file is a part of HexoSynth. Released under GPL-3.0-or-later.
 // See README.md and COPYING for details.
 
-use crate::arg_chk;
+//use crate::arg_chk;
 use wlambda::*;
-use hexodsp::{Matrix, NodeId, ParamId, SAtom, dsp::GraphFun, dsp::GraphAtomData};
+use hexodsp::{Matrix, NodeId, SAtom, dsp::GraphFun, dsp::GraphAtomData};
 use hexotk::{GraphModel};
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -16,11 +16,43 @@ struct NodeGraphAtomData {
 }
 
 impl GraphAtomData for NodeGraphAtomData {
-    fn get(&self, param_idx: u32) -> Option<SAtom> { None }
-    fn get_denorm(&self, param_idx: u32) -> f32 { 0.0 }
-    fn get_norm(&self, param_idx: u32) -> f32 { 0.0 }
-    fn get_phase(&self) -> f32 { 0.0 }
-    fn get_led(&self) -> f32 { 0.0 }
+    fn get(&self, param_idx: u32) -> Option<SAtom> {
+        let m = self.matrix.lock().expect("Matrix lockable");
+        let pid = self.node_id.param_by_idx(param_idx as usize)?;
+        m.get_param(&pid)
+    }
+    fn get_denorm(&self, param_idx: u32) -> f32 {
+        let m = self.matrix.lock().expect("Matrix lockable");
+        if let Some(pid) = self.node_id.param_by_idx(param_idx as usize) {
+            if let Some(at) = m.get_param(&pid) {
+                pid.denorm(at.f())
+            } else {
+                0.0
+            }
+        } else {
+            0.0
+        }
+    }
+    fn get_norm(&self, param_idx: u32) -> f32 {
+        let m = self.matrix.lock().expect("Matrix lockable");
+        if let Some(pid) = self.node_id.param_by_idx(param_idx as usize) {
+            if let Some(at) = m.get_param(&pid) {
+                at.f()
+            } else {
+                0.0
+            }
+        } else {
+            0.0
+        }
+    }
+    fn get_phase(&self) -> f32 {
+        let m = self.matrix.lock().expect("Matrix lockable");
+        m.phase_value_for(&self.node_id)
+    }
+    fn get_led(&self) -> f32 {
+        let m = self.matrix.lock().expect("Matrix lockable");
+        m.led_value_for(&self.node_id)
+    }
 }
 
 struct NodeGraphModel {
@@ -34,8 +66,12 @@ impl GraphModel for NodeGraphModel {
         let m = self.matrix.lock().expect("Matrix lockable");
         m.get_generation() as u64
     }
-    fn f(&self, init: bool, x: f64, x_next: f64) -> f64 {
-        0.0
+    fn f(&mut self, init: bool, x: f64, x_next: f64) -> f64 {
+        if let Some(fun) = &mut self.fun {
+            (*fun)(&*self.nga_data, init, x as f32, x_next as f32) as f64
+        } else {
+            0.0
+        }
     }
     fn vline1_pos(&self) -> Option<f64> { None }
     fn vline2_pos(&self) -> Option<f64> { None }
