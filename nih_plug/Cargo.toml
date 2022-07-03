@@ -16,3 +16,6 @@ hexosynth = { path = "../" }
 hexodsp   = { path = "../../hexodsp" }
 hexotk    = { path = "../../hexotk" }
 atomic_float = "0.1"
+
+[workspace]
+members = ["xtask"]
