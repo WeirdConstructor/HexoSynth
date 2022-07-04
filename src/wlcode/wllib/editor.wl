@@ -134,13 +134,16 @@
 
         !check_res = matrix.check[];
         if check_res {
-            matrix.sync[]
+            matrix.sync[];
+            $t
         } {
             matrix.restore_snapshot[];
             match check_res
                 ($error v) => {
                     std:displayln change_text "ERROR2:" $\.v;
+                    return $f;
                 };
+            $t
         };
     },
     handle_drag_gesture = {!(src, dst, btn) = @;
@@ -164,13 +167,17 @@
                 };
             } {
                 !clust = hx:new_cluster[];
-                this.matrix_apply_change {!(matrix) = @;
+                !move_ok = this.matrix_apply_change {!(matrix) = @;
                     clust.add_cluster_at matrix src;
                     clust.remove_cells matrix;
                     !path = hx:dir_path_from_to src dst;
                     _? ~ clust.move_cluster_cells_dir_path path;
                     _? ~ clust.place matrix;
                     $true
+                };
+
+                if move_ok {
+                    $self.set_focus_cell dst;
                 };
             };
 

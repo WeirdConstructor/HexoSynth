@@ -130,7 +130,7 @@
     };
     ui:install_test test;
 
-    .test = ui:test_script "param_panel_update_on_matrix_change";
+    .test = ui:test_script "cluster_move_focus_change_works";
     test.add_step :init {||
         matrix_init  $i(0, 3) :TR ${chain=$[
             $[:tslfo, :sig],
@@ -149,9 +149,27 @@
               :mono => 1],
         ]};
     };
-    test.add_step :click_cqnt {!(td, labels) = @;
-        !res = $S(*:{source=cell_name, label=TsLFO}) labels;
-        do_click td res.0;
+    !bosc_pos = $n;
+    test.add_step :click_bosc {!(td, labels) = @;
+        !res = $S(*:{source=cell_name, label=BOsc}) labels;
+        .bosc_pos = res.0;
+        do_click td bosc_pos;
+    };
+    test.add_step :check_bosc_help {!(td, labels) = @;
+        !res = $S(*:{ctrl=Ctrl\:\:Label, label=wtype}) labels;
+        std:assert_str_eq res.0.tag "knob_label" "Found wtype param";
+    };
+    test.add_step :drag_bosc_start {!(td, labels) = @;
+        do_drag td bosc_pos;
+    };
+    test.add_step :drag_bosc_end {!(td, labels) = @;
+        !res = $S(*:{path=*.matrix_grid, label=hexcell_7_2}) labels;
+        do_drop td res.0;
+    };
+    test.add_step :check_bosc_help_still_there {!(td, labels) = @;
+        dump_labels td;
+        !res = $S(*:{ctrl=Ctrl\:\:Label, label=wtype}) labels;
+        std:assert_str_eq res.0.tag "knob_label" "(Still) found wtype param";
     };
     ui:install_test test;
 };

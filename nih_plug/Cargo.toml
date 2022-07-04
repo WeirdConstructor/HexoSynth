@@ -22,3 +22,6 @@ atomic_float = "0.1"
 
 [workspace]
 members = ["xtask"]
+
+[patch.'https://github.com/robbert-vdh/nih-plug']
+nih_plug = { path = "../../other/nih-plug" }
