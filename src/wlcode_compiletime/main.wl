@@ -201,7 +201,27 @@ add_node_panel_inner.add ~ build_dsp_node_picker[];
 
 !left_panel_dummy = styling:new_widget :main_panel;
 root_mid.add left_panel_dummy;
-root_mid.add add_node_panel;
+
+!right_container = styling:new_widget :right_mid_cont;
+right_container.add add_node_panel;
+
+!top_menu_button_bar = styling:new_widget :top_float_menu;
+
+
+!help_button = styling:new_button_with_label :button_float_menu "Help" {
+    editor.handle_top_menu_click :help;
+};
+top_menu_button_bar.add help_button;
+
+!about_button = styling:new_button_with_label :button_float_menu "About" {
+    editor.handle_top_menu_click :about;
+};
+top_menu_button_bar.add about_button;
+
+right_container.add top_menu_button_bar;
+
+root_mid.add right_container;
+
 
 
 !left_panel = styling:new_widget :main_panel;
@@ -270,8 +290,28 @@ connector_popup.change_layout ${
 !mode_selector_popup = styling:new_widget :mode_selector_popup;
 mode_selector_popup.auto_hide[];
 
+!help_wichtext = styling:new_widget :main_help_wichtext;
+help_wichtext.change_layout ${
+    position_type = :self,
+    width  = :percent => 70,
+    height = :stretch => 1,
+    left   = :stretch => 1,
+    right  = :stretch => 1,
+    visible = $f,
+};
+!wtd_help = ui:wichtext_simple_data_store[];
+wtd_help.set_text "Help!";
+help_wichtext.set_ctrl :wichtext wtd_help;
+help_wichtext.auto_hide[];
+
+editor.reg :show_main_help {!(text) = @;
+    wtd_help.set_text text;
+    help_wichtext.show[];
+};
+
 popup_layer.add connector_popup;
 popup_layer.add mode_selector_popup;
+popup_layer.add help_wichtext;
 
 !create_mode_button = {!(val_list, init_idx, change_cb, hover_cb) = @;
     !val_idx = init_idx;

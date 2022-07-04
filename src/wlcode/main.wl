@@ -205,10 +205,20 @@ root_mid.add left_panel_dummy;
 !right_container = styling:new_widget :right_mid_cont;
 right_container.add add_node_panel;
 
-!help_button = styling:new_button_with_label :top_float_menu "Help" {
-    editor.handle_main_help_click[];
+!top_menu_button_bar = styling:new_widget :top_float_menu;
+
+
+!help_button = styling:new_button_with_label :button_float_menu "Help" {
+    editor.handle_top_menu_click :help;
 };
-right_container.add help_button;
+top_menu_button_bar.add help_button;
+
+!about_button = styling:new_button_with_label :button_float_menu "About" {
+    editor.handle_top_menu_click :about;
+};
+top_menu_button_bar.add about_button;
+
+right_container.add top_menu_button_bar;
 
 root_mid.add right_container;
 
@@ -284,7 +294,7 @@ mode_selector_popup.auto_hide[];
 help_wichtext.change_layout ${
     position_type = :self,
     width  = :percent => 70,
-    height = :percent => 100,
+    height = :stretch => 1,
     left   = :stretch => 1,
     right  = :stretch => 1,
     visible = $f,
@@ -294,7 +304,8 @@ wtd_help.set_text "Help!";
 help_wichtext.set_ctrl :wichtext wtd_help;
 help_wichtext.auto_hide[];
 
-editor.reg :show_main_help {
+editor.reg :show_main_help {!(text) = @;
+    wtd_help.set_text text;
     help_wichtext.show[];
 };
 

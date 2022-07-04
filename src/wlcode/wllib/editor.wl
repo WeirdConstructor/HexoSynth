@@ -2,6 +2,7 @@
 !@import std;
 !@import hx;
 !@import node_id;
+!@import texts wllib:texts;
 
 !format_txt2wichtext = {|1<2| !(txt, lbl) = @;
     !lines = txt $p("\n", 0);
@@ -294,8 +295,10 @@
     handle_matrix_graph_change = {
         $self.set_focus_cell $data.focus_cell.pos;
     },
-    handle_main_help_click = {
-        $self.emit :show_main_help;
+    handle_top_menu_click = {!(button_tag) = @;
+        match button_tag
+            :help  => { $self.emit :show_main_help "HELP XXXXXX"; }
+            :about => { $self.emit :show_main_help texts:about; }
     },
 };
 

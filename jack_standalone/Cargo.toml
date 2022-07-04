@@ -14,3 +14,6 @@ hexotk     = { git = "https://github.com/WeirdConstructor/HexoTK.git" }
 #hexotk     = { path = "../../hexotk" }
 raw-window-handle  = "0.3"
 jack       = "0.6.6"
+
+#[patch.'https://github.com/WeirdConstructor/HexoTK.git']
+#hexotk = { path = "../../hexotk" }

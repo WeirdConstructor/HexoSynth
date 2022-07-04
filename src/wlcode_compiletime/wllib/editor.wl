@@ -2,6 +2,7 @@
 !@import std;
 !@import hx;
 !@import node_id;
+!@import texts;
 
 !format_txt2wichtext = {|1<2| !(txt, lbl) = @;
     !lines = txt $p("\n", 0);
@@ -134,13 +135,16 @@
 
         !check_res = matrix.check[];
         if check_res {
-            matrix.sync[]
+            matrix.sync[];
+            $t
         } {
             matrix.restore_snapshot[];
             match check_res
                 ($error v) => {
                     std:displayln change_text "ERROR2:" $\.v;
+                    return $f;
                 };
+            $t
         };
     },
     handle_drag_gesture = {!(src, dst, btn) = @;
@@ -158,19 +162,27 @@
 
         if src_exists &and not[dst_exists] {
             if btn == :right {
-                this.matrix_apply_change {!(matrix) = @;
+                !move_ok = this.matrix_apply_change {!(matrix) = @;
                     matrix.set src dst_cell;
                     matrix.set dst src_cell;
                 };
+
+                if move_ok {
+                    $self.set_focus_cell dst;
+                };
             } {
                 !clust = hx:new_cluster[];
-                this.matrix_apply_change {!(matrix) = @;
+                !move_ok = this.matrix_apply_change {!(matrix) = @;
                     clust.add_cluster_at matrix src;
                     clust.remove_cells matrix;
                     !path = hx:dir_path_from_to src dst;
                     _? ~ clust.move_cluster_cells_dir_path path;
                     _? ~ clust.place matrix;
                     $true
+                };
+
+                if move_ok {
+                    $self.set_focus_cell dst;
                 };
             };
 
@@ -282,6 +294,11 @@
     },
     handle_matrix_graph_change = {
         $self.set_focus_cell $data.focus_cell.pos;
+    },
+    handle_top_menu_click = {!(button_tag) = @;
+        match button_tag
+            :help  => { $self.emit :show_main_help "HELP XXXXXX"; }
+            :about => { $self.emit :show_main_help texts:about; }
     },
 };
 

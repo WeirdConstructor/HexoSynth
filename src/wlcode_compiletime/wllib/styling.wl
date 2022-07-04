@@ -72,6 +72,21 @@ style.button_label = ${
 layout.button_label = ${
     height = :pixels => 30,
 };
+
+style.button_float_menu = ${
+    parent = :button,
+    border_style = $[:bevel, $f(0, 0, 0, 10)],
+    shadow_offs = $f(3, 3),
+};
+layout.top_float_menu = ${
+    position_type = :self,
+    layout_type = :row,
+    width  = :pixels => 160,
+    height = :pixels => 30,
+    left   = :pixels => 0,
+    right  = :stretch => 1,
+};
+
 style.tab_hor = ${
     parent       = :button,
     border       = 2,
@@ -200,6 +215,18 @@ style.wichtext = ${
     pad_right = 4,
     pad_top = 4,
     pad_bottom = 4,
+};
+
+style.main_help_wichtext = ${
+    bg_color = ui:UI_ACCENT_BG1_CLR,
+    border = 3,
+    pad_left = 10,
+    pad_right = 10,
+    pad_top = 10,
+    pad_bottom = 10,
+};
+layout.main_help_wichtext = ${
+    top = :pixels => 33,
 };
 
 layout.keys = ${

@@ -1042,6 +1042,8 @@ pub fn open_hexosynth_with_config(
                     "wllib/editor.wl", std::fs::read_to_string(env_path.to_string() + "/wllib/editor.wl").unwrap().to_string());
                 lfmr.borrow_mut().preload(
                     "wllib/tests.wl", std::fs::read_to_string(env_path.to_string() + "/wllib/tests.wl").unwrap().to_string());
+                lfmr.borrow_mut().preload(
+                    "wllib/texts.wl", std::fs::read_to_string(env_path.to_string() + "/wllib/texts.wl").unwrap().to_string());
             } else {
                 lfmr.borrow_mut().preload(
                     "main.wl",          include_str!("wlcode_compiletime/main.wl").to_string());
@@ -1051,6 +1053,8 @@ pub fn open_hexosynth_with_config(
                     "wllib/editor.wl",  include_str!("wlcode_compiletime/wllib/editor.wl").to_string());
                 lfmr.borrow_mut().preload(
                     "wllib/tests.wl",   include_str!("wlcode_compiletime/wllib/tests.wl").to_string());
+                lfmr.borrow_mut().preload(
+                    "wllib/texts.wl",   include_str!("wlcode_compiletime/wllib/texts.wl").to_string());
             }
             global_env.borrow_mut().set_resolver(lfmr);
 
