@@ -1,6 +1,6 @@
 [package]
 name = "hexosynth_plug"
-version = "0.1.0"
+version = "0.2.0-alpha-1"
 edition = "2021"
 authors = ["Weird Constructor <weirdconstructor@m8geil.de>"]
 license = "AGPL-3.0-or-later"
@@ -11,10 +11,13 @@ description = "A modular synthesizer with hexagonal nodes"
 crate-type = ["cdylib", "lib"]
 
 [dependencies]
-nih_plug  = { path = "../../other/nih-plug", features = ["standalone", "assert_process_allocs"] }
 hexosynth = { path = "../" }
-hexodsp   = { path = "../../hexodsp" }
-hexotk    = { path = "../../hexotk" }
+nih_plug  = { git = "https://github.com/robbert-vdh/nih-plug", features = ["standalone", "assert_process_allocs"] }
+#nih_plug  = { path = "../../other/nih-plug", features = ["standalone", "assert_process_allocs"] }
+hexodsp    = { git = "https://github.com/WeirdConstructor/HexoDSP.git" }
+#hexodsp   = { path = "../../hexodsp" }
+hexotk     = { git = "https://github.com/WeirdConstructor/HexoTK.git" }
+#hexotk    = { path = "../../hexotk" }
 atomic_float = "0.1"
 
 [workspace]
