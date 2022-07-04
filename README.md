@@ -24,8 +24,8 @@ Since June 2022 the project is under heavy development again.  A rewrite of
 HexoTK took longer than anticipated, but provides all required features now.
 All development currently takes place on the "hexosynth\_2022" branch.  As of
 2022-06-30 a raw skeleton of the original functionality is done. There is still
-more than 2-3 months until we are on the same feature level as HexoSynth was in
-2021.
+probably more than 3-4 months until we are on the same feature level as
+HexoSynth was in 2021.
 
 The "master" branch is still the state from 2021.
 
@@ -33,6 +33,7 @@ If you want to stay up to date, follow my devlog:
 
 - https://m8geil.de/posts/hexosynth-1/
 - https://m8geil.de/posts/hexosynth-2/
+- https://m8geil.de/posts/hexosynth-3/
 - for an up to date list, look here: https://m8geil.de/tags/hexosynth/
 
 Make sure to follow [Weird Constructors Mastodon
