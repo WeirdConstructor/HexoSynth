@@ -120,7 +120,6 @@ You need nightly rust:
 
     rustup toolchain install nightly
 
-
 You might need following dependencies (Ubuntu Linux):
 
     sudo apt install libjack0 libjack-jackd2-dev qjackctl libx11-xcb-dev
@@ -135,19 +134,20 @@ These might work on Debian too:
 
     sudo apt install libjack0 libjack-dev libx11-xcb-dev libxcb-icccm4-dev libxcb-dri2-dev
 
-### Compiling the VST plugin
+### Compiling the VST3 and CLAP plugins
 
-Enter the `vst2` subdirectory:
+Enter the `nih_plug` subdirectory:
 
-    hexosynth/$ cd vst2
+    hexosynth/$ cd nih_plug
 
 Compile:
 
-    hexosynth/vst2/$ cargo +nightly build --release
+    hexosynth/vst2/$ cargo +nightly xtask bundle hexosynth_plug --release
 
 Install:
 
-    heyosynth/vst2/$ cp target/release/libhexosynth_vst.so ~/.vst/
+    heyosynth/nih_plug/$ cp -vfr target/bundled/hexosynth_plug.vst3 ~/.vst3/
+    heyosynth/nih_plug/$ cp -vfr target/bundled/hexosynth_plug.clap ~/.vst3/
 
 ### Running the Standalone Example
 
@@ -157,26 +157,12 @@ Enter the `jack_standalone` subdirectory:
 
 Compile and run:
 
-    hexosynth/jack_standlone/$ cargo +nightly run --release --example standalone
-
-## Running the Automated Testsuites:
-
-Please consult HexoDSP for the DSP test suite, and the gui\_tests sub directory
-for the GUI related test suite:
-
-    hexosynth/$ cd gui_tests
-    hexosynth/gui_tests/$ cargo run --release
+    hexosynth/jack_standlone/$ cargo +nightly run --release
 
 ## DAW Compatibility
 
-As of 2021-07-24 HexoSynth has been tested with:
+As of 2022-07-04 HexoSynth has been tested with:
 
-    - Windows 10 and Ableton Live: It starts, and you can use it via the mouse.
-      The keyboard handling is not working properly though.
-    - Windows 10 and Renoise: It starts. But keyboard handling does not work.
-    - Ubuntu Linux 20.04 and Renoise: Works
-    - Ubuntu Linux 20.04 and Ardour: Works
-    - Ubuntu Linux 20.04 and Carla: Works
     - Ubuntu Linux 20.04 and Bitwig: Works
 
 ## Known Bugs
@@ -199,12 +185,43 @@ are in line with my vision.
 Please bear in mind, that I can only accept contributions under the License
 of this project (AGPLv3 or later).
 
+### Help
+
+If you want to help this project:
+
+- **Samples**: Find drum or synth samples that I can publish in HexoSynth. I would love
+to provide a drum kit with default sounds that is always available.
+- **Binaries**: Build Windows and/or Mac OS binaries: I've decided that I won't build windows binaries
+anymore. I don't like supporting the whole Apple & Micosoft vendor lock-in directly.
+However, I would be fine putting links to your binaries on my release pages
+or the HexoSynth README. Given that the binaries are current enough.
+- **More DSP nodes/modules**: Implement more DSP nodes: You could extend [HexoDSP](https://github.com/WeirdConstructor/HexoDSP)
+with new DSP implementations. Just reach out to me via Discord/IRC/Mastodon or Github
+issue to discus the name of the new node. I currently don't have a guide for this,
+but be aware that new DSP nodes need to meet these quality guidelines:
+    - Come with clean Rust code that I can understand and maintain.
+    - Does not drag in huge dependency trees.
+    - Come with automated smoke tests like all the other nodes.
+    - It's parameters have proper denormalized mappings
+      (like `0.5 => 4000 Hz` or `0.3 => 200ms`).
+    - Provide quick descriptions for the node and it's parameters.
+    - Provide a comprehensive longer help text with:
+      - What this node is about
+      - How to use it
+      - Suggestions which combinations with other nodes might be interesting
+    - If applicable: provide a graph function for visualizing what it does.
+
 ## Contact the Author
 
 You can reach me via Discord ( WeirdConstructor#7936 ), Mastodon (
 @weirdconstructor@mastodon.online ) or IRC. I'm joined most public Rust Discord
 servers, especially the "Rust Audio" Discord server. And I am also on IRC on
 the network [Libera.Chat](https://libera.chat/) in the `#lad` channel (nick `wct`).
+
+If you don't have means to access any of them, you can alternatively
+send me a Github issue.
+
+Don't use E-Mail, I only read them irregularly, and I might miss yours completely.
 
 ## Support Development
 

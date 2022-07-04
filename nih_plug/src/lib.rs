@@ -7,20 +7,20 @@ use std::any::Any;
 
 use std::sync::{Arc, Mutex};
 
-struct Gain {
-    params:     Arc<GainParams>,
+pub struct HexoSynthPlug {
+    params:     Arc<HexoSynthPlugParams>,
     matrix:     Arc<Mutex<Matrix>>,
     node_exec:  Box<NodeExecutor>,
     proc_log:   bool,
 }
 
 #[derive(Params)]
-struct GainParams {
+struct HexoSynthPlugParams {
     #[id = "gain"]
     pub gain: FloatParam,
 }
 
-impl Default for Gain {
+impl Default for HexoSynthPlug {
     fn default() -> Self {
         let (matrix, mut node_exec) = init_hexosynth();
         node_exec.no_logging();
@@ -29,14 +29,14 @@ impl Default for Gain {
 
         std::thread::spawn(|| {
             loop {
-                hexodsp::log::retrieve_log_messages(|name, s| {
-                    use std::io::Write;
-                    let mut file = std::fs::OpenOptions::new()
-                        .write(true)
-                        .append(true)
-                        .open("/tmp/hexosynth.log").unwrap();
-                    let _ = writeln!(file, "{}/{}", name, s);
-                });
+//                hexodsp::log::retrieve_log_messages(|name, s| {
+//                    use std::io::Write;
+//                    let mut file = std::fs::OpenOptions::new()
+//                        .write(true)
+//                        .append(true)
+//                        .open("/tmp/hexosynth.log").unwrap();
+//                    let _ = writeln!(file, "{}/{}", name, s);
+//                });
 
                 std::thread::sleep(
                     std::time::Duration::from_millis(100));
@@ -51,7 +51,7 @@ impl Default for Gain {
             matrix:    Arc::new(Mutex::new(matrix)),
             node_exec: Box::new(node_exec),
 
-            params: Arc::new(GainParams::default()),
+            params: Arc::new(HexoSynthPlugParams::default()),
             proc_log: false,
 //            editor_state: editor::default_state(),
 
@@ -61,7 +61,7 @@ impl Default for Gain {
     }
 }
 
-impl Default for GainParams {
+impl Default for HexoSynthPlugParams {
     fn default() -> Self {
         Self {
             gain: FloatParam::new(
@@ -88,7 +88,7 @@ fn blip(s: &str) {
     let _ = writeln!(file, "- {}", s);
 }
 
-impl Plugin for Gain {
+impl Plugin for HexoSynthPlug {
     const NAME: &'static str = "HexoSynth";
     const VENDOR: &'static str = "WeirdConstructor";
     const URL: &'static str = "https://github.com/WeirdConstructor/HexoSynth";
@@ -253,7 +253,7 @@ impl Editor for HexoSynthEditor {
     }
 }
 
-impl ClapPlugin for Gain {
+impl ClapPlugin for HexoSynthPlug {
     const CLAP_ID: &'static str = "de.m8geil.hexosynth";
     const CLAP_DESCRIPTION: &'static str = "A modular synthesizer plugin with hexagonal nodes";
     const CLAP_FEATURES: &'static [ClapFeature] = &[
@@ -267,10 +267,10 @@ impl ClapPlugin for Gain {
     const CLAP_SUPPORT_URL: &'static str = Self::URL;
 }
 
-impl Vst3Plugin for Gain {
-    const VST3_CLASS_ID: [u8; 16] = *b"GainGuiIcedAaAAa";
+impl Vst3Plugin for HexoSynthPlug {
+    const VST3_CLASS_ID: [u8; 16] = *b"HxSyGuiIcedAaAAa";
     const VST3_CATEGORIES: &'static str = "Fx|Dynamics";
 }
 
-nih_export_clap!(Gain);
-nih_export_vst3!(Gain);
+nih_export_clap!(HexoSynthPlug);
+nih_export_vst3!(HexoSynthPlug);
