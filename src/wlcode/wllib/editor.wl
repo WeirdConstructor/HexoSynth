@@ -294,6 +294,9 @@
     handle_matrix_graph_change = {
         $self.set_focus_cell $data.focus_cell.pos;
     },
+    handle_main_help_click = {
+        $self.emit :show_main_help;
+    },
 };
 
 !@export EditorClass = EditorClass;
