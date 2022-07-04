@@ -38,6 +38,19 @@
     _.mouse_release_at pos :left;
 };
 
+!do_drag_rmb = {
+    !pos = _1.pos + $f(1.0, 1.0);
+    std:displayln ">>> pick(RMB)@" pos;
+    _.mouse_press_at pos :right;
+};
+
+!do_drop_rmb = {
+    !pos = _1.pos + $f(1.0, 1.0);
+    std:displayln ">>> drop(RMB)@" pos;
+    _.mouse_release_at pos :right;
+};
+
+
 !do_hover= {
     !pos = _1.pos + $f(1.0, 1.0);
     std:displayln ">>> hover@" pos;
@@ -164,12 +177,28 @@
     };
     test.add_step :drag_bosc_end {!(td, labels) = @;
         !res = $S(*:{path=*.matrix_grid, label=hexcell_7_2}) labels;
+        .bosc_pos = res.0;
         do_drop td res.0;
     };
     test.add_step :check_bosc_help_still_there {!(td, labels) = @;
-        dump_labels td;
         !res = $S(*:{ctrl=Ctrl\:\:Label, label=wtype}) labels;
         std:assert_str_eq res.0.tag "knob_label" "(Still) found wtype param";
+
+        do_drag_rmb td bosc_pos;
+
+        !res = $S(*:{path=*.matrix_grid, label=hexcell_7_4}) labels;
+        .bosc_pos = res.0;
+    };
+    test.add_step :check_bosc_help_still_there {!(td, labels) = @;
+        do_drop_rmb td bosc_pos;
+    };
+    test.add_step :check_bosc_help_still_there {!(td, labels) = @;
+#        dump_labels td;
+        !res = $S(*:{ctrl=Ctrl\:\:Label, label=wtype}) labels;
+        std:assert_str_eq res.0.tag "knob_label" "(Still) found wtype param";
+
+        !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=BOsc}) labels;
+        std:assert_str_eq res.0.logic_pos $i(7, 4) "Confirm new BOsc pos";
     };
     ui:install_test test;
 };

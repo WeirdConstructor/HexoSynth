@@ -161,9 +161,13 @@
 
         if src_exists &and not[dst_exists] {
             if btn == :right {
-                this.matrix_apply_change {!(matrix) = @;
+                !move_ok = this.matrix_apply_change {!(matrix) = @;
                     matrix.set src dst_cell;
                     matrix.set dst src_cell;
+                };
+
+                if move_ok {
+                    $self.set_focus_cell dst;
                 };
             } {
                 !clust = hx:new_cluster[];
