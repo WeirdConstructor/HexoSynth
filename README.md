@@ -200,15 +200,23 @@ or the HexoSynth README. Given that the binaries are current enough.
 with new DSP implementations. Just reach out to me via Discord/IRC/Mastodon or Github
 issue to discus the name of the new node. I currently don't have a guide for this,
 but be aware that new DSP nodes need to meet these quality guidelines:
-    - Come with clean Rust code that I can understand and maintain.
-    - Does not drag in huge dependency trees.
-    - Come with automated smoke tests like all the other nodes.
+    - Clean Rust code that I can understand and maintain.
+    - Does not drag in huge dependency trees. One rationale here is,
+      that I don't want the sound of a HexoSynth patch to change because
+      some upstream crate decided to change their DSP code. To have optimal
+      control over this, I would love to have all the DSP code
+      contained in HexoDSP. Make sure to link the repository the code comes
+      from though.
+    - Come with automated smoke tests like all the other nodes, most test
+      signal min/max/rms over time, as well as the frequency spectrum
+      where applicable.
     - It's parameters have proper denormalized mappings
       (like `0.5 => 4000 Hz` or `0.3 => 200ms`).
-    - Provide quick descriptions for the node and it's parameters.
+    - Provide short descriptions for the node and it's parameters.
     - Provide a comprehensive longer help text with:
       - What this node is about
       - How to use it
+      - How the parameters work in combination
       - Suggestions which combinations with other nodes might be interesting
     - If applicable: provide a graph function for visualizing what it does.
 
