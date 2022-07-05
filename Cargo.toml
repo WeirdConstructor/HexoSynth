@@ -2,7 +2,7 @@
 name        = "hexosynth"
 version     = "0.2.0-alpha-1"
 authors     = ["Weird Constructor <weirdconstructor@m8geil.de>"]
-license     = "AGPL-3.0-or-later"
+license     = "GPL-3.0-or-later"
 edition     = "2021"
 description = "HexoSynth - A hexagonal modular synthesizer plugin"
 

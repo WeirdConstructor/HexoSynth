@@ -184,7 +184,7 @@ I might merge pull requests if I find the time and think that the contributions
 are in line with my vision.
 
 Please bear in mind, that I can only accept contributions under the License
-of this project (AGPLv3 or later).
+of this project (GPLv3 or later).
 
 ### Help
 
