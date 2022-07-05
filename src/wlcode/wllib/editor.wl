@@ -297,7 +297,7 @@
     },
     handle_top_menu_click = {!(button_tag) = @;
         match button_tag
-            :help  => { $self.emit :show_main_help "HELP XXXXXX"; }
+            :help  => { $self.emit :show_main_help texts:help; }
             :about => { $self.emit :show_main_help texts:about; }
     },
 };

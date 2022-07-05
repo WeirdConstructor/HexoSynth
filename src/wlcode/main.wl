@@ -293,11 +293,12 @@ mode_selector_popup.auto_hide[];
 !help_wichtext = styling:new_widget :main_help_wichtext;
 help_wichtext.change_layout ${
     position_type = :self,
-    width  = :percent => 70,
-    height = :stretch => 1,
-    left   = :stretch => 1,
-    right  = :stretch => 1,
-    visible = $f,
+    width         = :pixels  => 720,
+    min_width     = :pixels  => 720,
+    height        = :stretch => 1,
+    left          = :stretch => 1,
+    right         = :stretch => 1,
+    visible       = $f,
 };
 !wtd_help = ui:wichtext_simple_data_store[];
 wtd_help.set_text "Help!";

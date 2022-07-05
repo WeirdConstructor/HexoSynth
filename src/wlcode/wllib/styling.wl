@@ -218,11 +218,11 @@ style.wichtext = ${
 };
 
 style.main_help_wichtext = ${
-    bg_color = ui:UI_ACCENT_BG1_CLR,
-    border = 3,
-    pad_left = 10,
-    pad_right = 10,
-    pad_top = 10,
+    bg_color   = ui:UI_ACCENT_BG1_CLR,
+    border     = 3,
+    pad_left   = 10,
+    pad_right  = 10,
+    pad_top    = 10,
     pad_bottom = 10,
 };
 layout.main_help_wichtext = ${
