@@ -191,7 +191,8 @@
 
         if is_some[adj] {
             if adj.is_input[] {
-                .(src, dst) = $p(dst, src);
+                .(src,      dst)      = $p(dst,      src);
+                .(src_cell, dst_cell) = $p(dst_cell, src_cell);
                 .adj = adj.flip[];
             };
 
