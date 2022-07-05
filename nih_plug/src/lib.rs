@@ -113,11 +113,6 @@ impl Plugin for HexoSynthPlug {
         Some(Box::new(HexoSynthEditor {
             matrix: self.matrix.clone()
         }))
-//        editor::create(
-//            self.params.clone(),
-//            self.peak_meter.clone(),
-//            self.editor_state.clone(),
-//        )
     }
 
     fn accepts_bus_config(&self, config: &BusConfig) -> bool {
@@ -233,19 +228,33 @@ struct HexoSynthEditor {
     matrix: Arc<Mutex<Matrix>>,
 }
 
+struct UnsafeWindowHandle {
+    hdl: HexoSynthGUIHandle,
+}
+
+impl Drop for UnsafeWindowHandle {
+    fn drop(&mut self) {
+        self.hdl.close();
+    }
+}
+
+unsafe impl Send for UnsafeWindowHandle {}
+unsafe impl Sync for UnsafeWindowHandle {}
+
 impl Editor for HexoSynthEditor {
     fn spawn(&self, parent: ParentWindowHandle, _context: Arc<dyn GuiContext>)
         -> Box<dyn Any + Send + Sync>
     {
-        open_hexosynth(Some(parent.handle), self.matrix.clone());
-        Box::new(0)
+        Box::new(UnsafeWindowHandle {
+            hdl: open_hexosynth(Some(parent.handle), self.matrix.clone())
+        })
     }
 
     fn size(&self) -> (u32, u32) {
         (1280, 800)
     }
 
-    fn set_scale_factor(&self, factor: f32) -> bool {
+    fn set_scale_factor(&self, _factor: f32) -> bool {
         true
     }
 
@@ -255,7 +264,7 @@ impl Editor for HexoSynthEditor {
 
 impl ClapPlugin for HexoSynthPlug {
     const CLAP_ID: &'static str = "de.m8geil.hexosynth";
-    const CLAP_DESCRIPTION: &'static str = "A modular synthesizer plugin with hexagonal nodes";
+    const CLAP_DESCRIPTION: Option<&'static str> = Some("A modular synthesizer plugin with hexagonal nodes");
     const CLAP_FEATURES: &'static [ClapFeature] = &[
         ClapFeature::Instrument,
         ClapFeature::AudioEffect,
@@ -263,8 +272,8 @@ impl ClapPlugin for HexoSynthPlug {
         ClapFeature::Mono,
         ClapFeature::Utility,
     ];
-    const CLAP_MANUAL_URL: &'static str = Self::URL;
-    const CLAP_SUPPORT_URL: &'static str = Self::URL;
+    const CLAP_MANUAL_URL: Option<&'static str> = Some(Self::URL);
+    const CLAP_SUPPORT_URL: Option<&'static str> = Some(Self::URL);
 }
 
 impl Vst3Plugin for HexoSynthPlug {

@@ -5,7 +5,7 @@
 #![allow(incomplete_features)]
 #![feature(generic_associated_types)]
 
-use hexotk::{UI, open_window, Units, Rect, TestScript};
+use hexotk::{UI, open_window, Units, Rect, TestScript, HexoTKWindowHandle};
 //pub mod ui;
 //pub mod ui_ctrl;
 mod cluster;
@@ -82,6 +82,21 @@ impl OpenHexoSynthConfig {
     }
 }
 
+pub struct HexoSynthGUIHandle {
+    hexotk_hdl: Option<HexoTKWindowHandle>,
+}
+
+impl HexoSynthGUIHandle {
+    pub fn close(&mut self) {
+        if let Some(hdl) = &mut self.hexotk_hdl {
+            hdl.close();
+        }
+    }
+    pub fn is_open(&self) -> bool {
+        self.hexotk_hdl.as_ref().map(|h| h.is_open()).unwrap_or(false)
+    }
+}
+
 /// Opens the HexoSynth GUI window and initializes the UI.
 ///
 /// * `parent` - The parent window, only used by the VST.
@@ -93,12 +108,12 @@ impl OpenHexoSynthConfig {
 /// constructed.
 pub fn open_hexosynth(
     parent: Option<RawWindowHandle>,
-    matrix: Arc<Mutex<Matrix>>)
+    matrix: Arc<Mutex<Matrix>>) -> HexoSynthGUIHandle
 {
     open_hexosynth_with_config(
         parent,
         matrix,
-        OpenHexoSynthConfig::default());
+        OpenHexoSynthConfig::default())
 }
 
 //#[macro_export]
@@ -1021,8 +1036,8 @@ pub fn open_hexosynth_with_config(
     parent: Option<RawWindowHandle>,
     matrix: Arc<Mutex<Matrix>>,
     config: OpenHexoSynthConfig
-) {
-    open_window(
+) -> HexoSynthGUIHandle {
+    let hexotk_hdl = open_window(
         "HexoSynth", 1400, 800,
         parent,
         Box::new(move || {
@@ -1187,4 +1202,6 @@ pub fn open_hexosynth_with_config(
 
             ui
         }));
+
+    HexoSynthGUIHandle { hexotk_hdl }
 }
