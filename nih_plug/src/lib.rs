@@ -111,6 +111,7 @@ impl Plugin for HexoSynthPlug {
         use hexodsp::log::log;
 
         Some(Box::new(HexoSynthEditor {
+            scale_factor: Arc::new(Mutex::new(1.0_f32)),
             matrix: self.matrix.clone()
         }))
     }
@@ -225,6 +226,7 @@ impl Plugin for HexoSynthPlug {
 }
 
 struct HexoSynthEditor {
+    scale_factor: Arc<Mutex<f32>>,
     matrix: Arc<Mutex<Matrix>>,
 }
 
@@ -254,7 +256,9 @@ impl Editor for HexoSynthEditor {
         (1280, 800)
     }
 
-    fn set_scale_factor(&self, _factor: f32) -> bool {
+    fn set_scale_factor(&self, factor: f32) -> bool {
+        let mut sf = self.scale_factor.lock().expect("Lock this for scale factor");
+        *sf = factor;
         true
     }
 

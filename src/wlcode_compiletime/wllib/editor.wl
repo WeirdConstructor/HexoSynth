@@ -2,7 +2,7 @@
 !@import std;
 !@import hx;
 !@import node_id;
-!@import texts;
+!@import texts wllib:texts;
 
 !format_txt2wichtext = {|1<2| !(txt, lbl) = @;
     !lines = txt $p("\n", 0);
@@ -297,7 +297,7 @@
     },
     handle_top_menu_click = {!(button_tag) = @;
         match button_tag
-            :help  => { $self.emit :show_main_help "HELP XXXXXX"; }
+            :help  => { $self.emit :show_main_help texts:help; }
             :about => { $self.emit :show_main_help texts:about; }
     },
 };
