@@ -117,10 +117,6 @@ with new modules.
 
 ## Building and Dependencies
 
-You need nightly rust:
-
-    rustup toolchain install nightly
-
 You might need following dependencies (Ubuntu Linux):
 
     sudo apt install libjack0 libjack-jackd2-dev qjackctl libx11-xcb-dev
@@ -143,7 +139,7 @@ Enter the `nih_plug` subdirectory:
 
 Compile:
 
-    hexosynth/vst2/$ cargo +nightly xtask bundle hexosynth_plug --release
+    hexosynth/vst2/$ cargo xtask bundle hexosynth_plug --release
 
 Install:
 
@@ -158,7 +154,7 @@ Enter the `jack_standalone` subdirectory:
 
 Compile and run:
 
-    hexosynth/jack_standlone/$ cargo +nightly run --release
+    hexosynth/jack_standlone/$ cargo run --release
 
 ## DAW Compatibility
 

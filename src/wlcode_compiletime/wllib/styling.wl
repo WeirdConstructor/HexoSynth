@@ -229,6 +229,15 @@ layout.main_help_wichtext = ${
     top = :pixels => 33,
 };
 
+style.node_help_btn = ${ parent = :button };
+layout.node_help_btn = ${
+    position_type = :self,
+    left = :stretch => 1,
+    right = :pixels => 0,
+    width = :pixels => 44,
+    height = :pixels => 35,
+};
+
 layout.keys = ${
     max_height = :pixels => 180,
 };
