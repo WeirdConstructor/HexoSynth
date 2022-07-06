@@ -196,6 +196,18 @@ layout.mode_button = ${
     height = :stretch => 1,
 };
 
+style.param_trig_button = ${
+    parent = :button,
+    border_style = $[:hex, 13.0],
+};
+layout.param_trig_button = ${
+    left = :pixels => 4,
+    top = :stretch => 1,
+    bottom = :stretch => 1,
+    height = :pixels => 80,
+    right = :pixels => 4,
+};
+
 layout.mode_selector_popup = ${
     position_type = :self,
     layout_type   = :column,

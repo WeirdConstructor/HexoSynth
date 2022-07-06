@@ -444,7 +444,7 @@ editor.reg :update_param_ui {
         !param_wid =
             match input_param.name[]
                 "trig" => {
-                    !trig_btn = styling:new_widget :button;
+                    !trig_btn = styling:new_widget :param_trig_button;
                     trig_btn.set_ctrl :button (ui:txt param.name[]);
                     trig_btn.reg :press {
                         editor.handle_param_trig_btn param :press;
