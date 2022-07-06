@@ -238,6 +238,7 @@
             "Found the long help text on screen";
     };
     test.add_step :close_help_text {!(td, labels) = @;
+        # file:///home/weicon/devel/rust/hexosynth/jack_standalone/target/doc/src/keyboard_types/key.rs.html#957-1260
         unwrap ~ td.key_press :Escape;
     };
     test.add_step :check_help_text_away {!(td, labels) = @;
