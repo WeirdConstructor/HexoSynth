@@ -240,6 +240,10 @@ text_panel.change_layout ${
     min_height = :pixels => 200,
 };
 
+!node_help_btn = styling:new_button_with_label :node_help_btn "?" {
+    editor.handle_node_help_btn[];
+};
+
 !wt = styling:new_widget :wichtext;
 !wtd = ui:wichtext_simple_data_store[];
 wt.set_ctrl :wichtext wtd;
@@ -249,6 +253,7 @@ editor.reg :update_status_help_text {!(new_text) = @;
 };
 
 text_panel.add wt;
+text_panel.add node_help_btn;
 
 !signal_panel = styling:new_widget :signal_panel;
 signal_panel.set_ctrl :rect $n;

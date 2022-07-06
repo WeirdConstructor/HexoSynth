@@ -201,4 +201,53 @@
         std:assert_str_eq res.0.logic_pos $i(7, 4) "Confirm new BOsc pos";
     };
     ui:install_test test;
+
+
+    .test = ui:test_script "node help button shows help";
+    test.add_step :init {||
+        matrix_init  $i(0, 0) :TR ${chain=$[]};
+    };
+    test.add_step :goto_ntom_tab {!(td, labels) = @;
+        !res = $S(*:{path=*.tab_hor, label=NtoM}) labels;
+        do_click td res.0;
+    };
+    test.add_step :hover_mux9 {!(td, labels) = @;
+        !res = $S(*:{path=*.pick_node_btn, label=Mux9}) labels;
+        do_hover td res.0;
+    };
+    test.add_step :check_mux9_help {!(td, labels) = @;
+        !res = $S(*:{ctrl=Ctrl\:\:WichText, label=9\ Ch.\ Mul*}) labels;
+        std:assert_str_eq
+            res.0.source
+            "text"
+            "Found the small help text on screen";
+    };
+    test.add_step :click_node_help_btn {!(td, labels) = @;
+        !res = $S(*:{ctrl=Ctrl\:\:Button, label=\?}) labels;
+        do_click td res.0;
+    };
+    test.add_step :click_node_help_btn {!(td, labels) = @;
+        !res = $S(*:{
+            ctrl=Ctrl\:\:WichText,
+            path=*.main_help_wichtext,
+            label=Mux9\ -\ 9\ Ch*
+        }) labels;
+        std:assert_str_eq
+            res.0.source
+            "text"
+            "Found the long help text on screen";
+    };
+    test.add_step :close_help_text {!(td, labels) = @;
+        unwrap ~ td.key_press :Escape;
+    };
+    test.add_step :check_help_text_away {!(td, labels) = @;
+        !res = $S(*:{
+            ctrl=Ctrl\:\:WichText,
+            path=*.main_help_wichtext,
+            label=Mux9\ -\ 9\ Ch*
+        }) labels;
+        std:assert_str_eq res.0.source $n "Help text no longer open";
+#        dump_labels td;
+    };
+    ui:install_test test;
 };

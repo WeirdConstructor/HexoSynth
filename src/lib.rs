@@ -990,6 +990,8 @@ impl VValUserData for VTestDriver {
     {
         let args = env.argv_ref();
 
+        use keyboard_types::Key;
+
         match key {
             "mouse_press_at" => {
                 arg_chk!(args, 2, "$<UI::TestDriver>.mouse_press_at[pos, btn]");
@@ -1022,6 +1024,41 @@ impl VValUserData for VTestDriver {
             "list_labels" => {
                 arg_chk!(args, 0, "$<UI::TestDriver>.list_labels[]");
                 Ok(self.list_labels())
+            },
+            "key_press" => {
+                arg_chk!(args, 1, "$<UI::TestDriver>.key_press[key_name]");
+
+                use std::str::FromStr;
+
+                args[0].with_s_ref(|k|
+                    if let Ok(key) = keyboard_types::Key::from_str(k) {
+                        self.0.borrow_mut().inject_key_down(key);
+                        Ok(VVal::Bol(true))
+                    } else {
+                        Ok(VVal::err_msg(
+                            &format!("$<UI::TestDriver> Unknown key: {}", k)))
+                    })
+            },
+            "key_release" => {
+                arg_chk!(args, 1, "$<UI::TestDriver>.key_release[key_name]");
+
+                use std::str::FromStr;
+
+                args[0].with_s_ref(|k|
+                    if let Ok(key) = keyboard_types::Key::from_str(k) {
+                        self.0.borrow_mut().inject_key_up(key);
+                        Ok(VVal::Bol(true))
+                    } else {
+                        Ok(VVal::err_msg(
+                            &format!("$<UI::TestDriver> Unknown key: {}", k)))
+                    })
+            },
+            "char" => {
+                arg_chk!(args, 1, "$<UI::TestDriver>.char[character]");
+
+                args[0].with_s_ref(|c|
+                    self.0.borrow_mut().inject_char(c));
+                Ok(VVal::Bol(true))
             },
             _ => Ok(VVal::err_msg(
                 &format!("$<UI::TestDriver> Unknown method called: {}", key))),

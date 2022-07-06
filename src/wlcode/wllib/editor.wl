@@ -36,10 +36,11 @@
         ${
             _proto = $self,
             _data = ${
-                matrix     = matrix,
-                grid_model = grid_model,
-                focus_cell = $n,
-                cbs        = ${},
+                matrix               = matrix,
+                grid_model           = grid_model,
+                focus_cell           = $n,
+                current_help_node_id = $n,
+                cbs                  = ${},
             },
         }
     },
@@ -276,6 +277,7 @@
             .text = text "\n[c17f18:(drag the button to place!)]";
         };
 
+        $data.current_help_node_id = info;
         $self.emit :update_status_help_text text;
     },
     show_color_info = {
@@ -292,6 +294,11 @@
             :param_knob => {
                 $self.show_param_id_desc arg1;
             };
+    },
+    handle_node_help_btn = {
+        if is_some[$data.current_help_node_id] {
+            $self.emit :show_main_help $data.current_help_node_id.help[];
+        };
     },
     handle_matrix_graph_change = {
         $self.set_focus_cell $data.focus_cell.pos;
