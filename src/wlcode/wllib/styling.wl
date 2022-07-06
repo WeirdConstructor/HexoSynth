@@ -155,12 +155,12 @@ style.param_container = ${
 style.knob = ${
     border = 0,
 };
-style.knob_label = ${
+style.param_label = ${
     border = 0,
     bg_color = ui:UI_ACCENT_BG1_CLR,
     color = ui:UI_PRIM_CLR,
 };
-layout.knob_label = ${
+layout.param_label = ${
     height = :pixels => 20,
     left   = :pixels => 2,
     right  = :pixels => 2,

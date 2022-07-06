@@ -308,6 +308,11 @@
             :help  => { $self.emit :show_main_help texts:help; }
             :about => { $self.emit :show_main_help texts:about; }
     },
+    handle_param_trig_btn = {!(param, action) = @;
+        match action
+            :press   => { $data.matrix.set_param param 1.0 }
+            :release => { $data.matrix.set_param param 0.0 }
+    },
 };
 
 !@export EditorClass = EditorClass;

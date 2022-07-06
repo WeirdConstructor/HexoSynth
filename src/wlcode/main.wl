@@ -440,18 +440,34 @@ editor.reg :update_param_ui {
 
         !cont = styling:new_widget :param_container;
 
-        !knob = styling:new_widget :knob;
-        !knob_model = matrix.create_hex_knob_model input_param;
-        knob.set_ctrl :knob knob_model;
-        !in_param = input_param;
-        knob.reg :hover {
-            editor.handle_hover :param_knob in_param;
-        };
+        !param = input_param;
+        !param_wid =
+            match input_param.name[]
+                "trig" => {
+                    !trig_btn = styling:new_widget :button;
+                    trig_btn.set_ctrl :button (ui:txt param.name[]);
+                    trig_btn.reg :press {
+                        editor.handle_param_trig_btn param :press;
+                    };
+                    trig_btn.reg :release {
+                        editor.handle_param_trig_btn param :release;
+                    };
+                    trig_btn
+                }
+                {
+                    !knob = styling:new_widget :knob;
+                    !knob_model = matrix.create_hex_knob_model input_param;
+                    knob.set_ctrl :knob knob_model;
+                    knob.reg :hover {
+                        editor.handle_hover :param_knob param;
+                    };
+                    knob
+                };
 
-        !lbl = styling:new_widget :knob_label;
+        !lbl = styling:new_widget :param_label;
         lbl.set_ctrl :label (ui:txt input_param.name[]);
 
-        cont.add knob;
+        cont.add param_wid;
         cont.add lbl;
         knob_row.add cont;
         .row_fill += 1;
@@ -500,7 +516,7 @@ editor.reg :update_param_ui {
         };
 
 
-        !lbl = styling:new_widget :knob_label;
+        !lbl = styling:new_widget :param_label;
         lbl.set_ctrl :label (ui:txt atom.name[]);
 
         cont.add wid;
