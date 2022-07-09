@@ -7,7 +7,7 @@
 !@import editor wllib:editor;
 !@import tests wllib:tests;
 
-tests:install[];
+#tests:install[];
 
 !default_style = ui:style[];
 

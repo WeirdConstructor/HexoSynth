@@ -126,7 +126,7 @@
         do_click td res.0;
     };
     test.add_step :check_amp_labels {!(td, labels) = @;
-        !lbls = $S(*:{path=*param_panel*knob_label}/label) labels;
+        !lbls = $S(*:{path=*param_panel*param_label}/label) labels;
         std:assert_str_eq (std:sort lbls) $["att","gain","inp","neg_att"];
     };
     test.add_step :start_drag_new_node {!(td, labels) = @;
@@ -137,7 +137,7 @@
         do_drop td amp_node_info;
     };
     test.add_step :check_noise_labels {!(td, labels) = @;
-        !lbls = $S(*:{path=*param_panel*knob_label}/label) labels;
+        !lbls = $S(*:{path=*param_panel*param_label}/label) labels;
         std:assert_str_eq (std:sort lbls) $["atv","mode","offs"];
 
     };
@@ -168,10 +168,17 @@
         .bosc_pos = res.0;
         do_click td bosc_pos;
     };
+
+    test.add_step :sleep {|| std:thread:sleep :ms => 1000 };
+
     test.add_step :check_bosc_help {!(td, labels) = @;
+        dump_labels td;
         !res = $S(*:{ctrl=Ctrl\:\:Label, label=wtype}) labels;
-        std:assert_str_eq res.0.tag "knob_label" "Found wtype param";
+        std:assert_str_eq res.0.tag "param_label" "Found wtype param";
     };
+
+    test.add_step :sleep {|| std:thread:sleep :ms => 1000 };
+
     test.add_step :drag_bosc_start {!(td, labels) = @;
         do_drag td bosc_pos;
     };
@@ -182,7 +189,7 @@
     };
     test.add_step :check_bosc_help_still_there {!(td, labels) = @;
         !res = $S(*:{ctrl=Ctrl\:\:Label, label=wtype}) labels;
-        std:assert_str_eq res.0.tag "knob_label" "(Still) found wtype param";
+        std:assert_str_eq res.0.tag "param_label" "(Still) found wtype param";
 
         do_drag_rmb td bosc_pos;
 
@@ -195,7 +202,7 @@
     test.add_step :check_bosc_help_still_there {!(td, labels) = @;
 #        dump_labels td;
         !res = $S(*:{ctrl=Ctrl\:\:Label, label=wtype}) labels;
-        std:assert_str_eq res.0.tag "knob_label" "(Still) found wtype param";
+        std:assert_str_eq res.0.tag "param_label" "(Still) found wtype param";
 
         !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=BOsc}) labels;
         std:assert_str_eq res.0.logic_pos $i(7, 4) "Confirm new BOsc pos";
