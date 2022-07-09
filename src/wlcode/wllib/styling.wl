@@ -35,17 +35,33 @@ layout.picker_slide_panel = ${
     layout_type = :row,
 };
 
+
+#style.right_util_panel_cont =
+#    ${ border_color = $f(255.0, 0.0, 0.0), border = 3, typ = :rect, border_style = $[:rect] };
+
+#style.right_slide_panel =
+#    ${ border = 3, typ = :rect, border_style = $[:rect] };
+
+layout.right_slide_panel = ${
+    layout_type = :row,
+    position_type = :self,
+    left  = :stretch => 1,
+    width = :auto,
+    right = :pixels => 0,
+};
+
 layout.grid_panel = ${
     layout_type = :column,
 };
 
-style.close_hor_slide_panel_btn = ${
+
+style.close_hor_slide_left_panel_btn = ${
     border       = 2,
     border_style = $[:bevel, $f(0, 10, 0, 10)],
     border_color = ui:UI_ACCENT_CLR,
     bg_color     = ui:UI_BG2_CLR,
 };
-layout.close_hor_slide_panel_btn = ${
+layout.close_hor_slide_left_panel_btn = ${
     width  = :pixels => 30,
     top    = :stretch => 1,
     bottom = :stretch => 1,
@@ -53,11 +69,37 @@ layout.close_hor_slide_panel_btn = ${
     left   = :pixels => -2,
 };
 
+layout.right_util_panel = ${
+    position_type = :self,
+    left          = :stretch => 1,
+    width         = :percent => 20,
+    min_width     = :pixels => 270,
+};
+
+style.close_hor_slide_right_panel_btn = ${
+    border       = 2,
+    border_style = $[:bevel, $f(10, 0, 10, 0)],
+    border_color = ui:UI_ACCENT_CLR,
+    bg_color     = ui:UI_BG2_CLR,
+};
+layout.close_hor_slide_right_panel_btn = ${
+    width  = :pixels => 30,
+    top    = :stretch => 1,
+    bottom = :stretch => 1,
+    height = :percent => 25,
+    left   = :stretch => 1,
+    right  = :pixels => -2,
+};
+
+style.matrix_grid = ${ border = 0 };
 layout.matrix_grid = ${
-#    position_type = :self,
     height = :stretch => 1,
 };
 
+style.label = ${
+    bg_color = ui:UI_LBL_BG_CLR,
+    border   = 0,
+};
 style.button = ${
     bg_color     = ui:UI_LBL_BG_CLR,
     border_color = ui:UI_ACCENT_CLR,
@@ -261,6 +303,15 @@ layout.node_graph = ${
     max_height = :pixels => 180,
 };
 
+style.pattern_editor_label = ${
+    parent = :label,
+};
+layout.pattern_editor_label = ${
+    height = :pixels => 30,
+};
+layout.pattern_editor = ${
+    width = :pixels => 300,
+};
 style.pattern_editor = ${
     bg_color     = ui:UI_LBL_BG_CLR,
     border_color = ui:UI_ACCENT_CLR,

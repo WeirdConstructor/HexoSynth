@@ -66,10 +66,13 @@
         if cell.node_id.0 == "tseq" {
             $data.last_active_tracker_id = cell.node_id.1;
             $self.emit :pattern_editor_set_data $[
-                6,
-                $data.matrix.create_pattern_data_model
-                    $data.last_active_tracker_id,
-                $n
+                $data.last_active_tracker_id,
+                $[
+                    6,
+                    $data.matrix.create_pattern_data_model
+                        $data.last_active_tracker_id,
+                    $n
+                ]
             ];
         };
     },
