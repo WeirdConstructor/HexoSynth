@@ -124,16 +124,21 @@ editor.reg :set_focus {!(cell) = @;
             { :close_hor_slide_left_panel_btn }
             { :close_hor_slide_right_panel_btn };
 
+    !(open_txt, closed_txt) =
+        if dir == :left
+            { $p("<", ">") }
+            { $p(">", "<") };
+
     !slide_btn = styling:new_widget close_btn_class;
-    !close_btn_text = ui:txt "<";
+    !close_btn_text = ui:txt open_txt;
     slide_btn.set_ctrl :button close_btn_text;
     slide_btn.reg :click {
         if child.is_visible[] {
             child.hide[];
-            close_btn_text.set ">";
+            close_btn_text.set closed_txt;
         } {
             child.show[];
-            close_btn_text.set "<";
+            close_btn_text.set open_txt;
         };
     };
 
