@@ -3,7 +3,6 @@
 // See README.md and COPYING for details.
 
 #![allow(incomplete_features)]
-#![feature(generic_associated_types)]
 
 use hexotk::{UI, open_window, Units, Rect, TestScript, HexoTKWindowHandle};
 //pub mod ui;
