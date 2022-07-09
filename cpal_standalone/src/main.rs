@@ -112,7 +112,7 @@ where
     Ok(())
 }
 
-// This function starts the Jack backend and
+// This function starts the CPAL backend and
 // runs the audio loop with the NodeExecutor.
 fn start_backend<F: FnMut()>(node_exec: NodeExecutor, frontend_loop: F) {
     let host = cpal::default_host();
