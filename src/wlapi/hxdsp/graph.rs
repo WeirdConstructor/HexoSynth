@@ -100,7 +100,7 @@ impl VValUserData for VGraphModel {
     fn as_any(&mut self) -> &mut dyn std::any::Any { self }
     fn clone_ud(&self) -> Box<dyn vval::VValUserData> { Box::new(self.clone()) }
 
-    fn call_method(&self, key: &str, env: &mut Env)
+    fn call_method(&self, _key: &str, _env: &mut Env)
         -> Result<VVal, StackAction>
     {
 //        let args = env.argv_ref();

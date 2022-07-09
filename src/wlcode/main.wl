@@ -223,6 +223,19 @@ right_container.add top_menu_button_bar;
 root_mid.add right_container;
 
 
+!patedit = styling:new_widget :pattern_editor;
+patedit.change_layout ${
+    position_type = :self,
+    left      = :stretch => 1,
+    width     = :percent => 20,
+    min_width = :pixels => 270,
+};
+!fbdummy = ui:create_pattern_feedback_dummy[];
+!patdata = ui:create_pattern_data_unconnected 256;
+patedit.set_ctrl :pattern_editor $[6, patdata, fbdummy];
+
+root_mid.add patedit;
+
 
 !left_panel = styling:new_widget :main_panel;
 

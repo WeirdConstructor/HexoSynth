@@ -9,6 +9,7 @@ use crate::wlapi::*;
 
 use super::super::VValHexKnobModel;
 use super::super::VOctaveKeysModel;
+use super::super::VVPatModel;
 
 use crate::matrix_param_model::KnobParam;
 
@@ -238,6 +239,21 @@ impl vval::VValUserData for VValMatrix {
                 } else {
                     return Ok(VVal::None);
                 }
+            }
+            "create_pattern_data_model" => {
+                arg_chk!(args, 1, "matrix.create_pattern_data_model[tracker_id]");
+
+                let matrix = self.matrix.clone();
+                if let Ok(m) = matrix.lock() {
+                    if let Some(model) = m.get_pattern_data(args[0].i() as usize) {
+                        return Ok(VVPatModel::new_vv(model))
+                    } else {
+                        return Ok(VVal::None)
+                    }
+                } else {
+                    wl_panic!(
+                        "matrix.create_pattern_data_model could not lock matrix!");
+                };
             }
             _ => {}
         }

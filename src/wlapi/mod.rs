@@ -17,6 +17,9 @@ pub use connector::*;
 pub mod wichtext;
 pub use wichtext::*;
 
+pub mod pattern_editor;
+pub use pattern_editor::*;
+
 use wlambda::*;
 use std::sync::{Arc, Mutex};
 

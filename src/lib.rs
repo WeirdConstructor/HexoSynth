@@ -790,6 +790,34 @@ impl VValUserData for VUIWidget {
                                         env.arg(1).s())))
                             }
                         }
+                        "pattern_editor" => {
+                            let columns = env.arg(1).v_i(0) as usize;
+
+                            if let Some(model) = wlapi::vv2pat_model(env.arg(1).v_(1)) {
+                                if let Some(fb) = wlapi::vv2pat_edit_feedback(env.arg(1).v_(2)) {
+                                    let mut edit =
+                                        Box::new(hexotk::PatternEditor::new(columns));
+
+                                    edit.set_data_sources(model, fb);
+                                    self.0.set_ctrl(
+                                        hexotk::Control::PatternEditor { edit });
+
+                                    Ok(VVal::Bol(true))
+
+                                } else {
+                                    Ok(VVal::err_msg(
+                                        &format!(
+                                            "pattern_editor has non $<UI::PatEditFb> as third argument: {}",
+                                            env.arg(1).s())))
+                                }
+
+                            } else {
+                                Ok(VVal::err_msg(
+                                    &format!(
+                                        "pattern_editor has non $<UI::PatModel> as second argument: {}",
+                                        env.arg(1).s())))
+                            }
+                        }
                         _ => Ok(VVal::err_msg(
                             &format!("Unknown control assigned: {}", typ))),
                     }
@@ -990,8 +1018,6 @@ impl VValUserData for VTestDriver {
     {
         let args = env.argv_ref();
 
-        use keyboard_types::Key;
-
         match key {
             "mouse_press_at" => {
                 arg_chk!(args, 2, "$<UI::TestDriver>.mouse_press_at[pos, btn]");
@@ -1072,7 +1098,7 @@ impl VValUserData for VTestDriver {
 pub fn open_hexosynth_with_config(
     parent: Option<RawWindowHandle>,
     matrix: Arc<Mutex<Matrix>>,
-    config: OpenHexoSynthConfig
+    _config: OpenHexoSynthConfig
 ) -> HexoSynthGUIHandle {
     let hexotk_hdl = open_window(
         "HexoSynth", 1400, 800,
@@ -1139,6 +1165,18 @@ pub fn open_hexosynth_with_config(
                 "wichtext_simple_data_store", move |_env: &mut Env, _argc: usize| {
                     Ok(VVal::new_usr(wlapi::VValWichTextSimpleDataStore::new()))
                 }, Some(0), Some(0), false);
+
+            ui_st.fun(
+                "create_pattern_feedback_dummy", |_env: &mut Env, _argc: usize| {
+                    Ok(VVal::new_usr(wlapi::VVPatEditFb::new_dummy()))
+                }, Some(0), Some(0), false);
+
+            ui_st.fun(
+                "create_pattern_data_unconnected", |env: &mut Env, _argc: usize| {
+                    Ok(VVal::new_usr(
+                        wlapi::VVPatModel::new_unconnected(
+                            env.arg(0).i() as usize)))
+                }, Some(1), Some(1), false);
 
             ui_st.fun(
                 "widget", move |env: &mut Env, _argc: usize| {
