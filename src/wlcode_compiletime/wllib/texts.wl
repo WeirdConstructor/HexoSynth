@@ -255,3 +255,49 @@ RMB (Right Mouse Button) Drag Actions:
             \___/            \_2_/ (If you want to create a new instance
                                    instead, try dragging with RMB).
 °;
+
+!@export tracker = $q°[t18:][f22:]Tracker / Pattern Editor Keyboard Shortcuts
+
+[t18:]* Normal Mode
+[t9:]
+    [c14:Return]             - Enter Edit Mode
+    [c14:Escape]             - Exit Edit Mode
+
+    [c14:Home]               - Cursor to first row
+    [c14:End]                - Cursor to last row (within edit step)
+    [c14:Page Up]            - Cursor up by 2 edit steps
+    [c14:Page Down]          - Cursor down by 2 edit steps
+    [c14:Up/Down/Left/Right] - Move Cursor
+    [c14:'f']                - Toggle cursor follow phase bar
+
+    [c14:Del]                - Delete value in cell at cursor
+    [c14:'+' / '-']          - In-/Decrease note enter mode octave
+    [c14:'*' / '/' (Keypad)] - In-/Decrease edit step by 1
+    [c14:'r']                - Enter new pattern rows / length mode
+    [c14:'e']                - Enter new edit step mode
+    [c14:'o']                - Enter octave mode
+    [c14:'c']                - Change column type mode
+    [c14:'d']                - Delete col/row/step mode
+
+    [c14:Shift + PgUp]   - (+ 0x100) Increase 1st nibble of value under cursor
+    [c14:Shift + PgDown] - (- 0x100) Decrease 1st nibble of value under cursor
+    [c14:Shift + Up]     - (+ 0x010) Increase 2nd nibble of value under cursor
+    [c14:Shift + Down]   - (- 0x010) Decrease 2nd nibble of value under cursor
+    [c14:Shift + Right]  - (+ 0x001) Increase 3rd nibble of value under cursor
+    [c14:Shift + Left]   - (- 0x001) Decrease 3rd nibble of value under cursor
+
+[t18:]* Edit Mode
+[t9:]
+    [c14:Up/Down/Left/Right] - Move Cursor
+
+    [c14:'.']                - Enter most recently entered value
+                               and advance one edit step.
+    [c14:',']                - Remember the current cell value as most recently
+                               used value and advance one edit step.
+                               Useful for copying a value and paste it with [c14:'.'].
+    Note Column  :    Note entering via keyboard "like Renoise".
+    Other Columns:
+        [c14:'0'-'9', 'a'-'f'] - Enter value in hex digits
+        [c14:'s']              - Set to 000
+        [c14:'g']              - Set to FFF
+°#;

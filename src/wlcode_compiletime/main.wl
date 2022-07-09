@@ -213,6 +213,11 @@ right_container.add add_node_panel;
 };
 top_menu_button_bar.add help_button;
 
+!about_button = styling:new_button_with_label :button_float_menu "Tracker" {
+    editor.handle_top_menu_click :tracker;
+};
+top_menu_button_bar.add about_button;
+
 !about_button = styling:new_button_with_label :button_float_menu "About" {
     editor.handle_top_menu_click :about;
 };
@@ -222,6 +227,19 @@ right_container.add top_menu_button_bar;
 
 root_mid.add right_container;
 
+
+!patedit = styling:new_widget :pattern_editor;
+patedit.change_layout ${
+    position_type = :self,
+    left      = :stretch => 1,
+    width     = :percent => 20,
+    min_width = :pixels => 270,
+};
+!fbdummy = ui:create_pattern_feedback_dummy[];
+!patdata = ui:create_pattern_data_unconnected 256;
+patedit.set_ctrl :pattern_editor $[6, patdata, fbdummy];
+
+root_mid.add patedit;
 
 
 !left_panel = styling:new_widget :main_panel;
@@ -451,6 +469,9 @@ editor.reg :update_param_ui {
                     };
                     trig_btn.reg :release {
                         editor.handle_param_trig_btn param :release;
+                    };
+                    trig_btn.reg :hover {
+                        editor.handle_hover :param_knob param;
                     };
                     trig_btn
                 }

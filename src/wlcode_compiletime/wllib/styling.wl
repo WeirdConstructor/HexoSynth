@@ -261,6 +261,15 @@ layout.node_graph = ${
     max_height = :pixels => 180,
 };
 
+style.pattern_editor = ${
+    bg_color     = ui:UI_LBL_BG_CLR,
+    border_color = ui:UI_ACCENT_CLR,
+#    pad_left     = 4,
+#    pad_right    = 4,
+#    pad_top      = 4,
+#    pad_bottom   = 4,
+};
+
 !apply_class = $n;
 .apply_class = {!(class, style_map, layout_map, set_ctrl) = @;
     !st = style.(class);

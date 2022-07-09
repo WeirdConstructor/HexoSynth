@@ -305,8 +305,9 @@
     },
     handle_top_menu_click = {!(button_tag) = @;
         match button_tag
-            :help  => { $self.emit :show_main_help texts:help; }
-            :about => { $self.emit :show_main_help texts:about; }
+            :help       => { $self.emit :show_main_help texts:help; }
+            :tracker    => { $self.emit :show_main_help texts:tracker; }
+            :about      => { $self.emit :show_main_help texts:about; }
     },
     handle_param_trig_btn = {!(param, action) = @;
         match action

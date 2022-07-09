@@ -213,6 +213,11 @@ right_container.add add_node_panel;
 };
 top_menu_button_bar.add help_button;
 
+!about_button = styling:new_button_with_label :button_float_menu "Tracker" {
+    editor.handle_top_menu_click :tracker;
+};
+top_menu_button_bar.add about_button;
+
 !about_button = styling:new_button_with_label :button_float_menu "About" {
     editor.handle_top_menu_click :about;
 };
@@ -464,6 +469,9 @@ editor.reg :update_param_ui {
                     };
                     trig_btn.reg :release {
                         editor.handle_param_trig_btn param :release;
+                    };
+                    trig_btn.reg :hover {
+                        editor.handle_hover :param_knob param;
                     };
                     trig_btn
                 }
