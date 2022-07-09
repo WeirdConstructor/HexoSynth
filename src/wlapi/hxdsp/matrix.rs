@@ -240,21 +240,6 @@ impl vval::VValUserData for VValMatrix {
                     return Ok(VVal::None);
                 }
             }
-            "create_pattern_data_model" => {
-                arg_chk!(args, 1, "matrix.create_pattern_data_model[tracker_id]");
-
-                let matrix = self.matrix.clone();
-                if let Ok(m) = matrix.lock() {
-                    if let Some(model) = m.get_pattern_data(args[0].i() as usize) {
-                        return Ok(VVPatModel::new_vv(model))
-                    } else {
-                        return Ok(VVal::None)
-                    }
-                } else {
-                    wl_panic!(
-                        "matrix.create_pattern_data_model could not lock matrix!");
-                };
-            }
             _ => {}
         }
 
@@ -478,6 +463,21 @@ impl vval::VValUserData for VValMatrix {
                     let node_id = m.get_unused_instance_node_id(node_id);
                     Ok(node_id2vv(node_id))
                 },
+                "create_pattern_data_model" => {
+                    arg_chk!(args, 1, "matrix.create_pattern_data_model[tracker_id]");
+
+                    if let Some(model) = m.get_pattern_data(args[0].i() as usize) {
+                        return Ok(VVPatModel::new_vv(model))
+                    } else {
+                        return Ok(VVal::None)
+                    }
+                }
+                "check_pattern_data" => {
+                    arg_chk!(args, 1, "matrix.check_pattern_data[tracker_id]");
+
+                    m.check_pattern_data(args[0].i() as usize);
+                    Ok(VVal::None)
+                }
                 _ => Ok(VVal::err_msg(&format!("Unknown method called: {}", key))),
             }
         } else {

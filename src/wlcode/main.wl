@@ -235,9 +235,17 @@ patedit.change_layout ${
     width     = :percent => 20,
     min_width = :pixels => 270,
 };
+
+!patdata = matrix.create_pattern_data_model 0;
 !fbdummy = ui:create_pattern_feedback_dummy[];
-!patdata = ui:create_pattern_data_unconnected 256;
 patedit.set_ctrl :pattern_editor $[6, patdata, fbdummy];
+
+editor.reg :pattern_editor_set_data {!(data) = @;
+    if is_none[data.2] {
+        data.2 = ui:create_pattern_feedback_dummy[];
+    };
+    patedit.set_ctrl :pattern_editor data;
+};
 
 root_mid.add patedit;
 
@@ -587,6 +595,8 @@ root.add left_panel;
 root.add grid;
 
 !@export on_frame = {!(matrix_records) = @;
+    editor.check_pattern_data[];
+
     iter r matrix_records {
         std:displayln "REC:" r;
         match r
