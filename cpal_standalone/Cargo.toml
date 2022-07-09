@@ -1,0 +1,20 @@
+[package]
+name        = "hexosynth_jack"
+version     = "0.2.0-alpha-1"
+authors     = ["Weird Constructor <weirdconstructor@m8geil.de>"]
+license     = "GPL-3.0-or-later"
+edition     = "2021"
+description = "HexoSynth - A hexagonal modular synthesizer plugin"
+
+[dependencies]
+hexosynth  = { path = ".." }
+hexodsp    = { git = "https://github.com/WeirdConstructor/HexoDSP.git" }
+#hexodsp    = { path = "../../hexodsp" }
+hexotk     = { git = "https://github.com/WeirdConstructor/HexoTK.git" }
+#hexotk     = { path = "../../hexotk" }
+raw-window-handle  = "0.3"
+cpal   = "0.13.5"
+anyhow = "1.0.58"
+
+#[patch.'https://github.com/WeirdConstructor/HexoTK.git']
+#hexotk = { path = "../../hexotk" }

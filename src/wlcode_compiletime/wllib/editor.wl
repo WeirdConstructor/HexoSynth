@@ -36,11 +36,12 @@
         ${
             _proto = $self,
             _data = ${
-                matrix               = matrix,
-                grid_model           = grid_model,
-                focus_cell           = $n,
-                current_help_node_id = $n,
-                cbs                  = ${},
+                matrix                  = matrix,
+                grid_model              = grid_model,
+                focus_cell              = $n,
+                current_help_node_id    = $n,
+                last_active_tracker_id  = 0,
+                cbs                     = ${},
             },
         }
     },
@@ -61,6 +62,18 @@
         std:displayln "FOCUS:" cell cell.node_id cell.node_id.0 cell.node_id.0 != "nop";
         if is_some[cell.node_id] &and cell.node_id.0 != "nop" {
             $self.show_node_id_desc cell.node_id;
+        };
+        if cell.node_id.0 == "tseq" {
+            $data.last_active_tracker_id = cell.node_id.1;
+            $self.emit :pattern_editor_set_data $[
+                $data.last_active_tracker_id,
+                $[
+                    6,
+                    $data.matrix.create_pattern_data_model
+                        $data.last_active_tracker_id,
+                    $n
+                ]
+            ];
         };
     },
     get_current_graph_fun = {
@@ -313,6 +326,9 @@
         match action
             :press   => { $data.matrix.set_param param 1.0 }
             :release => { $data.matrix.set_param param 0.0 }
+    },
+    check_pattern_data = {
+        $data.matrix.check_pattern_data $data.last_active_tracker_id;
     },
 };
 

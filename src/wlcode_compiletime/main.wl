@@ -21,7 +21,6 @@ editor.reg :set_focus {!(cell) = @;
     std:displayln "INFO:" info;
     !plist = node_id:param_list cell.node_id;
     std:displayln "PARAMS:" plist;
-
 };
 
 !build_dsp_node_picker = {
@@ -116,24 +115,39 @@ editor.reg :set_focus {!(cell) = @;
     parent
 };
 
-!new_slide_panel = {!(class, child) = @;
+!new_slide_panel = {!(class, dir, child) = @;
     !slide_panel = styling:new_widget class;
 
-    !slide_btn = styling:new_widget :close_hor_slide_panel_btn;
-    !close_btn_text = ui:txt "<";
+    !close_btn_class =
+        if dir == :left
+            { :close_hor_slide_left_panel_btn }
+            { :close_hor_slide_right_panel_btn };
+
+    !(open_txt, closed_txt) =
+        if dir == :left
+            { $p("<", ">") }
+            { $p(">", "<") };
+
+    !slide_btn = styling:new_widget close_btn_class;
+    !close_btn_text = ui:txt open_txt;
     slide_btn.set_ctrl :button close_btn_text;
     slide_btn.reg :click {
         if child.is_visible[] {
             child.hide[];
-            close_btn_text.set ">";
+            close_btn_text.set closed_txt;
         } {
             child.show[];
-            close_btn_text.set "<";
+            close_btn_text.set open_txt;
         };
     };
 
-    slide_panel.add child;
-    slide_panel.add slide_btn;
+    if dir == :left {
+        slide_panel.add child;
+        slide_panel.add slide_btn;
+    } {
+        slide_panel.add slide_btn;
+        slide_panel.add child;
+    };
 
     slide_panel
 };
@@ -197,6 +211,7 @@ add_node_panel_inner.add ~ build_dsp_node_picker[];
 !add_node_panel =
     new_slide_panel
         :picker_slide_panel
+        :left
         add_node_panel_inner;
 
 !left_panel_dummy = styling:new_widget :main_panel;
@@ -227,19 +242,37 @@ right_container.add top_menu_button_bar;
 
 root_mid.add right_container;
 
+!right_panel_container =
+    styling:new_widget :right_util_panel_cont;
+!right_panel =
+    new_slide_panel
+        :right_slide_panel
+        :right
+        right_panel_container;
 
 !patedit = styling:new_widget :pattern_editor;
-patedit.change_layout ${
-    position_type = :self,
-    left      = :stretch => 1,
-    width     = :percent => 20,
-    min_width = :pixels => 270,
-};
+!patedit_label = styling:new_widget :pattern_editor_label;
+!patedit_label_data = ui:txt "TSeq 0";
+patedit_label.set_ctrl :label patedit_label_data;
+!patdata = matrix.create_pattern_data_model 0;
 !fbdummy = ui:create_pattern_feedback_dummy[];
-!patdata = ui:create_pattern_data_unconnected 256;
 patedit.set_ctrl :pattern_editor $[6, patdata, fbdummy];
 
-root_mid.add patedit;
+editor.reg :pattern_editor_set_data {!(tracker_id, data) = _;
+    patedit_label_data.set ($F"TSeq {}" tracker_id);
+    if is_none[data.2] {
+        data.2 = ui:create_pattern_feedback_dummy[];
+    };
+    patedit.set_ctrl :pattern_editor data;
+};
+
+!patedit_container = styling:new_widget :pattern_editor_container;
+patedit_container.add patedit_label;
+patedit_container.add patedit;
+
+right_panel_container.add patedit_container;
+
+root_mid.add right_panel;
 
 
 !left_panel = styling:new_widget :main_panel;
@@ -587,6 +620,8 @@ root.add left_panel;
 root.add grid;
 
 !@export on_frame = {!(matrix_records) = @;
+    editor.check_pattern_data[];
+
     iter r matrix_records {
         std:displayln "REC:" r;
         match r

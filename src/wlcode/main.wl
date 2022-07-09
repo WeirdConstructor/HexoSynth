@@ -21,7 +21,6 @@ editor.reg :set_focus {!(cell) = @;
     std:displayln "INFO:" info;
     !plist = node_id:param_list cell.node_id;
     std:displayln "PARAMS:" plist;
-
 };
 
 !build_dsp_node_picker = {
