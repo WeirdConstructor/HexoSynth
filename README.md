@@ -43,7 +43,7 @@ project to be notified once I release a beta or stable release.
 If you want to do chat, feel free to join the RustAudio Discord / Community
 here: https://rust.audio/
 
-### What is differnt in the HexoSynth 2022 Version?
+### What is different in the HexoSynth 2022 Version?
 
 The new branch 'hexosynth\_2022' moves all GUI logic to the scripting
 language [WLambda](http://wlambda.m8geil.de/), which is an easily embeddable
@@ -146,7 +146,23 @@ Install:
     heyosynth/nih_plug/$ cp -vfr target/bundled/hexosynth_plug.vst3 ~/.vst3/
     heyosynth/nih_plug/$ cp -vfr target/bundled/hexosynth_plug.clap ~/.vst3/
 
-### Running the Standalone Example
+### Running the CPAL Standalone Example
+
+CPAL is a generic audio device abstraction library. It should work
+on most systems.
+
+Enter the `cpal_standalone` subdirectory:
+
+    hexosynth/$ cd cpal_standalone
+
+Compile and run:
+
+    hexosynth/cpal_standlone/$ cargo run --release
+
+### Running the Jack Standalone Example
+
+JACK Audio Connection Kit is a sound server API, which allows
+multiple audio applications to communicate with each other.
 
 Enter the `jack_standalone` subdirectory:
 
