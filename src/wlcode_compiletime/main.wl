@@ -262,6 +262,7 @@ editor.reg :pattern_editor_set_data {!(tracker_id, data) = _;
     patedit_label_data.set ($F"TSeq {}" tracker_id);
     if is_none[data.2] {
         data.2 = ui:create_pattern_feedback_dummy[];
+        std:displayln "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB";
     };
     patedit.set_ctrl :pattern_editor data;
 };

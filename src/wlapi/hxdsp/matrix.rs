@@ -10,6 +10,7 @@ use crate::wlapi::*;
 use super::super::VValHexKnobModel;
 use super::super::VOctaveKeysModel;
 use super::super::VVPatModel;
+use super::super::VVPatEditFb;
 
 use crate::matrix_param_model::KnobParam;
 
@@ -20,10 +21,32 @@ use hexodsp::{Matrix, NodeId, Cell, CellDir};
 use hexodsp::matrix::{MatrixError};
 
 use hexotk::DummyParamModel;
+pub use hexotk::PatternEditorFeedback;
 
 use std::sync::{Arc, Mutex};
 use std::rc::Rc;
 use std::cell::RefCell;
+
+pub struct MatrixPatEditFb {
+    matrix:     Arc<Mutex<Matrix>>,
+    node_id:    NodeId,
+}
+
+impl std::fmt::Debug for MatrixPatEditFb {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        write!(f, "MatrixPatEditFb()")
+    }
+}
+
+impl PatternEditorFeedback for MatrixPatEditFb {
+    fn get_phase(&self) -> f32 {
+        if let Ok(m) = self.matrix.lock() {
+            m.phase_value_for(&self.node_id)
+        } else {
+            0.0
+        }
+    }
+}
 
 fn output2vval(node_id: NodeId, out: u8) -> VVal {
     if let Some(name) = node_id.out_name_by_idx(out) {
@@ -242,6 +265,8 @@ impl vval::VValUserData for VValMatrix {
             }
             _ => {}
         }
+
+        let m_clone = self.matrix.clone();
 
         let m = self.matrix.lock();
 
@@ -477,6 +502,16 @@ impl vval::VValUserData for VValMatrix {
 
                     m.check_pattern_data(args[0].i() as usize);
                     Ok(VVal::None)
+                }
+                "create_pattern_feedback_model" => {
+                    arg_chk!(args, 1, "matrix.create_pattern_feedback_model[node_id]");
+
+                    Ok(VVPatEditFb::new_vv(
+                        Arc::new(Mutex::new(MatrixPatEditFb {
+                            matrix:  m_clone.clone(),
+                            node_id: vv2node_id(&args[0]),
+                        }))))
+
                 }
                 _ => Ok(VVal::err_msg(&format!("Unknown method called: {}", key))),
             }

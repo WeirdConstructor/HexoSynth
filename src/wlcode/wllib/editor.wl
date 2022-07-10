@@ -71,7 +71,7 @@
                     6,
                     $data.matrix.create_pattern_data_model
                         $data.last_active_tracker_id,
-                    $n
+                    $data.matrix.create_pattern_feedback_model cell.node_id,
                 ]
             ];
         };
