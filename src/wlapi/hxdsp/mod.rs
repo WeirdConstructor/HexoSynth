@@ -10,6 +10,7 @@ pub mod matrix_recorder;
 pub mod grid_model;
 pub mod octave_keys;
 pub mod graph;
+pub mod graph_minmax;
 
 pub use node_info::*;
 pub use param::*;
@@ -19,6 +20,7 @@ pub use matrix_recorder::*;
 pub use grid_model::*;
 pub use octave_keys::*;
 pub use graph::*;
+pub use graph_minmax::*;
 
 use wlambda::*;
 use hexodsp::{NodeId};

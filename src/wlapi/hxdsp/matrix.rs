@@ -263,6 +263,14 @@ impl vval::VValUserData for VValMatrix {
                     return Ok(VVal::None);
                 }
             }
+            "create_graph_minmax_monitor" => {
+                arg_chk!(args, 1, "matrix.create_graph_minmax_monitor[index]");
+
+                let matrix = self.matrix.clone();
+                return Ok(VVal::new_usr(
+                    VGraphMinMaxModel::new_monitor_model(
+                        matrix, args[1].i() as usize)));
+            }
             _ => {}
         }
 
