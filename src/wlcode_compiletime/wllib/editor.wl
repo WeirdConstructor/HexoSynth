@@ -14,17 +14,17 @@
     };
 
     !wichtext_string = $@s iter line body_lines {
-        $+ ~ $F "[R:]{}" ~ line $p("]", "]]");
+        $+ ~ $F "[R:][f13:]{}" ~ line $p("]", "]]");
         $+ "\n";
     };
 
     if is_some[lbl] {
-        $F "[R][f20c11:{}] - [f20c15:{}]\n{}"
+        $F "[R][f16c11:{}] - [f16c15:{}]\n{}"
             lbl
             title
             wichtext_string
     } {
-        $F "[R][f20c15:{}]\n{}"
+        $F "[R][f16c15:{}]\n{}"
             title
             wichtext_string
     }
@@ -64,6 +64,8 @@
         if is_some[cell.node_id] &and cell.node_id.0 != "nop" {
             $self.show_node_id_desc cell.node_id;
             $data.matrix.monitor_cell cell;
+            $self.emit :update_monitor_labels
+                ~ $data.matrix.cell_edge_labels pos;
         };
 
         if cell.node_id.0 == "tseq" {

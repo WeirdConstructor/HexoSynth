@@ -301,10 +301,6 @@ param_panel.change_layout ${
 
 !text_panel = styling:new_widget :help_text_panel;
 text_panel.set_ctrl :rect $n;
-text_panel.change_layout ${
-    height     = :stretch => 1.0,
-    min_height = :pixels => 200,
-};
 
 !node_help_btn = styling:new_button_with_label :node_help_btn "?" {
     editor.handle_node_help_btn[];
@@ -620,11 +616,38 @@ left_panel.add text_panel;
 left_panel.add signal_panel;
 
 
+!MONITOR_LABELS = $[
+    ui:txt "I1",
+    ui:txt "I2",
+    ui:txt "I3",
+    ui:txt "O1",
+    ui:txt "O2",
+    ui:txt "O3",
+];
+
+editor.reg :update_monitor_labels {!(cell_labels) = @;
+    MONITOR_LABELS.0.set cell_labels.t;
+    MONITOR_LABELS.1.set cell_labels.tl;
+    MONITOR_LABELS.2.set cell_labels.bl;
+    MONITOR_LABELS.3.set cell_labels.tr;
+    MONITOR_LABELS.4.set cell_labels.br;
+    MONITOR_LABELS.5.set cell_labels.b;
+};
+
 !create_monitor_widget = {!(index) = @;
+    !graph_cont = styling:new_widget :cell_channel_monitor_cont;
+
     !graph_mm = styling:new_widget :cell_channel_monitor;
     !moni_model = matrix.create_graph_minmax_monitor index;
     graph_mm.set_ctrl :graph_minmax $[hx:MONITOR_MINMAX_SAMPLES, moni_model];
-    graph_mm
+
+    !graph_lbl = styling:new_widget :cell_channel_monitor_label;
+    graph_lbl.set_ctrl :label MONITOR_LABELS.(index);
+
+    graph_cont.add graph_mm;
+    graph_cont.add graph_lbl;
+
+    graph_cont
 };
 
 !moni_panel = styling:new_widget :monitor_panel;

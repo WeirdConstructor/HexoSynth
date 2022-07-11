@@ -292,6 +292,13 @@ layout.node_help_btn = ${
     height = :pixels => 35,
 };
 
+style.help_text_panel = ${
+};
+layout.help_text_panel = ${
+    height     = :stretch => 1.0,
+    min_height = :pixels => 170,
+};
+
 layout.keys = ${
     max_height = :pixels => 180,
 };
@@ -321,6 +328,20 @@ style.pattern_editor = ${
 #    pad_bottom   = 4,
 };
 
+layout.cell_channel_monitor_cont = ${
+    height = :auto,
+};
+style.cell_channel_monitor_cont = ${
+    pad_bottom = 2,
+};
+style.cell_channel_monitor_label = ${
+    parent = :label,
+    border = 0,
+    font_size = 12,
+};
+layout.cell_channel_monitor_label = ${
+    height = :pixels => 13,
+};
 style.cell_channel_monitor = ${
     bg_color = ui:UI_LBL_BG_CLR,
     font_size = 12,
