@@ -413,6 +413,54 @@ impl vval::VValUserData for VValMatrix {
                         Ok(VVal::None)
                     }
                 },
+                "cell_edge_labels" => {
+                    arg_chk!(args, 1, "matrix.cell_edge_labels[$i(x, y)]");
+
+                    let mut buf : [u8; 30] = [0; 30];
+
+                    if let Some(cell) =
+                        m.get(
+                            env.arg(0).v_i(0) as usize,
+                            env.arg(0).v_i(1) as usize)
+                    {
+                        let v_t =
+                            if let Some((lbl, _)) =
+                                m.edge_label(cell, CellDir::T, &mut buf[..])
+                            { VVal::new_str(lbl) } else { VVal::None };
+                        let v_tl =
+                            if let Some((lbl, _)) =
+                                m.edge_label(cell, CellDir::TL, &mut buf[..])
+                            { VVal::new_str(lbl) } else { VVal::None };
+                        let v_tr =
+                            if let Some((lbl, _)) =
+                                m.edge_label(cell, CellDir::TR, &mut buf[..])
+                            { VVal::new_str(lbl) } else { VVal::None };
+
+                        let v_b =
+                            if let Some((lbl, _)) =
+                                m.edge_label(cell, CellDir::B, &mut buf[..])
+                            { VVal::new_str(lbl) } else { VVal::None };
+                        let v_bl =
+                            if let Some((lbl, _)) =
+                                m.edge_label(cell, CellDir::BL, &mut buf[..])
+                            { VVal::new_str(lbl) } else { VVal::None };
+                        let v_br =
+                            if let Some((lbl, _)) =
+                                m.edge_label(cell, CellDir::BR, &mut buf[..])
+                            { VVal::new_str(lbl) } else { VVal::None };
+
+                        let out = VVal::map();
+                        let _ = out.set_key_str("t", v_t);
+                        let _ = out.set_key_str("tl", v_tl);
+                        let _ = out.set_key_str("tr", v_tr);
+                        let _ = out.set_key_str("b", v_b);
+                        let _ = out.set_key_str("bl", v_bl);
+                        let _ = out.set_key_str("br", v_br);
+                        Ok(out)
+                    } else {
+                        Ok(VVal::None)
+                    }
+                },
                 "param_input_is_used" => {
                     arg_chk!(args, 1, "matrix.param_input_is_used[param_id]");
                     if let Some(pid) = vv2param_id(env.arg(0)) {
