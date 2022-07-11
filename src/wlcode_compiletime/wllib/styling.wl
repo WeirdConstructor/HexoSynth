@@ -344,7 +344,7 @@ layout.cell_channel_monitor_label = ${
 };
 style.cell_channel_monitor = ${
     bg_color = ui:UI_LBL_BG_CLR,
-    font_size = 12,
+    font_size = 11,
 };
 layout.cell_channel_monitor = ${
     height = :pixels => 60,

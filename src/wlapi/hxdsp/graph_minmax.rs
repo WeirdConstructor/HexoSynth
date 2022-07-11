@@ -16,6 +16,7 @@ struct MonitorMinMaxData {
     min:        f32,
     max:        f32,
     avg:        f32,
+    cur:        f32,
 }
 
 fn sigidx2celldir(idx: usize) -> CellDir {
@@ -36,8 +37,8 @@ impl GraphMinMaxModel for MonitorMinMaxData {
     }
 
     fn read(&mut self, buf: &mut [(f32, f32)]) {
-        let (mut min, mut max, mut avg) =
-            (1000.0_f32, -1000.0_f32, 0.0_f32);
+        let (mut min, mut max, mut avg, mut cur) =
+            (1000.0_f32, -1000.0_f32, 0.0_f32, 0.0_f32);
 
         if let Ok(mut m) = self.matrix.lock() {
             let cell = m.monitored_cell();
@@ -54,6 +55,7 @@ impl GraphMinMaxModel for MonitorMinMaxData {
                 min = min.min(mm.0);
                 max = max.max(mm.1);
                 avg += mm.1 * 0.5 + mm.0 * 0.5;
+                cur = mm.1 * 0.5 + mm.0 * 0.5;
 
                 *b = (mm.0 as f32, mm.1 as f32);
             }
@@ -67,14 +69,15 @@ impl GraphMinMaxModel for MonitorMinMaxData {
         self.avg = avg;
         self.min = min;
         self.max = max;
+        self.cur = cur;
     }
 
     fn fmt_val(&mut self, buf: &mut [u8]) -> usize {
         use std::io::Write;
         let max_len = buf.len();
         let mut bw = std::io::BufWriter::new(buf);
-        match write!(bw, "{:6.3} | {:6.3} | {:6.3}",
-                     self.min, self.max, self.avg)
+        match write!(bw, "{:6.3}|{:6.3}|{:6.3}|{:6.3}",
+                     self.min, self.max, self.avg, self.cur)
         {
             Ok(_)  => {
                 if bw.buffer().len() > max_len { max_len }
@@ -96,6 +99,7 @@ impl VGraphMinMaxModel {
             min: 0.0,
             max: 0.0,
             avg: 0.0,
+            cur: 0.0,
         })))
     }
 }
