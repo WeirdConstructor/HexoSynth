@@ -152,10 +152,15 @@ impl Plugin for HexoSynthPlug {
 
         self.node_exec.process_graph_updates();
 
-        let mut frames_left = buffer.len();
         let mut offs        = 0;
 
         let channel_buffers = buffer.as_slice();
+        let mut frames_left =
+            if channel_buffers.len() > 0 {
+                channel_buffers[0].len()
+            } else {
+                0
+            };
 
         let mut input_bufs = [[0.0; hexodsp::dsp::MAX_BLOCK_SIZE]; 2];
 
@@ -170,9 +175,9 @@ impl Plugin for HexoSynthPlug {
                     frames_left
                 };
 
-            input_bufs[0].copy_from_slice(
+            input_bufs[0][0..cur_nframes].copy_from_slice(
                 &channel_buffers[0][offs..(offs + cur_nframes)]);
-            input_bufs[1].copy_from_slice(
+            input_bufs[1][0..cur_nframes].copy_from_slice(
                 &channel_buffers[1][offs..(offs + cur_nframes)]);
 
             let input = &[

@@ -60,9 +60,12 @@
         $self.emit :change_focus cell;
         $self.emit :update_param_ui;
         std:displayln "FOCUS:" cell cell.node_id cell.node_id.0 cell.node_id.0 != "nop";
+
         if is_some[cell.node_id] &and cell.node_id.0 != "nop" {
             $self.show_node_id_desc cell.node_id;
+            $data.matrix.monitor_cell cell;
         };
+
         if cell.node_id.0 == "tseq" {
             $data.last_active_tracker_id = cell.node_id.1;
             $self.emit :pattern_editor_set_data $[

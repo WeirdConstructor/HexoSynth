@@ -269,7 +269,7 @@ impl vval::VValUserData for VValMatrix {
                 let matrix = self.matrix.clone();
                 return Ok(VVal::new_usr(
                     VGraphMinMaxModel::new_monitor_model(
-                        matrix, args[1].i() as usize)));
+                        matrix, args[0].i() as usize)));
             }
             _ => {}
         }
@@ -489,6 +489,25 @@ impl vval::VValUserData for VValMatrix {
                     m.clear();
                     Ok(VVal::Bol(true))
                 },
+                "monitored_cell" => {
+                    arg_chk!(args, 0, "matrix.monitored_cell[]");
+
+                    Ok(cell2vval(m.monitored_cell()))
+                },
+                "monitor_cell" => {
+                    arg_chk!(args, 1, "matrix.monitor_cell[cell]");
+
+                    let cell = vv2cell(&args[0]);
+                    m.monitor_cell(cell);
+                    Ok(VVal::Bol(true))
+                },
+                "pop_error" => {
+                    arg_chk!(args, 0, "matrix.pop_error[]");
+
+                    Ok(m.pop_error()
+                        .map(|s| VVal::new_str_mv(s))
+                        .unwrap_or_else(|| VVal::None))
+                },
                 "get_unused_instance_node_id" => {
                     arg_chk!(args, 1, "matrix.get_unused_instance_node_id[node_id]");
 
@@ -643,7 +662,13 @@ pub fn cell2vval(cell: &Cell) -> VVal {
 pub fn vv2cell(v: &VVal) -> Cell {
     let node_id = vv2node_id(&v.v_k("node_id"));
 
-    let mut m_cell = Cell::empty(node_id);
+    let pos = v.v_k("pos");
+
+    let mut m_cell =
+        Cell::empty_at(
+            node_id,
+            pos.v_i(0) as u8,
+            pos.v_i(1) as u8);
 
     let ports = v.v_k("ports");
 

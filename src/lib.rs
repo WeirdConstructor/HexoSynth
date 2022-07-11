@@ -789,6 +789,23 @@ impl VValUserData for VUIWidget {
                                         env.arg(1).s())))
                             }
                         }
+                        "graph_minmax" => {
+                            // Args: sample factor, live/static
+                            let samples = env.arg(1).v_i(0) as usize;
+                            let graph   = env.arg(1).v_(1);
+                            if let Some(data) = wlapi::vv2graph_minmax_model(graph) {
+                                self.0.set_ctrl(hexotk::Control::GraphMinMax {
+                                    graph: Box::new(hexotk::GraphMinMax::new(data, samples)),
+                                });
+                                Ok(VVal::Bol(true))
+
+                            } else {
+                                Ok(VVal::err_msg(
+                                    &format!(
+                                        "graph has non graph_minmax_model data as argument: {}",
+                                        env.arg(1).s())))
+                            }
+                        }
                         "pattern_editor" => {
                             let columns = env.arg(1).v_i(0) as usize;
 

@@ -238,6 +238,21 @@ top_menu_button_bar.add about_button;
 };
 top_menu_button_bar.add about_button;
 
+!save_btn = styling:new_button_with_label :button_float_menu "Save" {
+    matrix.save_patch "init.hxy";
+};
+top_menu_button_bar.add save_btn;
+!load_btn = styling:new_button_with_label :button_float_menu "Load" {
+    matrix.load_patch "init.hxy";
+};
+top_menu_button_bar.add load_btn;
+
+!color_btn = styling:new_button_with_label :button_float_menu "_C" {
+    editor.show_color_info[];
+};
+top_menu_button_bar.add color_btn;
+
+
 right_container.add top_menu_button_bar;
 
 root_mid.add right_container;
@@ -262,7 +277,6 @@ editor.reg :pattern_editor_set_data {!(tracker_id, data) = _;
     patedit_label_data.set ($F"TSeq {}" tracker_id);
     if is_none[data.2] {
         data.2 = ui:create_pattern_feedback_dummy[];
-        std:displayln "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB";
     };
     patedit.set_ctrl :pattern_editor data;
 };
@@ -295,6 +309,7 @@ text_panel.change_layout ${
 !node_help_btn = styling:new_button_with_label :node_help_btn "?" {
     editor.handle_node_help_btn[];
 };
+
 
 !wt = styling:new_widget :wichtext;
 !wtd = ui:wichtext_simple_data_store[];
@@ -604,18 +619,30 @@ left_panel.add param_panel;
 left_panel.add text_panel;
 left_panel.add signal_panel;
 
-!color_btn = styling:new_button_with_label :button_label "Colors" {
-    editor.show_color_info[];
+
+!create_monitor_widget = {!(index) = @;
+    !graph_mm = styling:new_widget :cell_channel_monitor;
+    !moni_model = matrix.create_graph_minmax_monitor index;
+    graph_mm.set_ctrl :graph_minmax $[hx:MONITOR_MINMAX_SAMPLES, moni_model];
+    graph_mm
 };
-signal_panel.add color_btn;
-!save_btn = styling:new_button_with_label :button_label "Save Init" {
-    matrix.save_patch "init.hxy";
-};
-signal_panel.add save_btn;
-!load_btn = styling:new_button_with_label :button_label "Load Init" {
-    matrix.load_patch "init.hxy";
-};
-signal_panel.add load_btn;
+
+!moni_panel = styling:new_widget :monitor_panel;
+
+!moni_col_inputs  = styling:new_widget :monitor_column;
+moni_col_inputs.add ~ create_monitor_widget 0;
+moni_col_inputs.add ~ create_monitor_widget 1;
+moni_col_inputs.add ~ create_monitor_widget 2;
+
+!moni_col_outputs = styling:new_widget :monitor_column;
+moni_col_outputs.add ~ create_monitor_widget 3;
+moni_col_outputs.add ~ create_monitor_widget 4;
+moni_col_outputs.add ~ create_monitor_widget 5;
+
+moni_panel.add moni_col_inputs;
+moni_panel.add moni_col_outputs;
+
+signal_panel.add moni_panel;
 
 root.add left_panel;
 root.add grid;

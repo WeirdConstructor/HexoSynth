@@ -123,7 +123,7 @@ style.button_float_menu = ${
 layout.top_float_menu = ${
     position_type = :self,
     layout_type = :row,
-    width  = :pixels => 160,
+    width  = :pixels => 320,
     height = :pixels => 30,
     left   = :pixels => 0,
     right  = :stretch => 1,
@@ -319,6 +319,25 @@ style.pattern_editor = ${
 #    pad_right    = 4,
 #    pad_top      = 4,
 #    pad_bottom   = 4,
+};
+
+style.cell_channel_monitor = ${
+    bg_color = ui:UI_LBL_BG_CLR,
+    font_size = 12,
+};
+layout.cell_channel_monitor = ${
+    height = :pixels => 60,
+    width = :pixels => 160,
+};
+
+layout.monitor_panel = ${
+    layout_type = :row,
+};
+
+layout.monitor_column = ${
+    layout_type = :column,
+    left = :stretch => 1,
+    right = :stretch => 1,
 };
 
 !apply_class = $n;

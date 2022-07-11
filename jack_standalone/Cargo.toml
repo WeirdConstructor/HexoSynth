@@ -17,3 +17,5 @@ jack       = "0.6.6"
 
 #[patch.'https://github.com/WeirdConstructor/HexoTK.git']
 #hexotk = { path = "../../hexotk" }
+#[patch.'https://github.com/WeirdConstructor/HexoDSP.git']
+#hexodsp = { path = "../../hexodsp" }

@@ -119,6 +119,10 @@ pub fn setup_hx_module(matrix: Arc<Mutex<Matrix>>) -> wlambda::SymbolTable {
             }
         }, Some(2), Some(2), false);
 
+    st.set(
+        "MONITOR_MINMAX_SAMPLES",
+        VVal::Int(hexodsp::monitor::MONITOR_MINMAX_SAMPLES as i64));
+
     st.fun(
         "create_test_hex_grid_model", |_env: &mut Env, _argc: usize| {
             Ok(new_test_grid_model())
