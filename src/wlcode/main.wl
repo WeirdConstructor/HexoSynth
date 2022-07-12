@@ -152,14 +152,40 @@ editor.reg :set_focus {!(cell) = @;
     slide_panel
 };
 
+!cell_context_popup = styling:new_widget :popup_menu;
+cell_context_popup.auto_hide[];
+
+!add_context_menu_item = {!(menu, label, callback) = @;
+    !btn = styling:new_widget :cell_context_item;
+    btn.set_ctrl :button (ui:txt label);
+    btn.reg :click {
+        callback[];
+        menu.hide[];
+    };
+
+    menu.add btn;
+};
+
+!CONTEXT_CELL = $n;
+
+add_context_menu_item cell_context_popup "Remove" {
+    editor.remove_cell CONTEXT_CELL.pos;
+};
+
 !setup_grid_widget = {!(matrix, click_cb) = @;
     !grid = styling:new_widget :matrix_grid;
     grid.set_ctrl :grid editor.get_grid_model[];
 
-    grid.reg :click {
-        std:displayln "GRID CLICK:" @;
-        editor.set_focus_cell $i(@.1.x, @.1.y);
-        click_cb[];
+    grid.reg :click {!(widget, event) = @;
+        match event.button
+            :left => {
+                editor.set_focus_cell $i(@.1.x, @.1.y);
+                click_cb[];
+            }
+            :right => {
+                .CONTEXT_CELL = editor.get_context_cell $i(event.x, event.y);
+                cell_context_popup.popup_at_mouse[];
+            };
     };
 
     grid.reg :hex_drag {!(wid, ev) = @;
@@ -358,6 +384,24 @@ connector_popup.change_layout ${
 !mode_selector_popup = styling:new_widget :mode_selector_popup;
 mode_selector_popup.auto_hide[];
 
+#        mode_selector_popup.remove_childs[];
+#
+#        !i = 0;
+#        iter v val_list {
+#            !btn = styling:new_widget :mode_selector_item;
+#            btn.set_ctrl :button (ui:txt v.0);
+#
+#            !idx = i;
+#            btn.reg :click {
+#                value_set idx; mode_selector_popup.hide[];
+#            };
+#
+#            mode_selector_popup.add btn;
+#            .i += 1;
+#        };
+#
+#        mode_selector_popup.popup_at_mouse[];
+
 !help_wichtext = styling:new_widget :main_help_wichtext;
 help_wichtext.change_layout ${
     position_type = :self,
@@ -380,6 +424,7 @@ editor.reg :show_main_help {!(text) = @;
 
 popup_layer.add connector_popup;
 popup_layer.add mode_selector_popup;
+popup_layer.add cell_context_popup;
 popup_layer.add help_wichtext;
 
 !create_mode_button = {!(val_list, init_idx, change_cb, hover_cb) = @;

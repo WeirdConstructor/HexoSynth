@@ -89,6 +89,13 @@
             { $[] }
             { node_id:param_list $data.focus_cell.node_id}
     },
+    get_context_cell = {!(pos) = @; $data.matrix.get pos },
+    remove_cell = {!(pos) = @;
+        $self.matrix_apply_change {!(matrix) = @;
+            $data.matrix.set pos $n;
+            $true
+        };
+    },
     reg = {!(ev, cb) = @;
         if is_none[$data.cbs.(ev)] {
             $data.cbs.(ev) = $[cb];
