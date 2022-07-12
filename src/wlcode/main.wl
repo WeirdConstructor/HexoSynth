@@ -15,13 +15,10 @@
 
 !editor = editor:EditorClass.new matrix;
 
-editor.reg :set_focus {!(cell) = @;
-    std:displayln "SET FOCUS:" cell;
-    !info = node_id:info cell.node_id;
-    std:displayln "INFO:" info;
-    !plist = node_id:param_list cell.node_id;
-    std:displayln "PARAMS:" plist;
-};
+#editor.reg :set_focus {!(cell) = @;
+#    !info = node_id:info cell.node_id;
+#    !plist = node_id:param_list cell.node_id;
+#};
 
 !build_dsp_node_picker = {
     !parent = styling:new_widget :node_picker;
@@ -588,7 +585,6 @@ editor.reg :update_param_ui {
         !cur_atom = atom;
         !cont = styling:new_widget :param_container;
 
-        std:displayln "FOFO" atom atom.atom_ui[];
         !wid =
             match atom.atom_ui[]
                 :mode => {
@@ -719,11 +715,10 @@ root.add grid;
     editor.check_pattern_data[];
 
     iter r matrix_records {
-        std:displayln "REC:" r;
+        #d# std:displayln "REC:" r;
         match r
             $p(:matrix_graph, _?) => {
                 editor.handle_matrix_graph_change[];
-                std:displayln "GRAPH UPDATE";
             };
     };
 };

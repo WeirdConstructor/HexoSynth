@@ -26,6 +26,13 @@
     _.mouse_release_at pos :left;
 };
 
+!do_click_rmb = {
+    !pos = _1.pos + $f(1.0, 1.0);
+    std:displayln ">>> click(RMB)@" pos;
+    _.mouse_press_at pos :right;
+    _.mouse_release_at pos :right;
+};
+
 !do_drag = {
     !pos = _1.pos + $f(1.0, 1.0);
     std:displayln ">>> pick(LMB)@" pos;
@@ -75,6 +82,12 @@
     matrix.clear[];
     matrix.place_chain pos dir chain;
     matrix.sync[];
+};
+
+!matrix_cell_label = {!(labels, pos) = @;
+    !sel_str = $F $q(*:{{path=*.matrix_grid, label=hexcell_{}_{}}}) pos.0 pos.1;
+    !sel = std:selector sel_str;
+    (sel labels).0
 };
 
 !@export install = {
@@ -169,23 +182,23 @@
         do_click td bosc_pos;
     };
 
-    test.add_step :sleep {|| std:thread:sleep :ms => 1000 };
+#    test.add_step :sleep {|| std:thread:sleep :ms => 1000 };
 
     test.add_step :check_bosc_help {!(td, labels) = @;
-        dump_labels td;
+#        dump_labels td;
         !res = $S(*:{ctrl=Ctrl\:\:Label, label=wtype}) labels;
         std:assert_str_eq res.0.tag "param_label" "Found wtype param";
     };
 
-    test.add_step :sleep {|| std:thread:sleep :ms => 1000 };
+#    test.add_step :sleep {|| std:thread:sleep :ms => 1000 };
 
     test.add_step :drag_bosc_start {!(td, labels) = @;
         do_drag td bosc_pos;
     };
     test.add_step :drag_bosc_end {!(td, labels) = @;
-        !res = $S(*:{path=*.matrix_grid, label=hexcell_7_2}) labels;
-        .bosc_pos = res.0;
-        do_drop td res.0;
+        !res = matrix_cell_label labels $i(7, 2);
+        .bosc_pos = res;
+        do_drop td res;
     };
     test.add_step :check_bosc_help_still_there {!(td, labels) = @;
         !res = $S(*:{ctrl=Ctrl\:\:Label, label=wtype}) labels;
@@ -193,8 +206,7 @@
 
         do_drag_rmb td bosc_pos;
 
-        !res = $S(*:{path=*.matrix_grid, label=hexcell_7_4}) labels;
-        .bosc_pos = res.0;
+        .bosc_pos = matrix_cell_label labels $i(7, 4);
     };
     test.add_step :check_bosc_help_still_there {!(td, labels) = @;
         do_drop_rmb td bosc_pos;
@@ -256,6 +268,35 @@
         }) labels;
         std:assert_str_eq res.0.source $n "Help text no longer open";
 #        dump_labels td;
+    };
+    ui:install_test test;
+
+
+    .test = ui:test_script "create node and remove node";
+    test.add_step :init {!(td, labels) = @;
+        matrix_init  $i(0, 0) :TR ${chain=$[]};
+        !res = $S(*:{ctrl=Ctrl\:\:Button, label=IOUtil}) labels;
+        do_click td res.0;
+    };
+    test.add_step :drag_out_to_matrix {!(td, labels) = @;
+        !res = $S(*:{ctrl=Ctrl\:\:Button, label=Out}) labels;
+        do_drag td res.0;
+    };
+    test.add_step :drop_out_on_matrix {!(td, labels) = @;
+        do_drop td ~ matrix_cell_label labels $i(3, 3);
+    };
+    test.add_step :open_cell_context_menu {!(td, labels) = @;
+        !res = $S(*:{path=*.matrix_grid, label=Out}) labels;
+        std:assert_eq res.0.logic_pos $i(3, 3) "No out cell existing anymore";
+        do_click_rmb td res.0;
+    };
+    test.add_step :click_on_remove {!(td, labels) = @;
+        !res = $S(*:{path=*popup*, label=Remove}) labels;
+        do_click td res.0;
+    };
+    test.add_step :verify_out_cell_gone {!(td, labels) = @;
+        !res = $S(*:{path=*.matrix_grid, label=Out}) labels;
+        std:assert_eq res $n "No out cell existing anymore";
     };
     ui:install_test test;
 };

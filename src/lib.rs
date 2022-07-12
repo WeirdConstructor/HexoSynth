@@ -851,8 +851,8 @@ impl VValUserData for VUIWidget {
                         let mut drop_accept   = None;
 
                         if let Some(ctx) = ctx.downcast_mut::<EvalContext>() {
-                            println!("WID={:?}", wid);
-                            println!("EV={:?}", ev);
+                            //d// println!("WID={:?}", wid);
+                            //d// println!("EV={:?}", ev);
                             let arg =
                                 match &ev.data {
                                     hexotk::EvPayload::Button(btn) => {

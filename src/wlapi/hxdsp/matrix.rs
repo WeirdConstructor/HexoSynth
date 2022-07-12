@@ -343,7 +343,7 @@ impl vval::VValUserData for VValMatrix {
                         });
 
                         m.place(pos.0, pos.1, cell);
-                        println!("PLACE: {:?} => {:?}", pos, cell);
+                        //d// println!("PLACE: {:?} => {:?}", pos, cell);
                     }
 
 //                    println!("CHAIN: {:?}", chain);
