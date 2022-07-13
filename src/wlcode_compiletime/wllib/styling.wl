@@ -250,17 +250,27 @@ layout.param_trig_button = ${
     right = :pixels => 4,
 };
 
-layout.mode_selector_popup = ${
+layout.popup_menu = ${
     position_type = :self,
     layout_type   = :column,
     height        = :auto,
     width         = :pixels => 90,
     visible       = $f,
 };
-style.mode_selector_item = ${ parent = :button };
-layout.mode_selector_item = ${
+style.popup_menu_item = ${
+    parent = :button,
+};
+layout.popup_menu_item = ${
     height = :pixels => 30,
 };
+
+layout.mode_selector_popup = ${ parent = :popup_menu, };
+
+style.mode_selector_item = ${ parent = :popup_menu_item, };
+layout.mode_selector_item = ${ parent = :popup_menu_item, };
+
+style.cell_context_item = ${ parent = :popup_menu_item, };
+layout.cell_context_item = ${ parent = :popup_menu_item, };
 
 style.wichtext = ${
     bg_color = ui:UI_ACCENT_BG1_CLR,

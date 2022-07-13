@@ -59,7 +59,7 @@
         $data.focus_cell = cell;
         $self.emit :change_focus cell;
         $self.emit :update_param_ui;
-        std:displayln "FOCUS:" cell cell.node_id cell.node_id.0 cell.node_id.0 != "nop";
+        #d# std:displayln "FOCUS:" cell cell.node_id cell.node_id.0 cell.node_id.0 != "nop";
 
         if is_some[cell.node_id] &and cell.node_id.0 != "nop" {
             $self.show_node_id_desc cell.node_id;
@@ -88,6 +88,13 @@
         if is_none[$data.focus_cell]
             { $[] }
             { node_id:param_list $data.focus_cell.node_id}
+    },
+    get_context_cell = {!(pos) = @; $data.matrix.get pos },
+    remove_cell = {!(pos) = @;
+        $self.matrix_apply_change {!(matrix) = @;
+            $data.matrix.set pos $n;
+            $true
+        };
     },
     reg = {!(ev, cb) = @;
         if is_none[$data.cbs.(ev)] {

@@ -1247,7 +1247,7 @@ pub fn open_hexosynth_with_config(
 
             let mut roots = vec![];
 
-            match ctx.eval_string("!@import main; !:global on_frame = main:on_frame; main:root", "top_main") {
+            match ctx.eval_string("!@import main; main:init ARGV; !:global on_frame = main:on_frame; main:root", "top_main") {
                 Ok(v) => {
                     v.with_iter(|iter| {
                         for (v, _) in iter {

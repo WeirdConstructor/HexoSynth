@@ -7,7 +7,20 @@
 !@import editor wllib:editor;
 !@import tests wllib:tests;
 
-#tests:install[];
+!@export init = {!(ARGV) = @;
+    std:displayln "ARGV:" ARGV;
+    !do_test = $f;
+    !test_match = $n;
+    iter arg ARGV {
+        match arg
+            $r/$^test$$/        => { .do_test = $t; }
+            (x $r/$^-(^$*?)$$/) => { .test_match = $\.x.1; }
+    };
+
+    if do_test {
+        tests:install test_match;
+    };
+};
 
 !default_style = ui:style[];
 
