@@ -90,6 +90,19 @@
     (sel labels).0
 };
 
+!is_inside = {!(rect, pos) = @;
+    std:displayln "INS " rect pos;
+         pos.x >= rect.0
+    &and pos.x <= (rect.0 + rect.2)
+    &and pos.y >= rect.1
+    &and pos.y <= (rect.1 + rect.3)
+};
+
+!pval = {!(param_id) = @;
+    !matrix = hx:get_main_matrix_handle[];
+    matrix.get_param param_id
+};
+
 !@export install = {!(test_match) = @;
     !add_test = {!(name, setup_fun) = @;
         if is_none[test_match]
@@ -354,6 +367,92 @@
         test.add_step :check_connected {!(td, labels) = @;
             !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=oct}) labels;
             std:assert is_some[res.0] "Found 'oct' label";
+        };
+    };
+
+    add_test "connect nodes" {!(test) = @;
+        test.add_step :init {||
+            matrix_init  $i(0, 3) :B ${chain=$[
+                $[:tslfo, $n],
+                $[$n,  :cqnt, $n],
+            ]};
+        };
+        test.add_step :drag {!(td, labels) = @;
+            do_drag td ~ matrix_cell_label labels $i(0, 3);
+        };
+        test.add_step :drop {!(td, labels) = @;
+            do_drop td ~ matrix_cell_label labels $i(0, 4);
+        };
+        test.add_step :check_not_connected {!(td, labels) = @;
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=oct}) labels;
+            std:assert is_none[res.0] "Did not find 'oct' label";
+        };
+        test.add_step :drag_out_label {!(td, labels) = @;
+            !res = $S(*:{ctrl=Ctrl\:\:Connector, label=sig}) labels;
+            do_drag td res.0;
+        };
+        test.add_step :drag_out_label {!(td, labels) = @;
+            !res = $S(*:{ctrl=Ctrl\:\:Connector, label=oct}) labels;
+            do_drop td res.0;
+        };
+        test.add_step :check_connected {!(td, labels) = @;
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=oct}) labels;
+            std:assert is_some[res.0] "Found 'oct' label";
+        };
+    };
+
+    add_test "check mode button functionality" {!(test) = @;
+        test.add_step :init {||
+            matrix_init  $i(2, 2) :B ${chain=$[ $[:cqnt, $n], ]};
+        };
+        test.add_step :focus_cqnt {!(td, labels) = @;
+            do_click td ~ matrix_cell_label labels $i(2, 2);
+        };
+
+        !more_area = $n;
+        test.add_step :click_minus_oct_lbl {!(td, labels) = @;
+            !res = $S(*:{ctrl=Ctrl\:\:Button, label=-0}) labels;
+            .more_area = $f(
+                res.0.pos.0,
+                res.0.pos.1 - 50.0,
+                res.0.pos.2,
+                res.0.pos.3 + 100.0
+            );
+            do_click td res.0;
+        };
+        test.add_step :click_minus2_popup_item {!(td, labels) = @;
+            dump_labels td;
+            !res = $S(*:{tag=mode_selector_item, label=-2}) labels;
+            do_click td res.0;
+        };
+        test.add_step :check_omin_value {!(td, labels) = @;
+            std:assert_eq
+                (pval $p($p(:cqnt, 0), :omin)).i[]
+                2 "Octave minimum is -2";
+        };
+        test.add_step :click_more {!(td, labels) = @;
+            !res =
+                filter { is_inside more_area _.pos }
+                    ~ $S(*:{tag=mode_button_more, label=+}) labels;
+
+            do_click td res.0;
+        };
+        test.add_step :check_omin_value_2 {!(td, labels) = @;
+            std:assert_eq
+                (pval $p($p(:cqnt, 0), :omin)).i[]
+                3 "Octave minimum is -3";
+        };
+        test.add_step :click_less {!(td, labels) = @;
+            !res =
+                filter { is_inside more_area _.pos }
+                    ~ $S(*:{tag=mode_button_less, label=-}) labels;
+            do_click td res.0;
+            do_click td res.0;
+        };
+        test.add_step :check_omin_value_2 {!(td, labels) = @;
+            std:assert_eq
+                (pval $p($p(:cqnt, 0), :omin)).i[]
+                1 "Octave minimum is -1";
         };
     };
 };
