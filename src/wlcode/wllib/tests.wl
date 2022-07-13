@@ -271,7 +271,6 @@
     };
     ui:install_test test;
 
-
     .test = ui:test_script "create node and remove node";
     test.add_step :init {!(td, labels) = @;
         matrix_init  $i(0, 0) :TR ${chain=$[]};
@@ -297,6 +296,26 @@
     test.add_step :verify_out_cell_gone {!(td, labels) = @;
         !res = $S(*:{path=*.matrix_grid, label=Out}) labels;
         std:assert_eq res $n "No out cell existing anymore";
+    };
+    ui:install_test test;
+
+    .test = ui:test_script "hover picker";
+    test.add_step :goto_ioutil {!(td, labels) = @;
+        !res = $S(*:{ctrl=Ctrl\:\:Button, label=IOUtil}) labels;
+        do_click td res.0;
+    };
+    test.add_step :reset_help_text_to_out_node {!(td, labels) = @;
+        !res = $S(*:{ctrl=Ctrl\:\:Button, label=Out}) labels;
+        do_hover td res.0;
+    };
+    test.add_step :hover_fbwr_node_btn {!(td, labels) = @;
+        !res = $S(*:{ctrl=Ctrl\:\:Button, label=FbWr}) labels;
+        do_hover td res.0;
+    };
+    test.add_step :check_fbwr_desc {!(td, labels) = @;
+        !res = $S(*:{ctrl=Ctrl\:\:WichText, label=Feedback*Writer}) labels;
+#        dump_labels td;
+        std:assert_eq res.0.source "text" "FbWr description text is displayed";
     };
     ui:install_test test;
 };
