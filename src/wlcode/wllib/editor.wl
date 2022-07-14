@@ -67,7 +67,7 @@
         $self.emit :update_param_ui;
         #d# std:displayln "FOCUS:" cell cell.node_id cell.node_id.0 cell.node_id.0 != "nop";
 
-        if is_empty_cell[cell] {
+        if not[is_empty_cell[cell]] {
             $self.show_node_id_desc cell.node_id;
             $data.matrix.monitor_cell cell;
             $self.emit :update_monitor_labels
@@ -360,6 +360,8 @@
         if not[is_empty_cell[cell]] {
             .pos = $i(pos.0 - 1, pos.1);
         };
+
+        # TODO: use the focus cell as source, if the focus cell is not empty!
 
         !matrix_size = $data.matrix.size[];
         if pos.0 >= matrix_size.0 &or pos.1 >= matrix_size.1 {

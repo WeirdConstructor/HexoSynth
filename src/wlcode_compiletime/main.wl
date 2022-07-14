@@ -103,6 +103,11 @@
                 drag_txt.set ~ node_id:label node_drag;
                 $[:node_type, ${ node = node_drag }]
             };
+            node_id_widget.reg :click {!(wid, ev) = @;
+                if ev == :left {
+                    editor.handle_picker_node_id_click node_drag;
+                };
+            };
             node_id_widget.reg :hover {
                 editor.handle_hover :node_picker node_drag;
             };
@@ -196,6 +201,10 @@ add_context_menu_item cell_context_popup "Remove" {
                 .CONTEXT_CELL = editor.get_context_cell $i(event.x, event.y);
                 cell_context_popup.popup_at_mouse[];
             };
+    };
+
+    grid.reg :center_pos {!(wid, ev) = @;
+        editor.set_grid_center $i(ev.x, ev.y);
     };
 
     grid.reg :hex_drag {!(wid, ev) = @;
