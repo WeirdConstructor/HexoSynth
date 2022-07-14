@@ -30,6 +30,10 @@
     }
 };
 
+!is_empty_cell = {
+    is_none[_] &or is_none[_.node_id] &or _.node_id.0 == "nop"
+};
+
 !EditorClass = ${
     new = {!(matrix) = @;
         !grid_model = matrix.create_grid_model[];
@@ -41,17 +45,19 @@
                 focus_cell              = $n,
                 current_help_node_id    = $n,
                 last_active_tracker_id  = 0,
+                matrix_center           = $i(4, 4),
                 cbs                     = ${},
             },
         }
     },
     get_grid_model = { $data.grid_model },
     place_new_instance_at = {!(node_id, pos) = @;
-        !cell = $data.matrix.get pos;
-        !new_node_id = $data.matrix.get_unused_instance_node_id node_id;
-        cell.node_id = new_node_id;
-        $data.matrix.set pos cell;
-        $data.matrix.sync[];
+        $self.matrix_apply_change {!(matrix) = @;
+            !cell = matrix.get pos;
+            !new_node_id = matrix.get_unused_instance_node_id node_id;
+            cell.node_id = new_node_id;
+            matrix.set pos cell;
+        };
     },
     set_focus_cell = {!(pos) = @;
         $data.grid_model.set_focus_cell pos;
@@ -61,7 +67,7 @@
         $self.emit :update_param_ui;
         #d# std:displayln "FOCUS:" cell cell.node_id cell.node_id.0 cell.node_id.0 != "nop";
 
-        if is_some[cell.node_id] &and cell.node_id.0 != "nop" {
+        if is_empty_cell[cell] {
             $self.show_node_id_desc cell.node_id;
             $data.matrix.monitor_cell cell;
             $self.emit :update_monitor_labels
@@ -80,6 +86,9 @@
                 ]
             ];
         };
+    },
+    set_grid_center = {!(pos) = @;
+        $data.matrix_center = pos;
     },
     get_current_graph_fun = {
         $data.matrix.create_graph_model $data.focus_cell.node_id
@@ -181,8 +190,8 @@
 
         !src_cell   = $data.matrix.get src;
         !dst_cell   = $data.matrix.get dst;
-        !src_exists = src_cell.node_id.0 != "nop";
-        !dst_exists = dst_cell.node_id.0 != "nop";
+        !src_exists = not ~ is_empty_cell src_cell;
+        !dst_exists = not ~ is_empty_cell dst_cell;
 
         std:displayln "s:" src_exists dst_exists;
 
@@ -225,8 +234,8 @@
             !edge_idx     = adj.as_edge[];
             !dst_edge_idx = adj.flip[].as_edge[];
 
-            if dst_cell.node_id.0 == "nop" \return $n;
-            if src_cell.node_id.0 == "nop" \return $n;
+            if is_empty_cell[dst_cell] \return $n;
+            if is_empty_cell[src_cell] \return $n;
 
             #d# std:displayln "CELLS:" src_cell dst_cell;
             #d# std:displayln "PORTS:"
@@ -293,6 +302,8 @@
     },
     show_node_id_desc = {|1<2| !(node_id, source) = @;
         !info = node_id:info node_id;
+        if is_none[info] \return $n;
+
         !desc = info.desc[];
 
         !node_lbl = node_id:label[node_id];
@@ -338,6 +349,28 @@
         match action
             :press   => { $data.matrix.set_param param 1.0 }
             :release => { $data.matrix.set_param param 0.0 }
+    },
+    handle_picker_node_id_click = {!(node_id) = @;
+        !pos = $i(
+           $data.matrix_center.0 - 2,
+           $data.matrix_center.1
+        );
+
+        !cell = $data.matrix.get pos;
+        if not[is_empty_cell[cell]] {
+            .pos = $i(pos.0 - 1, pos.1);
+        };
+
+        !matrix_size = $data.matrix.size[];
+        if pos.0 >= matrix_size.0 &or pos.1 >= matrix_size.1 {
+            return $n;
+        };
+
+        .cell = $data.matrix.get pos;
+        if is_empty_cell[cell] {
+            $self.place_new_instance_at node_id pos;
+            $self.set_focus_cell pos;
+        };
     },
     check_pattern_data = {
         $data.matrix.check_pattern_data $data.last_active_tracker_id;

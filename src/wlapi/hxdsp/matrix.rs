@@ -302,12 +302,22 @@ impl vval::VValUserData for VValMatrix {
                         let x = pos.v_i(0) as usize;
                         let y = pos.v_i(1) as usize;
 
+                        let (mw, mh) = m.size();
+                        if x >= mw || y >= mh {
+                            return Ok(VVal::None);
+                        };
+
                         m.place(x, y, cell);
 
                         Ok(VVal::Bol(true))
                     } else {
                         Ok(VVal::None)
                     }
+                },
+                "size" => {
+                    arg_chk!(args, 0, "matrix.size[]");
+                    let (mw, mh) = m.size();
+                    Ok(VVal::ivec2(mw as i64, mh as i64))
                 },
                 "place_chain" => {
                     arg_chk!(args, 3, "matrix.place_chain[pos, dir, chain]");

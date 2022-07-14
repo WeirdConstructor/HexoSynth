@@ -858,6 +858,11 @@ impl VValUserData for VUIWidget {
                                     hexotk::EvPayload::Button(btn) => {
                                         mbutton2vv(*btn)
                                     }
+                                    hexotk::EvPayload::HexGridPos { x, y } => {
+                                        VVal::map2(
+                                            "x",      VVal::Int(*x as i64),
+                                            "y",      VVal::Int(*y as i64))
+                                    },
                                     hexotk::EvPayload::HexGridClick { x, y, button } => {
                                         VVal::map3(
                                             "x",      VVal::Int(*x as i64),
