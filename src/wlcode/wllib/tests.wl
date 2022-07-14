@@ -421,7 +421,7 @@
             do_click td res.0;
         };
         test.add_step :click_minus2_popup_item {!(td, labels) = @;
-            dump_labels td;
+#            dump_labels td;
             !res = $S(*:{tag=mode_selector_item, label=-2}) labels;
             do_click td res.0;
         };
@@ -453,6 +453,56 @@
             std:assert_eq
                 (pval $p($p(:cqnt, 0), :omin)).i[]
                 1 "Octave minimum is -1";
+        };
+    };
+
+    add_test "check mode button shows help" {!(test) = @;
+        test.add_step :init {||
+            matrix_init  $i(2, 2) :B ${chain=$[ $[:cqnt, $n], ]};
+        };
+        test.add_step :focus_cqnt {!(td, labels) = @;
+            do_click td ~ matrix_cell_label labels $i(2, 2);
+        };
+        test.add_step :check_octave_keys_are_shown {!(td, labels) = @;
+            # TODO!
+        };
+        test.add_step :check_no_doc {!(td, labels) = @;
+            !res = $S(*:{path=*help*wichtext, label=*Quantizer*}) labels;
+            std:assert_str_eq
+                res.0.source
+                "text"
+                "Found the small help text on screen";
+        };
+        test.add_step :hover_mode_button {!(td, labels) = @;
+            !res = $S(*:{ctrl=Ctrl\:\:Button, label=-0}) labels;
+            do_hover td res.0;
+        };
+        test.add_step :check_no_doc {!(td, labels) = @;
+            !res = $S(*:{path=*help*wichtext, label=*omin*}) labels;
+            std:assert_str_eq
+                res.0.source
+                "text"
+                "Found the small help text with omin on screen";
+        };
+    };
+
+    add_test "check trig parameter is a button" {!(test) = @;
+        test.add_step :init {||
+            matrix_init  $i(2, 2) :B ${chain=$[ $[:ad, $n], ]};
+        };
+        test.add_step :focus_cqnt {!(td, labels) = @;
+            do_click td ~ matrix_cell_label labels $i(2, 2);
+        };
+        test.add_step :hover_mode_button {!(td, labels) = @;
+            !res = $S(*:{ctrl=Ctrl\:\:Button, label=trig}) labels;
+            do_hover td res.0;
+        };
+        test.add_step :check_no_doc {!(td, labels) = @;
+            !res = $S(*:{path=*help*wichtext, label=*trig*}) labels;
+            std:assert_str_eq
+                res.0.source
+                "text"
+                "Found the small help text with trig on screen";
         };
     };
 };
