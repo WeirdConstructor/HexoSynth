@@ -51,12 +51,15 @@
         }
     },
     get_grid_model = { $data.grid_model },
-    place_new_instance_at = {!(node_id, pos) = @;
+    place_new_instance_at = {|2<3| !(node_id, pos, cb) = @;
         $self.matrix_apply_change {!(matrix) = @;
             !cell = matrix.get pos;
             !new_node_id = matrix.get_unused_instance_node_id node_id;
             cell.node_id = new_node_id;
             matrix.set pos cell;
+            .cell = matrix.get pos;
+
+            if cb \cb matrix cell;
         };
     },
     set_active_tracker = {!(node_id) = @;
@@ -353,7 +356,58 @@
             :press   => { $data.matrix.set_param param 1.0 }
             :release => { $data.matrix.set_param param 0.0 }
     },
-    handle_picker_node_id_click = {!(node_id) = @;
+    handle_picker_node_id_click = {!(node_id, btn) = @;
+        !focus_pos = $data.focus_cell.pos;
+        if is_some[focus_pos] &and not[is_empty_cell[$data.matrix.get focus_pos]] {
+            !new_cell_dir = match btn :left => :B :right => :T;
+            !inputs = $data.matrix.find_all_adjacent_free focus_pos new_cell_dir;
+            !focus_cell = $data.matrix.get focus_pos;
+
+            #d# std:displayln "FREE INPUTS:" inputs focus_cell;
+
+            if len[inputs] > 0 {
+                !free_input = inputs.(std:rand len[inputs]);
+                !free_dir = free_input.dir;
+
+                $self.place_new_instance_at
+                    node_id
+                    free_input.pos
+                    {!(matrix, new_cell) = @;
+                        #d# std:displayln "FREEE DIR" free_dir focus_pos new_cell.pos;
+                        if free_dir.is_output[] {
+                            !unused = $data.matrix.find_unused_inputs new_cell.node_id;
+                            !outputs = node_id:out_list focus_cell.node_id;
+
+                            if len[outputs] > 0 &and len[unused] > 0 {
+                                $self.matrix_set_connection_by_io_names
+                                    focus_pos
+                                    new_cell.pos
+                                    outputs.0.1
+                                    unused.(0).name[];
+                            };
+                            #d# std:displayln "PLACED! unusued inputs=" unused unused.(0).name[];
+                        } {
+                            !unused = $data.matrix.find_unused_inputs focus_cell.node_id;
+                            !outputs = node_id:out_list new_cell.node_id;
+
+                            if len[outputs] > 0 &and len[unused] > 0 {
+                                $self.matrix_set_connection_by_io_names
+                                    new_cell.pos
+                                    focus_pos
+                                    outputs.0.1
+                                    unused.(0).name[];
+                            };
+                        };
+                    };
+
+                $self.set_focus_cell free_input.pos;
+            };
+            return $n;
+        };
+
+        # otherwise take the center, or some free cell around there and insert
+        # unconnected.
+
         !pos = $i(
            $data.matrix_center.0 - 2,
            $data.matrix_center.1
@@ -361,7 +415,16 @@
 
         !cell = $data.matrix.get pos;
         if not[is_empty_cell[cell]] {
-            .pos = $i(pos.0 - 1, pos.1);
+            !free_dir = match btn :left => :B :right => :T;
+            !free = $data.matrix.find_all_adjacent_free focus_pos free_dir;
+
+            if len[free] > 0 {
+                !idx = std:rand len[free];
+                .pos = free.(idx).pos;
+            } {
+                # TODO: Display error dialog if none free found!
+                return $n;
+            };
         };
 
         # TODO: use the focus cell as source, if the focus cell is not empty!

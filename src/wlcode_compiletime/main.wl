@@ -104,8 +104,8 @@
                 $[:node_type, ${ node = node_drag }]
             };
             node_id_widget.reg :click {!(wid, ev) = @;
-                if ev == :left {
-                    editor.handle_picker_node_id_click node_drag;
+                if ev == :left &or ev == :right {
+                    editor.handle_picker_node_id_click node_drag ev;
                 };
             };
             node_id_widget.reg :hover {

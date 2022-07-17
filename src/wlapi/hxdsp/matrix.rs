@@ -472,6 +472,22 @@ impl vval::VValUserData for VValMatrix {
                         Ok(VVal::None)
                     }
                 }
+                "find_unused_inputs" => {
+                    arg_chk!(args, 1, "matrix.param_input_is_used[node_id]");
+
+                    let node_id = vv2node_id(&args[0]);
+                    let unused = VVal::vec();
+
+                    let mut inp_idx = 0;
+                    while let Some(param_id) = node_id.inp_param_by_idx(inp_idx) {
+                        if !m.param_input_is_used(param_id) {
+                            unused.push(param_id2vv(param_id));
+                        }
+                        inp_idx += 1;
+                    }
+
+                    Ok(unused)
+                }
                 "find_all_adjacent_free" => {
                     arg_chk!(args, 2, "matrix.find_all_adjacent_free[$i(x, y), cell_dir]");
 
