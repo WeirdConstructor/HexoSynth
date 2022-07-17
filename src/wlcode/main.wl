@@ -325,6 +325,7 @@ editor.reg :pattern_editor_set_data {!(tracker_id, data) = _;
     };
     patedit.set_ctrl :pattern_editor data;
 };
+editor.set_active_tracker $p(:tseq, 0);
 
 !patedit_container = styling:new_widget :pattern_editor_container;
 patedit_container.add patedit_label;

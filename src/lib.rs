@@ -470,7 +470,7 @@ fn rect2vv(r: &Rect) -> VVal {
 }
 
 impl VValUserData for VUIWidget {
-    fn s(&self) -> String { format!("$<UI::Widget({})>", self.0.id()) }
+    fn s(&self) -> String { format!("$<UI::Widget({})>", self.0.unique_id()) }
     fn as_any(&mut self) -> &mut dyn std::any::Any { self }
     fn clone_ud(&self) -> Box<dyn vval::VValUserData> { Box::new(self.clone()) }
 

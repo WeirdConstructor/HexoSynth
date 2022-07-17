@@ -59,6 +59,18 @@
             matrix.set pos cell;
         };
     },
+    set_active_tracker = {!(node_id) = @;
+        $data.last_active_tracker_id = node_id.0;
+        $self.emit :pattern_editor_set_data $[
+            $data.last_active_tracker_id,
+            $[
+                6,
+                $data.matrix.create_pattern_data_model
+                    $data.last_active_tracker_id,
+                $data.matrix.create_pattern_feedback_model node_id,
+            ]
+        ];
+    },
     set_focus_cell = {!(pos) = @;
         $data.grid_model.set_focus_cell pos;
         !cell = $data.matrix.get pos;
@@ -75,16 +87,7 @@
         };
 
         if cell.node_id.0 == "tseq" {
-            $data.last_active_tracker_id = cell.node_id.1;
-            $self.emit :pattern_editor_set_data $[
-                $data.last_active_tracker_id,
-                $[
-                    6,
-                    $data.matrix.create_pattern_data_model
-                        $data.last_active_tracker_id,
-                    $data.matrix.create_pattern_feedback_model cell.node_id,
-                ]
-            ];
+            $self.set_active_tracker cell.node_id;
         };
     },
     set_grid_center = {!(pos) = @;

@@ -479,6 +479,27 @@ impl vval::VValUserData for VValMatrix {
                         Ok(VVal::None)
                     }
                 },
+                "find_all_adjacent_free" => {
+                    arg_chk!(args, 2, "matrix.find_all_adjacent_free[$i(x, y), cell_dir]");
+
+                    if let Some(cell) =
+                        m.get_copy(args[0].v_i(0) as usize, args[0].v_i(1) as usize)
+                    {
+                        let free_pos = cell.find_all_adjacent_free(&mut *m, vv2cell_dir(&args[1]));
+
+                        let ret = VVal::vec();
+                        for (dir, (x, y)) in free_pos {
+                            ret.push(VVal::map2(
+                                "dir", cell_dir2vv(dir),
+                                "pos", VVal::ivec2(x as i64, y as i64)));
+                        }
+
+                        Ok(ret)
+
+                    } else {
+                        Ok(VVal::None)
+                    }
+                },
                 "restore_snapshot" => {
                     arg_chk!(args, 0, "matrix.restore_snapshot[]");
                     m.restore_matrix();
