@@ -5,24 +5,25 @@ represented as hexagonal tile map. The 6 edges of each tile
 are the ports of the nodes (aka modules). The top and left edges
 are the input edges, and the bottom and right edges are the outputs.
 
-ATTENTION: For help please take a look at the other tabs of this about screen at the top!
+ATTENTION: For help please take a look at the other tabs of this about
+           screen at the top!
 
 [t9:]-------------------------------
 
-HexoSynth modular synthesizer
+HexoSynth Modular Synthesizer (Plugin or Standalone Application)
 Copyright (C) 2021-2022  Weird Constructor <weirdconstructor@gmail.com>
 
 This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as published by
+it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Affero General Public License for more details.
+GNU General Public License for more details.
 
-You should have received a copy of the GNU Affero General Public License
+You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ";
 
@@ -300,4 +301,23 @@ RMB (Right Mouse Button) Drag Actions:
         [c14:'0'-'9', 'a'-'f'] - Enter value in hex digits
         [c14:'s']              - Set to 000
         [c14:'g']              - Set to FFF
-°#;
+°;
+
+!@export picker = $q°[t18:][f22:]Node Picker
+
+The most precise way of placing a new node on the matrix can be achived
+by dragging:
+
+    [c14:Left Mouse Button Drag] - Dragging a button from the node picker to
+                                   a matrix cell will place it.
+
+If you click a button in the node picker and you have no cell in the matrix
+selected, a new node will be placed close to the center of the visible hex matrix.
+
+If a matrix cell is selected, following can be done:
+
+    [c14:Left Mouse Button (LMB)]  - Add new node to the [c02:output] of the
+                                     currently selected cell.
+    [c14:Right Mouse Button (RMB)] - Add new node to the [c02:input] of the
+                                     currently selected cell.
+°;

@@ -40,11 +40,23 @@
     };
 
     !button_bar = styling:new_widget :button_bar;
+
+    !picker_btn_bar = styling:new_widget :picker_btn_bar;
+    !picker_help_btn = styling:new_button_with_label :help_btn "?" {
+        editor.handle_picker_help_btn[];
+    };
+    picker_btn_bar.add picker_help_btn;
+
+    !bg_panel = styling:new_widget :pick_node_bg_panel;
+    bg_panel.set_ctrl :rect $n;
+
     !stack_container = styling:new_widget :pick_node_bg_panel;
-    stack_container.set_ctrl :rect $n;
+
+    bg_panel.add picker_btn_bar;
+    bg_panel.add stack_container;
 
     parent.add button_bar;
-    parent.add stack_container;
+    parent.add bg_panel;
 
     !cat_map = node_id:ui_category_node_id_map[];
     std:displayln "CAT MAP:" cat_map;
@@ -273,11 +285,6 @@ right_container.add add_node_panel;
 };
 top_menu_button_bar.add help_button;
 
-!about_button = styling:new_button_with_label :button_float_menu "Tracker" {
-    editor.handle_top_menu_click :tracker;
-};
-top_menu_button_bar.add about_button;
-
 !about_button = styling:new_button_with_label :button_float_menu "About" {
     editor.handle_top_menu_click :about;
 };
@@ -310,10 +317,17 @@ root_mid.add right_container;
         :right
         right_panel_container;
 
+!tracker_help = styling:new_button_with_label :top_right_help_btn "?" {
+    editor.handle_tracker_help_btn[];
+};
+
 !patedit = styling:new_widget :pattern_editor;
 !patedit_label = styling:new_widget :pattern_editor_label;
 !patedit_label_data = ui:txt "TSeq 0";
 patedit_label.set_ctrl :label patedit_label_data;
+
+patedit_label.add tracker_help;
+
 !patdata = matrix.create_pattern_data_model 0;
 !fbdummy = ui:create_pattern_feedback_dummy[];
 patedit.set_ctrl :pattern_editor $[6, patdata, fbdummy];
@@ -348,7 +362,7 @@ param_panel.change_layout ${
 !text_panel = styling:new_widget :help_text_panel;
 text_panel.set_ctrl :rect $n;
 
-!node_help_btn = styling:new_button_with_label :node_help_btn "?" {
+!node_help_btn = styling:new_button_with_label :top_right_help_btn "?" {
     editor.handle_node_help_btn[];
 };
 
@@ -361,8 +375,8 @@ editor.reg :update_status_help_text {!(new_text) = @;
     wtd.set_text new_text;
 };
 
+wt.add node_help_btn;
 text_panel.add wt;
-text_panel.add node_help_btn;
 
 !signal_panel = styling:new_widget :signal_panel;
 signal_panel.set_ctrl :rect $n;

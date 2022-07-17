@@ -35,6 +35,11 @@ layout.picker_slide_panel = ${
     layout_type = :row,
 };
 
+layout.picker_btn_bar = ${
+    width = :pixels => 40,
+    layout_type = :column,
+};
+
 
 #style.right_util_panel_cont =
 #    ${ border_color = $f(255.0, 0.0, 0.0), border = 3, typ = :rect, border_style = $[:rect] };
@@ -179,6 +184,9 @@ style.pick_node_bg_panel = ${
     border_color = ui:UI_ACCENT_CLR,
     bg_color     = ui:UI_BG3_CLR,
 };
+layout.pick_node_bg_panel = ${
+    layout_type = :row,
+};
 
 layout.knob_row = ${
     layout_type = :row,
@@ -293,13 +301,23 @@ layout.main_help_wichtext = ${
     top = :pixels => 33,
 };
 
-style.node_help_btn = ${ parent = :button };
-layout.node_help_btn = ${
+style.help_btn = ${
+    parent = :button,
+    border_style = $[:bevel, $f(6, 6, 6, 6)],
+};
+layout.help_btn = ${
+    width  = :pixels => 35,
+    height = :pixels => 35,
+};
+
+style.top_right_help_btn = ${
+    parent = :help_btn,
+};
+layout.top_right_help_btn = ${
+    parent = :help_btn,
     position_type = :self,
     left = :stretch => 1,
     right = :pixels => 0,
-    width = :pixels => 44,
-    height = :pixels => 35,
 };
 
 style.help_text_panel = ${
@@ -324,7 +342,7 @@ style.pattern_editor_label = ${
     parent = :label,
 };
 layout.pattern_editor_label = ${
-    height = :pixels => 30,
+    height = :pixels => 35,
 };
 layout.pattern_editor = ${
     width = :pixels => 300,

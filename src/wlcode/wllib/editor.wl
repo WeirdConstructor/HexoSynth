@@ -337,10 +337,22 @@
                 $self.show_param_id_desc arg1;
             };
     },
+    handle_picker_help_btn = {
+        $self.emit :show_main_help texts:picker;
+    },
     handle_node_help_btn = {
         if is_some[$data.current_help_node_id] {
             $self.emit :show_main_help $data.current_help_node_id.help[];
         };
+    },
+    handle_tracker_help_btn = {
+        !tseq_help = (node_id:info $p(:tseq, 0)).help[];
+
+        $self.emit :show_main_help 
+            ~ std:str:cat
+                texts:tracker
+                "\n----------------\n\n"
+                tseq_help;
     },
     handle_matrix_graph_change = {
         $self.set_focus_cell $data.focus_cell.pos;
@@ -348,7 +360,6 @@
     handle_top_menu_click = {!(button_tag) = @;
         match button_tag
             :help       => { $self.emit :show_main_help texts:help; }
-            :tracker    => { $self.emit :show_main_help texts:tracker; }
             :about      => { $self.emit :show_main_help texts:about; }
     },
     handle_param_trig_btn = {!(param, action) = @;
