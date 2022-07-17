@@ -13,9 +13,7 @@ pub struct VValSampleBuf {
 
 impl VValSampleBuf {
     pub fn from_vec(v: Vec<f32>) -> Self {
-        Self {
-            buf: Arc::new(Mutex::new(v)),
-        }
+        Self { buf: Arc::new(Mutex::new(v)) }
     }
 }
 
@@ -39,17 +37,12 @@ impl vval::VValUserData for VValSampleBuf {
 
     fn get_key(&self, key: &str) -> Option<VVal> {
         let idx = key.parse::<usize>().unwrap_or(0);
-        let val =
-            self.buf.lock().map_or(
-                None,
-                |guard| guard.get(idx).copied())?;
+        let val = self.buf.lock().map_or(None, |guard| guard.get(idx).copied())?;
 
         Some(VVal::Flt(val as f64))
     }
 
-    fn call_method(&self, key: &str, env: &mut Env)
-        -> Result<VVal, StackAction>
-    {
+    fn call_method(&self, key: &str, env: &mut Env) -> Result<VVal, StackAction> {
         let args = env.argv_ref();
 
         match key {
@@ -58,13 +51,17 @@ impl vval::VValUserData for VValSampleBuf {
 
                 let size = self.buf.lock().map_or(0, |guard| guard.len());
                 Ok(VVal::Int(size as i64))
-            },
+            }
             _ => Ok(VVal::err_msg(&format!("Unknown method called: {}", key))),
         }
     }
 
-    fn as_any(&mut self) -> &mut dyn std::any::Any { self }
-    fn clone_ud(&self) -> Box<dyn vval::VValUserData> { Box::new(self.clone()) }
+    fn as_any(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
+    fn clone_ud(&self) -> Box<dyn vval::VValUserData> {
+        Box::new(self.clone())
+    }
 }
 
 fn vv2sample_buf(mut v: VVal) -> Option<Arc<Mutex<Vec<f32>>>> {
@@ -74,4 +71,3 @@ fn vv2sample_buf(mut v: VVal) -> Option<Arc<Mutex<Vec<f32>>>> {
 fn sample_buf2vv(r: Arc<Mutex<Vec<f32>>>) -> VVal {
     VVal::new_usr(VValSampleBuf { buf: r })
 }
-

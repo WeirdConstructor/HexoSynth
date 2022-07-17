@@ -3,12 +3,9 @@
 // See README.md and COPYING for details.
 
 //use crate::arg_chk;
-use wlambda::*;
-pub use hexotk::{
-    UIPatternModel, PatternData,
-    PatternEditorFeedback, PatternEditorFeedbackDummy
-};
+pub use hexotk::{PatternData, PatternEditorFeedback, PatternEditorFeedbackDummy, UIPatternModel};
 use std::sync::{Arc, Mutex};
+use wlambda::*;
 
 #[derive(Clone)]
 pub struct VVPatEditFb(Arc<Mutex<dyn PatternEditorFeedback>>);
@@ -24,13 +21,17 @@ impl VVPatEditFb {
 }
 
 impl VValUserData for VVPatEditFb {
-    fn s(&self) -> String { format!("$<UI::PatEditFb>") }
-    fn as_any(&mut self) -> &mut dyn std::any::Any { self }
-    fn clone_ud(&self) -> Box<dyn vval::VValUserData> { Box::new(self.clone()) }
+    fn s(&self) -> String {
+        format!("$<UI::PatEditFb>")
+    }
+    fn as_any(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
+    fn clone_ud(&self) -> Box<dyn vval::VValUserData> {
+        Box::new(self.clone())
+    }
 
-    fn call_method(&self, key: &str, _env: &mut Env)
-        -> Result<VVal, StackAction>
-    {
+    fn call_method(&self, key: &str, _env: &mut Env) -> Result<VVal, StackAction> {
         match key {
             _ => Ok(VVal::err_msg(&format!("Unknown method called: {}", key))),
         }
@@ -38,7 +39,7 @@ impl VValUserData for VVPatEditFb {
 }
 
 pub fn vv2pat_edit_feedback(mut v: VVal) -> Option<Arc<Mutex<dyn PatternEditorFeedback>>> {
-    v.with_usr_ref(|data: &mut VVPatEditFb| { data.0.clone() })
+    v.with_usr_ref(|data: &mut VVPatEditFb| data.0.clone())
 }
 
 #[derive(Clone)]
@@ -55,13 +56,17 @@ impl VVPatModel {
 }
 
 impl VValUserData for VVPatModel {
-    fn s(&self) -> String { format!("$<UI::PatModel>") }
-    fn as_any(&mut self) -> &mut dyn std::any::Any { self }
-    fn clone_ud(&self) -> Box<dyn vval::VValUserData> { Box::new(self.clone()) }
+    fn s(&self) -> String {
+        format!("$<UI::PatModel>")
+    }
+    fn as_any(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
+    fn clone_ud(&self) -> Box<dyn vval::VValUserData> {
+        Box::new(self.clone())
+    }
 
-    fn call_method(&self, key: &str, _env: &mut Env)
-        -> Result<VVal, StackAction>
-    {
+    fn call_method(&self, key: &str, _env: &mut Env) -> Result<VVal, StackAction> {
         match key {
             _ => Ok(VVal::err_msg(&format!("Unknown method called: {}", key))),
         }
@@ -69,5 +74,5 @@ impl VValUserData for VVPatModel {
 }
 
 pub fn vv2pat_model(mut v: VVal) -> Option<Arc<Mutex<dyn UIPatternModel>>> {
-    v.with_usr_ref(|data: &mut VVPatModel| { data.0.clone() })
+    v.with_usr_ref(|data: &mut VVPatModel| data.0.clone())
 }

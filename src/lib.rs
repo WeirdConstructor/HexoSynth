@@ -4,7 +4,7 @@
 
 #![allow(incomplete_features)]
 
-use hexotk::{UI, open_window, Units, Rect, TestScript, HexoTKWindowHandle};
+use hexotk::{open_window, HexoTKWindowHandle, Rect, TestScript, Units, UI};
 //pub mod ui;
 //pub mod ui_ctrl;
 mod cluster;
@@ -17,16 +17,16 @@ pub mod wlapi;
 
 //use ui_ctrl::UICtrlRef;
 
-use wlambda::*;
 use wlambda::vval::VVal;
+use wlambda::*;
 
 mod matrix_param_model;
 
 use raw_window_handle::RawWindowHandle;
 
+use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
-use std::cell::RefCell;
 
 //pub use uimsg_queue::Msg;
 pub use hexodsp::*;
@@ -47,13 +47,13 @@ pub fn init_hexosynth() -> (Matrix, NodeExecutor) {
     let (w, h) = (16, 16);
     let mut matrix = Matrix::new(node_conf, w, h);
 
-    matrix.place(0, 1, Cell::empty(NodeId::Sin(0))
-                       .out(Some(0), None, None));
-    matrix.place(1, 0, Cell::empty(NodeId::Amp(0))
-                       .out(Some(0), None, None)
-                       .input(None, None, Some(0)));
-    matrix.place(2, 0, Cell::empty(NodeId::Out(0))
-                       .input(None, None, Some(0)));
+    matrix.place(0, 1, Cell::empty(NodeId::Sin(0)).out(Some(0), None, None));
+    matrix.place(
+        1,
+        0,
+        Cell::empty(NodeId::Amp(0)).out(Some(0), None, None).input(None, None, Some(0)),
+    );
+    matrix.place(2, 0, Cell::empty(NodeId::Out(0)).input(None, None, Some(0)));
 
     let gain_p = NodeId::Amp(0).inp_param("gain").unwrap();
     matrix.set_param(gain_p, gain_p.norm(0.06).into());
@@ -75,9 +75,7 @@ pub struct OpenHexoSynthConfig {
 
 impl OpenHexoSynthConfig {
     pub fn new() -> Self {
-        Self {
-            show_cursor: false,
-        }
+        Self { show_cursor: false }
     }
 }
 
@@ -107,12 +105,9 @@ impl HexoSynthGUIHandle {
 /// constructed.
 pub fn open_hexosynth(
     parent: Option<RawWindowHandle>,
-    matrix: Arc<Mutex<Matrix>>) -> HexoSynthGUIHandle
-{
-    open_hexosynth_with_config(
-        parent,
-        matrix,
-        OpenHexoSynthConfig::default())
+    matrix: Arc<Mutex<Matrix>>,
+) -> HexoSynthGUIHandle {
+    open_hexosynth_with_config(parent, matrix, OpenHexoSynthConfig::default())
 }
 
 //#[macro_export]
@@ -172,114 +167,133 @@ impl VUIStyle {
 //}
 
 fn vv2clr(v: &VVal) -> (f32, f32, f32) {
-    (v.v_f(0) as f32,
-     v.v_f(1) as f32,
-     v.v_f(2) as f32)
+    (v.v_f(0) as f32, v.v_f(1) as f32, v.v_f(2) as f32)
 }
 
 fn set_style_from_key(style: &mut hexotk::Style, key: &str, v: &VVal) -> bool {
     match key {
-        "border"              => { style.border     = v.f() as f32; }
-        "font_size"           => { style.font_size  = v.f() as f32; }
-        "pad_left"            => { style.pad_left   = v.f() as f32; }
-        "pad_right"           => { style.pad_right  = v.f() as f32; }
-        "pad_top"             => { style.pad_top    = v.f() as f32; }
-        "pad_bottom"          => { style.pad_bottom = v.f() as f32; }
+        "border" => {
+            style.border = v.f() as f32;
+        }
+        "font_size" => {
+            style.font_size = v.f() as f32;
+        }
+        "pad_left" => {
+            style.pad_left = v.f() as f32;
+        }
+        "pad_right" => {
+            style.pad_right = v.f() as f32;
+        }
+        "pad_top" => {
+            style.pad_top = v.f() as f32;
+        }
+        "pad_bottom" => {
+            style.pad_bottom = v.f() as f32;
+        }
         "shadow_offs" => {
             style.shadow_offs = (v.v_f(0) as f32, v.v_f(1) as f32);
         }
-        "color"               => { style.color               = vv2clr(v); }
-        "bg_color"            => { style.bg_color            = vv2clr(v); }
-        "border_color"        => { style.border_color        = vv2clr(v); }
-        "shadow_color"        => { style.shadow_color        = vv2clr(v); }
-        "hover_shadow_color"  => { style.hover_shadow_color  = vv2clr(v); }
-        "hover_border_color"  => { style.hover_border_color  = vv2clr(v); }
-        "hover_color"         => { style.hover_color         = vv2clr(v); }
-        "active_shadow_color" => { style.active_shadow_color = vv2clr(v); }
-        "active_border_color" => { style.active_border_color = vv2clr(v); }
-        "active_color"        => { style.active_color        = vv2clr(v); }
+        "color" => {
+            style.color = vv2clr(v);
+        }
+        "bg_color" => {
+            style.bg_color = vv2clr(v);
+        }
+        "border_color" => {
+            style.border_color = vv2clr(v);
+        }
+        "shadow_color" => {
+            style.shadow_color = vv2clr(v);
+        }
+        "hover_shadow_color" => {
+            style.hover_shadow_color = vv2clr(v);
+        }
+        "hover_border_color" => {
+            style.hover_border_color = vv2clr(v);
+        }
+        "hover_color" => {
+            style.hover_color = vv2clr(v);
+        }
+        "active_shadow_color" => {
+            style.active_shadow_color = vv2clr(v);
+        }
+        "active_border_color" => {
+            style.active_border_color = vv2clr(v);
+        }
+        "active_color" => {
+            style.active_color = vv2clr(v);
+        }
         "text_align" => {
-            style.text_align =
-                v.with_s_ref(|vs| {
-                    match vs {
-                        "center" => hexotk::Align::Center,
-                        "left"   => hexotk::Align::Left,
-                        "right"  => hexotk::Align::Right,
-                        _        => hexotk::Align::Left,
-                    }
-                });
-        },
+            style.text_align = v.with_s_ref(|vs| match vs {
+                "center" => hexotk::Align::Center,
+                "left" => hexotk::Align::Left,
+                "right" => hexotk::Align::Right,
+                _ => hexotk::Align::Left,
+            });
+        }
         "border_style" => {
-            style.border_style =
-                if v.is_vec() {
-                    let bs = v.v_(0);
-                    bs.with_s_ref(|bs| {
-                        match bs {
-                            "rect"  => hexotk::BorderStyle::Rect,
-                            "hex"   => hexotk::BorderStyle::Hex {
-                                offset: v.v_f(1) as f32,
-                            },
-                            "bevel" => {
-                                let offs = v.v_(1);
-                                hexotk::BorderStyle::Bevel {
-                                    corner_offsets: (
-                                        offs.v_f(0) as f32,
-                                        offs.v_f(1) as f32,
-                                        offs.v_f(2) as f32,
-                                        offs.v_f(3) as f32
-                                    )
-                                }
-                            }
-                            _ => hexotk::BorderStyle::Rect
+            style.border_style = if v.is_vec() {
+                let bs = v.v_(0);
+                bs.with_s_ref(|bs| match bs {
+                    "rect" => hexotk::BorderStyle::Rect,
+                    "hex" => hexotk::BorderStyle::Hex { offset: v.v_f(1) as f32 },
+                    "bevel" => {
+                        let offs = v.v_(1);
+                        hexotk::BorderStyle::Bevel {
+                            corner_offsets: (
+                                offs.v_f(0) as f32,
+                                offs.v_f(1) as f32,
+                                offs.v_f(2) as f32,
+                                offs.v_f(3) as f32,
+                            ),
                         }
-                    })
-                } else {
-                    v.with_s_ref(|bs| {
-                        match bs {
-                            "rect"  => hexotk::BorderStyle::Rect,
-                            "hex"   => hexotk::BorderStyle::Hex {
-                                offset: 5.0
-                            },
-                            "bevel" => hexotk::BorderStyle::Bevel {
-                                corner_offsets: (5.0, 5.0, 5.0, 5.0)
-                            },
-                            _ => hexotk::BorderStyle::Rect
-                        }
-                    })
-                };
+                    }
+                    _ => hexotk::BorderStyle::Rect,
+                })
+            } else {
+                v.with_s_ref(|bs| match bs {
+                    "rect" => hexotk::BorderStyle::Rect,
+                    "hex" => hexotk::BorderStyle::Hex { offset: 5.0 },
+                    "bevel" => hexotk::BorderStyle::Bevel { corner_offsets: (5.0, 5.0, 5.0, 5.0) },
+                    _ => hexotk::BorderStyle::Rect,
+                })
+            };
         }
         "text_valign" => {
-            style.text_valign =
-                v.with_s_ref(|vs| {
-                    match vs {
-                        "middle" => hexotk::VAlign::Middle,
-                        "top"    => hexotk::VAlign::Top,
-                        "bottom" => hexotk::VAlign::Bottom,
-                        _        => hexotk::VAlign::Middle,
-                    }
-                });
-        },
-        _ => { return false; }
+            style.text_valign = v.with_s_ref(|vs| match vs {
+                "middle" => hexotk::VAlign::Middle,
+                "top" => hexotk::VAlign::Top,
+                "bottom" => hexotk::VAlign::Bottom,
+                _ => hexotk::VAlign::Middle,
+            });
+        }
+        _ => {
+            return false;
+        }
     }
 
     true
 }
 
 impl VValUserData for VUIStyle {
-    fn s(&self) -> String { format!("$<UI::Style>") }
-    fn as_any(&mut self) -> &mut dyn std::any::Any { self }
-    fn clone_ud(&self) -> Box<dyn vval::VValUserData> { Box::new(self.clone()) }
+    fn s(&self) -> String {
+        format!("$<UI::Style>")
+    }
+    fn as_any(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
+    fn clone_ud(&self) -> Box<dyn vval::VValUserData> {
+        Box::new(self.clone())
+    }
 
-    fn call_method(&self, key: &str, env: &mut Env)
-        -> Result<VVal, StackAction>
-    {
+    fn call_method(&self, key: &str, env: &mut Env) -> Result<VVal, StackAction> {
         let args = env.argv_ref();
 
         match key {
             "clone" => {
                 arg_chk!(args, 0, "$<UI::TextMut>.clone[]");
                 Ok(VVal::new_usr(VUIStyle::from(self.style.borrow().clone())))
-            },
+            }
             "clone_set" => {
                 arg_chk!(args, 1, "$<UI::TextMut>.clone_set[map]");
                 let mut new_style = (**self.style.borrow()).clone();
@@ -298,7 +312,8 @@ impl VValUserData for VUIStyle {
                             if bad_key {
                                 return Ok(VVal::err_msg(&format!(
                                     "$<UI::TextMut>.clone_set called with unknown key: {}",
-                                    k.s_raw())));
+                                    k.s_raw()
+                                )));
                             }
                         }
                     }
@@ -308,7 +323,7 @@ impl VValUserData for VUIStyle {
 
                 if let Ok(v) = &ret {
                     if v.b() {
-                        return Ok(VVal::new_usr(VUIStyle::from(Rc::new(new_style))))
+                        return Ok(VVal::new_usr(VUIStyle::from(Rc::new(new_style))));
                     }
                 }
 
@@ -333,7 +348,8 @@ impl VValUserData for VUIStyle {
                             if bad_key {
                                 return Ok(VVal::err_msg(&format!(
                                     "$<UI::TextMut>.set called with unknown key: {}",
-                                    k.s_raw())));
+                                    k.s_raw()
+                                )));
                             }
                         }
                     }
@@ -348,7 +364,7 @@ impl VValUserData for VUIStyle {
                 }
 
                 ret
-            },
+            }
             _ => Ok(VVal::err_msg(&format!("Unknown method called: {}", key))),
         }
     }
@@ -365,20 +381,22 @@ pub struct VUITextMut {
 
 impl VUITextMut {
     pub fn new(s: String) -> Self {
-        Self {
-            txtmut: Rc::new(RefCell::new(hexotk::CloneMutable::new(s))),
-        }
+        Self { txtmut: Rc::new(RefCell::new(hexotk::CloneMutable::new(s))) }
     }
 }
 
 impl VValUserData for VUITextMut {
-    fn s(&self) -> String { format!("$<UI::TextMut({})>", **self.txtmut.borrow()) }
-    fn as_any(&mut self) -> &mut dyn std::any::Any { self }
-    fn clone_ud(&self) -> Box<dyn vval::VValUserData> { Box::new(self.clone()) }
+    fn s(&self) -> String {
+        format!("$<UI::TextMut({})>", **self.txtmut.borrow())
+    }
+    fn as_any(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
+    fn clone_ud(&self) -> Box<dyn vval::VValUserData> {
+        Box::new(self.clone())
+    }
 
-    fn call_method(&self, key: &str, env: &mut Env)
-        -> Result<VVal, StackAction>
-    {
+    fn call_method(&self, key: &str, env: &mut Env) -> Result<VVal, StackAction> {
         let args = env.argv_ref();
 
         match key {
@@ -388,7 +406,7 @@ impl VValUserData for VUITextMut {
                 **self.txtmut.borrow_mut() = env.arg(0).s_raw();
 
                 Ok(env.arg(0))
-            },
+            }
             _ => Ok(VVal::err_msg(&format!("Unknown method called: {}", key))),
         }
     }
@@ -413,20 +431,18 @@ impl VUIWidget {
 
 fn mbutton2vv(btn: hexotk::MButton) -> VVal {
     match btn {
-        hexotk::MButton::Left   => VVal::new_sym("left"),
+        hexotk::MButton::Left => VVal::new_sym("left"),
         hexotk::MButton::Middle => VVal::new_sym("middle"),
-        hexotk::MButton::Right  => VVal::new_sym("right"),
+        hexotk::MButton::Right => VVal::new_sym("right"),
     }
 }
 
 fn vv2mbutton(vv: &VVal) -> hexotk::MButton {
-    vv.with_s_ref(|s| {
-        match s {
-            "0" | "1" | "left" | "l" | "L" => hexotk::MButton::Left,
-            "2" | "right" | "r" | "R"      => hexotk::MButton::Right,
-            "3" | "middle" | "m" | "M"     => hexotk::MButton::Middle,
-            _ => hexotk::MButton::Left,
-        }
+    vv.with_s_ref(|s| match s {
+        "0" | "1" | "left" | "l" | "L" => hexotk::MButton::Left,
+        "2" | "right" | "r" | "R" => hexotk::MButton::Right,
+        "3" | "middle" | "m" | "M" => hexotk::MButton::Middle,
+        _ => hexotk::MButton::Left,
     })
 }
 
@@ -434,49 +450,42 @@ fn vv2units(v: &VVal) -> Result<Option<Units>, String> {
     if v.is_none() {
         Ok(None)
     } else if v.is_str() || v.is_sym() {
-        v.with_s_ref(|s|
-            match s {
-                "auto" => Ok(Some(Units::Auto)),
-                _      => Err(format!("Unknown unit: {}", s)),
-            })
+        v.with_s_ref(|s| match s {
+            "auto" => Ok(Some(Units::Auto)),
+            _ => Err(format!("Unknown unit: {}", s)),
+        })
     } else {
         let unit_type = v.v_(0);
-        let value     = v.v_(1);
-        unit_type.with_s_ref(|unit|
-            match unit {
-                "pixels"  => Ok(Some(Units::Pixels(value.f() as f32))),
-                "percent" => Ok(Some(Units::Percentage(value.f() as f32))),
-                "stretch" => Ok(Some(Units::Stretch(value.f() as f32))),
-                _         => Err(format!("Unknown unit: {}", unit)),
-            })
+        let value = v.v_(1);
+        unit_type.with_s_ref(|unit| match unit {
+            "pixels" => Ok(Some(Units::Pixels(value.f() as f32))),
+            "percent" => Ok(Some(Units::Percentage(value.f() as f32))),
+            "stretch" => Ok(Some(Units::Stretch(value.f() as f32))),
+            _ => Err(format!("Unknown unit: {}", unit)),
+        })
     }
 }
 
 fn vv2rect(v: &VVal) -> Rect {
-    Rect {
-        x: v.v_f(0) as f32,
-        y: v.v_f(1) as f32,
-        w: v.v_f(2) as f32,
-        h: v.v_f(3) as f32,
-    }
+    Rect { x: v.v_f(0) as f32, y: v.v_f(1) as f32, w: v.v_f(2) as f32, h: v.v_f(3) as f32 }
 }
 
 fn rect2vv(r: &Rect) -> VVal {
-    VVal::fvec4(
-        r.x as f64,
-        r.y as f64,
-        r.h as f64,
-        r.w as f64)
+    VVal::fvec4(r.x as f64, r.y as f64, r.h as f64, r.w as f64)
 }
 
 impl VValUserData for VUIWidget {
-    fn s(&self) -> String { format!("$<UI::Widget({})>", self.0.unique_id()) }
-    fn as_any(&mut self) -> &mut dyn std::any::Any { self }
-    fn clone_ud(&self) -> Box<dyn vval::VValUserData> { Box::new(self.clone()) }
+    fn s(&self) -> String {
+        format!("$<UI::Widget({})>", self.0.unique_id())
+    }
+    fn as_any(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
+    fn clone_ud(&self) -> Box<dyn vval::VValUserData> {
+        Box::new(self.clone())
+    }
 
-    fn call_method(&self, key: &str, env: &mut Env)
-        -> Result<VVal, StackAction>
-    {
+    fn call_method(&self, key: &str, env: &mut Env) -> Result<VVal, StackAction> {
         let args = env.argv_ref();
 
         match key {
@@ -494,7 +503,7 @@ impl VValUserData for VUIWidget {
                 arg_chk!(args, 0, "$<UI::Widget>.enable_cache[]");
                 self.0.enable_cache();
                 Ok(VVal::Bol(true))
-            },
+            }
             "is_visible" => {
                 arg_chk!(args, 0, "$<UI::Widget>.is_visible[]");
                 Ok(VVal::Bol(self.0.is_visible()))
@@ -508,7 +517,7 @@ impl VValUserData for VUIWidget {
                 arg_chk!(args, 0, "$<UI::Widget>.popup_at_mouse[]");
                 self.0.popup_at(hexotk::PopupPos::MousePos);
                 Ok(VVal::Bol(true))
-            },
+            }
             "add" => {
                 arg_chk!(args, 1, "$<UI::Widget>.add[widget]");
 
@@ -523,12 +532,12 @@ impl VValUserData for VUIWidget {
                 arg_chk!(args, 1, "$<UI::Widget>.set_pos[rect]");
                 self.0.set_pos(vv2rect(&env.arg(0)));
                 Ok(VVal::Bol(true))
-            },
+            }
             "set_tag" => {
                 arg_chk!(args, 1, "$<UI::Widget>.set_tag[tag_string]");
                 self.0.set_tag(args[0].s_raw());
                 Ok(VVal::Bol(true))
-            },
+            }
             "remove_childs" => {
                 arg_chk!(args, 0, "$<UI::Widget>.remove_childs[]");
 
@@ -572,66 +581,73 @@ impl VValUserData for VUIWidget {
                                     "position_type" => {
                                         if v.is_none() {
                                             layout.position_type = None;
-
                                         } else {
                                             let ls = v.s_raw();
-                                            layout.position_type =
-                                                match &ls[..] {
-                                                    "self"   => Some(hexotk::PositionType::SelfDirected),
-                                                    "parent" => Some(hexotk::PositionType::ParentDirected),
-                                                    _ => {
-                                                        return Err(format!("Unknown position_type assigned: {}", ls));
-                                                    },
-                                                };
+                                            layout.position_type = match &ls[..] {
+                                                "self" => Some(hexotk::PositionType::SelfDirected),
+                                                "parent" => {
+                                                    Some(hexotk::PositionType::ParentDirected)
+                                                }
+                                                _ => {
+                                                    return Err(format!(
+                                                        "Unknown position_type assigned: {}",
+                                                        ls
+                                                    ));
+                                                }
+                                            };
                                         }
-                                    },
+                                    }
                                     "layout_type" => {
                                         if v.is_none() {
                                             layout.layout_type = None;
-
                                         } else {
                                             let ls = v.s_raw();
-                                            layout.layout_type =
-                                                match &ls[..] {
-                                                    "row"    => Some(hexotk::LayoutType::Row),
-                                                    "column" => Some(hexotk::LayoutType::Column),
-                                                    "grid"   => Some(hexotk::LayoutType::Grid),
-                                                    _ => {
-                                                        return Err(format!("Unknown layout_type assigned: {}", ls));
-                                                    },
-                                                };
+                                            layout.layout_type = match &ls[..] {
+                                                "row" => Some(hexotk::LayoutType::Row),
+                                                "column" => Some(hexotk::LayoutType::Column),
+                                                "grid" => Some(hexotk::LayoutType::Grid),
+                                                _ => {
+                                                    return Err(format!(
+                                                        "Unknown layout_type assigned: {}",
+                                                        ls
+                                                    ));
+                                                }
+                                            };
                                         }
-                                    },
+                                    }
                                     "visible" => {
                                         layout.visible = v.b();
                                     }
-                                    "width"        => { layout.width        = vv2units(&v)? },
-                                    "height"       => { layout.height       = vv2units(&v)? },
-                                    "left"         => { layout.left         = vv2units(&v)? },
-                                    "top"          => { layout.top          = vv2units(&v)? },
-                                    "right"        => { layout.right        = vv2units(&v)? },
-                                    "bottom"       => { layout.bottom       = vv2units(&v)? },
-                                    "max_height"   => { layout.max_height   = vv2units(&v)? },
-                                    "min_height"   => { layout.min_height   = vv2units(&v)? },
-                                    "max_width"    => { layout.max_width    = vv2units(&v)? },
-                                    "min_width"    => { layout.min_width    = vv2units(&v)? },
-                                    "max_left"     => { layout.max_left     = vv2units(&v)? },
-                                    "min_left"     => { layout.min_left     = vv2units(&v)? },
-                                    "max_top"      => { layout.max_top      = vv2units(&v)? },
-                                    "min_top"      => { layout.min_top      = vv2units(&v)? },
-                                    "max_right"    => { layout.max_right    = vv2units(&v)? },
-                                    "min_right"    => { layout.min_right    = vv2units(&v)? },
-                                    "max_bottom"   => { layout.max_bottom   = vv2units(&v)? },
-                                    "min_bottom"   => { layout.min_bottom   = vv2units(&v)? },
-                                    "child_left"   => { layout.child_left   = vv2units(&v)? },
-                                    "child_top"    => { layout.child_top    = vv2units(&v)? },
-                                    "child_right"  => { layout.child_right  = vv2units(&v)? },
-                                    "child_bottom" => { layout.child_bottom = vv2units(&v)? },
-                                    "col_between"  => { layout.col_between  = vv2units(&v)? },
-                                    "row_between"  => { layout.row_between  = vv2units(&v)? },
+                                    "width" => layout.width = vv2units(&v)?,
+                                    "height" => layout.height = vv2units(&v)?,
+                                    "left" => layout.left = vv2units(&v)?,
+                                    "top" => layout.top = vv2units(&v)?,
+                                    "right" => layout.right = vv2units(&v)?,
+                                    "bottom" => layout.bottom = vv2units(&v)?,
+                                    "max_height" => layout.max_height = vv2units(&v)?,
+                                    "min_height" => layout.min_height = vv2units(&v)?,
+                                    "max_width" => layout.max_width = vv2units(&v)?,
+                                    "min_width" => layout.min_width = vv2units(&v)?,
+                                    "max_left" => layout.max_left = vv2units(&v)?,
+                                    "min_left" => layout.min_left = vv2units(&v)?,
+                                    "max_top" => layout.max_top = vv2units(&v)?,
+                                    "min_top" => layout.min_top = vv2units(&v)?,
+                                    "max_right" => layout.max_right = vv2units(&v)?,
+                                    "min_right" => layout.min_right = vv2units(&v)?,
+                                    "max_bottom" => layout.max_bottom = vv2units(&v)?,
+                                    "min_bottom" => layout.min_bottom = vv2units(&v)?,
+                                    "child_left" => layout.child_left = vv2units(&v)?,
+                                    "child_top" => layout.child_top = vv2units(&v)?,
+                                    "child_right" => layout.child_right = vv2units(&v)?,
+                                    "child_bottom" => layout.child_bottom = vv2units(&v)?,
+                                    "col_between" => layout.col_between = vv2units(&v)?,
+                                    "row_between" => layout.row_between = vv2units(&v)?,
                                     _ => {
-                                        return Err(format!("Unknown layout field assigned: {}", ks));
-                                    },
+                                        return Err(format!(
+                                            "Unknown layout field assigned: {}",
+                                            ks
+                                        ));
+                                    }
                                 }
 
                                 Ok(())
@@ -838,7 +854,7 @@ impl VValUserData for VUIWidget {
                             &format!("Unknown control assigned: {}", typ))),
                     }
                 })
-            },
+            }
             "reg" => {
                 arg_chk!(args, 2, "$<UI::Widget>.reg[event_name, callback_fn]");
 
@@ -848,79 +864,88 @@ impl VValUserData for VUIWidget {
                 self.0.reg(&env.arg(0).s_raw(), {
                     move |ctx, wid, ev| {
                         let mut user_data_out = None;
-                        let mut drop_accept   = None;
+                        let mut drop_accept = None;
 
                         if let Some(ctx) = ctx.downcast_mut::<EvalContext>() {
                             //d// println!("WID={:?}", wid);
                             //d// println!("EV={:?}", ev);
-                            let arg =
-                                match &ev.data {
-                                    hexotk::EvPayload::Button(btn) => {
-                                        mbutton2vv(*btn)
-                                    }
-                                    hexotk::EvPayload::HexGridPos { x, y } => {
-                                        VVal::map2(
-                                            "x",      VVal::Int(*x as i64),
-                                            "y",      VVal::Int(*y as i64))
-                                    },
-                                    hexotk::EvPayload::HexGridClick { x, y, button } => {
-                                        VVal::map3(
-                                            "x",      VVal::Int(*x as i64),
-                                            "y",      VVal::Int(*y as i64),
-                                            "button", mbutton2vv(*button))
-                                    },
-                                    hexotk::EvPayload::HexGridDrag {
-                                        x_src, y_src, x_dst, y_dst, button
-                                    } => {
-                                        let m = VVal::map2(
-                                            "x_src", VVal::Int(*x_src as i64),
-                                            "y_src", VVal::Int(*y_src as i64));
-                                        let _ = m.set_key_str("x_dst", VVal::Int(*x_dst as i64));
-                                        let _ = m.set_key_str("y_dst", VVal::Int(*y_dst as i64));
-                                        let _ = m.set_key_str("button", mbutton2vv(*button));
-                                        m
-                                    },
-                                    hexotk::EvPayload::UserData(rc) => {
-                                        user_data_out = Some(rc.clone());
+                            let arg = match &ev.data {
+                                hexotk::EvPayload::Button(btn) => mbutton2vv(*btn),
+                                hexotk::EvPayload::HexGridPos { x, y } => {
+                                    VVal::map2("x", VVal::Int(*x as i64), "y", VVal::Int(*y as i64))
+                                }
+                                hexotk::EvPayload::HexGridClick { x, y, button } => VVal::map3(
+                                    "x",
+                                    VVal::Int(*x as i64),
+                                    "y",
+                                    VVal::Int(*y as i64),
+                                    "button",
+                                    mbutton2vv(*button),
+                                ),
+                                hexotk::EvPayload::HexGridDrag {
+                                    x_src,
+                                    y_src,
+                                    x_dst,
+                                    y_dst,
+                                    button,
+                                } => {
+                                    let m = VVal::map2(
+                                        "x_src",
+                                        VVal::Int(*x_src as i64),
+                                        "y_src",
+                                        VVal::Int(*y_src as i64),
+                                    );
+                                    let _ = m.set_key_str("x_dst", VVal::Int(*x_dst as i64));
+                                    let _ = m.set_key_str("y_dst", VVal::Int(*y_dst as i64));
+                                    let _ = m.set_key_str("button", mbutton2vv(*button));
+                                    m
+                                }
+                                hexotk::EvPayload::UserData(rc) => {
+                                    user_data_out = Some(rc.clone());
+                                    VVal::None
+                                }
+                                hexotk::EvPayload::DropAccept(rc) => {
+                                    drop_accept = Some(rc.clone());
+
+                                    if let Some(d) = rc.borrow().0.borrow().downcast_ref::<VVal>() {
+                                        d.clone()
+                                    } else {
                                         VVal::None
                                     }
-                                    hexotk::EvPayload::DropAccept(rc) => {
-                                        drop_accept = Some(rc.clone());
-
-                                        if let Some(d) = rc.borrow().0.borrow().downcast_ref::<VVal>() {
-                                            d.clone()
-                                        } else {
-                                            VVal::None
-                                        }
+                                }
+                                hexotk::EvPayload::HexGridDropData { x, y, data: rc } => {
+                                    let m = VVal::map2(
+                                        "x",
+                                        VVal::Int(*x as i64),
+                                        "y",
+                                        VVal::Int(*y as i64),
+                                    );
+                                    if let Some(d) = rc.borrow().as_ref().downcast_ref::<VVal>() {
+                                        let _ = m.set_key_str("data", d.clone());
                                     }
-                                    hexotk::EvPayload::HexGridDropData { x, y, data: rc } => {
-                                        let m = VVal::map2(
-                                            "x", VVal::Int(*x as i64),
-                                            "y", VVal::Int(*y as i64));
-                                        if let Some(d) = rc.borrow().as_ref().downcast_ref::<VVal>() {
-                                            let _ = m.set_key_str("data", d.clone());
-                                        }
-                                        m
-                                    },
-                                    _ => VVal::None,
-                                };
+                                    m
+                                }
+                                _ => VVal::None,
+                            };
 
                             match ctx.call(&cb, &[VVal::new_usr(VUIWidget::from(wid)), arg]) {
                                 Ok(v) => {
                                     if let Some(drop_acc) = drop_accept {
                                         drop_acc.borrow_mut().1 = v.b();
                                     } else if let Some(ud) = user_data_out {
-//                                        let data : Box<dyn std::any::Any> = Box::new(10_usize);
+                                        //                                        let data : Box<dyn std::any::Any> = Box::new(10_usize);
                                         *ud.borrow_mut() = Box::new(v);
                                     }
-                                },
-                                Err(e) => { println!("ERROR in widget callback: {}", e); }
+                                }
+                                Err(e) => {
+                                    println!("ERROR in widget callback: {}", e);
+                                }
                             }
                         }
                     }
                 });
                 Ok(VVal::Bol(true))
-            },
+            }
             _ => Ok(VVal::err_msg(&format!("Unknown method called: {}", key))),
         }
     }
@@ -940,13 +965,17 @@ impl VTestScript {
 }
 
 impl VValUserData for VTestScript {
-    fn s(&self) -> String { format!("$<UI::TestScript({})>", self.0.borrow().name()) }
-    fn as_any(&mut self) -> &mut dyn std::any::Any { self }
-    fn clone_ud(&self) -> Box<dyn vval::VValUserData> { Box::new(self.clone()) }
+    fn s(&self) -> String {
+        format!("$<UI::TestScript({})>", self.0.borrow().name())
+    }
+    fn as_any(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
+    fn clone_ud(&self) -> Box<dyn vval::VValUserData> {
+        Box::new(self.clone())
+    }
 
-    fn call_method(&self, key: &str, env: &mut Env)
-        -> Result<VVal, StackAction>
-    {
+    fn call_method(&self, key: &str, env: &mut Env) -> Result<VVal, StackAction> {
         let args = env.argv_ref();
 
         match key {
@@ -954,7 +983,7 @@ impl VValUserData for VTestScript {
                 arg_chk!(args, 2, "$<UI::TestScript>.add_step[step_name, step_callback]");
 
                 let step_name = args[0].s_raw();
-                let step      = args[1].disable_function_arity();
+                let step = args[1].disable_function_arity();
 
                 let name = self.0.borrow().name().to_string();
 
@@ -989,9 +1018,8 @@ impl VValUserData for VTestScript {
                 }));
 
                 Ok(VVal::Bol(true))
-            },
-            _ => Ok(VVal::err_msg(
-                &format!("$<UI::TestScript> Unknown method called: {}", key))),
+            }
+            _ => Ok(VVal::err_msg(&format!("$<UI::TestScript> Unknown method called: {}", key))),
         }
     }
 }
@@ -1007,21 +1035,22 @@ impl VTestDriver {
     pub fn list_labels(&self) -> VVal {
         let ret = VVal::vec();
         for entry in self.0.borrow().get_all_labels() {
-            let ent =
-                VVal::map2(
-                    "source", VVal::new_str(entry.source),
-                    "label",  VVal::new_str_mv(entry.text));
+            let ent = VVal::map2(
+                "source",
+                VVal::new_str(entry.source),
+                "label",
+                VVal::new_str_mv(entry.text),
+            );
             let _ = ent.set_key_str(
                 "logic_pos",
-                VVal::ivec2(
-                    entry.logic_pos.0 as i64,
-                    entry.logic_pos.1 as i64));
-            let _ = ent.set_key_str("pos",     rect2vv(&entry.pos));
+                VVal::ivec2(entry.logic_pos.0 as i64, entry.logic_pos.1 as i64),
+            );
+            let _ = ent.set_key_str("pos", rect2vv(&entry.pos));
             let _ = ent.set_key_str("wid_pos", rect2vv(&entry.wid_pos));
-            let _ = ent.set_key_str("id",      VVal::Int(entry.wid_id as i64));
-            let _ = ent.set_key_str("tag",     VVal::new_str_mv(entry.tag));
-            let _ = ent.set_key_str("path",    VVal::new_str_mv(entry.tag_path));
-            let _ = ent.set_key_str("ctrl",    VVal::new_str_mv(entry.ctrl));
+            let _ = ent.set_key_str("id", VVal::Int(entry.wid_id as i64));
+            let _ = ent.set_key_str("tag", VVal::new_str_mv(entry.tag));
+            let _ = ent.set_key_str("path", VVal::new_str_mv(entry.tag_path));
+            let _ = ent.set_key_str("ctrl", VVal::new_str_mv(entry.ctrl));
             ret.push(ent);
         }
 
@@ -1030,13 +1059,17 @@ impl VTestDriver {
 }
 
 impl VValUserData for VTestDriver {
-    fn s(&self) -> String { format!("$<UI::TestDriver>") }
-    fn as_any(&mut self) -> &mut dyn std::any::Any { self }
-    fn clone_ud(&self) -> Box<dyn vval::VValUserData> { Box::new(self.clone()) }
+    fn s(&self) -> String {
+        format!("$<UI::TestDriver>")
+    }
+    fn as_any(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
+    fn clone_ud(&self) -> Box<dyn vval::VValUserData> {
+        Box::new(self.clone())
+    }
 
-    fn call_method(&self, key: &str, env: &mut Env)
-        -> Result<VVal, StackAction>
-    {
+    fn call_method(&self, key: &str, env: &mut Env) -> Result<VVal, StackAction> {
         let args = env.argv_ref();
 
         match key {
@@ -1047,17 +1080,16 @@ impl VValUserData for VTestDriver {
                 self.0.borrow_mut().inject_mouse_press_at(
                     args[0].v_f(0) as f32,
                     args[0].v_f(1) as f32,
-                    btn);
+                    btn,
+                );
                 Ok(VVal::Bol(true))
-            },
+            }
             "mouse_to" => {
                 arg_chk!(args, 1, "$<UI::TestDriver>.mouse_to[pos]");
 
-                self.0.borrow_mut().inject_mouse_to(
-                    args[0].v_f(0) as f32,
-                    args[0].v_f(1) as f32);
+                self.0.borrow_mut().inject_mouse_to(args[0].v_f(0) as f32, args[0].v_f(1) as f32);
                 Ok(VVal::Bol(true))
-            },
+            }
             "mouse_release_at" => {
                 arg_chk!(args, 2, "$<UI::TestDriver>.mouse_release_at[pos, btn]");
 
@@ -1065,95 +1097,121 @@ impl VValUserData for VTestDriver {
                 self.0.borrow_mut().inject_mouse_release_at(
                     args[0].v_f(0) as f32,
                     args[0].v_f(1) as f32,
-                    btn);
+                    btn,
+                );
                 Ok(VVal::Bol(true))
-            },
+            }
             "list_labels" => {
                 arg_chk!(args, 0, "$<UI::TestDriver>.list_labels[]");
                 Ok(self.list_labels())
-            },
+            }
             "key_press" => {
                 arg_chk!(args, 1, "$<UI::TestDriver>.key_press[key_name]");
 
                 use std::str::FromStr;
 
-                args[0].with_s_ref(|k|
+                args[0].with_s_ref(|k| {
                     if let Ok(key) = keyboard_types::Key::from_str(k) {
                         self.0.borrow_mut().inject_key_down(key);
                         Ok(VVal::Bol(true))
                     } else {
-                        Ok(VVal::err_msg(
-                            &format!("$<UI::TestDriver> Unknown key: {}", k)))
-                    })
-            },
+                        Ok(VVal::err_msg(&format!("$<UI::TestDriver> Unknown key: {}", k)))
+                    }
+                })
+            }
             "key_release" => {
                 arg_chk!(args, 1, "$<UI::TestDriver>.key_release[key_name]");
 
                 use std::str::FromStr;
 
-                args[0].with_s_ref(|k|
+                args[0].with_s_ref(|k| {
                     if let Ok(key) = keyboard_types::Key::from_str(k) {
                         self.0.borrow_mut().inject_key_up(key);
                         Ok(VVal::Bol(true))
                     } else {
-                        Ok(VVal::err_msg(
-                            &format!("$<UI::TestDriver> Unknown key: {}", k)))
-                    })
-            },
+                        Ok(VVal::err_msg(&format!("$<UI::TestDriver> Unknown key: {}", k)))
+                    }
+                })
+            }
             "char" => {
                 arg_chk!(args, 1, "$<UI::TestDriver>.char[character]");
 
-                args[0].with_s_ref(|c|
-                    self.0.borrow_mut().inject_char(c));
+                args[0].with_s_ref(|c| self.0.borrow_mut().inject_char(c));
                 Ok(VVal::Bol(true))
-            },
-            _ => Ok(VVal::err_msg(
-                &format!("$<UI::TestDriver> Unknown method called: {}", key))),
+            }
+            _ => Ok(VVal::err_msg(&format!("$<UI::TestDriver> Unknown method called: {}", key))),
         }
     }
 }
-
 
 /// The same as [open_hexosynth] but with more configuration options, see also
 /// [OpenHexoSynthConfig].
 pub fn open_hexosynth_with_config(
     parent: Option<RawWindowHandle>,
     matrix: Arc<Mutex<Matrix>>,
-    _config: OpenHexoSynthConfig
+    _config: OpenHexoSynthConfig,
 ) -> HexoSynthGUIHandle {
     let hexotk_hdl = open_window(
-        "HexoSynth", 1400, 800,
+        "HexoSynth",
+        1400,
+        800,
         parent,
         Box::new(move || {
             let global_env = GlobalEnv::new_default();
 
-            let lfmr = Rc::new(RefCell::new(
-                wlambda::compiler::LocalFileModuleResolver::new()));
+            let lfmr = Rc::new(RefCell::new(wlambda::compiler::LocalFileModuleResolver::new()));
 
-            let env_path = std::env::var("HEXOSYNTH_WLAMBDA_PATH").unwrap_or_else(|_| "".to_string());
+            let env_path =
+                std::env::var("HEXOSYNTH_WLAMBDA_PATH").unwrap_or_else(|_| "".to_string());
 
             if env_path.len() > 0 {
                 lfmr.borrow_mut().preload(
-                    "main.wl", std::fs::read_to_string(env_path.to_string() + "/main.wl").unwrap().to_string());
+                    "main.wl",
+                    std::fs::read_to_string(env_path.to_string() + "/main.wl").unwrap().to_string(),
+                );
                 lfmr.borrow_mut().preload(
-                    "wllib/styling.wl", std::fs::read_to_string(env_path.to_string() + "/wllib/styling.wl").unwrap().to_string());
+                    "wllib/styling.wl",
+                    std::fs::read_to_string(env_path.to_string() + "/wllib/styling.wl")
+                        .unwrap()
+                        .to_string(),
+                );
                 lfmr.borrow_mut().preload(
-                    "wllib/editor.wl", std::fs::read_to_string(env_path.to_string() + "/wllib/editor.wl").unwrap().to_string());
+                    "wllib/editor.wl",
+                    std::fs::read_to_string(env_path.to_string() + "/wllib/editor.wl")
+                        .unwrap()
+                        .to_string(),
+                );
                 lfmr.borrow_mut().preload(
-                    "wllib/tests.wl", std::fs::read_to_string(env_path.to_string() + "/wllib/tests.wl").unwrap().to_string());
+                    "wllib/tests.wl",
+                    std::fs::read_to_string(env_path.to_string() + "/wllib/tests.wl")
+                        .unwrap()
+                        .to_string(),
+                );
                 lfmr.borrow_mut().preload(
-                    "wllib/texts.wl", std::fs::read_to_string(env_path.to_string() + "/wllib/texts.wl").unwrap().to_string());
+                    "wllib/texts.wl",
+                    std::fs::read_to_string(env_path.to_string() + "/wllib/texts.wl")
+                        .unwrap()
+                        .to_string(),
+                );
             } else {
+                lfmr.borrow_mut()
+                    .preload("main.wl", include_str!("wlcode_compiletime/main.wl").to_string());
                 lfmr.borrow_mut().preload(
-                    "main.wl",          include_str!("wlcode_compiletime/main.wl").to_string());
+                    "wllib/styling.wl",
+                    include_str!("wlcode_compiletime/wllib/styling.wl").to_string(),
+                );
                 lfmr.borrow_mut().preload(
-                    "wllib/styling.wl", include_str!("wlcode_compiletime/wllib/styling.wl").to_string());
+                    "wllib/editor.wl",
+                    include_str!("wlcode_compiletime/wllib/editor.wl").to_string(),
+                );
                 lfmr.borrow_mut().preload(
-                    "wllib/editor.wl",  include_str!("wlcode_compiletime/wllib/editor.wl").to_string());
+                    "wllib/tests.wl",
+                    include_str!("wlcode_compiletime/wllib/tests.wl").to_string(),
+                );
                 lfmr.borrow_mut().preload(
-                    "wllib/tests.wl",   include_str!("wlcode_compiletime/wllib/tests.wl").to_string());
-                lfmr.borrow_mut().preload(
-                    "wllib/texts.wl",   include_str!("wlcode_compiletime/wllib/texts.wl").to_string());
+                    "wllib/texts.wl",
+                    include_str!("wlcode_compiletime/wllib/texts.wl").to_string(),
+                );
             }
             global_env.borrow_mut().set_resolver(lfmr);
 
@@ -1168,59 +1226,93 @@ pub fn open_hexosynth_with_config(
             let mut ui_st = wlambda::SymbolTable::new();
 
             ui_st.fun(
-                "style", move |_env: &mut Env, _argc: usize| {
-                    Ok(VVal::new_usr(VUIStyle::new()))
-                }, Some(0), Some(0), false);
+                "style",
+                move |_env: &mut Env, _argc: usize| Ok(VVal::new_usr(VUIStyle::new())),
+                Some(0),
+                Some(0),
+                false,
+            );
 
             ui_st.fun(
-                "txt", move |env: &mut Env, _argc: usize| {
+                "txt",
+                move |env: &mut Env, _argc: usize| {
                     Ok(VVal::new_usr(VUITextMut::new(env.arg(0).s_raw())))
-                }, Some(1), Some(1), false);
+                },
+                Some(1),
+                Some(1),
+                false,
+            );
 
             ui_st.fun(
-                "connector_data", move |_env: &mut Env, _argc: usize| {
+                "connector_data",
+                move |_env: &mut Env, _argc: usize| {
                     Ok(VVal::new_usr(wlapi::VValConnectorData::new()))
-                }, Some(0), Some(0), false);
+                },
+                Some(0),
+                Some(0),
+                false,
+            );
 
             ui_st.fun(
-                "wichtext_simple_data_store", move |_env: &mut Env, _argc: usize| {
+                "wichtext_simple_data_store",
+                move |_env: &mut Env, _argc: usize| {
                     Ok(VVal::new_usr(wlapi::VValWichTextSimpleDataStore::new()))
-                }, Some(0), Some(0), false);
+                },
+                Some(0),
+                Some(0),
+                false,
+            );
 
             ui_st.fun(
-                "create_pattern_feedback_dummy", |_env: &mut Env, _argc: usize| {
-                    Ok(VVal::new_usr(wlapi::VVPatEditFb::new_dummy()))
-                }, Some(0), Some(0), false);
+                "create_pattern_feedback_dummy",
+                |_env: &mut Env, _argc: usize| Ok(VVal::new_usr(wlapi::VVPatEditFb::new_dummy())),
+                Some(0),
+                Some(0),
+                false,
+            );
 
             ui_st.fun(
-                "create_pattern_data_unconnected", |env: &mut Env, _argc: usize| {
-                    Ok(VVal::new_usr(
-                        wlapi::VVPatModel::new_unconnected(
-                            env.arg(0).i() as usize)))
-                }, Some(1), Some(1), false);
+                "create_pattern_data_unconnected",
+                |env: &mut Env, _argc: usize| {
+                    Ok(VVal::new_usr(wlapi::VVPatModel::new_unconnected(env.arg(0).i() as usize)))
+                },
+                Some(1),
+                Some(1),
+                false,
+            );
 
             ui_st.fun(
-                "widget", move |env: &mut Env, _argc: usize| {
+                "widget",
+                move |env: &mut Env, _argc: usize| {
                     let style = vv2style_rc(env.arg(0));
                     if let Some(style) = style {
                         Ok(VVal::new_usr(VUIWidget::new(style)))
                     } else {
                         wl_panic!("ui:widget expected $<UI::Style> as first arg!")
                     }
-                }, Some(1), Some(1), false);
+                },
+                Some(1),
+                Some(1),
+                false,
+            );
 
             ui_st.fun(
-                "test_script", move |env: &mut Env, _argc: usize| {
+                "test_script",
+                move |env: &mut Env, _argc: usize| {
                     let name = env.arg(0).s_raw();
                     Ok(VVal::new_usr(VTestScript::new(name)))
-                }, Some(1), Some(1), false);
+                },
+                Some(1),
+                Some(1),
+                false,
+            );
 
-            let test_scripts : Rc<RefCell<Vec<TestScript>>> =
-                Rc::new(RefCell::new(vec![]));
+            let test_scripts: Rc<RefCell<Vec<TestScript>>> = Rc::new(RefCell::new(vec![]));
 
             let tscr = test_scripts.clone();
             ui_st.fun(
-                "install_test", move |env: &mut Env, _argc: usize| {
+                "install_test",
+                move |env: &mut Env, _argc: usize| {
                     if let Some(script) = vv2test_script(env.arg(0)) {
                         tscr.borrow_mut().push(script);
                     } else {
@@ -1228,23 +1320,24 @@ pub fn open_hexosynth_with_config(
                     }
 
                     Ok(VVal::None)
-                }, Some(1), Some(1), false);
+                },
+                Some(1),
+                Some(1),
+                false,
+            );
 
             for (name, clr) in hexotk::style::get_ui_colors() {
-                ui_st.set(
-                    name,
-                    VVal::fvec3(clr.0 as f64, clr.1 as f64, clr.2 as f64));
+                ui_st.set(name, VVal::fvec3(clr.0 as f64, clr.1 as f64, clr.2 as f64));
             }
 
             let std_clrs = VVal::vec();
             for clr in hexotk::style::get_standard_colors() {
-                std_clrs.push(
-                    VVal::fvec3(clr.0 as f64, clr.1 as f64, clr.2 as f64));
+                std_clrs.push(VVal::fvec3(clr.0 as f64, clr.1 as f64, clr.2 as f64));
             }
             ui_st.set("STD_COLORS", std_clrs);
 
             global_env.borrow_mut().set_module("ui", ui_st);
-            global_env.borrow_mut().set_module("hx",      wlapi::setup_hx_module(matrix.clone()));
+            global_env.borrow_mut().set_module("hx", wlapi::setup_hx_module(matrix.clone()));
             global_env.borrow_mut().set_module("node_id", wlapi::setup_node_id_module());
 
             let matrix_obs = Arc::new(wlapi::MatrixRecorder::new());
@@ -1252,19 +1345,24 @@ pub fn open_hexosynth_with_config(
 
             let mut roots = vec![];
 
-            match ctx.eval_string("!@import main; main:init ARGV; !:global on_frame = main:on_frame; main:root", "top_main") {
-                Ok(v) => {
-                    v.with_iter(|iter| {
-                        for (v, _) in iter {
-                            if let Some(widget) = vv2widget(v) {
-                                roots.push(widget);
-                            } else {
-                                println!("ERROR: Expected main.wl to return a list of UI root widgets!");
-                            }
+            match ctx.eval_string(
+                "!@import main; main:init ARGV; !:global on_frame = main:on_frame; main:root",
+                "top_main",
+            ) {
+                Ok(v) => v.with_iter(|iter| {
+                    for (v, _) in iter {
+                        if let Some(widget) = vv2widget(v) {
+                            roots.push(widget);
+                        } else {
+                            println!(
+                                "ERROR: Expected main.wl to return a list of UI root widgets!"
+                            );
                         }
-                    })
-                },
-                Err(e) => { println!("ERROR: {}", e); }
+                    }
+                }),
+                Err(e) => {
+                    println!("ERROR: {}", e);
+                }
             }
 
             let frame_cb = ctx.get_global_var("on_frame").unwrap_or(VVal::None);
@@ -1282,8 +1380,10 @@ pub fn open_hexosynth_with_config(
                 if let Some(ctx) = ctx.downcast_mut::<EvalContext>() {
                     let recs = matrix_obs.get_records();
                     match ctx.call(&frame_cb, &[recs]) {
-                        Ok(_) => { },
-                        Err(e) => { println!("ERROR in frame callback: {}", e); }
+                        Ok(_) => {}
+                        Err(e) => {
+                            println!("ERROR in frame callback: {}", e);
+                        }
                     }
                 }
             }));
@@ -1297,7 +1397,8 @@ pub fn open_hexosynth_with_config(
             }
 
             ui
-        }));
+        }),
+    );
 
     HexoSynthGUIHandle { hexotk_hdl }
 }

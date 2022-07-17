@@ -2,32 +2,32 @@
 // This file is a part of HexoSynth. Released under GPL-3.0-or-later.
 // See README.md and COPYING for details.
 
-use std::collections::HashSet;
-use hexodsp::{Matrix, Cell, CellDir, NodeId};
 use hexodsp::matrix::MatrixError;
+use hexodsp::{Cell, CellDir, Matrix, NodeId};
+use std::collections::HashSet;
 
 #[derive(Clone)]
 pub struct Cluster {
-    cells:          Vec<Cell>,
-    poses:          HashSet<(usize, usize)>,
-    ignore_pos:     HashSet<(usize, usize)>,
+    cells: Vec<Cell>,
+    poses: HashSet<(usize, usize)>,
+    ignore_pos: HashSet<(usize, usize)>,
 }
 
 impl Cluster {
     pub fn new() -> Self {
-        Self {
-            cells:      vec![],
-            poses:      HashSet::new(),
-            ignore_pos: HashSet::new(),
-        }
+        Self { cells: vec![], poses: HashSet::new(), ignore_pos: HashSet::new() }
     }
 
     pub fn for_poses<F: FnMut(&(usize, usize))>(&self, mut f: F) {
-        for p in self.poses.iter() { f(p) }
+        for p in self.poses.iter() {
+            f(p)
+        }
     }
 
     pub fn for_cells<F: FnMut(&Cell)>(&self, mut f: F) {
-        for c in self.cells.iter() { f(c) }
+        for c in self.cells.iter() {
+            f(c)
+        }
     }
 
     pub fn ignore_pos(&mut self, pos: (usize, usize)) {
@@ -60,9 +60,7 @@ impl Cluster {
                 if !cell.is_empty() {
                     for edge in 0..6 {
                         let dir = CellDir::from(edge);
-                        if let Some(new_pos) =
-                            cell.is_port_dir_connected(m, dir)
-                        {
+                        if let Some(new_pos) = cell.is_port_dir_connected(m, dir) {
                             stack.push(new_pos);
                         }
                     }

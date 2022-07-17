@@ -3,9 +3,9 @@
 // See README.md and COPYING for details.
 
 use crate::arg_chk;
-use wlambda::*;
 use hexotk::{WichTextData, WichTextSimpleDataStore};
 use std::rc::Rc;
+use wlambda::*;
 
 #[derive(Clone)]
 pub struct VValWichTextSimpleDataStore(WichTextSimpleDataStore);
@@ -17,13 +17,17 @@ impl VValWichTextSimpleDataStore {
 }
 
 impl VValUserData for VValWichTextSimpleDataStore {
-    fn s(&self) -> String { format!("$<UI::ConnectorData>") }
-    fn as_any(&mut self) -> &mut dyn std::any::Any { self }
-    fn clone_ud(&self) -> Box<dyn vval::VValUserData> { Box::new(self.clone()) }
+    fn s(&self) -> String {
+        format!("$<UI::ConnectorData>")
+    }
+    fn as_any(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
+    fn clone_ud(&self) -> Box<dyn vval::VValUserData> {
+        Box::new(self.clone())
+    }
 
-    fn call_method(&self, key: &str, env: &mut Env)
-        -> Result<VVal, StackAction>
-    {
+    fn call_method(&self, key: &str, env: &mut Env) -> Result<VVal, StackAction> {
         let args = env.argv_ref();
 
         match key {
@@ -40,8 +44,7 @@ impl VValUserData for VValWichTextSimpleDataStore {
 
 pub fn vv2wichtext_data(mut v: VVal) -> Option<Rc<dyn WichTextData>> {
     v.with_usr_ref(|data: &mut VValWichTextSimpleDataStore| {
-        let ret : Rc<dyn WichTextData> = Rc::new(data.0.clone());
+        let ret: Rc<dyn WichTextData> = Rc::new(data.0.clone());
         ret
     })
 }
-

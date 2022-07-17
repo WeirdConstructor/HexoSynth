@@ -3,16 +3,16 @@
 // See README.md and COPYING for details.
 
 //use crate::arg_chk;
-use wlambda::*;
-use hexodsp::{Matrix, NodeId, SAtom, dsp::GraphFun, dsp::GraphAtomData};
+use hexodsp::{dsp::GraphAtomData, dsp::GraphFun, Matrix, NodeId, SAtom};
 use hexotk::GraphModel;
-use std::rc::Rc;
 use std::cell::RefCell;
+use std::rc::Rc;
 use std::sync::{Arc, Mutex};
+use wlambda::*;
 
 struct NodeGraphAtomData {
-    matrix:     Arc<Mutex<Matrix>>,
-    node_id:    NodeId,
+    matrix: Arc<Mutex<Matrix>>,
+    node_id: NodeId,
 }
 
 impl GraphAtomData for NodeGraphAtomData {
@@ -56,9 +56,9 @@ impl GraphAtomData for NodeGraphAtomData {
 }
 
 struct NodeGraphModel {
-    matrix:   Arc<Mutex<Matrix>>,
+    matrix: Arc<Mutex<Matrix>>,
     nga_data: Box<dyn GraphAtomData>,
-    fun:      Option<GraphFun>,
+    fun: Option<GraphFun>,
 }
 
 impl GraphModel for NodeGraphModel {
@@ -73,8 +73,12 @@ impl GraphModel for NodeGraphModel {
             0.0
         }
     }
-    fn vline1_pos(&self) -> Option<f64> { None }
-    fn vline2_pos(&self) -> Option<f64> { None }
+    fn vline1_pos(&self) -> Option<f64> {
+        None
+    }
+    fn vline2_pos(&self) -> Option<f64> {
+        None
+    }
 }
 
 #[derive(Clone)]
@@ -83,12 +87,10 @@ pub struct VGraphModel(Rc<RefCell<dyn GraphModel>>);
 impl VGraphModel {
     pub fn new(matrix: Arc<Mutex<Matrix>>, node_id: NodeId) -> Self {
         Self(Rc::new(RefCell::new(NodeGraphModel {
-            nga_data: Box::new(
-                NodeGraphAtomData {
-                    matrix: matrix.clone(),
-                    node_id: node_id.clone(),
-                },
-            ),
+            nga_data: Box::new(NodeGraphAtomData {
+                matrix: matrix.clone(),
+                node_id: node_id.clone(),
+            }),
             fun: node_id.graph_fun(),
             matrix,
         })))
@@ -96,13 +98,17 @@ impl VGraphModel {
 }
 
 impl VValUserData for VGraphModel {
-    fn s(&self) -> String { format!("$<UI::GraphModel>") }
-    fn as_any(&mut self) -> &mut dyn std::any::Any { self }
-    fn clone_ud(&self) -> Box<dyn vval::VValUserData> { Box::new(self.clone()) }
+    fn s(&self) -> String {
+        format!("$<UI::GraphModel>")
+    }
+    fn as_any(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
+    fn clone_ud(&self) -> Box<dyn vval::VValUserData> {
+        Box::new(self.clone())
+    }
 
-    fn call_method(&self, _key: &str, _env: &mut Env)
-        -> Result<VVal, StackAction>
-    {
+    fn call_method(&self, _key: &str, _env: &mut Env) -> Result<VVal, StackAction> {
         Ok(VVal::None)
     }
 }

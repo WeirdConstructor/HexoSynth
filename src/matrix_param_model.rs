@@ -2,47 +2,41 @@
 // This file is a part of HexoSynth. Released under GPL-3.0-or-later.
 // See README.md and COPYING for details.
 
-use hexotk::{ParamModel, ChangeRes};
+use hexotk::{ChangeRes, ParamModel};
 
-use hexodsp::{Matrix, ParamId, NodeInfo};
+use hexodsp::{Matrix, NodeInfo, ParamId};
 
-use std::sync::{Arc, Mutex};
 use std::io::Write;
+use std::sync::{Arc, Mutex};
 
 pub struct KnobParam {
-    matrix:     Arc<Mutex<Matrix>>,
-    param_id:   ParamId,
-    node_info:  NodeInfo,
+    matrix: Arc<Mutex<Matrix>>,
+    param_id: ParamId,
+    node_info: NodeInfo,
 }
 
 impl KnobParam {
     pub fn new(matrix: Arc<Mutex<Matrix>>, param_id: ParamId) -> Self {
-        Self {
-            matrix,
-            param_id,
-            node_info: NodeInfo::from(param_id.node_id().name()),
-        }
+        Self { matrix, param_id, node_info: NodeInfo::from(param_id.node_id().name()) }
     }
 
     pub fn with_ref<F, R: Default>(&self, fun: F) -> R
-        where F: FnOnce(&mut Matrix, &ParamId) -> R
+    where
+        F: FnOnce(&mut Matrix, &ParamId) -> R,
     {
         match self.matrix.lock() {
             Ok(mut lock) => fun(&mut *lock, &self.param_id),
             Err(e) => {
                 eprintln!("Couldn't lock matrix!: {}", e);
                 R::default()
-            },
+            }
         }
     }
 }
 
 impl ParamModel for KnobParam {
     fn get(&self) -> f32 {
-        self.with_ref(|m, param_id|
-           m.get_param(param_id)
-            .map(|a| a.f())
-            .unwrap_or(0.0))
+        self.with_ref(|m, param_id| m.get_param(param_id).map(|a| a.f()).unwrap_or(0.0))
     }
 
     fn get_generation(&mut self) -> u64 {
@@ -82,8 +76,7 @@ impl ParamModel for KnobParam {
     /// modulation amount in relation to what [get_ui_range] returns.
     fn get_ui_mod_amt(&self) -> Option<f32> {
         if let Some(((min, max), _)) = self.param_id.param_min_max() {
-            self.get_mod_amt()
-                .map(|v| v / (max - min))
+            self.get_mod_amt().map(|v| v / (max - min))
         } else {
             self.get_mod_amt()
         }
@@ -123,7 +116,7 @@ impl ParamModel for KnobParam {
         } else {
             (1.0 / 20.0, 1.0 / 100.0)
         }
-     }
+    }
 
     fn fmt(&self, buf: &mut [u8]) -> usize {
         let mut bw = std::io::BufWriter::new(buf);
@@ -135,12 +128,11 @@ impl ParamModel for KnobParam {
     }
 
     fn fmt_mod(&self, buf: &mut [u8]) -> usize {
-        let modamt =
-            if let Some(ma) = self.get_mod_amt() {
-                ma
-            } else {
-                return 0;
-            };
+        let modamt = if let Some(ma) = self.get_mod_amt() {
+            ma
+        } else {
+            return 0;
+        };
 
         let mut bw = std::io::BufWriter::new(buf);
 
@@ -154,7 +146,7 @@ impl ParamModel for KnobParam {
         let mut bw = std::io::BufWriter::new(buf);
 
         match write!(bw, "{:6.4}", self.get()) {
-            Ok(_)  => bw.buffer().len(),
+            Ok(_) => bw.buffer().len(),
             Err(_) => 0,
         }
     }
@@ -162,12 +154,9 @@ impl ParamModel for KnobParam {
     fn fmt_name(&self, buf: &mut [u8]) -> usize {
         let mut bw = std::io::BufWriter::new(buf);
 
-        match write!(bw, "{}",
-            self.node_info
-                .in_name(self.param_id.inp() as usize)
-                .unwrap_or("?"))
+        match write!(bw, "{}", self.node_info.in_name(self.param_id.inp() as usize).unwrap_or("?"))
         {
-            Ok(_)  => bw.buffer().len(),
+            Ok(_) => bw.buffer().len(),
             Err(_) => 0,
         }
     }
@@ -203,7 +192,7 @@ impl ParamModel for KnobParam {
         }
     }
 
-    fn change_start(&mut self) { }
+    fn change_start(&mut self) {}
     fn change(&mut self, v: f32, res: ChangeRes) {
         let pid = self.param_id;
 
@@ -211,12 +200,11 @@ impl ParamModel for KnobParam {
             //d// println!(
             //d//     "CHANGE: {},{} ({}), min={}, max={}",
             //d//     id, v, single, min, max);
-            let v =
-                match res {
-                    ChangeRes::Coarse => pid.round(v.clamp(min, max), true),
-                    ChangeRes::Fine   => pid.round(v.clamp(min, max), false),
-                    ChangeRes::Free   => v.clamp(min, max),
-                };
+            let v = match res {
+                ChangeRes::Coarse => pid.round(v.clamp(min, max), true),
+                ChangeRes::Fine => pid.round(v.clamp(min, max), false),
+                ChangeRes::Free => v.clamp(min, max),
+            };
 
             if let Ok(mut m) = self.matrix.lock() {
                 m.set_param(pid, v.into())

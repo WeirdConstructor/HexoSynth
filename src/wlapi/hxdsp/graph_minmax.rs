@@ -3,20 +3,20 @@
 // See README.md and COPYING for details.
 
 //use crate::arg_chk;
-use wlambda::*;
-use hexodsp::{Matrix, CellDir};
+use hexodsp::{CellDir, Matrix};
 use hexotk::GraphMinMaxModel;
-use std::rc::Rc;
 use std::cell::RefCell;
+use std::rc::Rc;
 use std::sync::{Arc, Mutex};
+use wlambda::*;
 
 struct MonitorMinMaxData {
-    matrix:     Arc<Mutex<Matrix>>,
-    index:      usize,
-    min:        f32,
-    max:        f32,
-    avg:        f32,
-    cur:        f32,
+    matrix: Arc<Mutex<Matrix>>,
+    index: usize,
+    min: f32,
+    max: f32,
+    avg: f32,
+    cur: f32,
 }
 
 fn sigidx2celldir(idx: usize) -> CellDir {
@@ -37,8 +37,7 @@ impl GraphMinMaxModel for MonitorMinMaxData {
     }
 
     fn read(&mut self, buf: &mut [(f32, f32)]) {
-        let (mut min, mut max, mut avg, mut cur) =
-            (1000.0_f32, -1000.0_f32, 0.0_f32, 0.0_f32);
+        let (mut min, mut max, mut avg, mut cur) = (1000.0_f32, -1000.0_f32, 0.0_f32, 0.0_f32);
 
         if let Ok(mut m) = self.matrix.lock() {
             let cell = m.monitored_cell();
@@ -62,8 +61,12 @@ impl GraphMinMaxModel for MonitorMinMaxData {
 
             avg /= buf.len() as f32;
 
-            if min > 999.0  { min = 0.0; }
-            if max < -999.0 { max = 0.0; }
+            if min > 999.0 {
+                min = 0.0;
+            }
+            if max < -999.0 {
+                max = 0.0;
+            }
         }
 
         self.avg = avg;
@@ -76,13 +79,14 @@ impl GraphMinMaxModel for MonitorMinMaxData {
         use std::io::Write;
         let max_len = buf.len();
         let mut bw = std::io::BufWriter::new(buf);
-        match write!(bw, "{:6.3}|{:6.3}|{:6.3}|{:6.3}",
-                     self.min, self.max, self.avg, self.cur)
-        {
-            Ok(_)  => {
-                if bw.buffer().len() > max_len { max_len }
-                else { bw.buffer().len() }
-            },
+        match write!(bw, "{:6.3}|{:6.3}|{:6.3}|{:6.3}", self.min, self.max, self.avg, self.cur) {
+            Ok(_) => {
+                if bw.buffer().len() > max_len {
+                    max_len
+                } else {
+                    bw.buffer().len()
+                }
+            }
             Err(_) => 0,
         }
     }
@@ -105,13 +109,17 @@ impl VGraphMinMaxModel {
 }
 
 impl VValUserData for VGraphMinMaxModel {
-    fn s(&self) -> String { format!("$<UI::GraphMinMaxModel>") }
-    fn as_any(&mut self) -> &mut dyn std::any::Any { self }
-    fn clone_ud(&self) -> Box<dyn vval::VValUserData> { Box::new(self.clone()) }
+    fn s(&self) -> String {
+        format!("$<UI::GraphMinMaxModel>")
+    }
+    fn as_any(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
+    fn clone_ud(&self) -> Box<dyn vval::VValUserData> {
+        Box::new(self.clone())
+    }
 
-    fn call_method(&self, _key: &str, _env: &mut Env)
-        -> Result<VVal, StackAction>
-    {
+    fn call_method(&self, _key: &str, _env: &mut Env) -> Result<VVal, StackAction> {
         Ok(VVal::None)
     }
 }
