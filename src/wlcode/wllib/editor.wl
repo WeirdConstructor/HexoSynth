@@ -51,12 +51,14 @@
         }
     },
     get_grid_model = { $data.grid_model },
-    place_new_instance_at = {!(node_id, pos) = @;
+    place_new_instance_at = {|2<3| !(node_id, pos, cb) = @;
         $self.matrix_apply_change {!(matrix) = @;
             !cell = matrix.get pos;
             !new_node_id = matrix.get_unused_instance_node_id node_id;
             cell.node_id = new_node_id;
             matrix.set pos cell;
+
+            if cb \cb matrix cell;
         };
     },
     set_active_tracker = {!(node_id) = @;
@@ -353,7 +355,33 @@
             :press   => { $data.matrix.set_param param 1.0 }
             :release => { $data.matrix.set_param param 0.0 }
     },
-    handle_picker_node_id_click = {!(node_id) = @;
+    handle_picker_node_id_click = {!(node_id, btn) = @;
+        !focus_pos = $data.focus_cell.pos;
+        if is_some[focus_pos] &and not[is_empty_cell[$data.matrix.get focus_pos]] {
+            !new_cell_dir = match btn :left => :T :right => :B;
+            !inputs = $data.matrix.find_all_adjacent_free focus_pos new_cell_dir;
+            !dst_cell = $data.matrix.get focus_pos;
+
+            std:displayln "FREE INPUTS:" inputs dst_cell;
+
+            if len[inputs] > 0 {
+                !free_input = inputs.(std:rand len[inputs]);
+
+                $self.place_new_instance_at
+                    node_id
+                    free_input.pos
+                    {!(matrix, new_cell) = @;
+                        std:displayln "PLACED!";
+                    };
+
+                $self.set_focus_cell free_input.pos;
+            };
+            return $n;
+        };
+
+        # otherwise take the center, or some free cell around there and insert
+        # unconnected.
+
         !pos = $i(
            $data.matrix_center.0 - 2,
            $data.matrix_center.1
@@ -361,7 +389,16 @@
 
         !cell = $data.matrix.get pos;
         if not[is_empty_cell[cell]] {
-            .pos = $i(pos.0 - 1, pos.1);
+            !free_dir = match btn :left => :T :right => :B;
+            !free = $data.matrix.find_all_adjacent_free focus_pos free_dir;
+
+            if len[free] > 0 {
+                !idx = std:rand len[free];
+                .pos = free.(idx).pos;
+            } {
+                # TODO: Display error dialog if none free found!
+                return $n;
+            };
         };
 
         # TODO: use the focus cell as source, if the focus cell is not empty!
