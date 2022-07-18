@@ -900,6 +900,14 @@ impl VValUserData for VUIWidget {
                                     let _ = m.set_key_str("button", mbutton2vv(*button));
                                     m
                                 }
+                                hexotk::EvPayload::WichTextCommand { line, frag, cmd } => {
+                                    let m = VVal::map3(
+                                        "line", VVal::Int(*line as i64),
+                                        "frag", VVal::Int(*frag as i64),
+                                        "cmd", VVal::new_str(cmd),
+                                    );
+                                    m
+                                }
                                 hexotk::EvPayload::UserData(rc) => {
                                     user_data_out = Some(rc.clone());
                                     VVal::None

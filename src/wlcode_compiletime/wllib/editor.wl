@@ -421,7 +421,7 @@
 
         !pos = $i(
            $data.matrix_center.0 - 2,
-           $data.matrix_center.1
+           $data.matrix_center.1 - 2
         );
 
         !cell = $data.matrix.get pos;

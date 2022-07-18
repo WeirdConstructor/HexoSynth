@@ -418,24 +418,6 @@ connector_popup.change_layout ${
 !mode_selector_popup = styling:new_widget :mode_selector_popup;
 mode_selector_popup.auto_hide[];
 
-#        mode_selector_popup.remove_childs[];
-#
-#        !i = 0;
-#        iter v val_list {
-#            !btn = styling:new_widget :mode_selector_item;
-#            btn.set_ctrl :button (ui:txt v.0);
-#
-#            !idx = i;
-#            btn.reg :click {
-#                value_set idx; mode_selector_popup.hide[];
-#            };
-#
-#            mode_selector_popup.add btn;
-#            .i += 1;
-#        };
-#
-#        mode_selector_popup.popup_at_mouse[];
-
 !help_wichtext = styling:new_widget :main_help_wichtext;
 help_wichtext.change_layout ${
     position_type = :self,
@@ -456,10 +438,46 @@ editor.reg :show_main_help {!(text) = @;
     help_wichtext.show[];
 };
 
+!sample_list_popup = styling:new_widget :sample_list_popup;
+sample_list_popup.change_layout ${
+    position_type = :self,
+    width         = :pixels  => 500,
+    min_width     = :pixels  => 500,
+    height        = :percent => 70,
+    left          = :stretch => 1,
+    right         = :stretch => 1,
+    visible       = $f,
+};
+sample_list_popup.auto_hide[];
+sample_list_popup.set_ctrl :rect $n;
+
+!wtd_slist = ui:wichtext_simple_data_store[];
+wtd_slist.set_text "[a:test.wav]\n[a:foo.wav]\n";
+
+!current_sample_atom = $n;
+!sample_list_wichtext = styling:new_widget :sample_list_wichtext;
+sample_list_wichtext.set_ctrl :wichtext wtd_slist;
+sample_list_wichtext.reg :click {!(wid, ev) = @;
+#    std:displayln :click @;
+    matrix.set_param current_sample_atom $p(:audio_sample, ev.cmd);
+    sample_list_popup.hide[];
+};
+
+sample_list_popup.add sample_list_wichtext;
+
+editor.reg :open_sample_selector {!(param) = @;
+    std:displayln param;
+    .current_sample_atom = param;
+    sample_list_popup.popup_at_mouse[];
+};
+
+#sample_list_wichtext.popup_at_mouse[];
+
 popup_layer.add connector_popup;
 popup_layer.add mode_selector_popup;
 popup_layer.add cell_context_popup;
 popup_layer.add help_wichtext;
+popup_layer.add sample_list_popup;
 
 !create_mode_button = {!(val_list, init_idx, change_cb, hover_cb) = @;
     !val_idx = init_idx;
@@ -648,6 +666,17 @@ editor.reg :update_param_ui {
                     };
                     std:push extra_widgets wid;
                     $n
+                }
+                :sample => {
+                    !sample_btn = styling:new_widget :param_sample_button;
+                    !init = (matrix.get_param atom).s[];
+                    std:displayln "SAMPLE:" init;
+                    sample_btn.set_ctrl :button (ui:txt init);
+                    !my_atom = atom;
+                    sample_btn.reg :click {
+                        editor.emit :open_sample_selector my_atom;
+                    };
+                    sample_btn
                 }
                 {
                     !wid = styling:new_widget :atom_wid;

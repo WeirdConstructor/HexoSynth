@@ -94,7 +94,7 @@ pub fn vv2atom(mut v: VVal) -> SAtom {
         VVal::Int(i) => SAtom::setting(i),
         VVal::Flt(f) => SAtom::param(f as f32),
         VVal::Sym(_) | VVal::Str(_) | VVal::Byt(_) => v.with_s_ref(|s| SAtom::str(s)),
-        VVal::Pair(_) if v.v_s(0) == "audio_sample" => {
+        VVal::Pair(_) if v.v_s_raw(0) == "audio_sample" => {
             v.v_with_s_ref(1, |s| SAtom::audio_unloaded(s))
         }
         _ => {
