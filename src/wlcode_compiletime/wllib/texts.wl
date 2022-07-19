@@ -320,4 +320,14 @@ If a matrix cell is selected, following can be done:
                                      currently selected cell.
     [c14:Right Mouse Button (RMB)] - Add new node to the [c02:input] of the
                                      currently selected cell.
+
+The picker has following categories:
+
+* [c11:Osc]     - Sound generation sources and audio rate oscillators
+* [c11:Mod]     - Modulation sources, such as LFOs, envelopes and sequencers
+* [c11:NtoM]    - Signal routing nodes, such as mixers, faders or selectors
+* [c11:Signal]  - Audio rate signal filters and effects
+* [c11:Ctrl]    - Control signal modules, such as quantizers and range mappers
+* [c11:IOUtil]  - Utility modules for HexoSynth, such as external inputs/outputs
+            and FbWr/FbRd for creating feedback in the matrix.
 °;

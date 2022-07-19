@@ -451,8 +451,35 @@ sample_list_popup.change_layout ${
 sample_list_popup.auto_hide[];
 sample_list_popup.set_ctrl :rect $n;
 
+
+!DirIndexer = ${
+    new = {#!() = @;
+        ${
+            _proto = $self,
+            _data = ${ cur_dir = ".", },
+        }
+    },
+    get_wav_files = {
+        $@vec std:fs:read_dir $data.cur_dir {!(ent) = @;
+            if ent.type == :f &and ent.name &> $r/*.wav$$/ {
+                $+ ent.path
+            };
+            $f
+        }
+    },
+    wichtext_file_list = {
+        !paths = $self.get_wav_files[];
+        $@string iter p paths {
+            $+ "[a:" +> p +> "]";
+            $+ "\n";
+        }
+    },
+};
+
+!WAV_INDEXER = DirIndexer.new[];
+
 !wtd_slist = ui:wichtext_simple_data_store[];
-wtd_slist.set_text "[a:test.wav]\n[a:foo.wav]\n";
+wtd_slist.set_text WAV_INDEXER.wichtext_file_list[];
 
 !current_sample_atom = $n;
 !sample_list_wichtext = styling:new_widget :sample_list_wichtext;
@@ -461,6 +488,7 @@ sample_list_wichtext.reg :click {!(wid, ev) = @;
 #    std:displayln :click @;
     matrix.set_param current_sample_atom $p(:audio_sample, ev.cmd);
     sample_list_popup.hide[];
+    editor.emit :update_param_ui;
 };
 
 sample_list_popup.add sample_list_wichtext;
@@ -669,12 +697,15 @@ editor.reg :update_param_ui {
                 }
                 :sample => {
                     !sample_btn = styling:new_widget :param_sample_button;
-                    !init = (matrix.get_param atom).s[];
-                    std:displayln "SAMPLE:" init;
-                    sample_btn.set_ctrl :button (ui:txt init);
+                    !init = matrix.get_param atom;
+                    !sample_name = init.audio_sample_name[];
+                    sample_btn.set_ctrl :button (ui:txt ~ $p(len[sample_name] - 10, 10) sample_name);
                     !my_atom = atom;
                     sample_btn.reg :click {
                         editor.emit :open_sample_selector my_atom;
+                    };
+                    sample_btn.reg :hover {
+                        editor.handle_hover :param_knob my_atom;
                     };
                     sample_btn
                 }
