@@ -258,6 +258,11 @@ layout.param_trig_button = ${
     right = :pixels => 4,
 };
 
+style.param_sample_button = ${
+    parent = :button,
+    border_style = $[:bevel, $f(5, 5, 5, 5)],
+};
+
 layout.popup_menu = ${
     position_type = :self,
     layout_type   = :column,
@@ -299,6 +304,10 @@ style.main_help_wichtext = ${
 };
 layout.main_help_wichtext = ${
     top = :pixels => 33,
+};
+
+style.sample_list_wichtext = ${
+    parent = :wichtext,
 };
 
 style.help_btn = ${

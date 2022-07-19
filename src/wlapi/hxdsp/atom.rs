@@ -44,6 +44,15 @@ impl vval::VValUserData for VValAtom {
                 arg_chk!(args, 0, "atom.f[]");
                 Ok(VVal::Flt(self.atom.f() as f64))
             }
+            "audio_sample_name" => {
+                arg_chk!(args, 0, "atom.audio_sample_name[]");
+
+                if let SAtom::AudioSample((name, _vec)) = &self.atom {
+                    Ok(VVal::new_str(name))
+                } else {
+                    Ok(VVal::None)
+                }
+            }
             "micro_sample" => {
                 arg_chk!(args, 0, "atom.micro_sample[]");
 
