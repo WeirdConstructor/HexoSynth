@@ -16,7 +16,7 @@ The goal is rather to have a good set of predefined modules.
 
 Here is a screenshot of how it looks:
 
-![HexoSynth Screenshot from 2022-07-20](https://github.com/WeirdConstructor/HexoSynth/raw/bf3c3059646cee2590cfcd2d3085a4a4bba69d21/screenshots/2021-07-24_14-59.png)
+![HexoSynth Screenshot from 2022-07-20](https://github.com/WeirdConstructor/HexoSynth/raw/bf3c3059646cee2590cfcd2d3085a4a4bba69d21/screenshots/2022-07-20_19-25.png)
 
 ## State of Development
 
