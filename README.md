@@ -16,7 +16,7 @@ The goal is rather to have a good set of predefined modules.
 
 Here is a screenshot of how it looks:
 
-![HexoSynth Screenshot from 2021-07-24](https://github.com/WeirdConstructor/HexoSynth/raw/30d04e0b386f89e4783f2ea057d2d3369760956f/screenshots/2021-07-24_14-59.png)
+![HexoSynth Screenshot from 2022-07-20](https://github.com/WeirdConstructor/HexoSynth/raw/bf3c3059646cee2590cfcd2d3085a4a4bba69d21/screenshots/2021-07-24_14-59.png)
 
 ## State of Development
 
@@ -34,6 +34,8 @@ If you want to stay up to date, follow my devlog:
 - https://m8geil.de/posts/hexosynth-1/
 - https://m8geil.de/posts/hexosynth-2/
 - https://m8geil.de/posts/hexosynth-3/
+- https://m8geil.de/posts/hexosynth-4/
+- https://m8geil.de/posts/hexosynth-5/
 - for an up to date list, look here: https://m8geil.de/tags/hexosynth/
 
 Make sure to follow [Weird Constructors Mastodon

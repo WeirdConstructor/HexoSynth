@@ -19,5 +19,5 @@ jack       = "0.6.6"
 #hexotk = { path = "../../hexotk" }
 #[patch.'https://github.com/WeirdConstructor/HexoDSP.git']
 #hexodsp = { path = "../../hexodsp" }
-[patch.'https://github.com/WeirdConstructor/HexoDSP.git']
-hexodsp = { path = "../../hexo/HexoDSP-Dimev" }
+#[patch.'https://github.com/WeirdConstructor/HexoDSP.git']
+#hexodsp = { path = "../../hexo/HexoDSP-Dimev" }
