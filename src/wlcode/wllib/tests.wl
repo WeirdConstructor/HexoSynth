@@ -262,15 +262,20 @@
                 "Found the small help text on screen";
         };
         test.add_step :click_node_help_btn {!(td, labels) = @;
-            !res = $S(*:{ctrl=Ctrl\:\:Button, label=\?}) labels;
+            !res = $S(*:{
+                ctrl=Ctrl\:\:Button,
+                path=*main_panel*,
+                label=\?
+            }) labels;
             do_click td res.0;
         };
-        test.add_step :click_node_help_btn {!(td, labels) = @;
+        test.add_step :check_help_text_there {!(td, labels) = @;
             !res = $S(*:{
                 ctrl=Ctrl\:\:WichText,
                 path=*.main_help_wichtext,
                 label=Mux9\ -\ 9\ Ch*
             }) labels;
+            std:displayln "OOOOO" res;
             std:assert_str_eq
                 res.0.source
                 "text"
