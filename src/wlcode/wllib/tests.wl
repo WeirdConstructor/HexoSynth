@@ -138,7 +138,6 @@
         };
     #    test.add_step :sleep {|| std:thread:sleep :ms => 1000 };
         test.add_step :check_desc {!(td, labels) = @;
-    #        dump_labels td;
             !doc = ($S(*:{label=*Amp\ gain*}) labels).0;
             std:assert doc;
         };
@@ -206,7 +205,6 @@
     #    test.add_step :sleep {|| std:thread:sleep :ms => 1000 };
 
         test.add_step :check_bosc_help {!(td, labels) = @;
-    #        dump_labels td;
             !res = $S(*:{ctrl=Ctrl\:\:Label, label=wtype}) labels;
             std:assert_str_eq res.0.tag "param_label" "Found wtype param";
         };
@@ -233,7 +231,6 @@
             do_drop_rmb td bosc_pos;
         };
         test.add_step :check_bosc_help_still_there {!(td, labels) = @;
-    #        dump_labels td;
             !res = $S(*:{ctrl=Ctrl\:\:Label, label=wtype}) labels;
             std:assert_str_eq res.0.tag "param_label" "(Still) found wtype param";
 
@@ -275,7 +272,6 @@
                 path=*.main_help_wichtext,
                 label=Mux9\ -\ 9\ Ch*
             }) labels;
-            std:displayln "OOOOO" res;
             std:assert_str_eq
                 res.0.source
                 "text"
@@ -292,7 +288,6 @@
                 label=Mux9\ -\ 9\ Ch*
             }) labels;
             std:assert_str_eq res.0.source $n "Help text no longer open";
-    #        dump_labels td;
         };
     };
 
@@ -339,7 +334,6 @@
         };
         test.add_step :check_fbwr_desc {!(td, labels) = @;
             !res = $S(*:{ctrl=Ctrl\:\:WichText, label=Feedback*Writer}) labels;
-    #        dump_labels td;
             std:assert_eq res.0.source "text" "FbWr description text is displayed";
         };
     };
@@ -426,7 +420,6 @@
             do_click td res.0;
         };
         test.add_step :click_minus2_popup_item {!(td, labels) = @;
-#            dump_labels td;
             !res = $S(*:{tag=mode_selector_item, label=-2}) labels;
             do_click td res.0;
         };
@@ -504,10 +497,82 @@
         };
         test.add_step :check_no_doc {!(td, labels) = @;
             !res = $S(*:{path=*help*wichtext, label=*trig*}) labels;
+            std:assert_str_eq res.0.source "text" "Found the small help text with trig on screen";
+        };
+    };
+
+    add_test "node picker LMB click" {!(test) = @;
+        test.add_step :init {||
+            matrix_init $i(2, 2) :B ${chain=$[ ]};
+        };
+        test.add_step :goto_ntom_tab {!(td, labels) = @;
+            !res = $S(*:{path=*.tab_hor, label=NtoM}) labels;
+            do_click td res.0;
+        };
+        test.add_step :click_mix3 {!(td, labels) = @;
+            !res = $S(*:{path=*.pick_node_btn, label=Mix3}) labels;
+            do_click td res.0;
+        };
+        test.add_step :find_mix3 {!(td, labels) = @;
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=Mix3}) labels;
+            std:assert_str_eq res.0.source "cell_name" "Found Mix3 node on matrix";
+        };
+        test.add_step :goto_ctrl_tab {!(td, labels) = @;
+            !res = $S(*:{path=*.tab_hor, label=Ctrl}) labels;
+            do_click td res.0;
+        };
+        test.add_step :click_mix3 {!(td, labels) = @;
+            !res = $S(*:{path=*.pick_node_btn, label=Map}) labels;
+            do_click td res.0;
+        };
+        test.add_step :find_mix3 {!(td, labels) = @;
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=Map}) labels;
             std:assert_str_eq
                 res.0.source
-                "text"
-                "Found the small help text with trig on screen";
+                "cell_name"
+                "Found Map node on matrix";
+
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=inp}) labels;
+            std:assert_str_eq res.0.tag "matrix_grid" "Found 'inp' input label";
+
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=sig}) labels;
+            std:assert_str_eq res.0.tag "matrix_grid" "Found 'sig' output label";
+        };
+    };
+
+    add_test "node picker RMB click" {!(test) = @;
+        test.add_step :init {||
+            matrix_init $i(2, 2) :B ${chain=$[ ]};
+        };
+        test.add_step :goto_ntom_tab {!(td, labels) = @;
+            !res = $S(*:{path=*.tab_hor, label=NtoM}) labels;
+            do_click td res.0;
+        };
+        test.add_step :click_mix3 {!(td, labels) = @;
+            !res = $S(*:{path=*.pick_node_btn, label=Mix3}) labels;
+            do_click_rmb td res.0;
+        };
+        test.add_step :find_mix3 {!(td, labels) = @;
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=Mix3}) labels;
+            std:assert_str_eq res.0.source "cell_name" "Found Mix3 node on matrix";
+        };
+        test.add_step :goto_ctrl_tab {!(td, labels) = @;
+            !res = $S(*:{path=*.tab_hor, label=Ctrl}) labels;
+            do_click td res.0;
+        };
+        test.add_step :click_mix3 {!(td, labels) = @;
+            !res = $S(*:{path=*.pick_node_btn, label=Map}) labels;
+            do_click_rmb td res.0;
+        };
+        test.add_step :find_mix3 {!(td, labels) = @;
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=Map}) labels;
+            std:assert_str_eq
+                res.0.source
+                "cell_name"
+                "Found Map node on matrix";
+
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=ch1}) labels;
+            std:assert_str_eq res.0.tag "matrix_grid" "Found 'ch1' input label";
         };
     };
 };
