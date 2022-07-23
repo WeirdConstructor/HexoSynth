@@ -616,5 +616,40 @@
             std:assert_eq len[connections] 0 "No connections after movement";
         };
     };
+
+    add_test "matrix move single cell adjacent two connections" {!(test) = @;
+        test.add_step :init {||
+            matrix_init $i(1, 1) :BR ${chain=$[
+                $[:sin, :sig],
+                $[:inp, :amp, :sig],
+                $[:ch1, :out, $n],
+            ]};
+        };
+        test.add_step :drag_out_cell {!(td, labels) = @;
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=Out}) labels;
+            do_drag_rmb td res.0;
+        };
+        test.add_step :drop_out_cell {!(td, labels) = @;
+            !res = matrix_cell_label labels $i(3, 1);
+            do_drop_rmb td res;
+        };
+        test.add_step :check_move_precond {!(td, labels) = @;
+            !matrix = hx:get_main_matrix_handle[];
+            !connections = matrix.get_connections $i(2, 2);
+            std:assert_eq len[connections] 2 "Two Amp connections before movement";
+
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=Amp}) labels;
+            do_drag_rmb td res.0;
+        };
+        test.add_step :drop_amp_cell {!(td, labels) = @;
+            !res = matrix_cell_label labels $i(2, 1);
+            do_drop_rmb td res;
+        };
+        test.add_step :check_move_postcond {!(td, labels) = @;
+            !matrix = hx:get_main_matrix_handle[];
+            !connections = matrix.get_connections $i(2, 1);
+            std:assert_eq len[connections] 2 "Two Amp connections after movement";
+        };
+    };
 };
 # dump_labels td;

@@ -170,7 +170,7 @@
         $self.matrix_apply_change {!(matrix) = @;
             !src_cell = matrix.get src;
             !dst_cell = matrix.get dst;
-            !set_other = $none;
+            !set_other = $[];
 
             if is_some[adj] {
                 !connections = matrix.get_connections src;
@@ -183,22 +183,20 @@
                         !edge = adj_other.flip[].as_edge[];
                         other_cell.ports.(edge) = con.other.port;
                         other_cell.ports.(con.other.dir.as_edge[]) = $n;
-                        .set_other = $p(con.other.pos, other_cell);
+                        std:push set_other $p(con.other.pos, other_cell);
 
                         # Swap ports in moved cell:
                         !src_edge = adj_other.as_edge[];
                         src_cell.ports.(con.center.dir.as_edge[]) = $n;
                         src_cell.ports.(src_edge) = con.center.port;
-
-                        break[];
                     };
                 };
             };
 
             matrix.set src dst_cell;
             matrix.set dst src_cell;
-            if is_some[set_other] {
-                matrix.set set_other.0 set_other.1;
+            iter set set_other {
+                matrix.set set.0 set.1;
             };
         }
     },
