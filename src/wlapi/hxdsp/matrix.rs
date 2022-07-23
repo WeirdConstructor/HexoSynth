@@ -488,6 +488,21 @@ impl vval::VValUserData for VValMatrix {
 
                     Ok(unused)
                 }
+                "find_first_adjacent_free" => {
+                    arg_chk!(args, 2, "matrix.find_first_adjacent_free[$i(x, y), cell_dir]");
+
+                    if let Some(cell) = m.get(args[0].v_i(0) as usize, args[0].v_i(1) as usize) {
+                        if let Some((free_dir, _)) =
+                            cell.find_first_adjacent_free(&m, vv2cell_dir(&args[1]))
+                        {
+                            Ok(cell_dir2vv(free_dir))
+                        } else {
+                            Ok(VVal::None)
+                        }
+                    } else {
+                        Ok(VVal::None)
+                    }
+                }
                 "find_all_adjacent_free" => {
                     arg_chk!(args, 2, "matrix.find_all_adjacent_free[$i(x, y), cell_dir]");
 

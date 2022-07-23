@@ -361,6 +361,22 @@
                 $self.matrix_split_cluster_at src dst;
             };
         };
+        if not[src_exists] &and dst_exists {
+            !cell = $data.matrix.get dst;
+
+            if btn == :left {
+                $self.matrix_apply_change {!(matrix) = @;
+                    cell.ports = $[];
+                    matrix.set src cell;
+                };
+            } {
+                $self.place_new_instance_at cell.node_id src;
+            };
+        };
+        if is_none[adj] &and src_exists &and dst_exists {
+            !free = $data.matrix.find_first_adjacent_free dst :T;
+            std:displayln "FREE:" free;
+        };
     },
     show_param_id_desc = {!(param_id) = @;
         !(node_id, idx) = param_id.as_parts[];
