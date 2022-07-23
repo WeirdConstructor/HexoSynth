@@ -375,7 +375,20 @@
         };
         if is_none[adj] &and src_exists &and dst_exists {
             !free = $data.matrix.find_first_adjacent_free dst :T;
-            std:displayln "FREE:" free;
+
+            if is_some[free] {
+                !cell = $data.matrix.get src;
+                !new_pos = free.offs_pos dst;
+
+                if btn == :left {
+                    $self.matrix_apply_change {!(matrix) = @;
+                        cell.ports = $[];
+                        matrix.set new_pos cell;
+                    };
+                } {
+                    $self.place_new_instance_at cell.node_id new_pos;
+                };
+            };
         };
     },
     show_param_id_desc = {!(param_id) = @;
