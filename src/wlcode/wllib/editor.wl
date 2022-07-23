@@ -165,32 +165,29 @@
     # Moves a single cell from position `src` to position `dst`. Trying to keep the connection
     # to adjacent cells alive.
     matrix_move_single_cell = {!(src, dst) = @;
-        !adj = hx:pos_are_adjacent src dst;
-
         $self.matrix_apply_change {!(matrix) = @;
             !src_cell = matrix.get src;
             !dst_cell = matrix.get dst;
             !set_other = $[];
 
-            if is_some[adj] {
-                !connections = matrix.get_connections src;
-
-                iter con connections {
-                    !adj_other = hx:pos_are_adjacent dst con.other.pos;
-                    if is_some[adj_other] {
-                        # Make other cell swap the ports:
-                        !other_cell = matrix.get con.other.pos;
-                        !edge = adj_other.flip[].as_edge[];
-                        other_cell.ports.(edge) = con.other.port;
-                        other_cell.ports.(con.other.dir.as_edge[]) = $n;
-                        std:push set_other $p(con.other.pos, other_cell);
-
-                        # Swap ports in moved cell:
-                        !src_edge = adj_other.as_edge[];
-                        src_cell.ports.(con.center.dir.as_edge[]) = $n;
-                        src_cell.ports.(src_edge) = con.center.port;
-                    };
+            !connections = matrix.get_connections src;
+            iter con connections {
+                !adj_other = hx:pos_are_adjacent dst con.other.pos;
+                if is_none[adj_other] {
+                    next[];
                 };
+
+                # Make other cell swap the ports:
+                !other_cell = matrix.get con.other.pos;
+                !edge = adj_other.flip[].as_edge[];
+                other_cell.ports.(edge) = con.other.port;
+                other_cell.ports.(con.other.dir.as_edge[]) = $n;
+                std:push set_other $p(con.other.pos, other_cell);
+
+                # Swap ports in moved cell:
+                !src_edge = adj_other.as_edge[];
+                src_cell.ports.(con.center.dir.as_edge[]) = $n;
+                src_cell.ports.(src_edge) = con.center.port;
             };
 
             matrix.set src dst_cell;

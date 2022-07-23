@@ -648,6 +648,29 @@
         };
     };
 
+    add_test "matrix move single cell adjacent connection 2" {!(test) = @;
+        test.add_step :init {||
+            matrix_init $i(1, 1) :B ${chain=$[
+                $[:sin, :sig],
+                $[:inp, :amp, :sig],
+                $[:ch1, :out, $n],
+            ]};
+        };
+        test.add_step :drag_amp_cell {!(td, labels) = @;
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=Sin}) labels;
+            do_drag_rmb td res.0;
+
+            std:assert_eq len[connections_at $i(1, 2)] 2 "Two connections before movement";
+        };
+        test.add_step :drop_amp_cell {!(td, labels) = @;
+            !res = matrix_cell_label labels $i(0, 3);
+            do_drop_rmb td res;
+        };
+        test.add_step :check_amp_connections {!(td, labels) = @;
+            std:assert_eq len[connections_at $i(1, 2)] 2 "Two connection after movement";
+        };
+    };
+
     add_test "DSP chain splitting" {!(test) = @;
         test.add_step :init {||
             matrix_init $i(1, 1) :B ${chain=$[
