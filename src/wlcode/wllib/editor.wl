@@ -103,7 +103,8 @@
     get_current_param_list = {
         if is_none[$data.focus_cell]
             { $[] }
-            { node_id:param_list $data.focus_cell.node_id}
+            { node_id:param_list $data.focus_cell.node_id }
+
     },
     get_context_cell = {!(pos) = @; $data.matrix.get pos },
     remove_cell = {!(pos) = @;
@@ -144,6 +145,26 @@
         $data.matrix.set dst dst_cell;
 #        !out_idx = node_id:out_name2idx src_cell.node_id out_name;
 #        !in_idx  = node_id:inp_name2idx dst_cell.node_id in_name;
+    },
+    matrix_default_connect = {!(src, dst) = @;
+        !src_cell = $data.matrix.get src;
+        !dst_cell = $data.matrix.get dst;
+
+        !param = node_id:param_by_idx dst_cell.node_id 0;
+        !outs = node_id:out_list src_cell.node_id;
+        if is_some[param]
+            &and not[$data.matrix.param_input_is_used param]
+            &and len[outs] > 0 {
+
+            !in_name = param.name[];
+            !out_name = outs.0.1;
+
+            $self.matrix_set_connection_by_io_names
+                src_cell.pos
+                dst_cell.pos
+                out_name
+                in_name;
+        };
     },
     matrix_clear_connection = {!(src, dst) = @;
         !adj = hx:pos_are_adjacent src dst;
@@ -242,6 +263,47 @@
                     return $f;
                 };
             $t
+        };
+    },
+    spawn_default_connected_node = {!(src, dst, mode) = @;
+        !free = $data.matrix.find_first_adjacent_free dst :T;
+
+        if is_some[free] {
+            !cell = $data.matrix.get src;
+            !new_pos = free.offs_pos dst;
+
+            match mode
+                :link => {
+                    $self.matrix_apply_change {!(matrix) = @;
+                        cell.ports = $[];
+                        matrix.set new_pos cell;
+                    };
+                }
+                :instance => {
+                    $self.place_new_instance_at cell.node_id new_pos;
+                };
+
+            !this = $self;
+            $self.matrix_apply_change {!(matrix) = @;
+                this.matrix_default_connect new_pos dst;
+            };
+        };
+    },
+    spawn_new_instance_at = {!(node_id, dst) = @;
+        !dst_cell = $data.matrix.get dst;
+        if is_empty_cell[dst_cell] {
+            $self.place_new_instance_at node_id dst;
+        } {
+            !free = $data.matrix.find_first_adjacent_free dst :T;
+            if is_some[free] {
+                !new_pos = free.offs_pos dst;
+                $self.place_new_instance_at node_id new_pos;
+
+                !this = $self;
+                $self.matrix_apply_change {!(matrix) = @;
+                    this.matrix_default_connect new_pos dst;
+                };
+            };
         };
     },
     open_connection_dialog_for = {!(src, dst) = @;
@@ -374,21 +436,8 @@
             };
         };
         if is_none[adj] &and src_exists &and dst_exists {
-            !free = $data.matrix.find_first_adjacent_free dst :T;
-
-            if is_some[free] {
-                !cell = $data.matrix.get src;
-                !new_pos = free.offs_pos dst;
-
-                if btn == :left {
-                    $self.matrix_apply_change {!(matrix) = @;
-                        cell.ports = $[];
-                        matrix.set new_pos cell;
-                    };
-                } {
-                    $self.place_new_instance_at cell.node_id new_pos;
-                };
-            };
+            !mode = if btn == :left { :link } { :instance };
+            $self.spawn_default_connected_node src dst mode;
         };
     },
     show_param_id_desc = {!(param_id) = @;

@@ -230,7 +230,7 @@ add_context_menu_item cell_context_popup "Remove" {
         $t
     };
     grid.reg :drop {!(wid, drop_data) = @;
-        editor.place_new_instance_at
+        editor.spawn_new_instance_at
             drop_data.data.1.node
             $i(drop_data.x, drop_data.y);
     };
