@@ -510,6 +510,44 @@ impl vval::VValUserData for VValMatrix {
                         Ok(VVal::None)
                     }
                 }
+                "get_connections" => {
+                    arg_chk!(args, 1, "matrix.get_connections[$i(x, y)]");
+
+                    if let Some(conn) =
+                        m.get_connections(args[0].v_i(0) as usize, args[0].v_i(1) as usize)
+                    {
+                        let ret = VVal::vec();
+
+                        for (
+                            (center_cell, center_dir, _center_io_idx),
+                            (other_cell, other_dir, _other_io_idx, (ox, oy)),
+                        ) in conn.iter()
+                        {
+                            ret.push(VVal::map2(
+                                "center",
+                                VVal::map2(
+                                    "dir",
+                                    cell_dir2vv(*center_dir),
+                                    "port",
+                                    cell_port2vval(center_cell, *center_dir),
+                                ),
+                                "other",
+                                VVal::map3(
+                                    "dir",
+                                    cell_dir2vv(*other_dir),
+                                    "pos",
+                                    VVal::ivec2(*ox as i64, *oy as i64),
+                                    "port",
+                                    cell_port2vval(other_cell, *other_dir),
+                                ),
+                            ));
+                        }
+
+                        Ok(ret)
+                    } else {
+                        Ok(VVal::None)
+                    }
+                }
                 "restore_snapshot" => {
                     arg_chk!(args, 0, "matrix.restore_snapshot[]");
                     m.restore_matrix();

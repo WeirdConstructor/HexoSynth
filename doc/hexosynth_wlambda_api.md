@@ -80,3 +80,13 @@ Creates a `$<UI::GraphMinMaxModel>` bound to the monitor at _index_. Where
 _index_ must be between 0 and 5. There are currently 6 monitors, the first 3
 are for the input signals of the `matrix.monitored_cell[]` and the latter 3
 are for the outputs.
+
+### `matrix.get_connections[$i(x, y)]`
+
+Returns a set of connections for the current cell. If there is no connection
+it returns `$none`. Otherwise a vector of following elements:
+
+    ${
+        center = ${ dir = <celldir to other>, port = <portname> },
+        other = ${ dir = <celldir to center>, port = <portname>, pos = $i(other_x, other_y) },
+    }

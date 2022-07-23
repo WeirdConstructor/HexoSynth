@@ -575,5 +575,46 @@
             std:assert_str_eq res.0.tag "matrix_grid" "Found 'ch1' input label";
         };
     };
+
+    add_test "matrix move single cell adjacent connection" {!(test) = @;
+        test.add_step :init {||
+            matrix_init $i(1, 1) :B ${chain=$[
+                $[:sin, :sig],
+                $[:inp, :amp, :sig],
+                $[:ch1, :out, $n],
+            ]};
+        };
+        test.add_step :drag_amp_cell {!(td, labels) = @;
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=Amp}) labels;
+            do_drag_rmb td res.0;
+
+            !matrix = hx:get_main_matrix_handle[];
+            !connections = matrix.get_connections $i(1, 2);
+            std:assert_eq len[connections] 2 "Two connections before movement";
+        };
+        test.add_step :drop_amp_cell {!(td, labels) = @;
+            !res = matrix_cell_label labels $i(2, 2);
+            do_drop_rmb td res;
+        };
+        test.add_step :check_amp_connections {!(td, labels) = @;
+            !matrix = hx:get_main_matrix_handle[];
+            !connections = matrix.get_connections $i(2, 2);
+            std:assert_eq len[connections] 1 "One connection after movement";
+
+            # drag one further:
+            !res = matrix_cell_label labels $i(2, 2);
+            do_drag_rmb td res;
+        };
+        test.add_step :drop_to_non_adjacent {!(td, labels) = @;
+            !res = matrix_cell_label labels $i(3, 3);
+            do_drop_rmb td res;
+        };
+        test.add_step :check_no_amp_connections {!(td, labels) = @;
+            !matrix = hx:get_main_matrix_handle[];
+            !connections = matrix.get_connections $i(3, 3);
+            std:assert is_some[connections];
+            std:assert_eq len[connections] 0 "No connections after movement";
+        };
+    };
 };
 # dump_labels td;

@@ -45,6 +45,7 @@
                 focus_cell              = $n,
                 current_help_node_id    = $n,
                 last_active_tracker_id  = 0,
+                matrix_in_apply         = $f,
                 matrix_center           = $i(4, 4),
                 cbs                     = ${},
             },
@@ -133,7 +134,6 @@
         !edge_idx     = adj.as_edge[];
         !dst_edge_idx = adj.flip[].as_edge[];
 
-
         !src_cell = $data.matrix.get src;
         !dst_cell = $data.matrix.get dst;
 
@@ -162,15 +162,62 @@
         $data.matrix.set src src_cell;
         $data.matrix.set dst dst_cell;
     },
+    # Moves a single cell from position `src` to position `dst`. Trying to keep the connection
+    # to adjacent cells alive.
+    matrix_move_single_cell = {!(src, dst) = @;
+        !adj = hx:pos_are_adjacent src dst;
+
+        $self.matrix_apply_change {!(matrix) = @;
+            !src_cell = matrix.get src;
+            !dst_cell = matrix.get dst;
+            !set_other = $none;
+
+            if is_some[adj] {
+                !connections = matrix.get_connections src;
+
+                iter con connections {
+                    !adj_other = hx:pos_are_adjacent dst con.other.pos;
+                    if is_some[adj_other] {
+                        # Make other cell swap the ports:
+                        !other_cell = matrix.get con.other.pos;
+                        !edge = adj_other.flip[].as_edge[];
+                        other_cell.ports.(edge) = con.other.port;
+                        other_cell.ports.(con.other.dir.as_edge[]) = $n;
+                        .set_other = $p(con.other.pos, other_cell);
+
+                        # Swap ports in moved cell:
+                        !src_edge = adj_other.as_edge[];
+                        src_cell.ports.(con.center.dir.as_edge[]) = $n;
+                        src_cell.ports.(src_edge) = con.center.port;
+
+                        break[];
+                    };
+                };
+            };
+
+            matrix.set src dst_cell;
+            matrix.set dst src_cell;
+            if is_some[set_other] {
+                matrix.set set_other.0 set_other.1;
+            };
+        }
+    },
     matrix_apply_change = {!(cb) = @;
         !matrix = $data.matrix;
+        if $data.matrix.in_apply {
+            return ~ cb matrix;
+        };
         matrix.save_snapshot[];
 
+        $data.matrix.in_apply = $t;
         !change_text = cb matrix;
+        $data.matrix.in_apply = $f;
+
         match change_text
             ($error v) => {
                 std:displayln "ERROR1:" $\.v;
                 matrix.restore_snapshot[];
+                $data.matrix.in_apply = $f;
                 return $n;
             };
 
@@ -203,14 +250,8 @@
 
         if src_exists &and not[dst_exists] {
             if btn == :right {
-                !move_ok = this.matrix_apply_change {!(matrix) = @;
-                    matrix.set src dst_cell;
-                    matrix.set dst src_cell;
-                };
-
-                if move_ok {
-                    $self.set_focus_cell dst;
-                };
+                !move_ok = this.matrix_move_single_cell src dst;
+                if move_ok { $self.set_focus_cell dst; };
             } {
                 !clust = hx:new_cluster[];
                 !move_ok = this.matrix_apply_change {!(matrix) = @;
