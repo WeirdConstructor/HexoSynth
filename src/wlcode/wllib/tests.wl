@@ -103,6 +103,11 @@
     matrix.get_param param_id
 };
 
+!connections_at = {!(pos) = @;
+    !matrix = hx:get_main_matrix_handle[];
+    matrix.get_connections pos
+};
+
 !@export install = {!(test_match) = @;
     !add_test = {!(name, setup_fun) = @;
         if is_none[test_match]
@@ -588,18 +593,14 @@
             !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=Amp}) labels;
             do_drag_rmb td res.0;
 
-            !matrix = hx:get_main_matrix_handle[];
-            !connections = matrix.get_connections $i(1, 2);
-            std:assert_eq len[connections] 2 "Two connections before movement";
+            std:assert_eq len[connections_at $i(1, 2)] 2 "Two connections before movement";
         };
         test.add_step :drop_amp_cell {!(td, labels) = @;
             !res = matrix_cell_label labels $i(2, 2);
             do_drop_rmb td res;
         };
         test.add_step :check_amp_connections {!(td, labels) = @;
-            !matrix = hx:get_main_matrix_handle[];
-            !connections = matrix.get_connections $i(2, 2);
-            std:assert_eq len[connections] 1 "One connection after movement";
+            std:assert_eq len[connections_at $i(2, 2)] 1 "One connection after movement";
 
             # drag one further:
             !res = matrix_cell_label labels $i(2, 2);
@@ -610,8 +611,7 @@
             do_drop_rmb td res;
         };
         test.add_step :check_no_amp_connections {!(td, labels) = @;
-            !matrix = hx:get_main_matrix_handle[];
-            !connections = matrix.get_connections $i(3, 3);
+            !connections = connections_at $i(3, 3);
             std:assert is_some[connections];
             std:assert_eq len[connections] 0 "No connections after movement";
         };
@@ -634,9 +634,7 @@
             do_drop_rmb td res;
         };
         test.add_step :check_move_precond {!(td, labels) = @;
-            !matrix = hx:get_main_matrix_handle[];
-            !connections = matrix.get_connections $i(2, 2);
-            std:assert_eq len[connections] 2 "Two Amp connections before movement";
+            std:assert_eq len[connections_at $i(2, 2)] 2 "Two Amp connections before movement";
 
             !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=Amp}) labels;
             do_drag_rmb td res.0;
@@ -646,9 +644,70 @@
             do_drop_rmb td res;
         };
         test.add_step :check_move_postcond {!(td, labels) = @;
+            std:assert_eq len[connections_at $i(2, 1)] 2 "Two Amp connections after movement";
+        };
+    };
+
+    add_test "DSP chain splitting" {!(test) = @;
+        test.add_step :init {||
+            matrix_init $i(1, 1) :B ${chain=$[
+                $[:sin, :sig],
+                $[:inp, :amp, :sig],
+                $[:ch1, :out, $n],
+            ]};
+        };
+        test.add_step :check_precond {!(td, labels) = @;
+            std:assert_eq len[connections_at $i(1, 2)] 2 "Two connections before split";
+        };
+        test.add_step :drag_split_down {!(td, labels) = @;
+            !res = matrix_cell_label labels $i(1, 2);
+            do_drag_rmb td res;
+        };
+        test.add_step :drop_split_down {!(td, labels) = @;
+            !res = matrix_cell_label labels $i(1, 3);
+            do_drop_rmb td res;
+        };
+        test.add_step :check_postcond {!(td, labels) = @;
+            std:assert_eq len[connections_at $i(1, 2)] 1 "One connections after split";
+        };
+        test.add_step :drag_split_up {!(td, labels) = @;
+            !res = matrix_cell_label labels $i(1, 2);
+            do_drag_rmb td res;
+        };
+        test.add_step :drop_split_up {!(td, labels) = @;
+            !res = matrix_cell_label labels $i(1, 1);
+            do_drop_rmb td res;
+        };
+        test.add_step :check_postcond2 {!(td, labels) = @;
+            std:assert_eq len[connections_at $i(1, 2)] 0 "No connections after split";
+        };
+    };
+
+    add_test "DSP chain splitting blocked" {!(test) = @;
+        test.add_step :init {||
+            matrix_init $i(1, 1) :B ${chain=$[
+                $[:sin, :sig],
+                $[:inp, :amp, :sig],
+                $[:ch1, :out, $n],
+            ]};
+
             !matrix = hx:get_main_matrix_handle[];
-            !connections = matrix.get_connections $i(2, 1);
-            std:assert_eq len[connections] 2 "Two Amp connections after movement";
+            matrix.place_chain $i(1, 4) :B ${chain=$[ $[:sin, :sig] ]};
+            matrix.sync[];
+        };
+        test.add_step :check_precond {!(td, labels) = @;
+            std:assert_eq len[connections_at $i(1, 2)] 2 "Two connections before split";
+        };
+        test.add_step :drag_split_down {!(td, labels) = @;
+            !res = matrix_cell_label labels $i(1, 2);
+            do_drag_rmb td res;
+        };
+        test.add_step :drop_split_down {!(td, labels) = @;
+            !res = matrix_cell_label labels $i(1, 3);
+            do_drop_rmb td res;
+        };
+        test.add_step :check_postcond {!(td, labels) = @;
+            std:assert_eq len[connections_at $i(1, 2)] 2 "Still two connections after split";
         };
     };
 };
