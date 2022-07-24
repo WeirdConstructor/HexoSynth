@@ -902,9 +902,12 @@ impl VValUserData for VUIWidget {
                                 }
                                 hexotk::EvPayload::WichTextCommand { line, frag, cmd } => {
                                     let m = VVal::map3(
-                                        "line", VVal::Int(*line as i64),
-                                        "frag", VVal::Int(*frag as i64),
-                                        "cmd", VVal::new_str(cmd),
+                                        "line",
+                                        VVal::Int(*line as i64),
+                                        "frag",
+                                        VVal::Int(*frag as i64),
+                                        "cmd",
+                                        VVal::new_str(cmd),
                                     );
                                     m
                                 }

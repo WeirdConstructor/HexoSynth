@@ -125,11 +125,11 @@ const PROG: [Op; 10] = [
     Op::Sub(0.5),
     Op::Mul(std::f32::consts::TAU),
     Op::Sin,
-    Op::Br(4), // skip else branch
-    Op::Dup,   // copy i
+    Op::Br(4),    // skip else branch
+    Op::Dup,      // copy i
     Op::Add(0.3), // i1 + 0.3
     Op::Mul(1.1), // i1 * 1.1
-    Op::Mul2,  // i1 * i
+    Op::Mul2,     // i1 * i
 ];
 
 pub fn variant_stack_vm(vm: &mut StackVM, i: f32) -> f32 {
@@ -405,10 +405,10 @@ const REG_PROG: [RegOp; 8] = [
     RegOp::Sub(0.5, 0, 0),
     RegOp::Mul(std::f32::consts::TAU, 0, 0),
     RegOp::Sin(0, 0),
-    RegOp::Br(5), // skip else branch
+    RegOp::Br(5),          // skip else branch
     RegOp::Add(0.3, 0, 1), // i1 + 0.3
     RegOp::Mul(1.1, 1, 1), // i1 * 1.1
-    RegOp::Mul2(0, 1, 0), // i1 * i
+    RegOp::Mul2(0, 1, 0),  // i1 * i
 ];
 
 pub fn variant_reg_vm(vm: &mut RegVM, i: f32) -> f32 {

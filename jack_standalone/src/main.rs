@@ -17,17 +17,11 @@ impl jack::NotificationHandler for Notifications {
     }
 
     fn shutdown(&mut self, status: jack::ClientStatus, reason: &str) {
-        println!(
-            "JACK: shutdown with status {:?} because \"{}\"",
-            status, reason
-        );
+        println!("JACK: shutdown with status {:?} because \"{}\"", status, reason);
     }
 
     fn freewheel(&mut self, _: &jack::Client, is_enabled: bool) {
-        println!(
-            "JACK: freewheel mode is {}",
-            if is_enabled { "on" } else { "off" }
-        );
+        println!("JACK: freewheel mode is {}", if is_enabled { "on" } else { "off" });
     }
 
     fn buffer_size(&mut self, _: &jack::Client, sz: jack::Frames) -> jack::Control {
@@ -54,11 +48,11 @@ impl jack::NotificationHandler for Notifications {
         if let Some(p) = client.port_by_id(port_id) {
             if let Ok(name) = p.name() {
                 println!("JACK: port registered: {}", name);
-//                if name == "HexoSynth:hexosynth_out1" {
-//                    client.connect_ports_by_name(&name, "system:playback_1");
-//                } else if name == "HexoSynth:hexosynth_out2" {
-//                    client.connect_ports_by_name(&name, "system:playback_2");
-//                }
+                //                if name == "HexoSynth:hexosynth_out1" {
+                //                    client.connect_ports_by_name(&name, "system:playback_1");
+                //                } else if name == "HexoSynth:hexosynth_out2" {
+                //                    client.connect_ports_by_name(&name, "system:playback_2");
+                //                }
             }
         }
         println!(
@@ -75,10 +69,7 @@ impl jack::NotificationHandler for Notifications {
         old_name: &str,
         new_name: &str,
     ) -> jack::Control {
-        println!(
-            "JACK: port with id {} renamed from {} to {}",
-            port_id, old_name, new_name
-        );
+        println!("JACK: port with id {} renamed from {} to {}", port_id, old_name, new_name);
         jack::Control::Continue
     }
 
@@ -93,11 +84,7 @@ impl jack::NotificationHandler for Notifications {
             "JACK: ports with id {} and {} are {}",
             port_id_a,
             port_id_b,
-            if are_connected {
-                "connected"
-            } else {
-                "disconnected"
-            }
+            if are_connected { "connected" } else { "disconnected" }
         );
     }
 
@@ -122,34 +109,20 @@ impl jack::NotificationHandler for Notifications {
     }
 }
 
-
 fn start_backend<F: FnMut()>(node_exec: NodeExecutor, mut f: F) {
     let (client, _status) =
-        jack::Client::new("HexoSynth", jack::ClientOptions::NO_START_SERVER)
-        .unwrap();
+        jack::Client::new("HexoSynth", jack::ClientOptions::NO_START_SERVER).unwrap();
 
-    let in_a =
-        client.register_port("hexosynth_in1", jack::AudioIn::default())
-            .unwrap();
-    let in_b =
-        client.register_port("hexosynth_in2", jack::AudioIn::default())
-            .unwrap();
-    let mut out_a =
-        client.register_port("hexosynth_out1", jack::AudioOut::default())
-            .unwrap();
-    let mut out_b =
-        client.register_port("hexosynth_out2", jack::AudioOut::default())
-            .unwrap();
+    let in_a = client.register_port("hexosynth_in1", jack::AudioIn::default()).unwrap();
+    let in_b = client.register_port("hexosynth_in2", jack::AudioIn::default()).unwrap();
+    let mut out_a = client.register_port("hexosynth_out1", jack::AudioOut::default()).unwrap();
+    let mut out_b = client.register_port("hexosynth_out2", jack::AudioOut::default()).unwrap();
 
-    let ne        = Arc::new(Mutex::new(node_exec));
-    let ne2       = ne.clone();
+    let ne = Arc::new(Mutex::new(node_exec));
+    let ne2 = ne.clone();
 
     let oversample_simulation =
-        if let Some(arg) = std::env::args().nth(1) {
-            arg == "4x"
-        } else {
-            false
-        };
+        if let Some(arg) = std::env::args().nth(1) { arg == "4x" } else { false };
 
     let mut first = true;
     let process_callback = move |client: &jack::Client, ps: &jack::ProcessScope| -> jack::Control {
@@ -159,9 +132,11 @@ fn start_backend<F: FnMut()>(node_exec: NodeExecutor, mut f: F) {
         let in_b_p = in_b.as_slice(ps);
 
         if first {
-            client.connect_ports_by_name("HexoSynth:hexosynth_out1", "system:playback_1")
+            client
+                .connect_ports_by_name("HexoSynth:hexosynth_out1", "system:playback_1")
                 .expect("jack connect ports works");
-            client.connect_ports_by_name("HexoSynth:hexosynth_out2", "system:playback_2")
+            client
+                .connect_ports_by_name("HexoSynth:hexosynth_out2", "system:playback_2")
                 .expect("jack connect ports works");
             first = false;
         }
@@ -173,30 +148,24 @@ fn start_backend<F: FnMut()>(node_exec: NodeExecutor, mut f: F) {
         node_exec.process_graph_updates();
 
         let mut frames_left = nframes;
-        let mut offs        = 0;
+        let mut offs = 0;
 
         while frames_left > 0 {
-            let cur_nframes =
-                if frames_left >= hexodsp::dsp::MAX_BLOCK_SIZE {
-                    hexodsp::dsp::MAX_BLOCK_SIZE
-                } else {
-                    frames_left
-                };
+            let cur_nframes = if frames_left >= hexodsp::dsp::MAX_BLOCK_SIZE {
+                hexodsp::dsp::MAX_BLOCK_SIZE
+            } else {
+                frames_left
+            };
 
             frames_left -= cur_nframes;
 
-            let output = &mut [&mut out_a_p[offs..(offs + cur_nframes)],
-                               &mut out_b_p[offs..(offs + cur_nframes)]];
-            let input =
-                &[&in_a_p[offs..(offs + cur_nframes)],
-                  &in_b_p[offs..(offs + cur_nframes)]];
+            let output = &mut [
+                &mut out_a_p[offs..(offs + cur_nframes)],
+                &mut out_b_p[offs..(offs + cur_nframes)],
+            ];
+            let input = &[&in_a_p[offs..(offs + cur_nframes)], &in_b_p[offs..(offs + cur_nframes)]];
 
-            let mut context =
-                Context {
-                    nframes: cur_nframes,
-                    output,
-                    input,
-                };
+            let mut context = Context { nframes: cur_nframes, output, input };
 
             for i in 0..context.nframes {
                 context.output[0][i] = 0.0;
@@ -217,14 +186,10 @@ fn start_backend<F: FnMut()>(node_exec: NodeExecutor, mut f: F) {
         jack::Control::Continue
     };
 
-    let process =
-        jack::ClosureProcessHandler::new(process_callback);
+    let process = jack::ClosureProcessHandler::new(process_callback);
 
     // Activate the client, which starts the processing.
-    let active_client =
-        client.activate_async(Notifications {
-            node_exec: ne2,
-        }, process).unwrap();
+    let active_client = client.activate_async(Notifications { node_exec: ne2 }, process).unwrap();
 
     f();
 
