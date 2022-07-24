@@ -113,6 +113,13 @@
             $true
         };
     },
+    remove_chain = {!(pos) = @;
+        $self.matrix_apply_change {!(matrix) = @;
+            !cluster = hx:new_cluster[];
+            cluster.add_cluster_at matrix pos;
+            cluster.remove_cells matrix;
+        };
+    },
     remove_unused_ports = {!(pos, dir) = @;
         $self.matrix_apply_change {!(matrix) = @;
             !unused_dirs = $data.matrix.find_unconnected_ports pos dir;
@@ -624,15 +631,25 @@
         $[:remove_inp => "Cleanup Inputs"],
         $[:remove_out => "Cleanup Outputs"],
         $[:remove_cell => "Remove Cell"],
+        $[:remove_chain => "Remove Chain"],
     ] },
     handle_context_menu_action = {!(action) = @;
         !pos = $data.context_cell.pos;
         match action
             :remove_cell => { $self.remove_cell pos }
+            :remove_chain => {
+                !editor = $self;
+                $self.user_confirm_query
+                    "Really delete the complete cell chain?"
+                    { editor.remove_chain pos; }
+            }
             :remove_any  => { $self.remove_unused_ports pos :C }
             :remove_inp  => { $self.remove_unused_ports pos :T }
             :remove_out  => { $self.remove_unused_ports pos :B }
         ;
+    },
+    user_confirm_query = {!(text, cb) = @;
+        $self.emit :dialog_query :yes_cancel ("[t02:][f22:]" text) cb;
     },
 };
 
