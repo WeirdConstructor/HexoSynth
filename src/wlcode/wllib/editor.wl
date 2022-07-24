@@ -150,7 +150,15 @@
         !src_cell = $data.matrix.get src;
         !dst_cell = $data.matrix.get dst;
 
-        !param = node_id:param_by_idx dst_cell.node_id 0;
+        !adj = hx:pos_are_adjacent src dst;
+        if is_none[adj] \return $n;
+
+        !dsp_inp_param_name = dst_cell.ports.(adj.flip[].as_edge[]);
+
+        !param =
+            if is_some[dsp_inp_param_name] {
+                node_id:inp_param dst_cell.node_id dsp_inp_param_name
+            } { node_id:param_by_idx dst_cell.node_id 0 };
         !outs = node_id:out_list src_cell.node_id;
         if is_some[param]
             &and not[$data.matrix.param_input_is_used param]
