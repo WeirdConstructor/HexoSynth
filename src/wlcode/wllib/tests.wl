@@ -622,27 +622,52 @@
                 $[:out, :ch1, $n],
             ]};
         };
-#        test.add_step :drag_out_cell {!(td, labels) = @;
-#            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=Out}) labels;
-#            do_drag_rmb td res.0;
-#        };
-#        test.add_step :drop_out_cell {!(td, labels) = @;
-#            !res = matrix_cell_label labels $i(3, 1);
-#            do_drop_rmb td res;
-#        };
-#        test.add_step :check_move_precond {!(td, labels) = @;
-#            std:assert_eq len[connections_at $i(2, 2)] 2 "Two Amp connections before movement";
-#
-#            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=Amp}) labels;
-#            do_drag_rmb td res.0;
-#        };
-#        test.add_step :drop_amp_cell {!(td, labels) = @;
-#            !res = matrix_cell_label labels $i(2, 1);
-#            do_drop_rmb td res;
-#        };
-#        test.add_step :check_move_postcond {!(td, labels) = @;
-#            std:assert_eq len[connections_at $i(2, 1)] 2 "Two Amp connections after movement";
-#        };
+        test.add_step :drag_out_cell {!(td, labels) = @;
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=Out}) labels;
+            do_drag_rmb td res.0;
+        };
+        test.add_step :drop_out_cell {!(td, labels) = @;
+            !res = matrix_cell_label labels $i(3, 1);
+            do_drop_rmb td res;
+        };
+        test.add_step :check_move_precond {!(td, labels) = @;
+            std:assert_eq len[connections_at $i(2, 2)] 2 "Two Amp connections before movement";
+
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=Amp}) labels;
+            do_drag_rmb td res.0;
+        };
+        test.add_step :drop_amp_cell {!(td, labels) = @;
+            !res = matrix_cell_label labels $i(2, 1);
+            do_drop_rmb td res;
+        };
+        test.add_step :check_move_postcond {!(td, labels) = @;
+            std:assert_eq len[connections_at $i(2, 1)] 2 "Two Amp connections after movement";
+        };
+    };
+
+    add_test "matrix move single cell adjacent preserve edges" {!(test) = @;
+        test.add_step :init {||
+            matrix_init $i(1, 1) :BR ${chain=$[
+                $[:sin, :sig],
+                $[:amp, :inp, :sig],
+                $[:out, :ch1, $n],
+            ]};
+        };
+        test.add_step :drag_amp_cell {!(td, labels) = @;
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=Amp}) labels;
+            do_drag_rmb td res.0;
+        };
+        test.add_step :drop_amp_cell {!(td, labels) = @;
+            !res = matrix_cell_label labels $i(0, 1);
+            do_drop_rmb td res;
+        };
+        test.add_step :check_edge_labels {!(td, labels) = @;
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=sig}) labels;
+            std:assert_str_eq res.0.tag "matrix_grid" "Found 'sig' output label";
+
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=inp}) labels;
+            std:assert_str_eq res.0.tag "matrix_grid" "Found 'inp' input label";
+        };
     };
 
     add_test "matrix move single cell adjacent connection 2" {!(test) = @;

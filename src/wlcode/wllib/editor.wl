@@ -194,9 +194,8 @@
             !connections = matrix.get_connections src;
             iter con connections {
                 !adj_other = hx:pos_are_adjacent dst con.other.pos;
-                if is_none[adj_other] {
-                    next[];
-                };
+                if is_none[adj_other] \next[];
+                if adj_other.is_input[] != con.center.dir.is_input[] \next[];
 
                 # Make other cell swap the ports:
                 !other_cell = matrix.get con.other.pos;
