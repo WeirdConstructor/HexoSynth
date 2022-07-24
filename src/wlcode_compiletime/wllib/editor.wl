@@ -45,6 +45,7 @@
                 focus_cell              = $n,
                 current_help_node_id    = $n,
                 last_active_tracker_id  = 0,
+                matrix_in_apply         = $f,
                 matrix_center           = $i(4, 4),
                 cbs                     = ${},
             },
@@ -102,7 +103,8 @@
     get_current_param_list = {
         if is_none[$data.focus_cell]
             { $[] }
-            { node_id:param_list $data.focus_cell.node_id}
+            { node_id:param_list $data.focus_cell.node_id }
+
     },
     get_context_cell = {!(pos) = @; $data.matrix.get pos },
     remove_cell = {!(pos) = @;
@@ -133,7 +135,6 @@
         !edge_idx     = adj.as_edge[];
         !dst_edge_idx = adj.flip[].as_edge[];
 
-
         !src_cell = $data.matrix.get src;
         !dst_cell = $data.matrix.get dst;
 
@@ -144,6 +145,26 @@
         $data.matrix.set dst dst_cell;
 #        !out_idx = node_id:out_name2idx src_cell.node_id out_name;
 #        !in_idx  = node_id:inp_name2idx dst_cell.node_id in_name;
+    },
+    matrix_default_connect = {!(src, dst) = @;
+        !src_cell = $data.matrix.get src;
+        !dst_cell = $data.matrix.get dst;
+
+        !param = node_id:param_by_idx dst_cell.node_id 0;
+        !outs = node_id:out_list src_cell.node_id;
+        if is_some[param]
+            &and not[$data.matrix.param_input_is_used param]
+            &and len[outs] > 0 {
+
+            !in_name = param.name[];
+            !out_name = outs.0.1;
+
+            $self.matrix_set_connection_by_io_names
+                src_cell.pos
+                dst_cell.pos
+                out_name
+                in_name;
+        };
     },
     matrix_clear_connection = {!(src, dst) = @;
         !adj = hx:pos_are_adjacent src dst;
@@ -162,15 +183,70 @@
         $data.matrix.set src src_cell;
         $data.matrix.set dst dst_cell;
     },
+    # Moves a single cell from position `src` to position `dst`. Trying to keep the connection
+    # to adjacent cells alive.
+    matrix_move_single_cell = {!(src, dst) = @;
+        $self.matrix_apply_change {!(matrix) = @;
+            !src_cell = matrix.get src;
+            !dst_cell = matrix.get dst;
+            !set_other = $[];
+
+            !connections = matrix.get_connections src;
+            iter con connections {
+                !adj_other = hx:pos_are_adjacent dst con.other.pos;
+                if is_none[adj_other] \next[];
+                if adj_other.is_input[] != con.center.dir.is_input[] \next[];
+
+                # Make other cell swap the ports:
+                !other_cell = matrix.get con.other.pos;
+                !edge = adj_other.flip[].as_edge[];
+                other_cell.ports.(edge) = con.other.port;
+                other_cell.ports.(con.other.dir.as_edge[]) = $n;
+                std:push set_other $p(con.other.pos, other_cell);
+
+                # Swap ports in moved cell:
+                !src_edge = adj_other.as_edge[];
+                src_cell.ports.(con.center.dir.as_edge[]) = $n;
+                src_cell.ports.(src_edge) = con.center.port;
+            };
+
+            matrix.set src dst_cell;
+            matrix.set dst src_cell;
+            iter set set_other {
+                matrix.set set.0 set.1;
+            };
+        }
+    },
+    matrix_split_cluster_at = {!(pos_a, pos_b) = @;
+        !adj = hx:pos_are_adjacent pos_a pos_b;
+        if is_none[adj] \return $n;
+
+        $self.matrix_apply_change {!(matrix) = @;
+            !cluster = hx:new_cluster[];
+            cluster.ignore_pos pos_a;
+            cluster.add_cluster_at matrix pos_b;
+
+            cluster.remove_cells matrix;
+            cluster.move_cluster_cells_dir_path $[adj];
+            cluster.place matrix;
+        };
+    },
     matrix_apply_change = {!(cb) = @;
         !matrix = $data.matrix;
+        if $data.matrix.in_apply {
+            return ~ cb matrix;
+        };
         matrix.save_snapshot[];
 
+        $data.matrix.in_apply = $t;
         !change_text = cb matrix;
+        $data.matrix.in_apply = $f;
+
         match change_text
             ($error v) => {
                 std:displayln "ERROR1:" $\.v;
                 matrix.restore_snapshot[];
+                $data.matrix.in_apply = $f;
                 return $n;
             };
 
@@ -188,8 +264,123 @@
             $t
         };
     },
-    handle_drag_gesture = {!(src, dst, btn) = @;
+    spawn_default_connected_node = {!(src, dst, mode) = @;
+        !free = $data.matrix.find_first_adjacent_free dst :T;
+
+        if is_some[free] {
+            !cell = $data.matrix.get src;
+            !new_pos = free.offs_pos dst;
+
+            match mode
+                :link => {
+                    $self.matrix_apply_change {!(matrix) = @;
+                        cell.ports = $[];
+                        matrix.set new_pos cell;
+                    };
+                }
+                :instance => {
+                    $self.place_new_instance_at cell.node_id new_pos;
+                };
+
+            !this = $self;
+            $self.matrix_apply_change {!(matrix) = @;
+                this.matrix_default_connect new_pos dst;
+            };
+        };
+    },
+    spawn_new_instance_at = {!(node_id, dst) = @;
+        !dst_cell = $data.matrix.get dst;
+        if is_empty_cell[dst_cell] {
+            $self.place_new_instance_at node_id dst;
+        } {
+            !free = $data.matrix.find_first_adjacent_free dst :T;
+            if is_some[free] {
+                !new_pos = free.offs_pos dst;
+                $self.place_new_instance_at node_id new_pos;
+
+                !this = $self;
+                $self.matrix_apply_change {!(matrix) = @;
+                    this.matrix_default_connect new_pos dst;
+                };
+            };
+        };
+    },
+    open_connection_dialog_for = {!(src, dst) = @;
+        !adj = hx:pos_are_adjacent src dst;
+        if is_none[adj] \return $n;
+
+        if adj.is_input[] {
+            .(src, dst) = $p(dst, src);
+            .adj = adj.flip[];
+        };
+
+        !src_cell   = $data.matrix.get src;
+        !dst_cell   = $data.matrix.get dst;
+        !src_exists = not ~ is_empty_cell src_cell;
+        !dst_exists = not ~ is_empty_cell dst_cell;
+        if not[src_exists] &or not[dst_exists] \return $n;
+
+        !edge_idx     = adj.as_edge[];
+        !dst_edge_idx = adj.flip[].as_edge[];
+
+        if is_empty_cell[dst_cell] \return $n;
+        if is_empty_cell[src_cell] \return $n;
+
+        #d# std:displayln "CELLS:" src_cell dst_cell;
+        #d# std:displayln "PORTS:"
+        #d#     src_cell.ports.(edge_idx)
+        #d#     dst_cell.ports.(dst_edge_idx);
+
+        !src_outs = node_id:out_list   src_cell.node_id;
+        !dst_ins  = node_id:param_list dst_cell.node_id;
+
+        !out_name = src_cell.ports.(edge_idx);
+        !in_name  = dst_cell.ports.(dst_edge_idx);
+
+        !connection =
+            if is_some[out_name] &and is_some[in_name] {
+                !out_idx  = node_id:out_name2idx src_cell.node_id out_name;
+                !in_idx   = node_id:inp_name2idx dst_cell.node_id in_name;
+                $i(out_idx, in_idx)
+            } {
+                $none
+            };
+
+        .dst_ins =
+            $@vec iter inp dst_ins.inputs {
+                $+ $p(inp.name[],
+                      not $data.matrix.param_input_is_used[inp])
+            };
+        .src_outs = $@vec iter out src_outs { $+ out.1 };
+
+        #d# std:displayln "INS"  dst_ins;
+        #d# std:displayln "OUTS" src_outs;
         !this = $self;
+
+        $self.emit :setup_edit_connection
+            src_cell dst_cell
+            src_outs dst_ins
+            connection {!(con) = @;
+                this.matrix_apply_change {!(matrix) = @;
+                    if is_none[con] {
+                        this.matrix_clear_connection src dst;
+                        return ~ $F "Clear connection between {} and {}"
+                            src_cell.node_id dst_cell.node_id;
+                    } {
+                        this.matrix_set_connection_by_io_names
+                            src dst
+                            src_outs.(con.0)
+                            dst_ins.(con.1).0;
+                        return ~ $F "Set connection between {} output {} and {} input {}"
+                            src_cell.node_id
+                            src_outs.(con.0)
+                            dst_cell.node_id
+                            dst_ins.(con.1).0;
+                    };
+                };
+            };
+    },
+    handle_drag_gesture = {!(src, dst, btn) = @;
         !adj = hx:pos_are_adjacent src dst;
 
         std:displayln "GRID DRAG:" adj;
@@ -203,17 +394,11 @@
 
         if src_exists &and not[dst_exists] {
             if btn == :right {
-                !move_ok = this.matrix_apply_change {!(matrix) = @;
-                    matrix.set src dst_cell;
-                    matrix.set dst src_cell;
-                };
-
-                if move_ok {
-                    $self.set_focus_cell dst;
-                };
+                !move_ok = $self.matrix_move_single_cell src dst;
+                if move_ok { $self.set_focus_cell dst; };
             } {
                 !clust = hx:new_cluster[];
-                !move_ok = this.matrix_apply_change {!(matrix) = @;
+                !move_ok = $self.matrix_apply_change {!(matrix) = @;
                     clust.add_cluster_at matrix src;
                     clust.remove_cells matrix;
                     !path = hx:dir_path_from_to src dst;
@@ -230,71 +415,28 @@
             return $n;
         };
 
-        if is_some[adj] {
-            if adj.is_input[] {
-                .(src,      dst)      = $p(dst,      src);
-                .(src_cell, dst_cell) = $p(dst_cell, src_cell);
-                .adj = adj.flip[];
+        if is_some[adj] &and src_exists &and dst_exists {
+            if btn == :left {
+                $self.open_connection_dialog_for src dst;
+            } {
+                $self.matrix_split_cluster_at src dst;
             };
+        };
+        if not[src_exists] &and dst_exists {
+            !cell = $data.matrix.get dst;
 
-            !edge_idx     = adj.as_edge[];
-            !dst_edge_idx = adj.flip[].as_edge[];
-
-            if is_empty_cell[dst_cell] \return $n;
-            if is_empty_cell[src_cell] \return $n;
-
-            #d# std:displayln "CELLS:" src_cell dst_cell;
-            #d# std:displayln "PORTS:"
-            #d#     src_cell.ports.(edge_idx)
-            #d#     dst_cell.ports.(dst_edge_idx);
-
-            !src_outs = node_id:out_list   src_cell.node_id;
-            !dst_ins  = node_id:param_list dst_cell.node_id;
-
-            !out_name = src_cell.ports.(edge_idx);
-            !in_name  = dst_cell.ports.(dst_edge_idx);
-
-            !connection =
-                if is_some[out_name] &and is_some[in_name] {
-                    !out_idx  = node_id:out_name2idx src_cell.node_id out_name;
-                    !in_idx   = node_id:inp_name2idx dst_cell.node_id in_name;
-                    $i(out_idx, in_idx)
-                } {
-                    $none
+            if btn == :left {
+                $self.matrix_apply_change {!(matrix) = @;
+                    cell.ports = $[];
+                    matrix.set src cell;
                 };
-
-            .dst_ins =
-                $@vec iter inp dst_ins.inputs {
-                    $+ $p(inp.name[],
-                          not $data.matrix.param_input_is_used[inp])
-                };
-            .src_outs = $@vec iter out src_outs { $+ out.1 };
-
-            #d# std:displayln "INS"  dst_ins;
-            #d# std:displayln "OUTS" src_outs;
-
-            $self.emit :setup_edit_connection
-                src_cell dst_cell
-                src_outs dst_ins
-                connection {!(con) = @;
-                    this.matrix_apply_change {!(matrix) = @;
-                        if is_none[con] {
-                            this.matrix_clear_connection src dst;
-                            return ~ $F "Clear connection between {} and {}"
-                                src_cell.node_id dst_cell.node_id;
-                        } {
-                            this.matrix_set_connection_by_io_names
-                                src dst
-                                src_outs.(con.0)
-                                dst_ins.(con.1).0;
-                            return ~ $F "Set connection between {} output {} and {} input {}"
-                                src_cell.node_id
-                                src_outs.(con.0)
-                                dst_cell.node_id
-                                dst_ins.(con.1).0;
-                        };
-                    };
-                };
+            } {
+                $self.place_new_instance_at cell.node_id src;
+            };
+        };
+        if is_none[adj] &and src_exists &and dst_exists {
+            !mode = if btn == :left { :link } { :instance };
+            $self.spawn_default_connected_node src dst mode;
         };
     },
     show_param_id_desc = {!(param_id) = @;

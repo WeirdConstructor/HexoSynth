@@ -103,6 +103,11 @@
     matrix.get_param param_id
 };
 
+!connections_at = {!(pos) = @;
+    !matrix = hx:get_main_matrix_handle[];
+    matrix.get_connections pos
+};
+
 !@export install = {!(test_match) = @;
     !add_test = {!(name, setup_fun) = @;
         if is_none[test_match]
@@ -117,8 +122,8 @@
         test.add_step :init {||
             matrix_init  $i(0,1) :TR ${chain=$[
                 $[:sin, :sig],
-                $[:inp, :amp, :sig],
-                $[:ch1, :out, $n],
+                $[:amp, :inp, :sig],
+                $[:out, :ch1, $n],
             ], params = $[
                 $n,
                 $[:gain => 0.06],
@@ -138,7 +143,6 @@
         };
     #    test.add_step :sleep {|| std:thread:sleep :ms => 1000 };
         test.add_step :check_desc {!(td, labels) = @;
-    #        dump_labels td;
             !doc = ($S(*:{label=*Amp\ gain*}) labels).0;
             std:assert doc;
         };
@@ -150,8 +154,8 @@
         test.add_step :init {||
             matrix_init  $i(0,1) :TR ${chain=$[
                 $[:sin, :sig],
-                $[:inp, :amp, :sig],
-                $[:ch1, :out, $n],
+                $[:amp, :inp, :sig],
+                $[:out, :ch1, $n],
             ]};
         };
         test.add_step :click_amp {!(td, labels) = @;
@@ -164,16 +168,13 @@
             std:assert_str_eq (std:sort lbls) $["att","gain","inp","neg_att"];
         };
         test.add_step :start_drag_new_node {!(td, labels) = @;
-            !res = $S(*:{path=*pick_node_btn, label=Noise}) labels;
-            do_drag td res.0;
-        };
-        test.add_step :drop_new_node {!(td, labels) = @;
-            do_drop td amp_node_info;
+            !matrix = hx:get_main_matrix_handle[];
+            matrix.place_chain $i(1, 0) :TR ${chain=$[$[:noise, :sig]]};
+            matrix.sync[];
         };
         test.add_step :check_noise_labels {!(td, labels) = @;
             !lbls = $S(*:{path=*param_panel*param_label}/label) labels;
             std:assert_str_eq (std:sort lbls) $["atv","mode","offs"];
-
         };
     };
 
@@ -181,10 +182,10 @@
         test.add_step :init {||
             matrix_init  $i(0, 3) :TR ${chain=$[
                 $[:tslfo, :sig],
-                $[:inp,  :cqnt, :sig],
-                $[:freq, :bosc, :sig],
-                $[:in_l, :pverb, :sig_l],
-                $[:ch1, :out, $n],
+                $[:cqnt, :inp, :sig],
+                $[:bosc, :freq, :sig],
+                $[:pverb, :in_l, :sig_l],
+                $[:out, :ch1, $n],
             ], params = $[
                 $[:time => 4000.0],
                 $n,
@@ -206,7 +207,6 @@
     #    test.add_step :sleep {|| std:thread:sleep :ms => 1000 };
 
         test.add_step :check_bosc_help {!(td, labels) = @;
-    #        dump_labels td;
             !res = $S(*:{ctrl=Ctrl\:\:Label, label=wtype}) labels;
             std:assert_str_eq res.0.tag "param_label" "Found wtype param";
         };
@@ -233,7 +233,6 @@
             do_drop_rmb td bosc_pos;
         };
         test.add_step :check_bosc_help_still_there {!(td, labels) = @;
-    #        dump_labels td;
             !res = $S(*:{ctrl=Ctrl\:\:Label, label=wtype}) labels;
             std:assert_str_eq res.0.tag "param_label" "(Still) found wtype param";
 
@@ -262,10 +261,14 @@
                 "Found the small help text on screen";
         };
         test.add_step :click_node_help_btn {!(td, labels) = @;
-            !res = $S(*:{ctrl=Ctrl\:\:Button, label=\?}) labels;
+            !res = $S(*:{
+                ctrl=Ctrl\:\:Button,
+                path=*main_panel*,
+                label=\?
+            }) labels;
             do_click td res.0;
         };
-        test.add_step :click_node_help_btn {!(td, labels) = @;
+        test.add_step :check_help_text_there {!(td, labels) = @;
             !res = $S(*:{
                 ctrl=Ctrl\:\:WichText,
                 path=*.main_help_wichtext,
@@ -287,7 +290,6 @@
                 label=Mux9\ -\ 9\ Ch*
             }) labels;
             std:assert_str_eq res.0.source $n "Help text no longer open";
-    #        dump_labels td;
         };
     };
 
@@ -334,7 +336,6 @@
         };
         test.add_step :check_fbwr_desc {!(td, labels) = @;
             !res = $S(*:{ctrl=Ctrl\:\:WichText, label=Feedback*Writer}) labels;
-    #        dump_labels td;
             std:assert_eq res.0.source "text" "FbWr description text is displayed";
         };
     };
@@ -342,8 +343,8 @@
     add_test "connect nodes" {!(test) = @;
         test.add_step :init {||
             matrix_init  $i(0, 3) :B ${chain=$[
-                $[:tslfo, $n],
-                $[$n,  :cqnt, $n],
+                $[:tslfo],
+                $[:cqnt],
             ]};
         };
         test.add_step :drag {!(td, labels) = @;
@@ -373,8 +374,8 @@
     add_test "connect nodes" {!(test) = @;
         test.add_step :init {||
             matrix_init  $i(0, 3) :B ${chain=$[
-                $[:tslfo, $n],
-                $[$n,  :cqnt, $n],
+                $[:tslfo],
+                $[:cqnt],
             ]};
         };
         test.add_step :drag {!(td, labels) = @;
@@ -403,7 +404,7 @@
 
     add_test "check mode button functionality" {!(test) = @;
         test.add_step :init {||
-            matrix_init  $i(2, 2) :B ${chain=$[ $[:cqnt, $n], ]};
+            matrix_init  $i(2, 2) :B ${chain=$[ $[:cqnt], ]};
         };
         test.add_step :focus_cqnt {!(td, labels) = @;
             do_click td ~ matrix_cell_label labels $i(2, 2);
@@ -421,7 +422,6 @@
             do_click td res.0;
         };
         test.add_step :click_minus2_popup_item {!(td, labels) = @;
-#            dump_labels td;
             !res = $S(*:{tag=mode_selector_item, label=-2}) labels;
             do_click td res.0;
         };
@@ -458,7 +458,7 @@
 
     add_test "check mode button shows help" {!(test) = @;
         test.add_step :init {||
-            matrix_init  $i(2, 2) :B ${chain=$[ $[:cqnt, $n], ]};
+            matrix_init  $i(2, 2) :B ${chain=$[ $[:cqnt], ]};
         };
         test.add_step :focus_cqnt {!(td, labels) = @;
             do_click td ~ matrix_cell_label labels $i(2, 2);
@@ -488,7 +488,7 @@
 
     add_test "check trig parameter is a button" {!(test) = @;
         test.add_step :init {||
-            matrix_init  $i(2, 2) :B ${chain=$[ $[:ad, $n], ]};
+            matrix_init  $i(2, 2) :B ${chain=$[ $[:ad], ]};
         };
         test.add_step :focus_cqnt {!(td, labels) = @;
             do_click td ~ matrix_cell_label labels $i(2, 2);
@@ -499,11 +499,302 @@
         };
         test.add_step :check_no_doc {!(td, labels) = @;
             !res = $S(*:{path=*help*wichtext, label=*trig*}) labels;
+            std:assert_str_eq res.0.source "text" "Found the small help text with trig on screen";
+        };
+    };
+
+    add_test "node picker LMB click" {!(test) = @;
+        test.add_step :init {||
+            matrix_init $i(2, 2) :B ${chain=$[ ]};
+        };
+        test.add_step :goto_ntom_tab {!(td, labels) = @;
+            !res = $S(*:{path=*.tab_hor, label=NtoM}) labels;
+            do_click td res.0;
+        };
+        test.add_step :click_mix3 {!(td, labels) = @;
+            !res = $S(*:{path=*.pick_node_btn, label=Mix3}) labels;
+            do_click td res.0;
+        };
+        test.add_step :find_mix3 {!(td, labels) = @;
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=Mix3}) labels;
+            std:assert_str_eq res.0.source "cell_name" "Found Mix3 node on matrix";
+        };
+        test.add_step :goto_ctrl_tab {!(td, labels) = @;
+            !res = $S(*:{path=*.tab_hor, label=Ctrl}) labels;
+            do_click td res.0;
+        };
+        test.add_step :click_mix3 {!(td, labels) = @;
+            !res = $S(*:{path=*.pick_node_btn, label=Map}) labels;
+            do_click td res.0;
+        };
+        test.add_step :find_mix3 {!(td, labels) = @;
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=Map}) labels;
             std:assert_str_eq
                 res.0.source
-                "text"
-                "Found the small help text with trig on screen";
+                "cell_name"
+                "Found Map node on matrix";
+
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=inp}) labels;
+            std:assert_str_eq res.0.tag "matrix_grid" "Found 'inp' input label";
+
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=sig}) labels;
+            std:assert_str_eq res.0.tag "matrix_grid" "Found 'sig' output label";
         };
+    };
+
+    add_test "node picker RMB click" {!(test) = @;
+        test.add_step :init {||
+            matrix_init $i(2, 2) :B ${chain=$[ ]};
+        };
+        test.add_step :goto_ntom_tab {!(td, labels) = @;
+            !res = $S(*:{path=*.tab_hor, label=NtoM}) labels;
+            do_click td res.0;
+        };
+        test.add_step :click_mix3 {!(td, labels) = @;
+            !res = $S(*:{path=*.pick_node_btn, label=Mix3}) labels;
+            do_click_rmb td res.0;
+        };
+        test.add_step :find_mix3 {!(td, labels) = @;
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=Mix3}) labels;
+            std:assert_str_eq res.0.source "cell_name" "Found Mix3 node on matrix";
+        };
+        test.add_step :goto_ctrl_tab {!(td, labels) = @;
+            !res = $S(*:{path=*.tab_hor, label=Ctrl}) labels;
+            do_click td res.0;
+        };
+        test.add_step :click_mix3 {!(td, labels) = @;
+            !res = $S(*:{path=*.pick_node_btn, label=Map}) labels;
+            do_click_rmb td res.0;
+        };
+        test.add_step :find_mix3 {!(td, labels) = @;
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=Map}) labels;
+            std:assert_str_eq
+                res.0.source
+                "cell_name"
+                "Found Map node on matrix";
+
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=ch1}) labels;
+            std:assert_str_eq res.0.tag "matrix_grid" "Found 'ch1' input label";
+        };
+    };
+
+    add_test "matrix move single cell adjacent connection" {!(test) = @;
+        test.add_step :init {||
+            matrix_init $i(1, 1) :B ${chain=$[
+                $[:sin, :sig],
+                $[:amp, :inp, :sig],
+                $[:out, :ch1, $n],
+            ]};
+        };
+        test.add_step :drag_amp_cell {!(td, labels) = @;
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=Amp}) labels;
+            do_drag_rmb td res.0;
+
+            std:assert_eq len[connections_at $i(1, 2)] 2 "Two connections before movement";
+        };
+        test.add_step :drop_amp_cell {!(td, labels) = @;
+            !res = matrix_cell_label labels $i(2, 2);
+            do_drop_rmb td res;
+        };
+        test.add_step :check_amp_connections {!(td, labels) = @;
+            std:assert_eq len[connections_at $i(2, 2)] 1 "One connection after movement";
+
+            # drag one further:
+            !res = matrix_cell_label labels $i(2, 2);
+            do_drag_rmb td res;
+        };
+        test.add_step :drop_to_non_adjacent {!(td, labels) = @;
+            !res = matrix_cell_label labels $i(3, 3);
+            do_drop_rmb td res;
+        };
+        test.add_step :check_no_amp_connections {!(td, labels) = @;
+            !connections = connections_at $i(3, 3);
+            std:assert is_some[connections];
+            std:assert_eq len[connections] 0 "No connections after movement";
+        };
+    };
+
+    add_test "matrix move single cell adjacent two connections" {!(test) = @;
+        test.add_step :init {||
+            matrix_init $i(1, 1) :BR ${chain=$[
+                $[:sin, :sig],
+                $[:amp, :inp, :sig],
+                $[:out, :ch1, $n],
+            ]};
+        };
+        test.add_step :drag_out_cell {!(td, labels) = @;
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=Out}) labels;
+            do_drag_rmb td res.0;
+        };
+        test.add_step :drop_out_cell {!(td, labels) = @;
+            !res = matrix_cell_label labels $i(3, 1);
+            do_drop_rmb td res;
+        };
+        test.add_step :check_move_precond {!(td, labels) = @;
+            std:assert_eq len[connections_at $i(2, 2)] 2 "Two Amp connections before movement";
+
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=Amp}) labels;
+            do_drag_rmb td res.0;
+        };
+        test.add_step :drop_amp_cell {!(td, labels) = @;
+            !res = matrix_cell_label labels $i(2, 1);
+            do_drop_rmb td res;
+        };
+        test.add_step :check_move_postcond {!(td, labels) = @;
+            std:assert_eq len[connections_at $i(2, 1)] 2 "Two Amp connections after movement";
+        };
+    };
+
+    add_test "matrix move single cell adjacent preserve edges" {!(test) = @;
+        test.add_step :init {||
+            matrix_init $i(1, 1) :BR ${chain=$[
+                $[:sin, :sig],
+                $[:amp, :inp, :sig],
+                $[:out, :ch1, $n],
+            ]};
+        };
+        test.add_step :drag_amp_cell {!(td, labels) = @;
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=Amp}) labels;
+            do_drag_rmb td res.0;
+        };
+        test.add_step :drop_amp_cell {!(td, labels) = @;
+            !res = matrix_cell_label labels $i(0, 1);
+            do_drop_rmb td res;
+        };
+        test.add_step :check_edge_labels {!(td, labels) = @;
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=sig}) labels;
+            std:assert_str_eq res.0.tag "matrix_grid" "Found 'sig' output label";
+
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=inp}) labels;
+            std:assert_str_eq res.0.tag "matrix_grid" "Found 'inp' input label";
+        };
+    };
+
+    add_test "matrix move single cell adjacent connection 2" {!(test) = @;
+        test.add_step :init {||
+            matrix_init $i(1, 1) :B ${chain=$[
+                $[:sin, :sig],
+                $[:amp, :inp, :sig],
+                $[:out, :ch1, $n],
+            ]};
+        };
+        test.add_step :drag_amp_cell {!(td, labels) = @;
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=Sin}) labels;
+            do_drag_rmb td res.0;
+
+            std:assert_eq len[connections_at $i(1, 2)] 2 "Two connections before movement";
+        };
+        test.add_step :drop_amp_cell {!(td, labels) = @;
+            !res = matrix_cell_label labels $i(0, 3);
+            do_drop_rmb td res;
+        };
+        test.add_step :check_amp_connections {!(td, labels) = @;
+            std:assert_eq len[connections_at $i(1, 2)] 2 "Two connection after movement";
+        };
+    };
+
+    add_test "DSP chain splitting" {!(test) = @;
+        test.add_step :init {||
+            matrix_init $i(1, 1) :B ${chain=$[
+                $[:sin, :sig],
+                $[:amp, :inp, :sig],
+                $[:out, :ch1, $n],
+            ]};
+        };
+        test.add_step :check_precond {!(td, labels) = @;
+            std:assert_eq len[connections_at $i(1, 2)] 2 "Two connections before split";
+        };
+        test.add_step :drag_split_down {!(td, labels) = @;
+            !res = matrix_cell_label labels $i(1, 2);
+            do_drag_rmb td res;
+        };
+        test.add_step :drop_split_down {!(td, labels) = @;
+            !res = matrix_cell_label labels $i(1, 3);
+            do_drop_rmb td res;
+        };
+        test.add_step :check_postcond {!(td, labels) = @;
+            std:assert_eq len[connections_at $i(1, 2)] 1 "One connections after split";
+        };
+        test.add_step :drag_split_up {!(td, labels) = @;
+            !res = matrix_cell_label labels $i(1, 2);
+            do_drag_rmb td res;
+        };
+        test.add_step :drop_split_up {!(td, labels) = @;
+            !res = matrix_cell_label labels $i(1, 1);
+            do_drop_rmb td res;
+        };
+        test.add_step :check_postcond2 {!(td, labels) = @;
+            std:assert_eq len[connections_at $i(1, 2)] 0 "No connections after split";
+        };
+    };
+
+    add_test "DSP chain splitting blocked" {!(test) = @;
+        test.add_step :init {||
+            matrix_init $i(1, 1) :B ${chain=$[
+                $[:sin, :sig],
+                $[:amp, :inp, :sig],
+                $[:out, :ch1, $n],
+            ]};
+
+            !matrix = hx:get_main_matrix_handle[];
+            matrix.place_chain $i(1, 4) :B ${chain=$[ $[:sin, :sig] ]};
+            matrix.sync[];
+        };
+        test.add_step :check_precond {!(td, labels) = @;
+            std:assert_eq len[connections_at $i(1, 2)] 2 "Two connections before split";
+        };
+        test.add_step :drag_split_down {!(td, labels) = @;
+            !res = matrix_cell_label labels $i(1, 2);
+            do_drag_rmb td res;
+        };
+        test.add_step :drop_split_down {!(td, labels) = @;
+            !res = matrix_cell_label labels $i(1, 3);
+            do_drop_rmb td res;
+        };
+        test.add_step :check_postcond {!(td, labels) = @;
+            std:assert_eq len[connections_at $i(1, 2)] 2 "Still two connections after split";
+        };
+    };
+
+    add_test "linked copy to empty position" {!(test) = @;
+        test.add_step :init {||
+            matrix_init $i(1, 1) :BR ${chain=$[ $[:amp, :inp, :sig], ]};
+        };
+        test.add_step :drag_from_empty {!(td, labels) = @;
+            do_drag td ~ matrix_cell_label labels $i(2, 1);
+        };
+        test.add_step :drop_on_filled {!(td, labels) = @;
+            do_drop td ~ matrix_cell_label labels $i(1, 1);
+        };
+        test.add_step :check_two_amps {!(td, labels) = @;
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=Amp}) labels;
+            std:assert_eq len[res] 2 "Found two Amp nodes";
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, source=cell_num, label=0}) labels;
+            std:assert_eq len[res] 2 "Found two 0 nodes";
+        };
+    };
+
+    add_test "linked copy default connected" {!(test) = @;
+        test.add_step :init {||
+            matrix_init $i(1, 1) :BR ${chain=$[ $[:sin, $n], ]};
+            matrix_init $i(2, 2) :BR ${chain=$[ $[:amp, $n], ]};
+        };
+        test.add_step :drag_from_empty {!(td, labels) = @;
+            do_drag td ~ matrix_cell_label labels $i(1, 1);
+        };
+        test.add_step :drop_on_filled {!(td, labels) = @;
+            do_drop td ~ matrix_cell_label labels $i(2, 2);
+        };
+#        test.add_step :check_two_amps {!(td, labels) = @;
+#            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=Amp}) labels;
+#            std:assert_eq len[res] 2 "Found two Amp nodes";
+#
+#            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, source=cell_num, label=1}) labels;
+#            std:assert_eq len[res] 1 "Found one 1 nodes";
+#
+#            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, source=cell_num, label=0}) labels;
+#            std:assert_eq len[res] 1 "Found one 0 nodes";
+#        };
     };
 };
 # dump_labels td;

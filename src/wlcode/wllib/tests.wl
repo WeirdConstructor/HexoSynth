@@ -755,5 +755,46 @@
             std:assert_eq len[connections_at $i(1, 2)] 2 "Still two connections after split";
         };
     };
+
+    add_test "linked copy to empty position" {!(test) = @;
+        test.add_step :init {||
+            matrix_init $i(1, 1) :BR ${chain=$[ $[:amp, :inp, :sig], ]};
+        };
+        test.add_step :drag_from_empty {!(td, labels) = @;
+            do_drag td ~ matrix_cell_label labels $i(2, 1);
+        };
+        test.add_step :drop_on_filled {!(td, labels) = @;
+            do_drop td ~ matrix_cell_label labels $i(1, 1);
+        };
+        test.add_step :check_two_amps {!(td, labels) = @;
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=Amp}) labels;
+            std:assert_eq len[res] 2 "Found two Amp nodes";
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, source=cell_num, label=0}) labels;
+            std:assert_eq len[res] 2 "Found two 0 nodes";
+        };
+    };
+
+    add_test "linked copy default connected" {!(test) = @;
+        test.add_step :init {||
+            matrix_init $i(1, 1) :BR ${chain=$[ $[:sin, $n], ]};
+            matrix_init $i(2, 2) :BR ${chain=$[ $[:amp, $n], ]};
+        };
+        test.add_step :drag_from_empty {!(td, labels) = @;
+            do_drag td ~ matrix_cell_label labels $i(1, 1);
+        };
+        test.add_step :drop_on_filled {!(td, labels) = @;
+            do_drop td ~ matrix_cell_label labels $i(2, 2);
+        };
+#        test.add_step :check_two_amps {!(td, labels) = @;
+#            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=Amp}) labels;
+#            std:assert_eq len[res] 2 "Found two Amp nodes";
+#
+#            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, source=cell_num, label=1}) labels;
+#            std:assert_eq len[res] 1 "Found one 1 nodes";
+#
+#            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, source=cell_num, label=0}) labels;
+#            std:assert_eq len[res] 1 "Found one 0 nodes";
+#        };
+    };
 };
 # dump_labels td;
