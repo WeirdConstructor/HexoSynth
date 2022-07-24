@@ -47,6 +47,7 @@
                 last_active_tracker_id  = 0,
                 matrix_in_apply         = $f,
                 matrix_center           = $i(4, 4),
+                context_cell            = $n,
                 cbs                     = ${},
             },
         }
@@ -106,11 +107,29 @@
             { node_id:param_list $data.focus_cell.node_id }
 
     },
-    get_context_cell = {!(pos) = @; $data.matrix.get pos },
     remove_cell = {!(pos) = @;
         $self.matrix_apply_change {!(matrix) = @;
             $data.matrix.set pos $n;
             $true
+        };
+    },
+    remove_chain = {!(pos) = @;
+        $self.matrix_apply_change {!(matrix) = @;
+            !cluster = hx:new_cluster[];
+            cluster.add_cluster_at matrix pos;
+            cluster.remove_cells matrix;
+        };
+    },
+    remove_unused_ports = {!(pos, dir) = @;
+        $self.matrix_apply_change {!(matrix) = @;
+            !unused_dirs = $data.matrix.find_unconnected_ports pos dir;
+
+            !cell = matrix.get pos;
+            iter dir unused_dirs {
+                cell.ports.(dir.as_edge[]) = $n;
+            };
+
+            !cell = matrix.set pos cell;
         };
     },
     reg = {!(ev, cb) = @;
@@ -150,7 +169,15 @@
         !src_cell = $data.matrix.get src;
         !dst_cell = $data.matrix.get dst;
 
-        !param = node_id:param_by_idx dst_cell.node_id 0;
+        !adj = hx:pos_are_adjacent src dst;
+        if is_none[adj] \return $n;
+
+        !dsp_inp_param_name = dst_cell.ports.(adj.flip[].as_edge[]);
+
+        !param =
+            if is_some[dsp_inp_param_name] {
+                node_id:inp_param dst_cell.node_id dsp_inp_param_name
+            } { node_id:param_by_idx dst_cell.node_id 0 };
         !outs = node_id:out_list src_cell.node_id;
         if is_some[param]
             &and not[$data.matrix.param_input_is_used param]
@@ -595,6 +622,34 @@
     },
     check_pattern_data = {
         $data.matrix.check_pattern_data $data.last_active_tracker_id;
+    },
+    set_context_cell_pos = {!(pos) = @;
+        $data.context_cell = $data.matrix.get pos
+    },
+    get_context_menu_items = { $[
+        $[:remove_any => "Cleanup Ports"],
+        $[:remove_inp => "Cleanup Inputs"],
+        $[:remove_out => "Cleanup Outputs"],
+        $[:remove_cell => "Remove Cell"],
+        $[:remove_chain => "Remove Chain"],
+    ] },
+    handle_context_menu_action = {!(action) = @;
+        !pos = $data.context_cell.pos;
+        match action
+            :remove_cell => { $self.remove_cell pos }
+            :remove_chain => {
+                !editor = $self;
+                $self.user_confirm_query
+                    "Really delete the complete cell chain?"
+                    { editor.remove_chain pos; }
+            }
+            :remove_any  => { $self.remove_unused_ports pos :C }
+            :remove_inp  => { $self.remove_unused_ports pos :T }
+            :remove_out  => { $self.remove_unused_ports pos :B }
+        ;
+    },
+    user_confirm_query = {!(text, cb) = @;
+        $self.emit :dialog_query :yes_cancel ("[t02:][f22:]" text) cb;
     },
 };
 

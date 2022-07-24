@@ -119,6 +119,10 @@ style.button_label = ${
 layout.button_label = ${
     height = :pixels => 30,
 };
+style.button_big = ${
+    parent = :button,
+    font_size = 18,
+};
 
 style.button_float_menu = ${
     parent = :button,
@@ -267,14 +271,14 @@ layout.popup_menu = ${
     position_type = :self,
     layout_type   = :column,
     height        = :auto,
-    width         = :pixels => 90,
+    width         = :pixels => 200,
     visible       = $f,
 };
 style.popup_menu_item = ${
     parent = :button,
 };
 layout.popup_menu_item = ${
-    height = :pixels => 30,
+    height = :pixels => 27,
 };
 
 layout.mode_selector_popup = ${ parent = :popup_menu, };
@@ -396,6 +400,11 @@ layout.monitor_column = ${
     layout_type = :column,
     left = :stretch => 1,
     right = :stretch => 1,
+};
+
+layout.dialog_popup_button_bar = ${
+    layout_type = :row,
+    height = :pixels => 40,
 };
 
 !apply_class = $n;

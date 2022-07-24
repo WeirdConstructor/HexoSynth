@@ -84,6 +84,12 @@
     matrix.sync[];
 };
 
+!matrix_place = {!(pos, dir, chain) = @;
+    !matrix = hx:get_main_matrix_handle[];
+    matrix.place_chain pos dir chain;
+    matrix.sync[];
+};
+
 !matrix_cell_label = {!(labels, pos) = @;
     !sel_str = $F $q(*:{{path=*.matrix_grid, label=hexcell_{}_{}}}) pos.0 pos.1;
     !sel = std:selector sel_str;
@@ -168,9 +174,7 @@
             std:assert_str_eq (std:sort lbls) $["att","gain","inp","neg_att"];
         };
         test.add_step :start_drag_new_node {!(td, labels) = @;
-            !matrix = hx:get_main_matrix_handle[];
-            matrix.place_chain $i(1, 0) :TR ${chain=$[$[:noise, :sig]]};
-            matrix.sync[];
+            matrix_place $i(1, 0) :TR ${chain=$[$[:noise, :sig]]};
         };
         test.add_step :check_noise_labels {!(td, labels) = @;
             !lbls = $S(*:{path=*param_panel*param_label}/label) labels;
@@ -312,7 +316,7 @@
             do_click_rmb td res.0;
         };
         test.add_step :click_on_remove {!(td, labels) = @;
-            !res = $S(*:{path=*popup*, label=Remove}) labels;
+            !res = $S(*:{path=*popup*, label=Remove Cell}) labels;
             do_click td res.0;
         };
         test.add_step :verify_out_cell_gone {!(td, labels) = @;
@@ -578,6 +582,36 @@
         };
     };
 
+    add_test "node picker drag onto existing" {!(test) = @;
+        test.add_step :init {||
+            matrix_init $i(2, 2) :B ${chain=$[ $[:sin] ]};
+        };
+        test.add_step :goto_ntom_tab {!(td, labels) = @;
+            !res = $S(*:{path=*.tab_hor, label=NtoM}) labels;
+            do_click td res.0;
+        };
+        test.add_step :drag_mix3 {!(td, labels) = @;
+            !res = $S(*:{path=*.pick_node_btn, label=Mix3}) labels;
+            do_drag td res.0;
+        };
+        test.add_step :drop_mix3 {!(td, labels) = @;
+            do_drop td ~ matrix_cell_label labels $i(2, 2);
+        };
+        test.add_step :check_connection {!(td, labels) = @;
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=Sin}) labels;
+            std:assert_eq len[res] 1 "Found one Sin nodes";
+
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=Mix3}) labels;
+            std:assert_eq len[res] 1 "Found one Mix3 nodes";
+
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=sig}) labels;
+            std:assert_str_eq res.0.tag "matrix_grid" "Found 'sig' output label";
+
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=freq}) labels;
+            std:assert_str_eq res.0.tag "matrix_grid" "Found 'freq' input label";
+        };
+    };
+
     add_test "matrix move single cell adjacent connection" {!(test) = @;
         test.add_step :init {||
             matrix_init $i(1, 1) :B ${chain=$[
@@ -735,10 +769,7 @@
                 $[:amp, :inp, :sig],
                 $[:out, :ch1, $n],
             ]};
-
-            !matrix = hx:get_main_matrix_handle[];
-            matrix.place_chain $i(1, 4) :B ${chain=$[ $[:sin, :sig] ]};
-            matrix.sync[];
+            matrix_place $i(1, 4) :B ${chain=$[ $[:sin, :sig] ]};
         };
         test.add_step :check_precond {!(td, labels) = @;
             std:assert_eq len[connections_at $i(1, 2)] 2 "Two connections before split";
@@ -756,7 +787,7 @@
         };
     };
 
-    add_test "linked copy to empty position" {!(test) = @;
+    add_test "matrix drag linked copy to empty position" {!(test) = @;
         test.add_step :init {||
             matrix_init $i(1, 1) :BR ${chain=$[ $[:amp, :inp, :sig], ]};
         };
@@ -774,27 +805,137 @@
         };
     };
 
-    add_test "linked copy default connected" {!(test) = @;
+    add_test "matrix drag linked copy default connected" {!(test) = @;
         test.add_step :init {||
-            matrix_init $i(1, 1) :BR ${chain=$[ $[:sin, $n], ]};
-            matrix_init $i(2, 2) :BR ${chain=$[ $[:amp, $n], ]};
+            matrix_init $i(1, 1) :BR ${chain=$[ $[:sin], ]};
+            matrix_place $i(3, 3) :BR ${chain=$[ $[:amp], ]};
         };
-        test.add_step :drag_from_empty {!(td, labels) = @;
+        test.add_step :drag_from_sin {!(td, labels) = @;
             do_drag td ~ matrix_cell_label labels $i(1, 1);
         };
-        test.add_step :drop_on_filled {!(td, labels) = @;
-            do_drop td ~ matrix_cell_label labels $i(2, 2);
+        test.add_step :drop_on_amp {!(td, labels) = @;
+            do_drop td ~ matrix_cell_label labels $i(3, 3);
         };
-#        test.add_step :check_two_amps {!(td, labels) = @;
-#            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=Amp}) labels;
-#            std:assert_eq len[res] 2 "Found two Amp nodes";
-#
-#            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, source=cell_num, label=1}) labels;
-#            std:assert_eq len[res] 1 "Found one 1 nodes";
-#
-#            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, source=cell_num, label=0}) labels;
-#            std:assert_eq len[res] 1 "Found one 0 nodes";
-#        };
+        test.add_step :check_two_amps {!(td, labels) = @;
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=Sin}) labels;
+            std:assert_eq len[res] 2 "Found two Sin nodes";
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, source=cell_num, label=0}) labels;
+            std:assert_eq len[res] 3 "Found three 0 nodes";
+
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=sig}) labels;
+            std:assert_str_eq res.0.tag "matrix_grid" "Found 'sig' output label";
+
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=inp}) labels;
+            std:assert_str_eq res.0.tag "matrix_grid" "Found 'inp' input label";
+        };
     };
+
+    add_test "matrix drag instance default connected" {!(test) = @;
+        test.add_step :init {||
+            matrix_init $i(1, 1) :BR ${chain=$[ $[:sin], ]};
+            matrix_place $i(3, 3) :BR ${chain=$[ $[:amp], ]};
+        };
+        test.add_step :drag_from_sin {!(td, labels) = @;
+            do_drag_rmb td ~ matrix_cell_label labels $i(1, 1);
+        };
+        test.add_step :drop_on_amp {!(td, labels) = @;
+            do_drop_rmb td ~ matrix_cell_label labels $i(3, 3);
+        };
+        test.add_step :check_two_amps {!(td, labels) = @;
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=Sin}) labels;
+            std:assert_eq len[res] 2 "Found two Sin nodes";
+
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, source=cell_num, label=0}) labels;
+            std:assert_eq len[res] 2 "Found two 0 nodes";
+
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, source=cell_num, label=1}) labels;
+            std:assert_eq len[res] 1 "Found one 1 nodes";
+
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=sig}) labels;
+            std:assert_str_eq res.0.tag "matrix_grid" "Found 'sig' output label";
+
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=inp}) labels;
+            std:assert_str_eq res.0.tag "matrix_grid" "Found 'inp' input label";
+        };
+    };
+
+    add_test "matrix drag instance pre connected" {!(test) = @;
+        test.add_step :init {||
+            matrix_init $i(1, 1) :BR ${chain=$[ $[:sin], ]};
+            matrix_place $i(3, 3) :TR ${chain=$[ $[:ad, :atk, :eoet], ]};
+        };
+        test.add_step :drag_from_sin {!(td, labels) = @;
+            do_drag_rmb td ~ matrix_cell_label labels $i(1, 1);
+        };
+        test.add_step :drop_on_amp {!(td, labels) = @;
+            do_drop_rmb td ~ matrix_cell_label labels $i(3, 3);
+        };
+        test.add_step :check_two_amps {!(td, labels) = @;
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=Sin}) labels;
+            std:assert_eq len[res] 2 "Found two Sin nodes";
+
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=atk}) labels;
+            std:assert_str_eq res.0.tag "matrix_grid" "Found 'atk' output label";
+
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=sig}) labels;
+            std:assert_str_eq res.0.tag "matrix_grid" "Found 'sig' input label";
+        };
+    };
+
+    add_test "matrix drag linked copy pre connected" {!(test) = @;
+        test.add_step :init {||
+            matrix_init $i(1, 1) :BR ${chain=$[ $[:sin], ]};
+            matrix_place $i(3, 3) :TR ${chain=$[ $[:ad, :atk, :eoet], ]};
+        };
+        test.add_step :drag_from_sin {!(td, labels) = @;
+            do_drag td ~ matrix_cell_label labels $i(1, 1);
+        };
+        test.add_step :drop_on_amp {!(td, labels) = @;
+            do_drop td ~ matrix_cell_label labels $i(3, 3);
+        };
+        test.add_step :check_two_amps {!(td, labels) = @;
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=Sin}) labels;
+            std:assert_eq len[res] 2 "Found two Sin nodes";
+
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=atk}) labels;
+            std:assert_str_eq res.0.tag "matrix_grid" "Found 'atk' output label";
+
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=sig}) labels;
+            std:assert_str_eq res.0.tag "matrix_grid" "Found 'sig' input label";
+        };
+    };
+
+    add_test "node picker drag onto existing pre connected" {!(test) = @;
+        test.add_step :init {||
+            matrix_init $i(3, 3) :TR ${chain=$[ $[:ad, :atk, :eoet], ]};
+        };
+        test.add_step :goto_ntom_tab {!(td, labels) = @;
+            !res = $S(*:{path=*.tab_hor, label=NtoM}) labels;
+            do_click td res.0;
+        };
+        test.add_step :drag_mix3 {!(td, labels) = @;
+            !res = $S(*:{path=*.pick_node_btn, label=Mix3}) labels;
+            do_drag td res.0;
+        };
+        test.add_step :drop_mix3 {!(td, labels) = @;
+            do_drop td ~ matrix_cell_label labels $i(3, 3);
+        };
+        test.add_step :check_connection {!(td, labels) = @;
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=Ad}) labels;
+            std:assert_eq len[res] 1 "Found one Ad nodes";
+
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=Mix3}) labels;
+            std:assert_eq len[res] 1 "Found one Mix3 nodes";
+            std:assert_eq res.0.logic_pos $i(2, 4) "Position of Mix3 correct";
+
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=sig}) labels;
+            std:assert_str_eq res.0.tag "matrix_grid" "Found 'sig' output label";
+
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=atk}) labels;
+            std:assert_str_eq res.0.tag "matrix_grid" "Found 'atk' input label";
+        };
+    };
+
 };
 # dump_labels td;
+# test.add_step :sleep {|| std:thread:sleep :ms => 1000 };

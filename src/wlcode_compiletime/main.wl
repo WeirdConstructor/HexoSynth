@@ -193,10 +193,12 @@ cell_context_popup.auto_hide[];
     menu.add btn;
 };
 
-!CONTEXT_CELL = $n;
+iter ctx_item editor.get_context_menu_items[] {
+    !ctx_item = ctx_item.0;
 
-add_context_menu_item cell_context_popup "Remove" {
-    editor.remove_cell CONTEXT_CELL.pos;
+    add_context_menu_item cell_context_popup ctx_item.1 {
+        editor.handle_context_menu_action ctx_item.0;
+    };
 };
 
 !setup_grid_widget = {!(matrix, click_cb) = @;
@@ -210,7 +212,7 @@ add_context_menu_item cell_context_popup "Remove" {
                 click_cb[];
             }
             :right => {
-                .CONTEXT_CELL = editor.get_context_cell $i(event.x, event.y);
+                editor.set_context_cell_pos $i(event.x, event.y);
                 cell_context_popup.popup_at_mouse[];
             };
     };
@@ -451,6 +453,44 @@ sample_list_popup.change_layout ${
 sample_list_popup.auto_hide[];
 sample_list_popup.set_ctrl :rect $n;
 
+!dialog_popup = styling:new_widget :dialog_popup;
+dialog_popup.change_layout ${
+    position_type = :self,
+    width         = :pixels => 700,
+    height        = :pixels => 300,
+    top           = :stretch => 1,
+    bottom        = :stretch => 1,
+    left          = :stretch => 1,
+    right         = :stretch => 1,
+    visible       = $f,
+};
+dialog_popup.auto_hide[];
+dialog_popup.set_ctrl :rect $n;
+
+!dialog_wichtext = styling:new_widget :wichtext;
+!dialog_wtd = ui:wichtext_simple_data_store[];
+dialog_wichtext.set_ctrl :wichtext dialog_wtd;
+
+editor.reg :dialog_query {!(mode, text, ok_cb) = @;
+    dialog_wtd.set_text text;
+    match mode
+        :yes_cancel => {
+            dialog_popup.remove_childs[];
+            !row = styling:new_widget :dialog_popup_button_bar;
+            !btn1 = styling:new_button_with_label :button_big "✔ Yes" {
+                ok_cb[];
+                dialog_popup.hide[];
+            };
+            !btn2 = styling:new_button_with_label :button_big "✘ Cancel" {
+                dialog_popup.hide[];
+            };
+            row.add btn1;
+            row.add btn2;
+            dialog_popup.add dialog_wichtext;
+            dialog_popup.add row;
+            dialog_popup.show[];
+        };
+};
 
 !DirIndexer = ${
     new = {#!() = @;
@@ -506,6 +546,7 @@ popup_layer.add mode_selector_popup;
 popup_layer.add cell_context_popup;
 popup_layer.add help_wichtext;
 popup_layer.add sample_list_popup;
+popup_layer.add dialog_popup;
 
 !create_mode_button = {!(val_list, init_idx, change_cb, hover_cb) = @;
     !val_idx = init_idx;
