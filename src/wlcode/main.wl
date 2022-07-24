@@ -193,10 +193,12 @@ cell_context_popup.auto_hide[];
     menu.add btn;
 };
 
-!CONTEXT_CELL = $n;
+iter ctx_item editor.get_context_menu_items[] {
+    !ctx_item = ctx_item.0;
 
-add_context_menu_item cell_context_popup "Remove" {
-    editor.remove_cell CONTEXT_CELL.pos;
+    add_context_menu_item cell_context_popup ctx_item.1 {
+        editor.handle_context_menu_action ctx_item.0;
+    };
 };
 
 !setup_grid_widget = {!(matrix, click_cb) = @;
@@ -210,7 +212,7 @@ add_context_menu_item cell_context_popup "Remove" {
                 click_cb[];
             }
             :right => {
-                .CONTEXT_CELL = editor.get_context_cell $i(event.x, event.y);
+                editor.set_context_cell_pos $i(event.x, event.y);
                 cell_context_popup.popup_at_mouse[];
             };
     };

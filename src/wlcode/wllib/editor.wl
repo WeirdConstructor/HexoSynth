@@ -47,6 +47,7 @@
                 last_active_tracker_id  = 0,
                 matrix_in_apply         = $f,
                 matrix_center           = $i(4, 4),
+                context_cell            = $n,
                 cbs                     = ${},
             },
         }
@@ -106,11 +107,22 @@
             { node_id:param_list $data.focus_cell.node_id }
 
     },
-    get_context_cell = {!(pos) = @; $data.matrix.get pos },
     remove_cell = {!(pos) = @;
         $self.matrix_apply_change {!(matrix) = @;
             $data.matrix.set pos $n;
             $true
+        };
+    },
+    remove_unused_ports = {!(pos, dir) = @;
+        $self.matrix_apply_change {!(matrix) = @;
+            !unused_dirs = $data.matrix.find_unconnected_ports pos dir;
+
+            !cell = matrix.get pos;
+            iter dir unused_dirs {
+                cell.ports.(dir.as_edge[]) = $n;
+            };
+
+            !cell = matrix.set pos cell;
         };
     },
     reg = {!(ev, cb) = @;
@@ -603,6 +615,24 @@
     },
     check_pattern_data = {
         $data.matrix.check_pattern_data $data.last_active_tracker_id;
+    },
+    set_context_cell_pos = {!(pos) = @;
+        $data.context_cell = $data.matrix.get pos
+    },
+    get_context_menu_items = { $[
+        $[:remove_any => "Cleanup Ports"],
+        $[:remove_inp => "Cleanup Inputs"],
+        $[:remove_out => "Cleanup Outputs"],
+        $[:remove_cell => "Remove Cell"],
+    ] },
+    handle_context_menu_action = {!(action) = @;
+        !pos = $data.context_cell.pos;
+        match action
+            :remove_cell => { $self.remove_cell pos }
+            :remove_any  => { $self.remove_unused_ports pos :C }
+            :remove_inp  => { $self.remove_unused_ports pos :T }
+            :remove_out  => { $self.remove_unused_ports pos :B }
+        ;
     },
 };
 

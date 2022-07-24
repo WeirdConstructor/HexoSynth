@@ -481,6 +481,23 @@ impl vval::VValUserData for VValMatrix {
                         Ok(VVal::None)
                     }
                 }
+                "find_unconnected_ports" => {
+                    arg_chk!(args, 2, "matrix.find_unconnected_ports[$i(x, y), cell_dir]");
+
+                    if let Some(cell) = m.get_copy(args[0].v_i(0) as usize, args[0].v_i(1) as usize)
+                    {
+                        let free_pos = cell.find_unconnected_ports(&mut *m, vv2cell_dir(&args[1]));
+
+                        let ret = VVal::vec();
+                        for dir in free_pos {
+                            ret.push(cell_dir2vv(dir));
+                        }
+
+                        Ok(ret)
+                    } else {
+                        Ok(VVal::None)
+                    }
+                }
                 "get_connections" => {
                     arg_chk!(args, 1, "matrix.get_connections[$i(x, y)]");
 
