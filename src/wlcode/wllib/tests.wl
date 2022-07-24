@@ -122,8 +122,8 @@
         test.add_step :init {||
             matrix_init  $i(0,1) :TR ${chain=$[
                 $[:sin, :sig],
-                $[:inp, :amp, :sig],
-                $[:ch1, :out, $n],
+                $[:amp, :inp, :sig],
+                $[:out, :ch1, $n],
             ], params = $[
                 $n,
                 $[:gain => 0.06],
@@ -154,8 +154,8 @@
         test.add_step :init {||
             matrix_init  $i(0,1) :TR ${chain=$[
                 $[:sin, :sig],
-                $[:inp, :amp, :sig],
-                $[:ch1, :out, $n],
+                $[:amp, :inp, :sig],
+                $[:out, :ch1, $n],
             ]};
         };
         test.add_step :click_amp {!(td, labels) = @;
@@ -168,16 +168,13 @@
             std:assert_str_eq (std:sort lbls) $["att","gain","inp","neg_att"];
         };
         test.add_step :start_drag_new_node {!(td, labels) = @;
-            !res = $S(*:{path=*pick_node_btn, label=Noise}) labels;
-            do_drag td res.0;
-        };
-        test.add_step :drop_new_node {!(td, labels) = @;
-            do_drop td amp_node_info;
+            !matrix = hx:get_main_matrix_handle[];
+            matrix.place_chain $i(1, 0) :TR ${chain=$[$[:noise, :sig]]};
+            matrix.sync[];
         };
         test.add_step :check_noise_labels {!(td, labels) = @;
             !lbls = $S(*:{path=*param_panel*param_label}/label) labels;
             std:assert_str_eq (std:sort lbls) $["atv","mode","offs"];
-
         };
     };
 
@@ -185,10 +182,10 @@
         test.add_step :init {||
             matrix_init  $i(0, 3) :TR ${chain=$[
                 $[:tslfo, :sig],
-                $[:inp,  :cqnt, :sig],
-                $[:freq, :bosc, :sig],
-                $[:in_l, :pverb, :sig_l],
-                $[:ch1, :out, $n],
+                $[:cqnt, :inp, :sig],
+                $[:bosc, :freq, :sig],
+                $[:pverb, :in_l, :sig_l],
+                $[:out, :ch1, $n],
             ], params = $[
                 $[:time => 4000.0],
                 $n,
@@ -346,8 +343,8 @@
     add_test "connect nodes" {!(test) = @;
         test.add_step :init {||
             matrix_init  $i(0, 3) :B ${chain=$[
-                $[:tslfo, $n],
-                $[$n,  :cqnt, $n],
+                $[:tslfo],
+                $[:cqnt],
             ]};
         };
         test.add_step :drag {!(td, labels) = @;
@@ -377,8 +374,8 @@
     add_test "connect nodes" {!(test) = @;
         test.add_step :init {||
             matrix_init  $i(0, 3) :B ${chain=$[
-                $[:tslfo, $n],
-                $[$n,  :cqnt, $n],
+                $[:tslfo],
+                $[:cqnt],
             ]};
         };
         test.add_step :drag {!(td, labels) = @;
@@ -407,7 +404,7 @@
 
     add_test "check mode button functionality" {!(test) = @;
         test.add_step :init {||
-            matrix_init  $i(2, 2) :B ${chain=$[ $[:cqnt, $n], ]};
+            matrix_init  $i(2, 2) :B ${chain=$[ $[:cqnt], ]};
         };
         test.add_step :focus_cqnt {!(td, labels) = @;
             do_click td ~ matrix_cell_label labels $i(2, 2);
@@ -461,7 +458,7 @@
 
     add_test "check mode button shows help" {!(test) = @;
         test.add_step :init {||
-            matrix_init  $i(2, 2) :B ${chain=$[ $[:cqnt, $n], ]};
+            matrix_init  $i(2, 2) :B ${chain=$[ $[:cqnt], ]};
         };
         test.add_step :focus_cqnt {!(td, labels) = @;
             do_click td ~ matrix_cell_label labels $i(2, 2);
@@ -491,7 +488,7 @@
 
     add_test "check trig parameter is a button" {!(test) = @;
         test.add_step :init {||
-            matrix_init  $i(2, 2) :B ${chain=$[ $[:ad, $n], ]};
+            matrix_init  $i(2, 2) :B ${chain=$[ $[:ad], ]};
         };
         test.add_step :focus_cqnt {!(td, labels) = @;
             do_click td ~ matrix_cell_label labels $i(2, 2);
@@ -585,8 +582,8 @@
         test.add_step :init {||
             matrix_init $i(1, 1) :B ${chain=$[
                 $[:sin, :sig],
-                $[:inp, :amp, :sig],
-                $[:ch1, :out, $n],
+                $[:amp, :inp, :sig],
+                $[:out, :ch1, $n],
             ]};
         };
         test.add_step :drag_amp_cell {!(td, labels) = @;
@@ -621,39 +618,39 @@
         test.add_step :init {||
             matrix_init $i(1, 1) :BR ${chain=$[
                 $[:sin, :sig],
-                $[:inp, :amp, :sig],
-                $[:ch1, :out, $n],
+                $[:amp, :inp, :sig],
+                $[:out, :ch1, $n],
             ]};
         };
-        test.add_step :drag_out_cell {!(td, labels) = @;
-            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=Out}) labels;
-            do_drag_rmb td res.0;
-        };
-        test.add_step :drop_out_cell {!(td, labels) = @;
-            !res = matrix_cell_label labels $i(3, 1);
-            do_drop_rmb td res;
-        };
-        test.add_step :check_move_precond {!(td, labels) = @;
-            std:assert_eq len[connections_at $i(2, 2)] 2 "Two Amp connections before movement";
-
-            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=Amp}) labels;
-            do_drag_rmb td res.0;
-        };
-        test.add_step :drop_amp_cell {!(td, labels) = @;
-            !res = matrix_cell_label labels $i(2, 1);
-            do_drop_rmb td res;
-        };
-        test.add_step :check_move_postcond {!(td, labels) = @;
-            std:assert_eq len[connections_at $i(2, 1)] 2 "Two Amp connections after movement";
-        };
+#        test.add_step :drag_out_cell {!(td, labels) = @;
+#            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=Out}) labels;
+#            do_drag_rmb td res.0;
+#        };
+#        test.add_step :drop_out_cell {!(td, labels) = @;
+#            !res = matrix_cell_label labels $i(3, 1);
+#            do_drop_rmb td res;
+#        };
+#        test.add_step :check_move_precond {!(td, labels) = @;
+#            std:assert_eq len[connections_at $i(2, 2)] 2 "Two Amp connections before movement";
+#
+#            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=Amp}) labels;
+#            do_drag_rmb td res.0;
+#        };
+#        test.add_step :drop_amp_cell {!(td, labels) = @;
+#            !res = matrix_cell_label labels $i(2, 1);
+#            do_drop_rmb td res;
+#        };
+#        test.add_step :check_move_postcond {!(td, labels) = @;
+#            std:assert_eq len[connections_at $i(2, 1)] 2 "Two Amp connections after movement";
+#        };
     };
 
     add_test "matrix move single cell adjacent connection 2" {!(test) = @;
         test.add_step :init {||
             matrix_init $i(1, 1) :B ${chain=$[
                 $[:sin, :sig],
-                $[:inp, :amp, :sig],
-                $[:ch1, :out, $n],
+                $[:amp, :inp, :sig],
+                $[:out, :ch1, $n],
             ]};
         };
         test.add_step :drag_amp_cell {!(td, labels) = @;
@@ -675,8 +672,8 @@
         test.add_step :init {||
             matrix_init $i(1, 1) :B ${chain=$[
                 $[:sin, :sig],
-                $[:inp, :amp, :sig],
-                $[:ch1, :out, $n],
+                $[:amp, :inp, :sig],
+                $[:out, :ch1, $n],
             ]};
         };
         test.add_step :check_precond {!(td, labels) = @;
@@ -710,8 +707,8 @@
         test.add_step :init {||
             matrix_init $i(1, 1) :B ${chain=$[
                 $[:sin, :sig],
-                $[:inp, :amp, :sig],
-                $[:ch1, :out, $n],
+                $[:amp, :inp, :sig],
+                $[:out, :ch1, $n],
             ]};
 
             !matrix = hx:get_main_matrix_handle[];

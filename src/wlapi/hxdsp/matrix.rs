@@ -18,7 +18,7 @@ use hexodsp;
 use wlambda::*;
 
 use hexodsp::matrix::MatrixError;
-use hexodsp::{Cell, CellDir, Matrix, NodeId};
+use hexodsp::{Cell, CellDir, Matrix, MatrixCellChain, NodeId};
 
 use hexotk::DummyParamModel;
 pub use hexotk::PatternEditorFeedback;
@@ -115,64 +115,22 @@ fn matrix_error2vval_err(err: MatrixError) -> VVal {
     VVal::Err(Rc::new(RefCell::new((err_val, wlambda::vval::SynPos::empty()))))
 }
 
-fn build_cell_chain(
-    matrix: &mut Matrix,
-    mut pos: (i32, i32),
-    dir: CellDir,
-    v: &VVal,
-) -> Vec<((usize, usize), Cell)> {
-    let mut chain = vec![];
+fn build_cell_chain(dir: CellDir, v: &VVal) -> MatrixCellChain {
+    let mut chain = MatrixCellChain::new(dir);
 
-    let vv_chain = v.v_k("chain");
-
-    let mut last_unused = std::collections::HashMap::new();
-
-    vv_chain.with_iter(|iter| {
+    v.v_k("chain").with_iter(|iter| {
         for (v, _) in iter {
-            let (node_id, in_name, out_name) = if v.len() == 1 {
-                (NodeId::from_str(&v.v_s_raw(0)), VVal::None, VVal::None)
+            if v.len() == 1 {
+                chain.node(&v.v_s_raw(0));
             } else if v.len() == 2 {
-                (NodeId::from_str(&v.v_s_raw(0)), VVal::None, v.v_(1))
+                chain.node_out(&v.v_s_raw(0), &v.v_s_raw(1));
             } else {
-                (NodeId::from_str(&v.v_s_raw(1)), v.v_(0), v.v_(2))
+                if v.v_(2).is_none() {
+                    chain.node_inp(&v.v_s_raw(0), &v.v_s_raw(1));
+                } else {
+                    chain.node_io(&v.v_s_raw(0), &v.v_s_raw(1), &v.v_s_raw(2));
+                }
             };
-
-            let node_name = node_id.name();
-
-            let node_id = if let Some(i) = last_unused.get(node_name).cloned() {
-                last_unused.insert(node_name, i + 1);
-                node_id.to_instance(i + 1)
-            } else {
-                let node_id = matrix.get_unused_instance_node_id(node_id);
-                last_unused.insert(node_name, node_id.instance());
-                node_id
-            };
-
-            let mut cell = Cell::empty(node_id);
-
-            let in_dir = if dir.is_input() { dir } else { dir.flip() };
-            let out_dir = in_dir.flip();
-
-            if in_name.is_some() {
-                in_name.with_s_ref(|name| {
-                    if let Some(idx) = node_id.inp(name) {
-                        cell.set_io_dir(in_dir, idx as usize);
-                    }
-                });
-            }
-            if out_name.is_some() {
-                out_name.with_s_ref(|name| {
-                    if let Some(idx) = node_id.out(name) {
-                        cell.set_io_dir(out_dir, idx as usize);
-                    }
-                });
-            }
-
-            chain.push(((pos.0 as usize, pos.1 as usize), cell));
-
-            let offs = dir.as_offs(pos.0 as usize);
-            pos.0 += offs.0;
-            pos.1 += offs.1;
         }
     });
 
@@ -312,39 +270,37 @@ impl vval::VValUserData for VValMatrix {
                 "place_chain" => {
                     arg_chk!(args, 3, "matrix.place_chain[pos, dir, chain]");
 
-                    let (x, y) = (args[0].v_i(0) as i32, args[0].v_i(1) as i32);
+                    let (x, y) = (args[0].v_i(0) as usize, args[0].v_i(1) as usize);
 
                     let dir = vv2cell_dir(&args[1]);
+                    let mut chain = build_cell_chain(dir, &args[2]);
 
-                    let chain = build_cell_chain(&mut m, (x, y), dir, &args[2]);
+                    //d// println!("CHAIN: {:#?}", chain);
 
-                    let params = args[2].v_k("params");
+                    args[2].v_k("params").with_iter(|it| {
+                        let mut i = 0;
+                        for (link_params, _) in it {
+                            chain.params_for_idx(i);
 
-                    for (i, (pos, cell)) in chain.into_iter().enumerate() {
-                        let node_id = cell.node_id();
-                        let paras = params.v_(i);
-                        paras.with_iter(|iter| {
-                            for (v, _) in iter {
-                                if let Some(pid) = node_id.inp_param(&v.v_s_raw(0)) {
+                            link_params.with_iter(|it| {
+                                for (v, _) in it {
                                     if let VVal::Flt(denorm) = v.v_(1) {
-                                        m.set_param(
-                                            pid,
-                                            hexodsp::SAtom::param(pid.norm(denorm as f32)),
-                                        );
+                                        chain.set_denorm(&v.v_s_raw(0), denorm as f32);
                                     } else {
-                                        m.set_param(pid, vv2atom(v.v_(1)));
+                                        chain.set_atom(&v.v_s_raw(0), vv2atom(v.v_(1)));
                                     }
                                 }
-                            }
-                        });
+                            });
 
-                        m.place(pos.0, pos.1, cell);
-                        //d// println!("PLACE: {:?} => {:?}", pos, cell);
+                            i += 1;
+                        }
+                    });
+
+                    if let Err(e) = chain.place(&mut m, x, y) {
+                        Ok(VVal::err_msg(&format!("Couldn't place DSP chain: {:?}", e)))
+                    } else {
+                        Ok(VVal::None)
                     }
-
-                    //                    println!("CHAIN: {:?}", chain);
-
-                    Ok(VVal::None)
                 }
                 "set_param" => {
                     arg_chk!(args, 2, "matrix.set_param[param_id, atom or value]");
