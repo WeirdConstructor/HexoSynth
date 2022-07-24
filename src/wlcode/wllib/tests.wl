@@ -582,6 +582,36 @@
         };
     };
 
+    add_test "node picker drag onto existing" {!(test) = @;
+        test.add_step :init {||
+            matrix_init $i(2, 2) :B ${chain=$[ $[:sin] ]};
+        };
+        test.add_step :goto_ntom_tab {!(td, labels) = @;
+            !res = $S(*:{path=*.tab_hor, label=NtoM}) labels;
+            do_click td res.0;
+        };
+        test.add_step :drag_mix3 {!(td, labels) = @;
+            !res = $S(*:{path=*.pick_node_btn, label=Mix3}) labels;
+            do_drag td res.0;
+        };
+        test.add_step :drop_mix3 {!(td, labels) = @;
+            do_drop td ~ matrix_cell_label labels $i(2, 2);
+        };
+        test.add_step :check_connection {!(td, labels) = @;
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=Sin}) labels;
+            std:assert_eq len[res] 1 "Found one Sin nodes";
+
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=Mix3}) labels;
+            std:assert_eq len[res] 1 "Found one Mix3 nodes";
+
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=sig}) labels;
+            std:assert_str_eq res.0.tag "matrix_grid" "Found 'sig' output label";
+
+            !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=freq}) labels;
+            std:assert_str_eq res.0.tag "matrix_grid" "Found 'freq' input label";
+        };
+    };
+
     add_test "matrix move single cell adjacent connection" {!(test) = @;
         test.add_step :init {||
             matrix_init $i(1, 1) :B ${chain=$[
@@ -814,8 +844,10 @@
         test.add_step :check_two_amps {!(td, labels) = @;
             !res = $S(*:{ctrl=Ctrl\:\:HexGrid, label=Sin}) labels;
             std:assert_eq len[res] 2 "Found two Sin nodes";
+
             !res = $S(*:{ctrl=Ctrl\:\:HexGrid, source=cell_num, label=0}) labels;
             std:assert_eq len[res] 2 "Found two 0 nodes";
+
             !res = $S(*:{ctrl=Ctrl\:\:HexGrid, source=cell_num, label=1}) labels;
             std:assert_eq len[res] 1 "Found one 1 nodes";
 
