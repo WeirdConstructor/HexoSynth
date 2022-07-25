@@ -48,6 +48,7 @@
                 matrix_in_apply         = $f,
                 matrix_center           = $i(4, 4),
                 context_cell            = $n,
+                context_pos             = $i(0, 0),
                 cbs                     = ${},
             },
         }
@@ -165,19 +166,27 @@
 #        !out_idx = node_id:out_name2idx src_cell.node_id out_name;
 #        !in_idx  = node_id:inp_name2idx dst_cell.node_id in_name;
     },
-    matrix_default_connect = {!(src, dst) = @;
+    matrix_default_connect = {|2<3| !(src, dst, any_input) = @;
         !src_cell = $data.matrix.get src;
         !dst_cell = $data.matrix.get dst;
 
         !adj = hx:pos_are_adjacent src dst;
         if is_none[adj] \return $n;
 
-        !dsp_inp_param_name = dst_cell.ports.(adj.flip[].as_edge[]);
+        !dst_inp_param_name = dst_cell.ports.(adj.flip[].as_edge[]);
 
         !param =
-            if is_some[dsp_inp_param_name] {
-                node_id:inp_param dst_cell.node_id dsp_inp_param_name
-            } { node_id:param_by_idx dst_cell.node_id 0 };
+            if is_some[dst_inp_param_name] {
+                node_id:inp_param dst_cell.node_id dst_inp_param_name
+            } {
+                if any_input {
+                    !unused = $data.matrix.find_unused_inputs dst_cell.node_id;
+                    unused.0
+                } {
+                    node_id:param_by_idx dst_cell.node_id 0
+                }
+            };
+
         !outs = node_id:out_list src_cell.node_id;
         if is_some[param]
             &and not[$data.matrix.param_input_is_used param]
@@ -291,27 +300,29 @@
             $t
         };
     },
-    spawn_default_connected_node = {!(src, dst, mode) = @;
-        !free = $data.matrix.find_first_adjacent_free dst :T;
+    spawn_default_connected_node = {|3<5|!(node_id, dst, mode, dir, any_input) = @;
+        .dir = if is_none[dir] { :T } { dir };
+        !free = $data.matrix.find_first_adjacent_free dst dir;
+        if is_none[free] \return $n;
 
-        if is_some[free] {
-            !cell = $data.matrix.get src;
-            !new_pos = free.offs_pos dst;
+        !new_pos = free.offs_pos dst;
 
-            match mode
-                :link => {
-                    $self.matrix_apply_change {!(matrix) = @;
-                        cell.ports = $[];
-                        matrix.set new_pos cell;
-                    };
-                }
-                :instance => {
-                    $self.place_new_instance_at cell.node_id new_pos;
+        match mode
+            :link => {
+                $self.matrix_apply_change {!(matrix) = @;
+                    matrix.set new_pos ${node_id = node_id};
                 };
+            }
+            :instance => {
+                $self.place_new_instance_at node_id new_pos;
+            };
 
-            !this = $self;
-            $self.matrix_apply_change {!(matrix) = @;
-                this.matrix_default_connect new_pos dst;
+        !this = $self;
+        $self.matrix_apply_change {!(matrix) = @;
+            if hx:dir[dir].is_input[] {
+                this.matrix_default_connect new_pos dst any_input;
+            } {
+                this.matrix_default_connect dst new_pos any_input;
             };
         };
     },
@@ -320,16 +331,7 @@
         if is_empty_cell[dst_cell] {
             $self.place_new_instance_at node_id dst;
         } {
-            !free = $data.matrix.find_first_adjacent_free dst :T;
-            if is_some[free] {
-                !new_pos = free.offs_pos dst;
-                $self.place_new_instance_at node_id new_pos;
-
-                !this = $self;
-                $self.matrix_apply_change {!(matrix) = @;
-                    this.matrix_default_connect new_pos dst;
-                };
-            };
+            $self.spawn_default_connected_node node_id dst :instance;
         };
     },
     open_connection_dialog_for = {!(src, dst) = @;
@@ -463,7 +465,7 @@
         };
         if is_none[adj] &and src_exists &and dst_exists {
             !mode = if btn == :left { :link } { :instance };
-            $self.spawn_default_connected_node src dst mode;
+            $self.spawn_default_connected_node src_cell.node_id dst mode;
         };
     },
     show_param_id_desc = {!(param_id) = @;
@@ -563,7 +565,7 @@
                                     focus_pos
                                     new_cell.pos
                                     outputs.0.1
-                                    unused.(0).name[];
+                                    unused.0.name[];
                             };
                             #d# std:displayln "PLACED! unusued inputs=" unused unused.(0).name[];
                         } {
@@ -624,17 +626,28 @@
         $data.matrix.check_pattern_data $data.last_active_tracker_id;
     },
     set_context_cell_pos = {!(pos) = @;
+        $data.context_pos  = pos;
         $data.context_cell = $data.matrix.get pos
     },
-    get_context_menu_items = { $[
+    context_cell_is_empty = {
+        is_empty_cell[$data.context_cell]
+    },
+    get_cell_context_menu_items = { $[
+        $[:rand_input => "Random Input"],
+        $[:rand_output => "Random Output"],
         $[:remove_any => "Cleanup Ports"],
         $[:remove_inp => "Cleanup Inputs"],
         $[:remove_out => "Cleanup Outputs"],
         $[:remove_cell => "Remove Cell"],
         $[:remove_chain => "Remove Chain"],
     ] },
+    get_matrix_context_menu_items = { $[
+        $[:rand_here => "Random"],
+        $[:rand_6_here => "Random 6"],
+        $[:global_remove_any => "Cleanup All Ports"],
+    ] },
     handle_context_menu_action = {!(action) = @;
-        !pos = $data.context_cell.pos;
+        !pos = $data.context_pos;
         match action
             :remove_cell => { $self.remove_cell pos }
             :remove_chain => {
@@ -643,9 +656,41 @@
                     "Really delete the complete cell chain?"
                     { editor.remove_chain pos; }
             }
-            :remove_any  => { $self.remove_unused_ports pos :C }
-            :remove_inp  => { $self.remove_unused_ports pos :T }
-            :remove_out  => { $self.remove_unused_ports pos :B }
+            :remove_any => { $self.remove_unused_ports pos :C }
+            :remove_inp => { $self.remove_unused_ports pos :T }
+            :remove_out => { $self.remove_unused_ports pos :B }
+            :global_remove_any => {
+                iter pos ($data.matrix.get_filled_positions[]) {
+                    $self.remove_unused_ports pos :C;
+                };
+            }
+            :rand_here => {
+                !nids = node_id:get_random 1 :only_useful;
+                $self.matrix_apply_change {!(matrix) = @;
+                    matrix.set pos ${node_id = nids.0};
+                };
+            }
+            :rand_6_here => {
+                !nids = node_id:get_random 6 :only_useful;
+                $self.matrix_apply_change {!(matrix) = @;
+                    !i = 0;
+                    iter dir $[:T, :TL, :BL, :B, :BR, :TR] {
+                        !new_pos = hx:dir[dir].offs_pos pos;
+                        if is_empty_cell[matrix.get new_pos] {
+                            matrix.set new_pos ${node_id = nids.(i)};
+                        };
+                        .i += 1;
+                    };
+                };
+            }
+            :rand_input => {
+                !nids = node_id:get_random 1 :only_useful;
+                $self.spawn_default_connected_node nids.0 pos :instance :T $t;
+            }
+            :rand_output => {
+                !nids = node_id:get_random 1 :only_useful;
+                $self.spawn_default_connected_node nids.0 pos :instance :B $t;
+            }
         ;
     },
     user_confirm_query = {!(text, cb) = @;

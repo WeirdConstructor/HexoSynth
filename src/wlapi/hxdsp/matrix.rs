@@ -428,6 +428,18 @@ impl vval::VValUserData for VValMatrix {
                         Ok(VVal::None)
                     }
                 }
+                "get_filled_positions" => {
+                    arg_chk!(args, 0, "matrix.get_filled_positions[]");
+                    let ret = VVal::vec();
+
+                    m.for_each(|x, y, cell| {
+                        if cell.node_id() != NodeId::Nop {
+                            ret.push(VVal::ivec2(x as i64, y as i64));
+                        }
+                    });
+
+                    Ok(ret)
+                },
                 "find_unused_inputs" => {
                     arg_chk!(args, 1, "matrix.param_input_is_used[node_id]");
 

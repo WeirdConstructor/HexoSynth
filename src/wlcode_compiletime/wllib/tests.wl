@@ -316,7 +316,7 @@
             do_click_rmb td res.0;
         };
         test.add_step :click_on_remove {!(td, labels) = @;
-            !res = $S(*:{path=*popup*, label=Remove Cell}) labels;
+            !res = $S(*:{path=*popup*, label=Remove\ Cell}) labels;
             do_click td res.0;
         };
         test.add_step :verify_out_cell_gone {!(td, labels) = @;

@@ -31,6 +31,11 @@ impl VValUserData for VValParamId {
 
                 Ok(VVal::pair(node_id2vv(self.param.node_id()), VVal::Int(self.param.inp() as i64)))
             }
+            "index" => {
+                arg_chk!(args, 0, "param_id.index[]");
+
+                Ok(VVal::Int(self.param.inp() as i64))
+            }
             "name" => {
                 arg_chk!(args, 0, "param_id.name[]");
 

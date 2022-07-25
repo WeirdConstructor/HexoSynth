@@ -193,13 +193,25 @@ cell_context_popup.auto_hide[];
     menu.add btn;
 };
 
-iter ctx_item editor.get_context_menu_items[] {
+iter ctx_item editor.get_cell_context_menu_items[] {
     !ctx_item = ctx_item.0;
 
     add_context_menu_item cell_context_popup ctx_item.1 {
         editor.handle_context_menu_action ctx_item.0;
     };
 };
+
+!matrix_context_popup = styling:new_widget :popup_menu;
+matrix_context_popup.auto_hide[];
+
+iter ctx_item editor.get_matrix_context_menu_items[] {
+    !ctx_item = ctx_item.0;
+
+    add_context_menu_item matrix_context_popup ctx_item.1 {
+        editor.handle_context_menu_action ctx_item.0;
+    };
+};
+
 
 !setup_grid_widget = {!(matrix, click_cb) = @;
     !grid = styling:new_widget :matrix_grid;
@@ -213,7 +225,11 @@ iter ctx_item editor.get_context_menu_items[] {
             }
             :right => {
                 editor.set_context_cell_pos $i(event.x, event.y);
-                cell_context_popup.popup_at_mouse[];
+                if editor.context_cell_is_empty[] {
+                    matrix_context_popup.popup_at_mouse[];
+                } {
+                    cell_context_popup.popup_at_mouse[];
+                };
             };
     };
 
@@ -544,6 +560,7 @@ editor.reg :open_sample_selector {!(param) = @;
 popup_layer.add connector_popup;
 popup_layer.add mode_selector_popup;
 popup_layer.add cell_context_popup;
+popup_layer.add matrix_context_popup;
 popup_layer.add help_wichtext;
 popup_layer.add sample_list_popup;
 popup_layer.add dialog_popup;

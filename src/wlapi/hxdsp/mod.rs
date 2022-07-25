@@ -301,5 +301,29 @@ pub fn setup_node_id_module() -> wlambda::SymbolTable {
         false,
     );
 
+    st.fun(
+        "get_random",
+        move |env: &mut Env, _argc: usize| {
+            let count = env.arg(0).i() as usize;
+            let typ =
+                match &env.arg(1).s_raw()[..] {
+                    "all" => hexodsp::dsp::RandNodeSelector::Any,
+                    "only_useful" => hexodsp::dsp::RandNodeSelector::OnlyUseful,
+                    _ => hexodsp::dsp::RandNodeSelector::Any,
+                };
+            let nodes = hexodsp::dsp::get_rand_node_id(count, typ);
+            let ret = VVal::vec();
+
+            for n in nodes {
+                ret.push(node_id2vv(n));
+            }
+
+            Ok(ret)
+        },
+        Some(2),
+        Some(2),
+        false,
+    );
+
     st
 }
