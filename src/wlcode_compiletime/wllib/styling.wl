@@ -392,6 +392,11 @@ layout.cell_channel_monitor = ${
     width = :pixels => 160,
 };
 
+style.cell_channel_monitor_out = ${
+    parent = :cell_channel_monitor,
+    color = ui.STD_COLORS.11,
+};
+
 layout.monitor_panel = ${
     layout_type = :row,
 };
@@ -429,9 +434,9 @@ style.scope = ${
         graph_line = 2.0,
         vline1 = 2.0,
         vline2 = 2.0,
+        hline = 1.5,
         vline1_color = ui:STD_COLORS.2,
         vline2_color = ui:STD_COLORS.7,
-        hline = 1.5,
         hline_color = ui:STD_COLORS.13,
     },
 };

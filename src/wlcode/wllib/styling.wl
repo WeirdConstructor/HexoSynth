@@ -392,6 +392,22 @@ layout.cell_channel_monitor = ${
     width = :pixels => 160,
 };
 
+style.cell_channel_monitor_out = ${
+    parent = :cell_channel_monitor,
+    color = ui:STD_COLORS.17,
+};
+layout.cell_channel_monitor_out = ${
+    parent = :cell_channel_monitor,
+};
+
+style.cell_channel_monitor_in = ${
+    parent = :cell_channel_monitor,
+    color = ui:STD_COLORS.8,
+};
+layout.cell_channel_monitor_in = ${
+    parent = :cell_channel_monitor,
+};
+
 layout.monitor_panel = ${
     layout_type = :row,
 };
@@ -416,7 +432,7 @@ layout.scope_panel = ${
     position_type = :self,
     left = :stretch => 1,
     top = :stretch => 1,
-    width = :pixels => 512,
+    width = :percent => 50,
     height = :pixels => 300,
     right = :pixels => 0,
 };
@@ -429,9 +445,9 @@ style.scope = ${
         graph_line = 2.0,
         vline1 = 2.0,
         vline2 = 2.0,
+        hline = 1.5,
         vline1_color = ui:STD_COLORS.2,
         vline2_color = ui:STD_COLORS.7,
-        hline = 1.5,
         hline_color = ui:STD_COLORS.13,
     },
 };

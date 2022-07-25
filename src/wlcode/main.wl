@@ -845,7 +845,9 @@ editor.reg :update_monitor_labels {!(cell_labels) = @;
 !create_monitor_widget = {!(index) = @;
     !graph_cont = styling:new_widget :cell_channel_monitor_cont;
 
-    !graph_mm = styling:new_widget :cell_channel_monitor;
+    !graph_monitor_style = if index > 2 { :cell_channel_monitor_out } { :cell_channel_monitor_in };
+
+    !graph_mm = styling:new_widget graph_monitor_style;
     !moni_model = matrix.create_graph_minmax_monitor index;
     graph_mm.set_ctrl :graph_minmax $[hx:MONITOR_MINMAX_SAMPLES, moni_model];
 
