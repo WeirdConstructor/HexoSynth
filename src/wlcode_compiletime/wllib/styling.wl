@@ -89,9 +89,9 @@ style.close_hor_slide_right_panel_btn = ${
 };
 layout.close_hor_slide_right_panel_btn = ${
     width  = :pixels => 30,
-    top    = :stretch => 1,
     bottom = :stretch => 1,
-    height = :percent => 25,
+    height = :pixels => 100,
+    top    = :pixels => 0,
     left   = :stretch => 1,
     right  = :pixels => -2,
 };
@@ -405,6 +405,35 @@ layout.monitor_column = ${
 layout.dialog_popup_button_bar = ${
     layout_type = :row,
     height = :pixels => 40,
+};
+
+style.scope_panel = ${
+    parent = :panel,
+};
+layout.scope_panel = ${
+    parent = :panel,
+    layout_type = :column,
+    position_type = :self,
+    left = :stretch => 1,
+    top = :stretch => 1,
+    width = :pixels => 512,
+    height = :pixels => 300,
+    right = :pixels => 0,
+};
+
+style.scope = ${
+    bg_color     = ui:UI_LBL_BG_CLR,
+    border_color = ui:UI_ACCENT_CLR,
+    color = ui:STD_COLORS.11,
+    graph = ${
+        graph_line = 2.0,
+        vline1 = 2.0,
+        vline2 = 2.0,
+        vline1_color = ui:STD_COLORS.2,
+        vline2_color = ui:STD_COLORS.7,
+        hline = 1.5,
+        hline_color = ui:STD_COLORS.13,
+    },
 };
 
 !apply_class = $n;

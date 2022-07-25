@@ -325,6 +325,18 @@ top_menu_button_bar.add color_btn;
 
 right_container.add top_menu_button_bar;
 
+
+!scope_panel = styling:new_rect :scope_panel;
+
+!scope_handle = matrix.get_scope_handle $p(:scope, 0);
+
+!scope = styling:new_widget :scope;
+scope.set_ctrl :scope $[scope_handle];
+
+scope_panel.add scope;
+
+right_container.add scope_panel;
+
 root_mid.add right_container;
 
 !right_panel_container =

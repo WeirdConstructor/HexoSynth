@@ -221,6 +221,14 @@ impl vval::VValUserData for VValMatrix {
                     args[0].i() as usize,
                 )));
             }
+            "get_scope_handle" => {
+                arg_chk!(args, 1, "matrix.get_scope_handle[scope_node_id]");
+
+                return Ok(VVal::new_usr(VScopeModel::new(
+                    self.matrix.clone(),
+                    vv2node_id(&args[0]),
+                )));
+            }
             _ => {}
         }
 
@@ -439,7 +447,7 @@ impl vval::VValUserData for VValMatrix {
                     });
 
                     Ok(ret)
-                },
+                }
                 "find_unused_inputs" => {
                     arg_chk!(args, 1, "matrix.param_input_is_used[node_id]");
 

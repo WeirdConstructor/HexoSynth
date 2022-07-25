@@ -4,7 +4,7 @@
 
 #![allow(incomplete_features)]
 
-use hexotk::{open_window, HexoTKWindowHandle, Rect, TestScript, Units, UI};
+use hexotk::{open_window, HexoTKWindowHandle, Rect, StyleExt, TestScript, Units, UI};
 //pub mod ui;
 //pub mod ui_ctrl;
 mod cluster;
@@ -257,6 +257,24 @@ fn set_style_from_key(style: &mut hexotk::Style, key: &str, v: &VVal) -> bool {
                     "bevel" => hexotk::BorderStyle::Bevel { corner_offsets: (5.0, 5.0, 5.0, 5.0) },
                     _ => hexotk::BorderStyle::Rect,
                 })
+            };
+        }
+        "graph" => {
+            let graph_line = v.v_fk("graph_line") as f32;
+            let vline1 = v.v_fk("vline1") as f32;
+            let vline2 = v.v_fk("vline2") as f32;
+            let hline = v.v_fk("hline") as f32;
+            let vline1_color = vv2clr(&v.v_k("vline1_color"));
+            let vline2_color = vv2clr(&v.v_k("vline2_color"));
+            let hline_color = vv2clr(&v.v_k("hline_color"));
+            style.ext = StyleExt::Graph {
+                graph_line,
+                vline1,
+                vline2,
+                hline,
+                vline1_color,
+                vline2_color,
+                hline_color,
             };
         }
         "text_valign" => {
@@ -805,8 +823,8 @@ impl VValUserData for VUIWidget {
                             }
                         }
                         "scope" => {
-                            let graph = env.arg(1).v_(0);
-                            if let Some(data) = wlapi::vv2scope_model(graph) {
+                            let scope = env.arg(1).v_(0);
+                            if let Some(data) = wlapi::vv2scope_model(scope) {
                                 self.0.set_ctrl(hexotk::Control::Scope {
                                     scope: Box::new(hexotk::Scope::new(data)),
                                 });
