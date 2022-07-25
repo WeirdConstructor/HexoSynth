@@ -788,7 +788,6 @@ impl VValUserData for VUIWidget {
                             }
                         }
                         "graph" => {
-                            // Args: sample factor, live/static
                             let samples = env.arg(1).v_i(0) as u16;
                             let live    = env.arg(1).v_b(1);
                             let graph   = env.arg(1).v_(2);
@@ -805,8 +804,22 @@ impl VValUserData for VUIWidget {
                                         env.arg(1).s())))
                             }
                         }
+                        "scope" => {
+                            let graph = env.arg(1).v_(0);
+                            if let Some(data) = wlapi::vv2scope_model(graph) {
+                                self.0.set_ctrl(hexotk::Control::Scope {
+                                    scope: Box::new(hexotk::Scope::new(data)),
+                                });
+                                Ok(VVal::Bol(true))
+
+                            } else {
+                                Ok(VVal::err_msg(
+                                    &format!(
+                                        "scope has non scope_model data as argument: {}",
+                                        env.arg(1).s())))
+                            }
+                        }
                         "graph_minmax" => {
-                            // Args: sample factor, live/static
                             let samples = env.arg(1).v_i(0) as usize;
                             let graph   = env.arg(1).v_(1);
                             if let Some(data) = wlapi::vv2graph_minmax_model(graph) {

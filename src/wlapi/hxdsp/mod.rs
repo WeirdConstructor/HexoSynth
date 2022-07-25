@@ -4,6 +4,7 @@
 
 pub mod atom;
 pub mod graph;
+pub mod scope;
 pub mod graph_minmax;
 pub mod grid_model;
 pub mod matrix;
@@ -14,6 +15,7 @@ pub mod param;
 
 pub use atom::*;
 pub use graph::*;
+pub use scope::*;
 pub use graph_minmax::*;
 pub use grid_model::*;
 pub use matrix::*;
