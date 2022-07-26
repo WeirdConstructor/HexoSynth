@@ -374,12 +374,17 @@ scope.set_ctrl :scope $[scope_handle];
 scope_panel.add scope;
 
 !scope_size_big = $t;
-!scope_size_btn = styling:new_button_with_label :top_right_help_btn "%" {
+!scope_size_btn = styling:new_widget :top_right_help_btn;
+!scope_size_btn_lbl = ui:txt "-";
+scope_size_btn.set_ctrl :button scope_size_btn_lbl;
+scope_size_btn.reg :click {
     if scope_size_big {
+        scope_size_btn_lbl.set "+";
         scope_panel.change_layout ${
             height = :pixels => 100,
         };
     } {
+        scope_size_btn_lbl.set "-";
         scope_panel.change_layout ${
             height = :pixels => 300,
         };

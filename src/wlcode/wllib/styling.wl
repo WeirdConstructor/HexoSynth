@@ -89,9 +89,9 @@ style.close_hor_slide_right_panel_btn = ${
 };
 layout.close_hor_slide_right_panel_btn = ${
     width  = :pixels => 30,
-    bottom = :stretch => 1,
+    bottom = :pixels => 50,
     height = :pixels => 100,
-    top    = :pixels => 0,
+    top    = :stretch => 1,
     left   = :stretch => 1,
     right  = :pixels => -2,
 };
