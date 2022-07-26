@@ -358,7 +358,7 @@ layout.pattern_editor_label = ${
     height = :pixels => 35,
 };
 layout.pattern_editor = ${
-    width = :pixels => 300,
+    width = :pixels => 350,
 };
 style.pattern_editor = ${
     bg_color     = ui:UI_LBL_BG_CLR,
@@ -429,18 +429,14 @@ style.scope_panel = ${
 layout.scope_panel = ${
     parent = :panel,
     layout_type = :column,
-    position_type = :self,
-    left = :stretch => 1,
-    top = :stretch => 1,
-    width = :percent => 50,
     height = :pixels => 300,
-    right = :pixels => 0,
 };
 
 style.scope = ${
     bg_color     = ui:UI_LBL_BG_CLR,
     border_color = ui:UI_ACCENT_CLR,
     color = ui:STD_COLORS.11,
+    font_size = 12,
     graph = ${
         graph_line = 2.0,
         vline1 = 2.0,

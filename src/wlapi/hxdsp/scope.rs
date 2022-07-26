@@ -28,6 +28,37 @@ impl ScopeModel for ScopeData {
     fn is_active(&self, sig: usize) -> bool {
         self.handle.is_active(sig)
     }
+    fn fmt_val(&self, sig: usize, buf: &mut [u8]) -> usize {
+        let mut max = -99999.0_f32;
+        let mut min = 99999.0_f32;
+        for i in 0..self.signal_len() {
+            let v = self.handle.read(sig, i);
+            max = max.max(v);
+            min = min.min(v);
+        }
+        let pp = max - min;
+
+        use std::io::Write;
+        let max_len = buf.len();
+        let mut bw = std::io::BufWriter::new(buf);
+        match write!(
+            bw,
+            "in{} min: {:6.3} max: {:6.3} pp: {:6.3}",
+            sig + 1,
+            min,
+            max,
+            pp
+        ) {
+            Ok(_) => {
+                if bw.buffer().len() > max_len {
+                    max_len
+                } else {
+                    bw.buffer().len()
+                }
+            }
+            Err(_) => 0,
+        }
+    }
 }
 
 #[derive(Clone)]

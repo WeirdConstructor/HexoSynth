@@ -326,17 +326,6 @@ top_menu_button_bar.add color_btn;
 right_container.add top_menu_button_bar;
 
 
-!scope_panel = styling:new_rect :scope_panel;
-
-!scope_handle = matrix.get_scope_handle $p(:scope, 0);
-
-!scope = styling:new_widget :scope;
-scope.set_ctrl :scope $[scope_handle];
-
-scope_panel.add scope;
-
-right_container.add scope_panel;
-
 root_mid.add right_container;
 
 !right_panel_container =
@@ -376,6 +365,31 @@ patedit_container.add patedit_label;
 patedit_container.add patedit;
 
 right_panel_container.add patedit_container;
+
+!scope_handle = matrix.get_scope_handle $p(:scope, 0);
+!scope = styling:new_widget :scope;
+scope.set_ctrl :scope $[scope_handle];
+
+!scope_panel = styling:new_rect :scope_panel;
+scope_panel.add scope;
+
+!scope_size_big = $t;
+!scope_size_btn = styling:new_button_with_label :top_right_help_btn "%" {
+    if scope_size_big {
+        scope_panel.change_layout ${
+            height = :pixels => 100,
+        };
+    } {
+        scope_panel.change_layout ${
+            height = :pixels => 300,
+        };
+    };
+    .scope_size_big = not scope_size_big;
+};
+
+scope_panel.add scope_size_btn;
+
+right_panel_container.add scope_panel;
 
 root_mid.add right_panel;
 
