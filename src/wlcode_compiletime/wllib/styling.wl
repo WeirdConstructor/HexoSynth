@@ -89,9 +89,9 @@ style.close_hor_slide_right_panel_btn = ${
 };
 layout.close_hor_slide_right_panel_btn = ${
     width  = :pixels => 30,
-    bottom = :stretch => 1,
+    bottom = :pixels => 50,
     height = :pixels => 100,
-    top    = :pixels => 0,
+    top    = :stretch => 1,
     left   = :stretch => 1,
     right  = :pixels => -2,
 };
@@ -358,7 +358,7 @@ layout.pattern_editor_label = ${
     height = :pixels => 35,
 };
 layout.pattern_editor = ${
-    width = :pixels => 300,
+    width = :pixels => 350,
 };
 style.pattern_editor = ${
     bg_color     = ui:UI_LBL_BG_CLR,
@@ -394,7 +394,18 @@ layout.cell_channel_monitor = ${
 
 style.cell_channel_monitor_out = ${
     parent = :cell_channel_monitor,
-    color = ui.STD_COLORS.11,
+    color = ui:STD_COLORS.17,
+};
+layout.cell_channel_monitor_out = ${
+    parent = :cell_channel_monitor,
+};
+
+style.cell_channel_monitor_in = ${
+    parent = :cell_channel_monitor,
+    color = ui:STD_COLORS.8,
+};
+layout.cell_channel_monitor_in = ${
+    parent = :cell_channel_monitor,
 };
 
 layout.monitor_panel = ${
@@ -418,18 +429,14 @@ style.scope_panel = ${
 layout.scope_panel = ${
     parent = :panel,
     layout_type = :column,
-    position_type = :self,
-    left = :stretch => 1,
-    top = :stretch => 1,
-    width = :pixels => 512,
     height = :pixels => 300,
-    right = :pixels => 0,
 };
 
 style.scope = ${
     bg_color     = ui:UI_LBL_BG_CLR,
     border_color = ui:UI_ACCENT_CLR,
     color = ui:STD_COLORS.11,
+    font_size = 12,
     graph = ${
         graph_line = 2.0,
         vline1 = 2.0,

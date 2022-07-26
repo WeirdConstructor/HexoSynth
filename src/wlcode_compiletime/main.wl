@@ -326,17 +326,6 @@ top_menu_button_bar.add color_btn;
 right_container.add top_menu_button_bar;
 
 
-!scope_panel = styling:new_rect :scope_panel;
-
-!scope_handle = matrix.get_scope_handle $p(:scope, 0);
-
-!scope = styling:new_widget :scope;
-scope.set_ctrl :scope $[scope_handle];
-
-scope_panel.add scope;
-
-right_container.add scope_panel;
-
 root_mid.add right_container;
 
 !right_panel_container =
@@ -376,6 +365,36 @@ patedit_container.add patedit_label;
 patedit_container.add patedit;
 
 right_panel_container.add patedit_container;
+
+!scope_handle = matrix.get_scope_handle $p(:scope, 0);
+!scope = styling:new_widget :scope;
+scope.set_ctrl :scope $[scope_handle];
+
+!scope_panel = styling:new_rect :scope_panel;
+scope_panel.add scope;
+
+!scope_size_big = $t;
+!scope_size_btn = styling:new_widget :top_right_help_btn;
+!scope_size_btn_lbl = ui:txt "-";
+scope_size_btn.set_ctrl :button scope_size_btn_lbl;
+scope_size_btn.reg :click {
+    if scope_size_big {
+        scope_size_btn_lbl.set "+";
+        scope_panel.change_layout ${
+            height = :pixels => 100,
+        };
+    } {
+        scope_size_btn_lbl.set "-";
+        scope_panel.change_layout ${
+            height = :pixels => 300,
+        };
+    };
+    .scope_size_big = not scope_size_big;
+};
+
+scope_panel.add scope_size_btn;
+
+right_panel_container.add scope_panel;
 
 root_mid.add right_panel;
 
@@ -845,7 +864,9 @@ editor.reg :update_monitor_labels {!(cell_labels) = @;
 !create_monitor_widget = {!(index) = @;
     !graph_cont = styling:new_widget :cell_channel_monitor_cont;
 
-    !graph_mm = styling:new_widget :cell_channel_monitor_out;
+    !graph_monitor_style = if index > 2 { :cell_channel_monitor_out } { :cell_channel_monitor_in };
+
+    !graph_mm = styling:new_widget graph_monitor_style;
     !moni_model = matrix.create_graph_minmax_monitor index;
     graph_mm.set_ctrl :graph_minmax $[hx:MONITOR_MINMAX_SAMPLES, moni_model];
 
