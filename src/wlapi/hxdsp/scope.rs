@@ -36,18 +36,18 @@ impl ScopeModel for ScopeData {
             max = max.max(v);
             min = min.min(v);
         }
-        let pp = max - min;
+        let rng = max - min;
 
         use std::io::Write;
         let max_len = buf.len();
         let mut bw = std::io::BufWriter::new(buf);
         match write!(
             bw,
-            "in{} min: {:6.3} max: {:6.3} pp: {:6.3}",
+            "in{} min: {:6.3} max: {:6.3} rng: {:6.3}",
             sig + 1,
             min,
             max,
-            pp
+            rng
         ) {
             Ok(_) => {
                 if bw.buffer().len() > max_len {
