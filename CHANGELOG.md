@@ -1,7 +1,10 @@
-0.1.0-alpha-4 (unreleased)
+0.2.0-alpha-1 (unreleased)
 ==========================
 
-* ~~Feature: New node completed: 'PVerb'~~
+Complete rewrite of the GUI was done since 0.1.0-alpha-3. As well as lots of
+little features added.
+
+* Feature: New node completed: 'PVerb'
 * Feature: Mouse wheel now also moves knobs.
 * Feature: New node added: 'Mux9' a 9 channel multiplexer/switch.
 * Feature: New node added: 'CQnt' a control signal pitch quantizer.
@@ -13,7 +16,6 @@ suddenly jump to the 'min' anymore if exceeding the 'max'.
 * Change: Triggers react to 0.5 and not 0.75 now. This is because
 I wanted to have the same logic level for triggers as for other logic
 operations.
-* Change: Removed the debug mouse cursor from the regular version.
 * Change: Presets now store the denormalized values, to have better
 compatibility in future if the parameter ranges or mapping changes.
 * Change: Renamed CV to Ctrl (aka Control Signal) for more consistency
@@ -28,6 +30,13 @@ very small (<0.1) value!
 calculation. Was not audible though.
 * Bugfix: 'PVerb' now also properly handles if only one input
 channel is connected.
+* Bugfix: TriSawLFO (TsLFO) node did output too high values if the `rev`
+parameter was changed or modulated at runtime.
+* Bugfix: Found a bug in cubic interpolation in the sample player and
+similar bugs in the delay line (and all-pass & comb filters). Refactored
+the cubic interpolation and tested it seperately now.
+* Feature: Added Scope DSP node and view in GUI and NodeConfigurator/Matrix
+API for retrieving the scope handles for access to it's capture buffers.
 
 0.1.0-alpha-3 (2021-08-13)
 ==========================

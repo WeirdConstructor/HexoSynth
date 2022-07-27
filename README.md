@@ -98,6 +98,7 @@ And following DSP nodes:
 | Mod     | TsLFO       | Tri/Saw waveform low frequency oscillator (LFO) |
 | Mod     | RndWk       | Random walker, a Sample & Hold noise generator |
 | IO Util | FbWr / FbRd | Utility modules for feedback in patches |
+| IO Util | Scope       | Oscilloscope for up to 3 channels |
 
 ### Road Map / TODO List
 
