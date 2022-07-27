@@ -367,6 +367,13 @@ patedit_container.add patedit;
 right_panel_container.add patedit_container;
 
 !scope_handle = matrix.get_scope_handle $p(:scope, 0);
+
+editor.reg :change_focus {!(cell) = @;
+    if cell.node_id.0 == "scope" {
+        scope_handle.set_node_id cell.node_id;
+    };
+};
+
 !scope = styling:new_widget :scope;
 scope.set_ctrl :scope $[scope_handle];
 
