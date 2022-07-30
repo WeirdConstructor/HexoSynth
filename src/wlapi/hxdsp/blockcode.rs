@@ -162,7 +162,7 @@ impl VValUserData for VValBlockFun {
                 //d// println!("INSTANCIATE {}", env.arg(1).s());
 
                 env.arg(2).with_s_ref(|typ| {
-                    self.code.borrow_mut().instanciate_at(id, x, y, &typ, input).unwrap()
+                    self.code.borrow_mut().instanciate_at(id, x, y, &typ, input);
                 });
 
                 Ok(VVal::None)
