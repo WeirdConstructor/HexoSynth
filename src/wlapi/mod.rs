@@ -24,6 +24,7 @@ use std::sync::{Arc, Mutex};
 use wlambda::*;
 
 use hexodsp::{CellDir, Matrix};
+use hexodsp::blocklang_def::setup_hxdsp_block_language;
 
 #[macro_export]
 macro_rules! arg_chk {
@@ -154,6 +155,18 @@ pub fn setup_hx_module(matrix: Arc<Mutex<Matrix>>) -> wlambda::SymbolTable {
     st.fun(
         "create_test_hex_grid_model",
         |_env: &mut Env, _argc: usize| Ok(new_test_grid_model()),
+        Some(0),
+        Some(0),
+        false,
+    );
+
+    let lang = setup_hxdsp_block_language();
+
+    st.fun(
+        "new_block_function",
+        move |_env: &mut Env, _argc: usize| {
+            Ok(VValBlockFun::new_with_lang(lang.clone()))
+        },
         Some(0),
         Some(0),
         false,

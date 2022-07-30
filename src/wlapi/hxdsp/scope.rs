@@ -2,8 +2,8 @@
 // This file is a part of HexoSynth. Released under GPL-3.0-or-later.
 // See README.md and COPYING for details.
 
-use crate::arg_chk;
 use super::vv2node_id;
+use crate::arg_chk;
 use hexodsp::{Matrix, NodeId, ScopeHandle};
 use hexotk::ScopeModel;
 use std::cell::RefCell;
@@ -64,14 +64,7 @@ impl ScopeModel for ScopeData {
         use std::io::Write;
         let max_len = buf.len();
         let mut bw = std::io::BufWriter::new(buf);
-        match write!(
-            bw,
-            "in{} min: {:6.3} max: {:6.3} rng: {:6.3}",
-            sig + 1,
-            min,
-            max,
-            rng
-        ) {
+        match write!(bw, "in{} min: {:6.3} max: {:6.3} rng: {:6.3}", sig + 1, min, max, rng) {
             Ok(_) => {
                 if bw.buffer().len() > max_len {
                     max_len

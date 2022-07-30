@@ -4,7 +4,7 @@
 
 #![allow(incomplete_features)]
 
-use hexotk::{open_window, HexoTKWindowHandle, Rect, StyleExt, TestScript, Units, UI};
+use hexotk::{open_window, BlockPos, HexoTKWindowHandle, Rect, StyleExt, TestScript, Units, UI};
 //pub mod ui;
 //pub mod ui_ctrl;
 mod cluster;
@@ -277,6 +277,21 @@ fn set_style_from_key(style: &mut hexotk::Style, key: &str, v: &VVal) -> bool {
                 hline_color,
             };
         }
+        "blockcode" => {
+            let with_markers = v.v_bk("with_markers");
+            let grid_marker_color = vv2clr(&v.v_k("grid_marker_color"));
+            let block_bg_hover_color = vv2clr(&v.v_k("block_bg_hover_color"));
+            let block_bg_color = vv2clr(&v.v_k("block_bg_color"));
+            let port_select_color = vv2clr(&v.v_k("port_select_color"));
+
+            style.ext = StyleExt::BlockCode {
+                with_markers,
+                grid_marker_color,
+                block_bg_hover_color,
+                block_bg_color,
+                port_select_color,
+            };
+        }
         "text_valign" => {
             style.text_valign = v.with_s_ref(|vs| match vs {
                 "middle" => hexotk::VAlign::Middle,
@@ -490,6 +505,28 @@ fn vv2rect(v: &VVal) -> Rect {
 
 fn rect2vv(r: &Rect) -> VVal {
     VVal::fvec4(r.x as f64, r.y as f64, r.h as f64, r.w as f64)
+}
+
+fn blockpos2vv(p: &BlockPos) -> VVal {
+    match p {
+        BlockPos::Block { id, x, y, row, col, rows } => {
+            let map = VVal::map();
+            let _ = map.set_key_str("id", VVal::Int(*id as i64));
+            let _ = map.set_key_str("x", VVal::Int(*x as i64));
+            let _ = map.set_key_str("y", VVal::Int(*y as i64));
+            let _ = map.set_key_str("row", VVal::Int(*row as i64));
+            let _ = map.set_key_str("col", VVal::Int(*col as i64));
+            let _ = map.set_key_str("rows", VVal::Int(*rows as i64));
+            map
+        }
+        BlockPos::Cell { id, x, y } => {
+            let map = VVal::map();
+            let _ = map.set_key_str("id", VVal::Int(*id as i64));
+            let _ = map.set_key_str("x", VVal::Int(*x as i64));
+            let _ = map.set_key_str("y", VVal::Int(*y as i64));
+            map
+        }
+    }
 }
 
 impl VValUserData for VUIWidget {
@@ -881,6 +918,21 @@ impl VValUserData for VUIWidget {
                                         env.arg(1).s())))
                             }
                         }
+                        "blockcode" => {
+                            if let Some(block_fun) = wlapi::vv2block_fun(env.arg(1)) {
+                                self.0.set_ctrl(
+                                    hexotk::Control::BlockCode {
+                                        code: Box::new(hexotk::BlockCode::new(block_fun))
+                                    });
+
+                                Ok(VVal::Bol(true))
+                            } else {
+                                Ok(VVal::err_msg(
+                                    &format!(
+                                        "blockcode has non $<BlockDSP::Code> as second argument: {}",
+                                        env.arg(1).s())))
+                            }
+                        }
                         _ => Ok(VVal::err_msg(
                             &format!("Unknown control assigned: {}", typ))),
                     }
@@ -965,6 +1017,20 @@ impl VValUserData for VUIWidget {
                                     if let Some(d) = rc.borrow().as_ref().downcast_ref::<VVal>() {
                                         let _ = m.set_key_str("data", d.clone());
                                     }
+                                    m
+                                }
+                                hexotk::EvPayload::BlockPos { button, at, to } => {
+                                    let m = VVal::map2(
+                                        "btn",
+                                        mbutton2vv(*button),
+                                        "at",
+                                        blockpos2vv(at),
+                                    );
+
+                                    if let Some(to) = to {
+                                        let _ = m.set_key_str("to", blockpos2vv(to));
+                                    }
+
                                     m
                                 }
                                 _ => VVal::None,

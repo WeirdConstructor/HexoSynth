@@ -3,8 +3,8 @@
 // See README.md and COPYING for details.
 
 pub mod atom;
+pub mod blockcode;
 pub mod graph;
-pub mod scope;
 pub mod graph_minmax;
 pub mod grid_model;
 pub mod matrix;
@@ -12,10 +12,11 @@ pub mod matrix_recorder;
 pub mod node_info;
 pub mod octave_keys;
 pub mod param;
+pub mod scope;
 
 pub use atom::*;
+pub use blockcode::*;
 pub use graph::*;
-pub use scope::*;
 pub use graph_minmax::*;
 pub use grid_model::*;
 pub use matrix::*;
@@ -23,6 +24,7 @@ pub use matrix_recorder::*;
 pub use node_info::*;
 pub use octave_keys::*;
 pub use param::*;
+pub use scope::*;
 
 use hexodsp::dsp::UICategory;
 use hexodsp::NodeId;
@@ -307,12 +309,11 @@ pub fn setup_node_id_module() -> wlambda::SymbolTable {
         "get_random",
         move |env: &mut Env, _argc: usize| {
             let count = env.arg(0).i() as usize;
-            let typ =
-                match &env.arg(1).s_raw()[..] {
-                    "all" => hexodsp::dsp::RandNodeSelector::Any,
-                    "only_useful" => hexodsp::dsp::RandNodeSelector::OnlyUseful,
-                    _ => hexodsp::dsp::RandNodeSelector::Any,
-                };
+            let typ = match &env.arg(1).s_raw()[..] {
+                "all" => hexodsp::dsp::RandNodeSelector::Any,
+                "only_useful" => hexodsp::dsp::RandNodeSelector::OnlyUseful,
+                _ => hexodsp::dsp::RandNodeSelector::Any,
+            };
             let nodes = hexodsp::dsp::get_rand_node_id(count, typ);
             let ret = VVal::vec();
 

@@ -213,7 +213,7 @@ iter ctx_item editor.get_matrix_context_menu_items[] {
 };
 
 
-!setup_grid_widget = {!(matrix, click_cb) = @;
+!setup_grid_widget = {!(matrix) = @;
     !grid = styling:new_widget :matrix_grid;
     grid.set_ctrl :grid editor.get_grid_model[];
 
@@ -221,7 +221,6 @@ iter ctx_item editor.get_matrix_context_menu_items[] {
         match event.button
             :left => {
                 editor.set_focus_cell $i(@.1.x, @.1.y);
-                click_cb[];
             }
             :right => {
                 editor.set_context_cell_pos $i(event.x, event.y);
@@ -253,9 +252,6 @@ iter ctx_item editor.get_matrix_context_menu_items[] {
             $i(drop_data.x, drop_data.y);
     };
 
-#    grid_panel.add grid;
-#    grid_panel.add add_node_panel;
-
     grid
 };
 
@@ -263,22 +259,159 @@ iter ctx_item editor.get_matrix_context_menu_items[] {
 !root_mid = styling:new_widget :root;
 !popup_layer = styling:new_widget :popup_layer;
 
-!new_misc_panel = {
-    !panel = styling:new_rect :misc_panel;
-    panel
-};
+!grid = setup_grid_widget matrix;
 
-!misc_panel = new_misc_panel[];
-misc_panel.hide[];
+!app_panel = styling:new_widget :app_panel;
 
-!grid = setup_grid_widget matrix {
-#    if misc_panel.is_visible[] { misc_panel.hide[]; } { misc_panel.show[] };
-};
-grid.change_layout ${
+app_panel.change_layout ${
     height = :stretch => 1.0,
 };
 
-grid.add misc_panel;
+!blockcode = styling:new_widget :blockcode;
+!fun = hx:new_block_function[];
+blockcode.set_ctrl :blockcode fun;
+
+!blockcode_picker_popup = styling:new_widget :blockcode_picker_popup;
+blockcode_picker_popup.change_layout ${
+    position_type = :self,
+    width         = :pixels => 700,
+    height        = :pixels => 300,
+    top           = :stretch => 1,
+    bottom        = :stretch => 1,
+    left          = :stretch => 1,
+    right         = :stretch => 1,
+    visible       = $f,
+};
+blockcode_picker_popup.auto_hide[];
+blockcode_picker_popup.set_ctrl :rect $n;
+
+!blockcode_context_popup = styling:new_widget :blockcode_picker_popup;
+blockcode_context_popup.change_layout ${
+    position_type = :self,
+    width         = :pixels => 700,
+    height        = :pixels => 300,
+    top           = :stretch => 1,
+    bottom        = :stretch => 1,
+    left          = :stretch => 1,
+    right         = :stretch => 1,
+    visible       = $f,
+};
+blockcode_context_popup.auto_hide[];
+blockcode_context_popup.set_ctrl :rect $n;
+
+!lang = fun.language[];
+std:displayln lang.get_type_list[];
+
+!blockcode_click_pos = $n;
+
+iter typ
+    (std:sort { std:cmp:str:asc (_.category "/" _.name) (_1.category "/" _1.name) }
+        lang.get_type_list[]) {
+    !typ = typ;
+    !bc_pick_btn = styling:new_widget :blockcode_pick_btn;
+    bc_pick_btn.set_ctrl :button (ui:txt ~ $F"({}) {}" ($p(0, 4) typ.category) typ.name);
+    bc_pick_btn.reg :click {
+        fun.instanciate_at
+            blockcode_click_pos.id
+            $i(blockcode_click_pos.x, blockcode_click_pos.y)
+            typ.name
+            $n;
+        fun.recalculate_area_sizes[];
+        blockcode_picker_popup.hide[];
+        std:displayln "PICK:" typ;
+    };
+    blockcode_picker_popup.add bc_pick_btn;
+};
+
+!bc_context_actions = $[
+    $p("split ->", {
+        fun.split_block_chain_after
+            blockcode_click_pos.id
+            blockcode_click_pos.x
+            blockcode_click_pos.y
+            "->";
+    }),
+    $p("split", {
+        fun.split_block_chain_after
+            blockcode_click_pos.id
+            blockcode_click_pos.x
+            blockcode_click_pos.y
+            $n;
+    }),
+    $p("delete", {
+        fun.remove_at
+            blockcode_click_pos.id
+            blockcode_click_pos.x
+            blockcode_click_pos.y;
+        fun.recalculate_area_sizes[];
+    }),
+];
+
+iter action bc_context_actions {
+    !(label, cb) = action;
+
+    !bc_del_btn = styling:new_widget :blockcode_pick_btn;
+    bc_del_btn.set_ctrl :button (ui:txt label);
+    bc_del_btn.reg :click {
+        cb[];
+        blockcode_context_popup.hide[];
+    };
+    blockcode_context_popup.add bc_del_btn;
+};
+
+blockcode.reg :click {!(wid, pos) = @;
+    std:displayln "POSOSO" pos;
+    .blockcode_click_pos = pos.at;
+    if is_none[pos.at.row] {
+        blockcode_picker_popup.popup_at_mouse[];
+    } {
+        if pos.btn == :right {
+            fun.shift_port
+                pos.at.id pos.at.x pos.at.y pos.at.row pos.at.col == 1;
+        } {
+            blockcode_context_popup.popup_at_mouse[];
+        };
+    };
+};
+
+blockcode.reg :drag {!(wid, pos) = @;
+    std:displayln "dRAG" pos;
+    if is_none[pos.to] {
+    } { # has destination:
+        if is_some[pos.at.row] {
+            if is_none[pos.to.row] {
+                if pos.btn == :left {
+                    fun.move_block_chain_from_to
+                        pos.at.id pos.at.x pos.at.y
+                        pos.to.id pos.to.x pos.to.y;
+                } {
+                    fun.move_block_from_to
+                        pos.at.id pos.at.x pos.at.y
+                        pos.to.id pos.to.x pos.to.y;
+                };
+            }
+        } {
+            if is_some[pos.to.row] {
+                fun.clone_block_from_to
+                    pos.to.id pos.to.x pos.to.y
+                    pos.at.id pos.at.x pos.at.y;
+            } {
+                if pos.btn == :left {
+                    fun.instanciate_at
+                        pos.to.id
+                        $i(pos.to.x, pos.to.y)
+                        "->"
+                        $n;
+                };
+            };
+        };
+    };
+
+    fun.recalculate_area_sizes[];
+};
+
+app_panel.add grid;
+app_panel.add blockcode;
 
 !add_node_panel_inner = styling:new_widget :panel;
 add_node_panel_inner.add ~ build_dsp_node_picker[];
@@ -602,6 +735,8 @@ popup_layer.add matrix_context_popup;
 popup_layer.add help_wichtext;
 popup_layer.add sample_list_popup;
 popup_layer.add dialog_popup;
+popup_layer.add blockcode_picker_popup;
+popup_layer.add blockcode_context_popup;
 
 !create_mode_button = {!(val_list, init_idx, change_cb, hover_cb) = @;
     !val_idx = init_idx;
@@ -904,7 +1039,7 @@ moni_panel.add moni_col_outputs;
 signal_panel.add moni_panel;
 
 root.add left_panel;
-root.add grid;
+root.add app_panel;
 
 !@export on_frame = {!(matrix_records) = @;
     editor.check_pattern_data[];

@@ -9,16 +9,14 @@ description = "HexoSynth - A hexagonal modular synthesizer plugin"
 [dependencies]
 hexosynth  = { path = ".." }
 hexodsp    = { git = "https://github.com/WeirdConstructor/HexoDSP.git" }
-#hexodsp    = { path = "../../hexodsp" }
 hexotk     = { git = "https://github.com/WeirdConstructor/HexoTK.git" }
-#hexotk     = { path = "../../hexotk" }
 raw-window-handle  = "0.3"
 jack       = "0.6.6"
 
-#[patch.'https://github.com/WeirdConstructor/HexoTK.git']
-#hexotk = { path = "../../hexotk" }
-#[patch.'https://github.com/WeirdConstructor/HexoDSP.git']
-#hexodsp = { path = "../../hexodsp" }
+[patch.'https://github.com/WeirdConstructor/HexoTK.git']
+hexotk = { path = "../../hexotk" }
+[patch.'https://github.com/WeirdConstructor/HexoDSP.git']
+hexodsp = { path = "../../hexodsp" }
 #[patch.'https://github.com/WeirdConstructor/HexoDSP.git']
 #hexodsp = { path = "../../hexo/HexoDSP-Dimev" }
 #[patch.'https://github.com/WeirdConstructor/HexoDSP.git']
