@@ -8,6 +8,7 @@ use wlambda::*;
 
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 
 #[derive(Clone)]
 pub struct VValBlockLanguage {
@@ -117,20 +118,12 @@ pub fn vv2block_code_language(mut v: VVal) -> Option<Rc<RefCell<BlockLanguage>>>
 
 #[derive(Clone)]
 pub struct VValBlockFun {
-    code: Rc<RefCell<BlockFun>>,
+    code: Arc<Mutex<BlockFun>>,
 }
 
 impl VValBlockFun {
-    pub fn new_with_lang(lang: Rc<RefCell<BlockLanguage>>) -> VVal {
-        VVal::new_usr(VValBlockFun { code: Rc::new(RefCell::new(BlockFun::new(lang))) })
-    }
-
-    pub fn create(lang: VVal) -> VVal {
-        if let Some(lang) = vv2block_code_language(lang.clone()) {
-            Self::new_with_lang(lang)
-        } else {
-            VVal::err_msg(&format!("Not a $<BlockDSP:Language>: {}", lang.s()))
-        }
+    pub fn from(code: Arc<Mutex<BlockFun>>) -> VVal {
+        VVal::new_usr(VValBlockFun { code })
     }
 }
 
@@ -142,11 +135,13 @@ impl VValUserData for VValBlockFun {
     fn call_method(&self, key: &str, env: &mut Env) -> Result<VVal, StackAction> {
         let args = env.argv_ref();
 
+        let mut code = self.code.lock().expect("BlockFun lockable");
+
         match key {
             "language" => {
                 arg_chk!(args, 0, "blockcode.block_language[]");
 
-                let bl = self.code.borrow().block_language();
+                let bl = code.block_language();
                 Ok(VVal::new_usr(VValBlockLanguage { lang: bl }))
             }
             "instanciate_at" => {
@@ -162,19 +157,19 @@ impl VValUserData for VValBlockFun {
                 //d// println!("INSTANCIATE {}", env.arg(1).s());
 
                 env.arg(2).with_s_ref(|typ| {
-                    self.code.borrow_mut().instanciate_at(id, x, y, &typ, input);
+                    code.instanciate_at(id, x, y, &typ, input);
                 });
 
                 Ok(VVal::None)
             }
             "recalculate_area_sizes" => {
                 arg_chk!(args, 0, "blockcode.recalculate_area_sizes[]");
-                self.code.borrow_mut().recalculate_area_sizes();
+                code.recalculate_area_sizes();
                 Ok(VVal::None)
             }
             "clone_block_from_to" => {
                 arg_chk!(args, 6, "blockcode.clone_block_from_to[id2, x2, y2, id, x, y]");
-                self.code.borrow_mut().clone_block_from_to(
+                code.clone_block_from_to(
                     args[0].i() as usize,
                     args[1].i(),
                     args[2].i(),
@@ -187,7 +182,7 @@ impl VValUserData for VValBlockFun {
             "split_block_chain_after" => {
                 arg_chk!(args, 4, "blockcode.split_block_chain_after[id, x, y, $n | insert_node_name]");
                 let name = args[3].s_raw();
-                self.code.borrow_mut().split_block_chain_after(
+                code.split_block_chain_after(
                     args[0].i() as usize,
                     args[1].i(),
                     args[2].i(),
@@ -202,7 +197,7 @@ impl VValUserData for VValBlockFun {
             "shift_port" => {
                 arg_chk!(args, 5, "blockcode.split_block_chain_after[id, x, y, row, is_output]");
 
-                self.code.borrow_mut().shift_port(
+                code.shift_port(
                     args[0].i() as usize,
                     args[1].i(),
                     args[2].i(),
@@ -213,7 +208,7 @@ impl VValUserData for VValBlockFun {
             }
             "move_block_from_to" => {
                 arg_chk!(args, 6, "blockcode.move_block_from_to[id2, x2, y2, id, x, y]");
-                self.code.borrow_mut().move_block_from_to(
+                code.move_block_from_to(
                     args[0].i() as usize,
                     args[1].i(),
                     args[2].i(),
@@ -225,7 +220,7 @@ impl VValUserData for VValBlockFun {
             }
             "remove_at" => {
                 arg_chk!(args, 3, "blockcode.move_block_from_to[id, x, y]");
-                self.code.borrow_mut().remove_at(
+                code.remove_at(
                     args[0].i() as usize,
                     args[1].i(),
                     args[2].i());
@@ -234,7 +229,7 @@ impl VValUserData for VValBlockFun {
             }
             "move_block_chain_from_to" => {
                 arg_chk!(args, 6, "blockcode.move_block_chain_from_to[id2, x2, y2, id, x, y]");
-                self.code.borrow_mut().move_block_chain_from_to(
+                code.move_block_chain_from_to(
                     args[0].i() as usize,
                     args[1].i(),
                     args[2].i(),
@@ -256,9 +251,9 @@ impl VValUserData for VValBlockFun {
     }
 }
 
-pub fn vv2block_fun(mut v: VVal) -> Option<Rc<RefCell<BlockFun>>> {
+pub fn vv2block_fun(mut v: VVal) -> Option<Arc<Mutex<BlockFun>>> {
     v.with_usr_ref(|model: &mut VValBlockFun| {
-        let r: Rc<RefCell<BlockFun>> = model.code.clone();
+        let r: Arc<Mutex<BlockFun>> = model.code.clone();
         r
     })
 }

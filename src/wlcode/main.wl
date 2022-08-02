@@ -268,7 +268,7 @@ app_panel.change_layout ${
 };
 
 !blockcode = styling:new_widget :blockcode;
-!fun = hx:new_block_function[];
+!fun = matrix.get_block_function 0;
 blockcode.set_ctrl :blockcode fun;
 
 !blockcode_picker_popup = styling:new_widget :blockcode_picker_popup;
@@ -1043,6 +1043,8 @@ root.add app_panel;
 
 !@export on_frame = {!(matrix_records) = @;
     editor.check_pattern_data[];
+    # TODO: FIXME:
+    unwrap ~ matrix.check_block_function 0;
 
     iter r matrix_records {
         #d# std:displayln "REC:" r;

@@ -160,17 +160,5 @@ pub fn setup_hx_module(matrix: Arc<Mutex<Matrix>>) -> wlambda::SymbolTable {
         false,
     );
 
-    let lang = setup_hxdsp_block_language();
-
-    st.fun(
-        "new_block_function",
-        move |_env: &mut Env, _argc: usize| {
-            Ok(VValBlockFun::new_with_lang(lang.clone()))
-        },
-        Some(0),
-        Some(0),
-        false,
-    );
-
     st
 }

@@ -653,11 +653,30 @@ impl vval::VValUserData for VValMatrix {
                         return Ok(VVal::None);
                     }
                 }
+                "get_block_function" => {
+                    arg_chk!(args, 1, "matrix.get_block_function[block_fun_id]");
+
+                    if let Some(fun) = m.get_block_function(args[0].i() as usize) {
+                        return Ok(VValBlockFun::from(fun));
+                    } else {
+                        return Ok(VVal::None);
+                    }
+                }
                 "check_pattern_data" => {
                     arg_chk!(args, 1, "matrix.check_pattern_data[tracker_id]");
 
                     m.check_pattern_data(args[0].i() as usize);
                     Ok(VVal::None)
+                }
+                "check_block_function" => {
+                    arg_chk!(args, 1, "matrix.check_block_function[block_fun_id]");
+
+                    match m.check_block_function(args[0].i() as usize) {
+                        Err(e) => {
+                            Ok(VVal::err_msg(&format!("Block Function Compile Error: {:?}", e)))
+                        }
+                        Ok(()) => Ok(VVal::Bol(true)),
+                    }
                 }
                 "create_pattern_feedback_model" => {
                     arg_chk!(args, 1, "matrix.create_pattern_feedback_model[node_id]");
