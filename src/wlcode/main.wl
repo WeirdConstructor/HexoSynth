@@ -299,6 +299,40 @@ blockcode_context_popup.change_layout ${
 blockcode_context_popup.auto_hide[];
 blockcode_context_popup.set_ctrl :rect $n;
 
+!entry_popup = styling:new_widget :entry_popup;
+entry_popup.change_layout ${
+    position_type = :self,
+    width         = :pixels => 100,
+    height        = :pixels => 40,
+    top           = :stretch => 1,
+    bottom        = :stretch => 1,
+    left          = :stretch => 1,
+    right         = :stretch => 1,
+    visible       = $f,
+};
+entry_popup.auto_hide[];
+entry_popup.set_ctrl :rect $n;
+
+!value_entry = styling:new_widget :value_entry;
+!value_tf = ui:txt_field[];
+value_tf.set "?";
+value_entry.set_ctrl :entry value_tf;
+entry_popup.add value_entry;
+
+!ENTRY_ACTION = $n;
+
+value_entry.reg :enter {!(wid, ev) = @;
+    std:displayln "ENTER:" @;
+    if is_some[ENTRY_ACTION] {
+        ENTRY_ACTION[ev];
+    };
+    entry_popup.hide[];
+};
+
+!popup_entry = {!(cb) = @;
+    entry_popup.show[];
+};
+
 !lang = fun.language[];
 std:displayln lang.get_type_list[];
 
@@ -311,14 +345,28 @@ iter typ
     !bc_pick_btn = styling:new_widget :blockcode_pick_btn;
     bc_pick_btn.set_ctrl :button (ui:txt ~ $F"({}) {}" ($p(0, 4) typ.category) typ.name);
     bc_pick_btn.reg :click {
-        fun.instanciate_at
-            blockcode_click_pos.id
-            $i(blockcode_click_pos.x, blockcode_click_pos.y)
-            typ.name
-            $n;
-        fun.recalculate_area_sizes[];
-        blockcode_picker_popup.hide[];
-        std:displayln "PICK:" typ;
+        if typ.user_input == :identifier &or typ.user_input == :float {
+            .ENTRY_ACTION = {!(txt) = @;
+                fun.instanciate_at
+                    blockcode_click_pos.id
+                    $i(blockcode_click_pos.x, blockcode_click_pos.y)
+                    typ.name
+                    txt;
+                fun.recalculate_area_sizes[];
+            };
+            blockcode_picker_popup.hide[];
+            entry_popup.popup_at_mouse[];
+            value_entry.activate[];
+        } {
+            fun.instanciate_at
+                blockcode_click_pos.id
+                $i(blockcode_click_pos.x, blockcode_click_pos.y)
+                typ.name
+                $n;
+            fun.recalculate_area_sizes[];
+            blockcode_picker_popup.hide[];
+            std:displayln "PICK:" typ;
+        }
     };
     blockcode_picker_popup.add bc_pick_btn;
 };
@@ -737,6 +785,7 @@ popup_layer.add sample_list_popup;
 popup_layer.add dialog_popup;
 popup_layer.add blockcode_picker_popup;
 popup_layer.add blockcode_context_popup;
+popup_layer.add entry_popup;
 
 !create_mode_button = {!(val_list, init_idx, change_cb, hover_cb) = @;
     !val_idx = init_idx;

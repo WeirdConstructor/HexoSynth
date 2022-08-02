@@ -30,6 +30,7 @@ use std::sync::{Arc, Mutex};
 
 //pub use uimsg_queue::Msg;
 pub use hexodsp::*;
+use hexotk::EditableText;
 //pub use hexotk::*;
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -450,6 +451,53 @@ pub fn vv2txt_mut(mut v: VVal) -> Option<Rc<RefCell<hexotk::CloneMutable<String>
 }
 
 #[derive(Clone)]
+pub struct VUITextField {
+    pub txtmut: hexotk::TextField,
+}
+
+impl VUITextField {
+    pub fn new() -> Self {
+        Self { txtmut: hexotk::TextField::new() }
+    }
+}
+
+impl VValUserData for VUITextField {
+    fn s(&self) -> String {
+        format!("$<UI::TextField({})>", self.txtmut.get())
+    }
+    fn as_any(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
+    fn clone_ud(&self) -> Box<dyn vval::VValUserData> {
+        Box::new(self.clone())
+    }
+
+    fn call_method(&self, key: &str, env: &mut Env) -> Result<VVal, StackAction> {
+        let args = env.argv_ref();
+
+        match key {
+            "set" => {
+                arg_chk!(args, 1, "$<UI::TextField>.set[string]");
+
+                self.txtmut.set(env.arg(0).s_raw());
+
+                Ok(env.arg(0))
+            }
+            "get" => {
+                arg_chk!(args, 0, "$<UI::TextField>.get[]");
+
+                Ok(VVal::new_str_mv(self.txtmut.get()))
+            }
+            _ => Ok(VVal::err_msg(&format!("Unknown method called: {}", key))),
+        }
+    }
+}
+
+pub fn vv2txt_field(mut v: VVal) -> Option<hexotk::TextField> {
+    v.with_usr_ref(|txtmut: &mut VUITextField| txtmut.txtmut.clone())
+}
+
+#[derive(Clone)]
 pub struct VUIWidget(hexotk::Widget);
 
 impl VUIWidget {
@@ -552,6 +600,11 @@ impl VValUserData for VUIWidget {
             "hide" => {
                 arg_chk!(args, 0, "$<UI::Widget>.show[]");
                 self.0.hide();
+                Ok(VVal::Bol(true))
+            }
+            "activate" => {
+                arg_chk!(args, 0, "$<UI::Widget>.activate[]");
+                self.0.activate();
                 Ok(VVal::Bol(true))
             }
             "enable_cache" => {
@@ -732,18 +785,20 @@ impl VValUserData for VUIWidget {
 
                 env.arg(0).with_s_ref(|typ| {
                     match typ {
-                        // "entry" => {
-                        //     self.0.set_ctrl(hexotk::Control::Entry {
-                        //         entry: Box::new(hexotk::Entry::new(
-                        //             Box::new(
-                        //                 vv2txt_mut(env.arg(1))
-                        //                 .unwrap_or_else(
-                        //                     || Rc::new(RefCell::new(
-                        //                         hexotk::CloneMutable::new(
-                        //                             String::from("?")))))))),
-                        //     });
-                        //     Ok(VVal::Bol(true))
-                        // }
+                        "entry" => {
+                            if let Some(field) = vv2txt_field(env.arg(1)) {
+                                self.0.set_ctrl(hexotk::Control::Entry {
+                                    entry: Box::new(hexotk::Entry::new(Box::new(field))),
+                                });
+                                Ok(VVal::Bol(true))
+
+                            } else {
+                                Ok(VVal::err_msg(
+                                    &format!(
+                                        "entry has no text field as argument: {}",
+                                        env.arg(1).s())))
+                            }
+                        }
                         "none" => {
                             self.0.set_ctrl(hexotk::Control::None);
                             Ok(VVal::Bol(true))
@@ -997,6 +1052,9 @@ impl VValUserData for VUIWidget {
                                 hexotk::EvPayload::UserData(rc) => {
                                     user_data_out = Some(rc.clone());
                                     VVal::None
+                                }
+                                hexotk::EvPayload::Text(txt) => {
+                                    VVal::new_str_mv(txt.to_string())
                                 }
                                 hexotk::EvPayload::DropAccept(rc) => {
                                     drop_accept = Some(rc.clone());
@@ -1348,6 +1406,16 @@ pub fn open_hexosynth_with_config(
                 },
                 Some(1),
                 Some(1),
+                false,
+            );
+
+            ui_st.fun(
+                "txt_field",
+                move |env: &mut Env, _argc: usize| {
+                    Ok(VVal::new_usr(VUITextField::new()))
+                },
+                Some(0),
+                Some(0),
                 false,
             );
 
