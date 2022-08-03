@@ -626,6 +626,14 @@ impl VValUserData for VUIWidget {
                 self.0.popup_at(hexotk::PopupPos::MousePos);
                 Ok(VVal::Bol(true))
             }
+            "popup_at_mouse_offs" => {
+                arg_chk!(args, 1, "$<UI::Widget>.popup_at_mouse_offs[$f(x, y)]");
+                let ox = args[0].v_f(0) as f32;
+                let oy = args[0].v_f(1) as f32;
+
+                self.0.popup_at(hexotk::PopupPos::MouseOffs(ox, oy));
+                Ok(VVal::Bol(true))
+            }
             "add" => {
                 arg_chk!(args, 1, "$<UI::Widget>.add[widget]");
 

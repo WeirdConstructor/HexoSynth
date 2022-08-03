@@ -355,7 +355,8 @@ iter typ
                 fun.recalculate_area_sizes[];
             };
             blockcode_picker_popup.hide[];
-            entry_popup.popup_at_mouse[];
+            value_tf.set "";
+            entry_popup.popup_at_mouse_offs $f(-50, -20);
             value_entry.activate[];
         } {
             fun.instanciate_at
