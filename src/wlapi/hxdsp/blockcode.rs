@@ -3,7 +3,7 @@
 // See README.md and COPYING for details.
 
 use crate::arg_chk;
-use hexodsp::blocklang::{BlockFun, BlockLanguage, BlockType, BlockUserInput};
+use hexodsp::wblockdsp::{BlockFun, BlockLanguage, BlockType, BlockUserInput};
 use wlambda::*;
 
 use std::cell::RefCell;

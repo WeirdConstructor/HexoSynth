@@ -459,6 +459,9 @@ style.blockcode = ${
         port_select_color = ui:UI_SELECT_CLR,
     }
 };
+layout.blockcode = ${
+    height = :pixels => 100,
+};
 
 !apply_class = $n;
 .apply_class = {!(class, style_map, layout_map, set_ctrl) = @;

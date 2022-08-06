@@ -24,7 +24,7 @@ use std::sync::{Arc, Mutex};
 use wlambda::*;
 
 use hexodsp::{CellDir, Matrix};
-use hexodsp::blocklang_def::setup_hxdsp_block_language;
+use hexodsp::wblockdsp::setup_hxdsp_block_language;
 
 #[macro_export]
 macro_rules! arg_chk {
