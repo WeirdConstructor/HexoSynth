@@ -267,7 +267,28 @@ app_panel.change_layout ${
     height = :stretch => 1.0,
 };
 
+!CODE_SIZES = $[0, 25, 50, 75];
+!CODE_SIZE_IDX = 1;
+
 !blockcode = styling:new_widget :blockcode;
+
+!on_code_menu_toggle = {
+    !size_perc = CODE_SIZES.(CODE_SIZE_IDX);
+    .CODE_SIZE_IDX += 1;
+    .CODE_SIZE_IDX %= len CODE_SIZES;
+
+    if size_perc > 0 {
+        blockcode.change_layout ${
+            visible = $t,
+            height = :percent => size_perc,
+        };
+    } {
+        blockcode.change_layout ${
+            visible = $f,
+        };
+    };
+};
+
 !fun = matrix.get_block_function 0;
 blockcode.set_ctrl :blockcode fun;
 
@@ -496,6 +517,10 @@ top_menu_button_bar.add about_button;
 top_menu_button_bar.add save_btn;
 !load_btn = styling:new_button_with_label :button_float_menu "Load" {
     matrix.load_patch "init.hxy";
+};
+top_menu_button_bar.add load_btn;
+!load_btn = styling:new_button_with_label :button_float_menu "Code" {
+    on_code_menu_toggle[];
 };
 top_menu_button_bar.add load_btn;
 

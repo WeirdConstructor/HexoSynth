@@ -433,7 +433,7 @@ layout.scope_panel = ${
 };
 
 style.scope = ${
-    bg_color     = ui:UI_LBL_BG_CLR,
+    bg_color = ui:UI_LBL_BG_CLR,
     border_color = ui:UI_ACCENT_CLR,
     color = ui:STD_COLORS.11,
     font_size = 12,
@@ -446,6 +446,21 @@ style.scope = ${
         vline2_color = ui:STD_COLORS.7,
         hline_color = ui:STD_COLORS.13,
     },
+};
+
+style.blockcode = ${
+    bg_color     = ui:UI_ACCENT_BG1_CLR,
+    border_color = ui:UI_SELECT_CLR,
+    blockcode = ${
+        with_markers = $false,
+        grid_marker_color = ui:UI_ACCENT_DARK_CLR,
+        block_bg_hover_color = ui:UI_ACCENT_CLR,
+        block_bg_color = ui:UI_ACCENT_BG2_CLR,
+        port_select_color = ui:UI_SELECT_CLR,
+    }
+};
+layout.blockcode = ${
+    visible = $f,
 };
 
 !apply_class = $n;

@@ -460,7 +460,7 @@ style.blockcode = ${
     }
 };
 layout.blockcode = ${
-    height = :pixels => 100,
+    visible = $f,
 };
 
 !apply_class = $n;
