@@ -12,7 +12,8 @@ crate-type = ["cdylib", "lib"]
 
 [dependencies]
 hexosynth = { path = "../" }
-nih_plug  = { git = "https://github.com/robbert-vdh/nih-plug", features = ["standalone", "assert_process_allocs"] }
+#nih_plug  = { git = "https://github.com/robbert-vdh/nih-plug", features = ["standalone", "assert_process_allocs"] }
+nih_plug  = { git = "https://github.com/robbert-vdh/nih-plug", features = ["standalone"] }
 #nih_plug  = { path = "../../other/nih-plug", features = ["standalone", "assert_process_allocs"] }
 hexodsp    = { git = "https://github.com/WeirdConstructor/HexoDSP.git" }
 #hexodsp   = { path = "../../hexodsp" }
@@ -25,7 +26,7 @@ members = ["xtask"]
 
 #[patch.'https://github.com/robbert-vdh/nih-plug']
 #nih_plug = { path = "../../other/nih-plug" }
-[patch.'https://github.com/WeirdConstructor/HexoTK.git']
-hexotk = { path = "../../hexotk" }
-[patch.'https://github.com/WeirdConstructor/HexoDSP.git']
-hexodsp = { path = "../../hexodsp" }
+#[patch.'https://github.com/WeirdConstructor/HexoTK.git']
+#hexotk = { path = "../../hexotk" }
+#[patch.'https://github.com/WeirdConstructor/HexoDSP.git']
+#hexodsp = { path = "../../hexodsp" }
