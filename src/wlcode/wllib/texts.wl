@@ -1,15 +1,24 @@
 !@export about = "[t18:][f22:About]
-
+[t9:]
 HexoSynth is a modular synthesizer where the graph is
 represented as hexagonal tile map. The 6 edges of each tile
 are the ports of the nodes (aka modules). The top and left edges
 are the input edges, and the bottom and right edges are the outputs.
 
-ATTENTION: For help please take a look at the other tabs of this about
-           screen at the top!
+[t9:]------------------------------------------------------------------
 
-[t9:]-------------------------------
+[c15f22:Authors, Contributors, Credits]
 
+[c15:*] [c4:Dimas Leenman] (aka [c4:Skythedragon])
+    - Author of the [c2:FormFM] node
+
+[c15:*] [c4:Weird Constructor]
+    - Engine, GUI, many nodes
+
+[t9:]------------------------------------------------------------------
+
+[c11f22:License]
+[t10:]
 HexoSynth Modular Synthesizer (Plugin or Standalone Application)
 Copyright (C) 2021-2022  Weird Constructor <weirdconstructor@gmail.com>
 

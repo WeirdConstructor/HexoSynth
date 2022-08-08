@@ -81,6 +81,7 @@ And following DSP nodes:
 | Osc     | BOsc        | Basic bandlimited waveform oscillator (waveforms: Sin, Tri, Saw, Pulse/Square) |
 | Osc     | VOsc        | Vector phase shaping oscillator |
 | Osc     | Noise       | Noise oscillator |
+| Osc     | FormFM      | Formant oscillator based on FM synthesis |
 | Signal  | Amp         | Amplifier/Attenuator |
 | Signal  | SFilter     | Simple collection of filters, useable for synthesis |
 | Signal  | Delay       | Single tap signal delay |
@@ -184,6 +185,10 @@ As of 2022-07-04 HexoSynth has been tested with:
 ## Known Bugs
 
 * The ones you encounter and create as issues on GitHub.
+
+## Credits
+
+- Dimas Leenman (aka Skythedragon) contributed the `FormFM` node.
 
 ## Contributions
 
