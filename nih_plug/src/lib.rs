@@ -2,10 +2,33 @@
 use nih_plug::prelude::*;
 
 use hexosynth::*;
+use hexodsp::matrix_repr::MatrixRepr;
 use std::any::Any;
 //use hexodsp::*;
 
 use std::sync::{Arc, Mutex};
+
+use nih_plug::param::internals::PersistentField;
+
+pub struct HexoSynthState {
+    matrix: Arc<Mutex<Matrix>>,
+}
+
+impl<'a> PersistentField<'a, String> for HexoSynthState {
+    fn set(&self, new_value: String) {
+        let mut m = self.matrix.lock().expect("Matrix is ok");
+        if let Ok(repr) = MatrixRepr::deserialize(&new_value) {
+            let _ = m.from_repr(&repr);
+        }
+    }
+
+    fn map<F, R>(&self, f: F) -> R where F: Fn(&String) -> R {
+        let mut m = self.matrix.lock().expect("Matrix is ok");
+        let mut repr = m.to_repr();
+        let s = repr.serialize();
+        f(&s)
+    }
+}
 
 pub struct HexoSynthPlug {
     params:     Arc<HexoSynthPlugParams>,
@@ -18,6 +41,8 @@ pub struct HexoSynthPlug {
 struct HexoSynthPlugParams {
     #[id = "gain"]
     pub gain: FloatParam,
+    #[persist = "HexSta"]
+    pub matrix: HexoSynthState,
 }
 
 impl Default for HexoSynthPlug {
@@ -47,11 +72,13 @@ impl Default for HexoSynthPlug {
 
         log(|w| write!(w, "INIT").unwrap());
 
+        let matrix = Arc::new(Mutex::new(matrix));
+
         Self {
-            matrix:    Arc::new(Mutex::new(matrix)),
+            matrix: matrix.clone(),
             node_exec: Box::new(node_exec),
 
-            params: Arc::new(HexoSynthPlugParams::default()),
+            params: Arc::new(HexoSynthPlugParams::new(matrix)),
             proc_log: false,
 //            editor_state: editor::default_state(),
 
@@ -61,8 +88,8 @@ impl Default for HexoSynthPlug {
     }
 }
 
-impl Default for HexoSynthPlugParams {
-    fn default() -> Self {
+impl HexoSynthPlugParams {
+    fn new(matrix: Arc<Mutex<Matrix>>) -> Self {
         Self {
             gain: FloatParam::new(
                 "Gain",
@@ -75,6 +102,9 @@ impl Default for HexoSynthPlugParams {
             .with_smoother(SmoothingStyle::Linear(50.0))
             .with_step_size(0.01)
             .with_unit(" dB"),
+            matrix: HexoSynthState {
+                matrix,
+            }
         }
     }
 }
