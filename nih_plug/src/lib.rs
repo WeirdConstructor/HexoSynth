@@ -1,8 +1,8 @@
 //use atomic_float::AtomicF32;
 use nih_plug::prelude::*;
 
-use hexosynth::*;
 use hexodsp::matrix_repr::MatrixRepr;
+use hexosynth::*;
 use std::any::Any;
 //use hexodsp::*;
 
@@ -22,7 +22,10 @@ impl<'a> PersistentField<'a, String> for HexoSynthState {
         }
     }
 
-    fn map<F, R>(&self, f: F) -> R where F: Fn(&String) -> R {
+    fn map<F, R>(&self, f: F) -> R
+    where
+        F: Fn(&String) -> R,
+    {
         let mut m = self.matrix.lock().expect("Matrix is ok");
         let mut repr = m.to_repr();
         let s = repr.serialize();
@@ -31,10 +34,10 @@ impl<'a> PersistentField<'a, String> for HexoSynthState {
 }
 
 pub struct HexoSynthPlug {
-    params:     Arc<HexoSynthPlugParams>,
-    matrix:     Arc<Mutex<Matrix>>,
-    node_exec:  Box<NodeExecutor>,
-    proc_log:   bool,
+    params: Arc<HexoSynthPlugParams>,
+    matrix: Arc<Mutex<Matrix>>,
+    node_exec: Box<NodeExecutor>,
+    proc_log: bool,
 }
 
 #[derive(Params)]
@@ -54,21 +57,20 @@ impl Default for HexoSynthPlug {
 
         std::thread::spawn(|| {
             loop {
-//                hexodsp::log::retrieve_log_messages(|name, s| {
-//                    use std::io::Write;
-//                    let mut file = std::fs::OpenOptions::new()
-//                        .write(true)
-//                        .append(true)
-//                        .open("/tmp/hexosynth.log").unwrap();
-//                    let _ = writeln!(file, "{}/{}", name, s);
-//                });
+                //                hexodsp::log::retrieve_log_messages(|name, s| {
+                //                    use std::io::Write;
+                //                    let mut file = std::fs::OpenOptions::new()
+                //                        .write(true)
+                //                        .append(true)
+                //                        .open("/tmp/hexosynth.log").unwrap();
+                //                    let _ = writeln!(file, "{}/{}", name, s);
+                //                });
 
-                std::thread::sleep(
-                    std::time::Duration::from_millis(100));
-            };
+                std::thread::sleep(std::time::Duration::from_millis(100));
+            }
         });
-        use std::io::Write;
         use hexodsp::log::log;
+        use std::io::Write;
 
         log(|w| write!(w, "INIT").unwrap());
 
@@ -80,10 +82,10 @@ impl Default for HexoSynthPlug {
 
             params: Arc::new(HexoSynthPlugParams::new(matrix)),
             proc_log: false,
-//            editor_state: editor::default_state(),
+            //            editor_state: editor::default_state(),
 
-//            peak_meter_decay_weight: 1.0,
-//            peak_meter: Arc::new(AtomicF32::new(util::MINUS_INFINITY_DB)),
+            //            peak_meter_decay_weight: 1.0,
+            //            peak_meter: Arc::new(AtomicF32::new(util::MINUS_INFINITY_DB)),
         }
     }
 }
@@ -91,30 +93,19 @@ impl Default for HexoSynthPlug {
 impl HexoSynthPlugParams {
     fn new(matrix: Arc<Mutex<Matrix>>) -> Self {
         Self {
-            gain: FloatParam::new(
-                "Gain",
-                0.0,
-                FloatRange::Linear {
-                    min: -30.0,
-                    max: 30.0,
-                },
-            )
-            .with_smoother(SmoothingStyle::Linear(50.0))
-            .with_step_size(0.01)
-            .with_unit(" dB"),
-            matrix: HexoSynthState {
-                matrix,
-            }
+            gain: FloatParam::new("Gain", 0.0, FloatRange::Linear { min: -30.0, max: 30.0 })
+                .with_smoother(SmoothingStyle::Linear(50.0))
+                .with_step_size(0.01)
+                .with_unit(" dB"),
+            matrix: HexoSynthState { matrix },
         }
     }
 }
 
 fn blip(s: &str) {
     use std::io::Write;
-    let mut file = std::fs::OpenOptions::new()
-        .write(true)
-        .append(true)
-        .open("/tmp/hexosynth.log").unwrap();
+    let mut file =
+        std::fs::OpenOptions::new().write(true).append(true).open("/tmp/hexosynth.log").unwrap();
     let _ = writeln!(file, "- {}", s);
 }
 
@@ -131,18 +122,20 @@ impl Plugin for HexoSynthPlug {
 
     const SAMPLE_ACCURATE_AUTOMATION: bool = true;
 
+    const MIDI_INPUT: MidiConfig = MidiConfig::MidiCCs;
+
     fn params(&self) -> Arc<dyn Params> {
         self.params.clone()
     }
 
     fn editor(&self) -> Option<Box<dyn Editor>> {
         hexodsp::log::init_thread_logger("editor");
-        use std::io::Write;
         use hexodsp::log::log;
+        use std::io::Write;
 
         Some(Box::new(HexoSynthEditor {
             scale_factor: Arc::new(Mutex::new(1.0_f32)),
-            matrix: self.matrix.clone()
+            matrix: self.matrix.clone(),
         }))
     }
 
@@ -156,8 +149,8 @@ impl Plugin for HexoSynthPlug {
         buffer_config: &BufferConfig,
         _context: &mut impl InitContext,
     ) -> bool {
-        use std::io::Write;
         use hexodsp::log::log;
+        use std::io::Write;
         hexodsp::log::init_thread_logger("proc_init");
         log(|w| write!(w, "PROC INIT").unwrap());
         self.node_exec.set_sample_rate(buffer_config.sample_rate);
@@ -168,52 +161,71 @@ impl Plugin for HexoSynthPlug {
         &mut self,
         buffer: &mut Buffer,
         _aux: &mut AuxiliaryBuffers,
-        _context: &mut impl ProcessContext,
+        context: &mut impl ProcessContext,
     ) -> ProcessStatus {
-        use std::io::Write;
         use hexodsp::log::log;
+        use std::io::Write;
 
         if !self.proc_log {
-//            hexodsp::log::init_thread_logger("proc");
+            //            hexodsp::log::init_thread_logger("proc");
             self.proc_log = true;
         }
-//        return ProcessStatus::Normal;
-//        log(|w| write!(w, "P").unwrap());
+        //        return ProcessStatus::Normal;
+        //        log(|w| write!(w, "P").unwrap());
 
         self.node_exec.process_graph_updates();
 
-        let mut offs        = 0;
+        {
+            let mut note_buffer = self.node_exec.get_note_buffer();
+            note_buffer.reset();
+
+            // TODO: Build struct that holds the most recently fetched event.
+            //       The structure is called:
+            //          event_timing_buffer.next_event_in(context, offs, offs + cur_nframes)
+            //       It will hold back the event if it is not happening in the current window (yet)
+            while let Some(event) = context.next_event() {
+                match event {
+                    NoteEvent::NoteOn { timing, channel, note, velocity, .. } => {
+                        note_buffer.note_on(channel, note);
+                        note_buffer.set_velocity(channel, velocity);
+                    }
+                    NoteEvent::NoteOff { timing, channel, note, velocity, .. } => {
+                        note_buffer.note_off(channel, note);
+                        note_buffer.set_velocity(channel, velocity);
+                    }
+                    NoteEvent::Choke { timing, voice_id, channel, note } => {
+                        note_buffer.note_off(channel, note);
+                    }
+                    _ => {}
+                }
+            }
+
+            note_buffer.step_to(hexodsp::dsp::MAX_BLOCK_SIZE - 1);
+        }
+
+        let mut offs = 0;
 
         let channel_buffers = buffer.as_slice();
-        let mut frames_left =
-            if channel_buffers.len() > 0 {
-                channel_buffers[0].len()
-            } else {
-                0
-            };
+        let mut frames_left = if channel_buffers.len() > 0 { channel_buffers[0].len() } else { 0 };
 
         let mut input_bufs = [[0.0; hexodsp::dsp::MAX_BLOCK_SIZE]; 2];
 
         let mut cnt = 0;
         while frames_left > 0 {
-//            log(|w| write!(w, "FRAM LEFT: {}", frames_left).unwrap());
+            //            log(|w| write!(w, "FRAM LEFT: {}", frames_left).unwrap());
 
-            let cur_nframes =
-                if frames_left >= hexodsp::dsp::MAX_BLOCK_SIZE {
-                    hexodsp::dsp::MAX_BLOCK_SIZE
-                } else {
-                    frames_left
-                };
+            let cur_nframes = if frames_left >= hexodsp::dsp::MAX_BLOCK_SIZE {
+                hexodsp::dsp::MAX_BLOCK_SIZE
+            } else {
+                frames_left
+            };
 
-            input_bufs[0][0..cur_nframes].copy_from_slice(
-                &channel_buffers[0][offs..(offs + cur_nframes)]);
-            input_bufs[1][0..cur_nframes].copy_from_slice(
-                &channel_buffers[1][offs..(offs + cur_nframes)]);
+            input_bufs[0][0..cur_nframes]
+                .copy_from_slice(&channel_buffers[0][offs..(offs + cur_nframes)]);
+            input_bufs[1][0..cur_nframes]
+                .copy_from_slice(&channel_buffers[1][offs..(offs + cur_nframes)]);
 
-            let input = &[
-                &input_bufs[0][0..cur_nframes],
-                &input_bufs[1][0..cur_nframes],
-            ];
+            let input = &[&input_bufs[0][0..cur_nframes], &input_bufs[1][0..cur_nframes]];
 
             let split = channel_buffers.split_at_mut(1);
 
@@ -222,38 +234,33 @@ impl Plugin for HexoSynthPlug {
                 &mut ((*split.1[0])[offs..(offs + cur_nframes)]),
             ];
 
-//            let output = &mut [&mut out_a_p[offs..(offs + cur_nframes)],
-//                               &mut out_b_p[offs..(offs + cur_nframes)]];
-//            let input =
-//                &[&in_a_p[offs..(offs + cur_nframes)],
-//                  &in_b_p[offs..(offs + cur_nframes)]];
+            //            let output = &mut [&mut out_a_p[offs..(offs + cur_nframes)],
+            //                               &mut out_b_p[offs..(offs + cur_nframes)]];
+            //            let input =
+            //                &[&in_a_p[offs..(offs + cur_nframes)],
+            //                  &in_b_p[offs..(offs + cur_nframes)]];
 
-            let mut context =
-                Context {
-                    nframes: cur_nframes,
-                    output: &mut output[..],
-                    input,
-                };
+            let mut context = Context { nframes: cur_nframes, output: &mut output[..], input };
 
             context.output[0].fill(0.0);
             context.output[1].fill(0.0);
 
             self.node_exec.process(&mut context);
 
-//            if oversample_simulation {
-//                node_exec.process(&mut context);
-//                node_exec.process(&mut context);
-//                node_exec.process(&mut context);
-//            }
+            //            if oversample_simulation {
+            //                node_exec.process(&mut context);
+            //                node_exec.process(&mut context);
+            //                node_exec.process(&mut context);
+            //            }
 
             offs += cur_nframes;
             frames_left -= cur_nframes;
 
-//            if cnt >= 1 {
-//                return ProcessStatus::Normal;
-//            }
+            //            if cnt >= 1 {
+            //                return ProcessStatus::Normal;
+            //            }
 
-//            cnt += 1;
+            //            cnt += 1;
         }
 
         ProcessStatus::Normal
@@ -279,11 +286,13 @@ unsafe impl Send for UnsafeWindowHandle {}
 unsafe impl Sync for UnsafeWindowHandle {}
 
 impl Editor for HexoSynthEditor {
-    fn spawn(&self, parent: ParentWindowHandle, _context: Arc<dyn GuiContext>)
-        -> Box<dyn Any + Send + Sync>
-    {
+    fn spawn(
+        &self,
+        parent: ParentWindowHandle,
+        _context: Arc<dyn GuiContext>,
+    ) -> Box<dyn Any + Send + Sync> {
         Box::new(UnsafeWindowHandle {
-            hdl: open_hexosynth(Some(parent.handle), self.matrix.clone())
+            hdl: open_hexosynth(Some(parent.handle), self.matrix.clone()),
         })
     }
 
@@ -297,13 +306,13 @@ impl Editor for HexoSynthEditor {
         true
     }
 
-    fn param_values_changed(&self) {
-    }
+    fn param_values_changed(&self) {}
 }
 
 impl ClapPlugin for HexoSynthPlug {
     const CLAP_ID: &'static str = "de.m8geil.hexosynth";
-    const CLAP_DESCRIPTION: Option<&'static str> = Some("A modular synthesizer plugin with hexagonal nodes");
+    const CLAP_DESCRIPTION: Option<&'static str> =
+        Some("A modular synthesizer plugin with hexagonal nodes");
     const CLAP_FEATURES: &'static [ClapFeature] = &[
         ClapFeature::Instrument,
         ClapFeature::AudioEffect,
@@ -316,8 +325,8 @@ impl ClapPlugin for HexoSynthPlug {
 }
 
 impl Vst3Plugin for HexoSynthPlug {
-    const VST3_CLASS_ID: [u8; 16] = *b"HxSyGuiIcedAaAAa";
-    const VST3_CATEGORIES: &'static str = "Fx|Dynamics";
+    const VST3_CLASS_ID: [u8; 16] = *b"HxSyGuiHxTKAaAAa";
+    const VST3_CATEGORIES: &'static str = "Fx|Instrument";
 }
 
 nih_export_clap!(HexoSynthPlug);
