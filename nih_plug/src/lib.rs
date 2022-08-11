@@ -109,6 +109,43 @@ fn blip(s: &str) {
     let _ = writeln!(file, "- {}", s);
 }
 
+struct EventWindowing {
+    pub event: Option<NoteEvent>,
+}
+
+impl EventWindowing {
+    pub fn new() -> Self {
+        Self {
+            event: None,
+        }
+    }
+
+    #[inline]
+    pub fn next_event_in_range(&mut self, context: &mut impl ProcessContext, to_time: usize) -> Option<NoteEvent> {
+        let to_time = to_time as u32;
+
+        if let Some(event) = self.event.take() {
+            if event.timing() < to_time {
+                return Some(event);
+            } else {
+                self.event = Some(event);
+                return None;
+            }
+        }
+
+        if let Some(event) = context.next_event() {
+            if event.timing() < to_time {
+                return Some(event);
+            } else {
+                self.event = Some(event);
+                return None;
+            }
+        }
+
+        None
+    }
+}
+
 impl Plugin for HexoSynthPlug {
     const NAME: &'static str = "HexoSynth";
     const VENDOR: &'static str = "WeirdConstructor";
@@ -166,6 +203,8 @@ impl Plugin for HexoSynthPlug {
         use hexodsp::log::log;
         use std::io::Write;
 
+        let mut ev_win = EventWindowing::new();
+
         if !self.proc_log {
             //            hexodsp::log::init_thread_logger("proc");
             self.proc_log = true;
@@ -174,34 +213,6 @@ impl Plugin for HexoSynthPlug {
         //        log(|w| write!(w, "P").unwrap());
 
         self.node_exec.process_graph_updates();
-
-        {
-            let mut note_buffer = self.node_exec.get_note_buffer();
-            note_buffer.reset();
-
-            // TODO: Build struct that holds the most recently fetched event.
-            //       The structure is called:
-            //          event_timing_buffer.next_event_in(context, offs, offs + cur_nframes)
-            //       It will hold back the event if it is not happening in the current window (yet)
-            while let Some(event) = context.next_event() {
-                match event {
-                    NoteEvent::NoteOn { timing, channel, note, velocity, .. } => {
-                        note_buffer.note_on(channel, note);
-                        note_buffer.set_velocity(channel, velocity);
-                    }
-                    NoteEvent::NoteOff { timing, channel, note, velocity, .. } => {
-                        note_buffer.note_off(channel, note);
-                        note_buffer.set_velocity(channel, velocity);
-                    }
-                    NoteEvent::Choke { timing, voice_id, channel, note } => {
-                        note_buffer.note_off(channel, note);
-                    }
-                    _ => {}
-                }
-            }
-
-            note_buffer.step_to(hexodsp::dsp::MAX_BLOCK_SIZE - 1);
-        }
 
         let mut offs = 0;
 
@@ -212,13 +223,44 @@ impl Plugin for HexoSynthPlug {
 
         let mut cnt = 0;
         while frames_left > 0 {
-            //            log(|w| write!(w, "FRAM LEFT: {}", frames_left).unwrap());
-
             let cur_nframes = if frames_left >= hexodsp::dsp::MAX_BLOCK_SIZE {
                 hexodsp::dsp::MAX_BLOCK_SIZE
             } else {
                 frames_left
             };
+
+            // First we fetch all the events for the current buffer/block,
+            // which is limited to MAX_BLOCK_SIZE. So we need to hold back events
+            // that have not been playing yet.
+            {
+                let cur_end_frame = offs + cur_nframes;
+
+                let mut note_buffer = self.node_exec.get_note_buffer();
+                note_buffer.reset();
+
+                while let Some(event) = ev_win.next_event_in_range(context, cur_end_frame) {
+                    note_buffer.step_to(event.timing() as usize);
+
+                    match event {
+                        NoteEvent::NoteOn { channel, note, velocity, .. } => {
+                            note_buffer.note_on(channel, note);
+                            note_buffer.set_velocity(channel, velocity);
+                        }
+                        NoteEvent::NoteOff { channel, note, velocity, .. } => {
+                            note_buffer.note_off(channel, note);
+                            note_buffer.set_velocity(channel, velocity);
+                        }
+                        NoteEvent::Choke { voice_id, channel, note, .. } => {
+                            note_buffer.note_off(channel, note);
+                        }
+                        _ => {}
+                    }
+                }
+
+                note_buffer.step_to(cur_nframes - 1);
+            }
+
+            //            log(|w| write!(w, "FRAM LEFT: {}", frames_left).unwrap());
 
             input_bufs[0][0..cur_nframes]
                 .copy_from_slice(&channel_buffers[0][offs..(offs + cur_nframes)]);
