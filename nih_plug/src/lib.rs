@@ -2,6 +2,7 @@
 use nih_plug::prelude::*;
 
 use hexodsp::matrix_repr::MatrixRepr;
+use hexosynth::nodes::{EventWindowing, HxMidiEvent, HxTimedEvent};
 use hexosynth::*;
 use std::any::Any;
 //use hexodsp::*;
@@ -51,23 +52,23 @@ struct HexoSynthPlugParams {
 impl Default for HexoSynthPlug {
     fn default() -> Self {
         let (matrix, mut node_exec) = init_hexosynth();
-        node_exec.no_logging();
 
         hexodsp::log::init_thread_logger("init");
 
-        std::thread::spawn(|| {
-            loop {
-                //                hexodsp::log::retrieve_log_messages(|name, s| {
-                //                    use std::io::Write;
-                //                    let mut file = std::fs::OpenOptions::new()
-                //                        .write(true)
-                //                        .append(true)
-                //                        .open("/tmp/hexosynth.log").unwrap();
-                //                    let _ = writeln!(file, "{}/{}", name, s);
-                //                });
+        std::thread::spawn(|| loop {
+            hexodsp::log::retrieve_log_messages(|name, s| {
+                use std::io::Write;
+                let mut file = std::fs::OpenOptions::new()
+                    .create(true)
+                    .write(true)
+                    .append(true)
+                    .open("/tmp/hexosynth.log");
+                if let Ok(mut file) = file {
+                    let _ = writeln!(file, "{}/{}", name, s);
+                }
+            });
 
-                std::thread::sleep(std::time::Duration::from_millis(100));
-            }
+            std::thread::sleep(std::time::Duration::from_millis(100));
         });
         use hexodsp::log::log;
         use std::io::Write;
@@ -104,45 +105,13 @@ impl HexoSynthPlugParams {
 
 fn blip(s: &str) {
     use std::io::Write;
-    let mut file =
-        std::fs::OpenOptions::new().write(true).append(true).open("/tmp/hexosynth.log").unwrap();
-    let _ = writeln!(file, "- {}", s);
-}
-
-struct EventWindowing {
-    pub event: Option<NoteEvent>,
-}
-
-impl EventWindowing {
-    pub fn new() -> Self {
-        Self {
-            event: None,
-        }
-    }
-
-    #[inline]
-    pub fn next_event_in_range(&mut self, context: &mut impl ProcessContext, to_time: usize) -> Option<NoteEvent> {
-        let to_time = to_time as u32;
-
-        if let Some(event) = self.event.take() {
-            if event.timing() < to_time {
-                return Some(event);
-            } else {
-                self.event = Some(event);
-                return None;
-            }
-        }
-
-        if let Some(event) = context.next_event() {
-            if event.timing() < to_time {
-                return Some(event);
-            } else {
-                self.event = Some(event);
-                return None;
-            }
-        }
-
-        None
+    let mut file = std::fs::OpenOptions::new()
+        .create(true)
+        .write(true)
+        .append(true)
+        .open("/tmp/hexosynth_1.log");
+    if let Ok(mut file) = file {
+        let _ = writeln!(file, "- {}", s);
     }
 }
 
@@ -205,10 +174,10 @@ impl Plugin for HexoSynthPlug {
 
         let mut ev_win = EventWindowing::new();
 
-        if !self.proc_log {
-            //            hexodsp::log::init_thread_logger("proc");
-            self.proc_log = true;
-        }
+        //        if !self.proc_log {
+        ////            hexodsp::log::init_thread_logger("proc");
+        //            self.proc_log = true;
+        //        }
         //        return ProcessStatus::Normal;
         //        log(|w| write!(w, "P").unwrap());
 
@@ -229,36 +198,89 @@ impl Plugin for HexoSynthPlug {
                 frames_left
             };
 
-            // First we fetch all the events for the current buffer/block,
-            // which is limited to MAX_BLOCK_SIZE. So we need to hold back events
-            // that have not been playing yet.
-            {
-                let cur_end_frame = offs + cur_nframes;
+            //- MIDI HANDLING START ------------------------
 
-                let mut note_buffer = self.node_exec.get_note_buffer();
-                note_buffer.reset();
+            let cur_end_frame = offs + cur_nframes;
+            let buf = self.node_exec.get_note_buffer();
+            buf.reset();
+            loop {
+                if ev_win.feed_me() {
+                    let mut new_event = None;
+                    while new_event.is_none() {
+                        if let Some(event) = context.next_event() {
+                            log(|w| write!(w, "MIDI {:?}", event).unwrap());
+                            new_event = match event {
+                                NoteEvent::NoteOn { timing, channel, note, velocity, .. } => Some(
+                                    HxTimedEvent::note_on(timing as usize, channel, note, velocity),
+                                ),
+                                NoteEvent::NoteOff { timing, channel, note, velocity, .. } => {
+                                    Some(HxTimedEvent::note_off(timing as usize, channel, note))
+                                }
+                                NoteEvent::Choke { timing, voice_id, channel, note, .. } => {
+                                    Some(HxTimedEvent::note_off(timing as usize, channel, note))
+                                }
+                                _ => None,
+                            };
+                        } else {
+                            break;
+                        }
+                    }
 
-                while let Some(event) = ev_win.next_event_in_range(context, cur_end_frame) {
-                    note_buffer.step_to(event.timing() as usize);
-
-                    match event {
-                        NoteEvent::NoteOn { channel, note, velocity, .. } => {
-                            note_buffer.note_on(channel, note);
-                            note_buffer.set_velocity(channel, velocity);
-                        }
-                        NoteEvent::NoteOff { channel, note, velocity, .. } => {
-                            note_buffer.note_off(channel, note);
-                            note_buffer.set_velocity(channel, velocity);
-                        }
-                        NoteEvent::Choke { voice_id, channel, note, .. } => {
-                            note_buffer.note_off(channel, note);
-                        }
-                        _ => {}
+                    if let Some(event) = new_event {
+                        ev_win.feed(event);
+                    } else {
+                        break;
                     }
                 }
 
-                note_buffer.step_to(cur_nframes - 1);
+                if let Some((timing, event)) = ev_win.next_event_in_range(cur_end_frame) {
+                    buf.step_to(timing);
+                    match event {
+                        HxMidiEvent::NoteOn { channel, note, vel } => {
+                            buf.note_on(channel, note);
+                            buf.set_velocity(channel, vel);
+                        }
+                        HxMidiEvent::NoteOff { channel, note } => {
+                            buf.note_off(channel, note);
+                        }
+                    }
+                } else {
+                    break;
+                }
             }
+            self.node_exec.get_note_buffer().step_to(cur_nframes - 1);
+
+            //- MIDI HANDLING END ------------------------
+
+            //            // First we fetch all the events for the current buffer/block,
+            //            // which is limited to MAX_BLOCK_SIZE. So we need to hold back events
+            //            // that have not been playing yet.
+            //            {
+            //
+            //                let mut note_buffer = self.node_exec.get_note_buffer();
+            //                note_buffer.reset();
+            //
+            //                while let Some(event) = ev_win.next_event_in_range(context, cur_end_frame) {
+            //                    note_buffer.step_to(event.timing() as usize);
+            //
+            //                    match event {
+            //                        NoteEvent::NoteOn { channel, note, velocity, .. } => {
+            //                            note_buffer.note_on(channel, note);
+            //                            note_buffer.set_velocity(channel, velocity);
+            //                        }
+            //                        NoteEvent::NoteOff { channel, note, velocity, .. } => {
+            //                            note_buffer.note_off(channel, note);
+            //                            note_buffer.set_velocity(channel, velocity);
+            //                        }
+            //                        NoteEvent::Choke { voice_id, channel, note, .. } => {
+            //                            note_buffer.note_off(channel, note);
+            //                        }
+            //                        _ => {}
+            //                    }
+            //                }
+            //
+            //                note_buffer.step_to(cur_nframes - 1);
+            //            }
 
             //            log(|w| write!(w, "FRAM LEFT: {}", frames_left).unwrap());
 
