@@ -132,7 +132,7 @@ style.button_float_menu = ${
 layout.top_float_menu = ${
     position_type = :self,
     layout_type = :row,
-    width  = :pixels => 320,
+    width  = :pixels => 420,
     height = :pixels => 30,
     left   = :pixels => 0,
     right  = :stretch => 1,
@@ -299,15 +299,29 @@ style.wichtext = ${
 };
 
 style.main_help_wichtext = ${
-    bg_color   = ui:UI_ACCENT_BG1_CLR,
-    border     = 3,
-    pad_left   = 10,
-    pad_right  = 10,
-    pad_top    = 10,
+    bg_color = ui:UI_ACCENT_BG1_CLR,
+    border = 3,
+    pad_left = 10,
+    pad_right = 10,
+    pad_top = 10,
     pad_bottom = 10,
 };
 layout.main_help_wichtext = ${
     top = :pixels => 33,
+    position_type = :self,
+    width = :pixels => 720,
+    min_width = :pixels => 720,
+    height = :stretch => 1,
+    left = :stretch => 1,
+    right = :stretch => 1,
+    visible = $f,
+};
+
+style.midi_log_wichtext = ${
+    parent = :main_help_wichtext,
+};
+layout.midi_log_wichtext = ${
+    parent = :main_help_wichtext,
 };
 
 style.sample_list_wichtext = ${

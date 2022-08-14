@@ -9,6 +9,10 @@ little features added.
 * Feature: New node added: 'Mux9' a 9 channel multiplexer/switch.
 * Feature: New node added: 'CQnt' a control signal pitch quantizer.
 * Feature: New node added: 'Quant' a pitch signal quantizer.
+* Feature: New node added: 'FormFM' a formant FM synthesizer.
+* Feature: MIDI note and CC input with a MIDI log window.
+* Feature: 'Code' node added and the WBlockDSP visual DSP programming language that
+is compiled just-in-time (JIT) to machine code and executed in the audio thread.
 * Change: Moved 'TSeq' from the 'CV' to the 'Mod' category.
 * Change: RndWk did not properly reflect back the overshoots.
 Now it behaves more in tune with the 'step' setting and does not

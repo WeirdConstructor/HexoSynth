@@ -3,7 +3,7 @@
 // See README.md and COPYING for details.
 
 use hexodsp::matrix::MatrixObserver;
-use hexodsp::{Cell, ParamId};
+use hexodsp::{Cell, ParamId, HxMidiEvent};
 use wlambda::*;
 
 use std::sync::Mutex;
@@ -65,6 +65,48 @@ impl MatrixObserver for MatrixRecorder {
     fn update_all(&self) {
         if let Ok(mut changes) = self.changes.lock() {
             changes.push(VVal::pair(VVal::new_sym("matrix_all"), VVal::None));
+        }
+    }
+
+    fn midi_event(&self, midi_ev: HxMidiEvent) {
+        if let Ok(mut changes) = self.changes.lock() {
+            let ev_vv = match midi_ev {
+                HxMidiEvent::NoteOn { channel, note, vel } => {
+                    let v = VVal::map3(
+                        "channel",
+                        VVal::Int(channel as i64),
+                        "note",
+                        VVal::Int(note as i64),
+                        "velocity",
+                        VVal::Flt(vel as f64),
+                    );
+                    v.set_key_str("type", VVal::new_sym("note_on"));
+                    v
+                }
+                HxMidiEvent::NoteOff { channel, note } => {
+                    VVal::map3(
+                        "type",
+                        VVal::new_sym("note_off"),
+                        "channel",
+                        VVal::Int(channel as i64),
+                        "note",
+                        VVal::Int(note as i64),
+                    )
+                }
+                HxMidiEvent::CC { channel, cc, value } => {
+                    let v = VVal::map3(
+                        "channel",
+                        VVal::Int(channel as i64),
+                        "cc",
+                        VVal::Int(cc as i64),
+                        "value",
+                        VVal::Flt(value as f64),
+                    );
+                    v.set_key_str("type", VVal::new_sym("cc"));
+                    v
+                }
+            };
+            changes.push(VVal::pair(VVal::new_sym("midi_event"), ev_vv));
         }
     }
 }

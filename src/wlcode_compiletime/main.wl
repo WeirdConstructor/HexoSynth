@@ -511,6 +511,11 @@ top_menu_button_bar.add help_button;
 };
 top_menu_button_bar.add about_button;
 
+!midi_button = styling:new_button_with_label :button_float_menu "MIDI" {
+    editor.handle_top_menu_click :midi;
+};
+top_menu_button_bar.add midi_button;
+
 !save_btn = styling:new_button_with_label :button_float_menu "Save" {
     matrix.save_patch "init.hxy";
 };
@@ -682,15 +687,6 @@ connector_popup.change_layout ${
 mode_selector_popup.auto_hide[];
 
 !help_wichtext = styling:new_widget :main_help_wichtext;
-help_wichtext.change_layout ${
-    position_type = :self,
-    width         = :pixels  => 720,
-    min_width     = :pixels  => 720,
-    height        = :stretch => 1,
-    left          = :stretch => 1,
-    right         = :stretch => 1,
-    visible       = $f,
-};
 !wtd_help = ui:wichtext_simple_data_store[];
 wtd_help.set_text "Help!";
 help_wichtext.set_ctrl :wichtext wtd_help;
@@ -699,6 +695,21 @@ help_wichtext.auto_hide[];
 editor.reg :show_main_help {!(text) = @;
     wtd_help.set_text text;
     help_wichtext.show[];
+};
+
+!midi_log_wichtext = styling:new_widget :midi_log_wichtext;
+!midi_log_text = ui:wichtext_simple_data_store[];
+midi_log_text.set_text "Midi Log!";
+midi_log_wichtext.set_ctrl :wichtext midi_log_text;
+midi_log_wichtext.auto_hide[];
+
+editor.reg :show_midi_log {
+    midi_log_text.set_text ~ editor.get_midi_log_text[];
+    midi_log_wichtext.show[];
+};
+
+editor.reg :update_midi_log {
+    midi_log_text.set_text ~ editor.get_midi_log_text[];
 };
 
 !sample_list_popup = styling:new_widget :sample_list_popup;
@@ -807,6 +818,7 @@ popup_layer.add mode_selector_popup;
 popup_layer.add cell_context_popup;
 popup_layer.add matrix_context_popup;
 popup_layer.add help_wichtext;
+popup_layer.add midi_log_wichtext;
 popup_layer.add sample_list_popup;
 popup_layer.add dialog_popup;
 popup_layer.add blockcode_picker_popup;
@@ -1120,12 +1132,16 @@ root.add app_panel;
     editor.check_pattern_data[];
     # TODO: FIXME:
     unwrap ~ matrix.check_block_function 0;
+    matrix.handle_graph_events[];
 
     iter r matrix_records {
         #d# std:displayln "REC:" r;
         match r
             $p(:matrix_graph, _?) => {
                 editor.handle_matrix_graph_change[];
+            }
+            $p(:midi_event, ev) => {
+                editor.handle_midi_event $\.ev;
             };
     };
 };

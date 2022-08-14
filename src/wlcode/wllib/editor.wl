@@ -49,6 +49,7 @@
                 matrix_center           = $i(4, 4),
                 context_cell            = $n,
                 context_pos             = $i(0, 0),
+                midi_log                = $[],
                 cbs                     = ${},
             },
         }
@@ -532,6 +533,31 @@
         match button_tag
             :help       => { $self.emit :show_main_help texts:help; }
             :about      => { $self.emit :show_main_help texts:about; }
+            :midi       => { $self.emit :show_midi_log; }
+    },
+    get_midi_log_text = {
+        $@s iter ev $data.midi_log {
+            match ev.type
+                :note_on => {
+                    $+ ~ $F"[c11:{:8}] chan={:2!i} note=[c14:{:3!i}] velocity=[c7:{:5.3}]\n"
+                        ev.type ev.channel ev.note ev.velocity;
+                }
+                :note_off => {
+                    $+ ~ $F"[c11:{:8}] chan={:2!i} note=[c14:{:3!i}]\n"
+                        ev.type ev.channel ev.note;
+                }
+                :cc => {
+                    $+ ~ $F"[c11:{:8}] chan={:2!i} cc=[c14:{:3!i}] value=[c7:{:5.3}]\n"
+                        ev.type ev.channel ev.cc ev.value;
+                };
+        }
+    },
+    handle_midi_event = {!(event) = @;
+        while len[$data.midi_log] > 50 {
+            std:pop $data.midi_log;
+        };
+        std:unshift $data.midi_log event;
+        $self.emit :update_midi_log;
     },
     handle_param_trig_btn = {!(param, action) = @;
         match action

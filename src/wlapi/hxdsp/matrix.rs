@@ -678,6 +678,11 @@ impl vval::VValUserData for VValMatrix {
                         Ok(()) => Ok(VVal::Bol(true)),
                     }
                 }
+                "handle_graph_events" => {
+                    arg_chk!(args, 0, "matrix.handle_graph_events[]");
+                    m.handle_graph_events();
+                    Ok(VVal::Bol(true))
+                }
                 "create_pattern_feedback_model" => {
                     arg_chk!(args, 1, "matrix.create_pattern_feedback_model[node_id]");
 
