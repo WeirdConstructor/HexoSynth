@@ -115,6 +115,24 @@ fn blip(s: &str) {
     }
 }
 
+fn note_event2hxevent(event: NoteEvent) -> Option<HxTimedEvent> {
+    match event {
+        NoteEvent::NoteOn { timing, channel, note, velocity, .. } => {
+            Some(HxTimedEvent::note_on(timing as usize, channel, note, velocity))
+        }
+        NoteEvent::NoteOff { timing, channel, note, velocity, .. } => {
+            Some(HxTimedEvent::note_off(timing as usize, channel, note))
+        }
+        NoteEvent::MidiCC { timing, channel, cc, value, .. } => {
+            Some(HxTimedEvent::cc(timing as usize, channel, cc, value))
+        }
+        NoteEvent::Choke { timing, voice_id, channel, note, .. } => {
+            Some(HxTimedEvent::note_off(timing as usize, channel, note))
+        }
+        _ => None,
+    }
+}
+
 impl Plugin for HexoSynthPlug {
     const NAME: &'static str = "HexoSynth";
     const VENDOR: &'static str = "WeirdConstructor";
@@ -198,59 +216,27 @@ impl Plugin for HexoSynthPlug {
                 frames_left
             };
 
-            //- MIDI HANDLING START ------------------------
-
-            let cur_end_frame = offs + cur_nframes;
-            let buf = self.node_exec.get_note_buffer();
-            buf.reset();
-            loop {
+            self.node_exec.feed_midi_events_from(|| {
                 if ev_win.feed_me() {
                     let mut new_event = None;
                     while new_event.is_none() {
                         if let Some(event) = context.next_event() {
-                            log(|w| write!(w, "MIDI {:?}", event).unwrap());
-                            new_event = match event {
-                                NoteEvent::NoteOn { timing, channel, note, velocity, .. } => Some(
-                                    HxTimedEvent::note_on(timing as usize, channel, note, velocity),
-                                ),
-                                NoteEvent::NoteOff { timing, channel, note, velocity, .. } => {
-                                    Some(HxTimedEvent::note_off(timing as usize, channel, note))
-                                }
-                                NoteEvent::Choke { timing, voice_id, channel, note, .. } => {
-                                    Some(HxTimedEvent::note_off(timing as usize, channel, note))
-                                }
-                                _ => None,
-                            };
+                            new_event = note_event2hxevent(event);
+                            println!("NEW EV: {:?}", new_event);
                         } else {
-                            break;
+                            return None;
                         }
                     }
 
                     if let Some(event) = new_event {
                         ev_win.feed(event);
                     } else {
-                        break;
+                        return None;
                     }
                 }
 
-                if let Some((timing, event)) = ev_win.next_event_in_range(cur_end_frame) {
-                    buf.step_to(timing);
-                    match event {
-                        HxMidiEvent::NoteOn { channel, note, vel } => {
-                            buf.note_on(channel, note);
-                            buf.set_velocity(channel, vel);
-                        }
-                        HxMidiEvent::NoteOff { channel, note } => {
-                            buf.note_off(channel, note);
-                        }
-                    }
-                } else {
-                    break;
-                }
-            }
-            self.node_exec.get_note_buffer().step_to(cur_nframes - 1);
-
-            //- MIDI HANDLING END ------------------------
+                ev_win.next_event_in_range(offs, cur_nframes)
+            });
 
             //            // First we fetch all the events for the current buffer/block,
             //            // which is limited to MAX_BLOCK_SIZE. So we need to hold back events
