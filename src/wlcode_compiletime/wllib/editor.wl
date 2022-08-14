@@ -50,6 +50,7 @@
                 context_cell            = $n,
                 context_pos             = $i(0, 0),
                 midi_log                = $[],
+                midi_learn_action       = $n,
                 cbs                     = ${},
             },
         }
@@ -108,6 +109,22 @@
             { $[] }
             { node_id:param_list $data.focus_cell.node_id }
 
+    },
+    get_current_extra_btns = {
+        !node_id = $data.focus_cell.node_id;
+        !node_name = node_id.0;
+        !data = $data;
+        match node_name
+            "midip" => {
+                $[ $p("Learn", { data.midi_learn_action = $p(:channel, $p(node_id, $n)) }) ]
+            }
+            "midicc" => {
+                $[
+                    $p("Learn 1", { data.midi_learn_action = $p(:cc, $p(node_id, 1)) }),
+                    $p("Learn 2", { data.midi_learn_action = $p(:cc, $p(node_id, 2)) }),
+                    $p("Learn 3", { data.midi_learn_action = $p(:cc, $p(node_id, 3)) }),
+                ]
+            };
     },
     remove_cell = {!(pos) = @;
         $self.matrix_apply_change {!(matrix) = @;
@@ -558,6 +575,33 @@
         };
         std:unshift $data.midi_log event;
         $self.emit :update_midi_log;
+
+        if is_some[$data.midi_learn_action] {
+            std:displayln "LEARNCHEK:" $data.midi_learn_action event;
+            !(node_id, arg) = $data.midi_learn_action.1;
+            match $data.midi_learn_action.0
+                :channel => {
+                    if event.type == :note_on {
+                        !param = node_id:inp_param node_id "chan";
+                        $data.matrix.set_param param event.channel;
+                        $data.midi_learn_action = $n;
+                        $self.emit :update_param_ui;
+                    };
+                }
+                :cc => {
+                    if event.type == :cc {
+                        std:displayln "LEARN:" $data.midi_learn_action;
+                        !param = node_id:inp_param node_id "chan";
+                        $data.matrix.set_param param event.channel;
+
+                        !param_cc = node_id:inp_param node_id ("cc" str[arg]);
+                        $data.matrix.set_param param_cc event.cc;
+
+                        $self.emit :update_param_ui;
+                        $data.midi_learn_action = $n;
+                    };
+                };
+        };
     },
     handle_param_trig_btn = {!(param, action) = @;
         match action

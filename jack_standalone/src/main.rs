@@ -157,6 +157,8 @@ fn start_backend<F: FnMut()>(node_exec: NodeExecutor, mut f: F) {
                 frames_left
             };
 
+            node_exec.feed_midi_events_from(|| None);
+
             frames_left -= cur_nframes;
 
             let output = &mut [

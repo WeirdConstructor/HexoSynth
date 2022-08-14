@@ -1056,6 +1056,23 @@ editor.reg :update_param_ui {
         param_panel.add knob_row;
     };
 
+    !extras = editor.get_current_extra_btns[];
+    if extras {
+        .knob_row = styling:new_widget :knob_row;
+        iter i $i(0, 5) {
+            !cont = styling:new_widget :param_container;
+            if extras.(i) {
+                !(label, cb) = extras.(i);
+                !btn = styling:new_widget :param_trig_button;
+                btn.set_ctrl :button (ui:txt label);
+                btn.reg :click cb;
+                cont.add btn;
+            };
+            knob_row.add cont;
+        };
+        param_panel.add knob_row;
+    };
+
     iter exwid extra_widgets {
         std:displayln "ADD:" exwid;
         param_panel.add exwid;
