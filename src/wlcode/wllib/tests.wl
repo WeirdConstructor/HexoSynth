@@ -936,6 +936,121 @@
         };
     };
 
+    add_test "midip learn" {!(test) = @;
+        test.add_step :init {||
+            matrix_init $i(1, 1) :B ${chain=$[
+                $[:midip, :gate],
+                $[:out, :ch1, $n],
+            ]};
+        };
+        test.add_step :click_midip {!(td, labels) = @;
+            !res = $S(*:{ctrl=*HexGrid, label=MidiP}) labels;
+            do_click td res.0;
+        };
+        test.add_step :click_learn {!(td, labels) = @;
+            # Finding no "13" button:
+            !res = $S(*:{ctrl=Ctrl\:\:Button, label=13}) labels;
+            std:assert is_none[res];
+
+            !res = $S(*:{ctrl=*Button, label=*Learn*}) labels;
+            do_click td res.0;
+        };
+        test.add_step :send_midi {!(td, labels) = @;
+            !matrix = hx:get_main_matrix_handle[];
+            matrix.inject_midi_event ${
+                channel = 13,
+                note = 69,
+                vel = 1.0,
+                type = :note_on,
+            };
+        };
+        test.add_step :sleep {|| std:thread:sleep :ms => 100 };
+        test.add_step :check_chan_set {!(td, labels) = @;
+            # Finding "13" button now:
+            !res = $S(*:{ctrl=Ctrl\:\:Button, label=13}) labels;
+            std:assert is_some[res];
+        };
+    };
+
+    add_test "midicc learn" {!(test) = @;
+        test.add_step :init {||
+            matrix_init $i(1, 1) :B ${chain=$[
+                $[:midicc, :sig1],
+                $[:out, :ch1, $n],
+            ]};
+        };
+        test.add_step :click_midip {!(td, labels) = @;
+            !res = $S(*:{ctrl=*HexGrid, label=MidiCC}) labels;
+            do_click td res.0;
+        };
+        test.add_step :click_learn1 {!(td, labels) = @;
+            # Finding no "13" button and no 55/56/57 button:
+            !res = $S(*:{ctrl=Ctrl\:\:Button, label=13}) labels;
+            std:assert is_none[res];
+            !res = $S(*:{ctrl=Ctrl\:\:Button, label=55}) labels;
+            std:assert is_none[res];
+            !res = $S(*:{ctrl=Ctrl\:\:Button, label=56}) labels;
+            std:assert is_none[res];
+            !res = $S(*:{ctrl=Ctrl\:\:Button, label=57}) labels;
+            std:assert is_none[res];
+
+            !res = $S(*:{ctrl=*Button, label=*Learn*1*}) labels;
+            do_click td res.0;
+        };
+        test.add_step :send_midi {!(td, labels) = @;
+            !matrix = hx:get_main_matrix_handle[];
+            matrix.inject_midi_event ${
+                channel = 13,
+                cc = 55,
+                vel = 1.0,
+                type = :cc,
+            };
+        };
+        test.add_step :sleep {|| std:thread:sleep :ms => 100 };
+        test.add_step :check_chan_set {!(td, labels) = @;
+            # Finding "13" and "55" button now:
+            !res = $S(*:{ctrl=Ctrl\:\:Button, label=13}) labels;
+            std:assert is_some[res];
+            !res = $S(*:{ctrl=Ctrl\:\:Button, label=55}) labels;
+            std:assert is_some[res];
+        };
+        test.add_step :click_learn2 {!(td, labels) = @;
+            !res = $S(*:{ctrl=*Button, label=*Learn*2*}) labels;
+            do_click td res.0;
+        };
+        test.add_step :send_midi2 {!(td, labels) = @;
+            !matrix = hx:get_main_matrix_handle[];
+            matrix.inject_midi_event ${
+                channel = 13,
+                cc = 56,
+                vel = 1.0,
+                type = :cc,
+            };
+        };
+        test.add_step :sleep2 {|| std:thread:sleep :ms => 100 };
+        test.add_step :check_cc_set2 {!(td, labels) = @;
+            !res = $S(*:{ctrl=Ctrl\:\:Button, label=56}) labels;
+            std:assert is_some[res];
+        };
+        test.add_step :click_learn3 {!(td, labels) = @;
+            !res = $S(*:{ctrl=*Button, label=*Learn*3*}) labels;
+            do_click td res.0;
+        };
+        test.add_step :send_midi2 {!(td, labels) = @;
+            !matrix = hx:get_main_matrix_handle[];
+            matrix.inject_midi_event ${
+                channel = 13,
+                cc = 57,
+                vel = 1.0,
+                type = :cc,
+            };
+        };
+        test.add_step :sleep2 {|| std:thread:sleep :ms => 100 };
+        test.add_step :check_cc_set2 {!(td, labels) = @;
+            !res = $S(*:{ctrl=Ctrl\:\:Button, label=57}) labels;
+            std:assert is_some[res];
+        };
+    };
 };
 # dump_labels td;
 # test.add_step :sleep {|| std:thread:sleep :ms => 1000 };

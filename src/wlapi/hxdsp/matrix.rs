@@ -370,6 +370,38 @@ impl vval::VValUserData for VValMatrix {
                         Ok(VVal::None)
                     }
                 }
+                "inject_midi_event" => {
+                    arg_chk!(args, 1, "matrix.inject_midi_event[${type=str,cc=num,note=num,channel=num,value=flt}]");
+
+                    let typ = args[0].v_s_rawk("type");
+
+                    let event = match &typ[..] {
+                        "note_on" => hexodsp::HxMidiEvent::NoteOn {
+                            channel: args[0].v_ik("channel") as u8,
+                            note: args[0].v_ik("note") as u8,
+                            vel: args[0].v_fk("velocity") as f32,
+                        },
+                        "note_off" => hexodsp::HxMidiEvent::NoteOff {
+                            channel: args[0].v_ik("channel") as u8,
+                            note: args[0].v_ik("note") as u8,
+                        },
+                        "cc" => hexodsp::HxMidiEvent::CC {
+                            channel: args[0].v_ik("channel") as u8,
+                            cc: args[0].v_ik("cc") as u8,
+                            value: args[0].v_fk("value") as f32,
+                        },
+                        _ => {
+                            return Ok(VVal::err_msg(&format!(
+                                "Not a MIDI message 'type': {:?}",
+                                args[0].s()
+                            )))
+                        }
+                    };
+
+                    m.inject_midi_event(event);
+
+                    Ok(VVal::None)
+                }
                 "cell_edge_labels" => {
                     arg_chk!(args, 1, "matrix.cell_edge_labels[$i(x, y)]");
 
