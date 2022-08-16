@@ -41,6 +41,7 @@ similar bugs in the delay line (and all-pass & comb filters). Refactored
 the cubic interpolation and tested it seperately now.
 * Feature: Added Scope DSP node and view in GUI and NodeConfigurator/Matrix
 API for retrieving the scope handles for access to it's capture buffers.
+* Feature: Added `MidiP` pitch/note input node.
 
 0.1.0-alpha-3 (2021-08-13)
 ==========================

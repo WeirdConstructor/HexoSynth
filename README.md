@@ -100,6 +100,7 @@ And following DSP nodes:
 | Mod     | RndWk       | Random walker, a Sample & Hold noise generator |
 | IO Util | FbWr / FbRd | Utility modules for feedback in patches |
 | IO Util | Scope       | Oscilloscope for up to 3 channels |
+| IO Util | MidiP       | MIDI Pitch/Note input from plugin host, DAW or hardware |
 
 ### Road Map / TODO List
 
