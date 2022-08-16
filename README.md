@@ -22,12 +22,10 @@ Here is a screenshot of how it looks:
 
 Since June 2022 the project is under heavy development again.  A rewrite of
 HexoTK took longer than anticipated, but provides all required features now.
-All development currently takes place on the "hexosynth\_2022" branch.  As of
-2022-06-30 a raw skeleton of the original functionality is done. There is still
-probably more than 3-4 months until we are on the same feature level as
-HexoSynth was in 2021.
-
-The "master" branch is still the state from 2021.
+All development currently takes place on the "master" branch, so don't be surprised
+if something does not work. As of
+2022-08-16 most of the functionality from end of 2021 has been rewritten and
+new features and polish are being added right now for the next release.
 
 If you want to stay up to date, follow my devlog:
 
@@ -36,6 +34,9 @@ If you want to stay up to date, follow my devlog:
 - https://m8geil.de/posts/hexosynth-3/
 - https://m8geil.de/posts/hexosynth-4/
 - https://m8geil.de/posts/hexosynth-5/
+- https://m8geil.de/posts/hexosynth-6/
+- https://m8geil.de/posts/hexosynth-7/
+- https://m8geil.de/posts/hexosynth-8/
 - for an up to date list, look here: https://m8geil.de/tags/hexosynth/
 
 Make sure to follow [Weird Constructors Mastodon
@@ -45,12 +46,12 @@ project to be notified once I release a beta or stable release.
 If you want to do chat, feel free to join the RustAudio Discord / Community
 here: https://rust.audio/
 
-### What is different in the HexoSynth 2022 Version?
+### Rough Code Structure
 
-The new branch 'hexosynth\_2022' moves all GUI logic to the scripting
-language [WLambda](http://wlambda.m8geil.de/), which is an easily embeddable
-scripting language for Rust. All higher level functionality will be realised
-in WLambda. As well as the test suite for the GUI.
+HexoSynth leaves all GUI logic to the scripting language
+[WLambda](http://wlambda.m8geil.de/), which is an easily embeddable scripting
+language for Rust. All higher level functionality will be realised in WLambda.
+As well as the test suite for the GUI.
 
 The Rust code contains all the low level functionality, such as the DSP code,
 the hexagonal grid data structure and the implementation of all the GUI
@@ -59,6 +60,14 @@ widgets.
 The scripting language code will be linked into the HexoSynth application at
 compile time. The goal is to deploy a single binary. But you could load the
 WLambda code from a different place using an environment variable later.
+
+In the process of developing HexoSynth I developed a series of crates (aka libraries)
+that factor out some generic parts to be reusable by someone else maybe:
+
+- [HexoDSP - The DSP backend of HexoSynth](https://github.com/WeirdConstructor/HexoDSP)
+- [HexoTK - The GUI toolkit of HexoSynth](https://github.com/WeirdConstructor/HexoTK)
+- [SynFx-DSP - A collection of DSP functions and tools to support HexoDSP](https://github.com/WeirdConstructor/synfx-dsp)
+- [SynFx-DSP-JIT - A DSP JIT (just in time) compiler for the WBlockDSP visual langauge](https://github.com/WeirdConstructor/synfx-dsp-jit)
 
 ### Implemented Features
 
@@ -70,6 +79,7 @@ management has not been implemented yet, except a "Save" button).
 - Per node and output signal feedback LEDs.
 - A simple Tracker to edit "TSeq" sequences.
 - A primitive sample selection browser.
+- Prototype of the WBlockDSP visual programming language for DIY DSP nodes inside HexoSynth.
 
 And following DSP nodes:
 
@@ -111,8 +121,8 @@ this is the rough road map:
 with new modules.
 - DONE: Take a bit of care that there is online help.
 - DONE: Factor out the DSP code into it's own crate.
-- Redo the UI with performance optimized and overhauled HexoTK.
-- Rebuild the UI logic of HexoSynth from 2021 with WLambda.
+- DONE: Redo the UI with performance optimized and overhauled HexoTK.
+- DONE: Rebuild the UI logic of HexoSynth from 2021 with WLambda.
 - Add preset/patch management to the UI.
 - Add lots (many more than above listed) of modules (Oscillators, Filters, Envelopes, LFOs, Quantizers, ...).
 - Add a MIDI-Ctrl interface for receiving pitch control signals, gate and clock from the DAW
@@ -179,9 +189,12 @@ Compile and run:
 
 ## DAW Compatibility
 
-As of 2022-07-04 HexoSynth has been tested with:
+As of 2022-08-15 HexoSynth has been tested with:
 
     - Ubuntu Linux 20.04 and Bitwig: Works
+    - Ubuntu Linux 20.04 and Renoise: Works
+    - Ubuntu Linux 20.04 and Reaper: Works, except Keyboard support
+    - Ubuntu Linux 20.04 and Ardour: Works
 
 ## Known Bugs
 
