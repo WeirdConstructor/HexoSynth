@@ -13,14 +13,14 @@ hexotk     = { git = "https://github.com/WeirdConstructor/HexoTK.git" }
 raw-window-handle  = "0.3"
 jack       = "0.6.6"
 
-[patch.'https://github.com/WeirdConstructor/HexoTK.git']
-hexotk = { path = "../../hexotk" }
-[patch.'https://github.com/WeirdConstructor/HexoDSP.git']
-hexodsp = { path = "../../hexodsp" }
-[patch.'https://github.com/WeirdConstructor/synfx-dsp-jit']
-synfx-dsp-jit = { path = "../../synfx-dsp-jit" }
-[patch.'https://github.com/WeirdConstructor/synfx-dsp']
-synfx-dsp = { path = "../../synfx-dsp" }
+#[patch.'https://github.com/WeirdConstructor/HexoTK.git']
+#hexotk = { path = "../../hexotk" }
+#[patch.'https://github.com/WeirdConstructor/HexoDSP.git']
+#hexodsp = { path = "../../hexodsp" }
+#[patch.'https://github.com/WeirdConstructor/synfx-dsp-jit']
+#synfx-dsp-jit = { path = "../../synfx-dsp-jit" }
+#[patch.'https://github.com/WeirdConstructor/synfx-dsp']
+#synfx-dsp = { path = "../../synfx-dsp" }
 #[patch.'https://github.com/WeirdConstructor/HexoDSP.git']
 #hexodsp = { path = "../../hexo/HexoDSP-Dimev" }
 #[patch.'https://github.com/WeirdConstructor/HexoDSP.git']
