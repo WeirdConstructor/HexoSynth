@@ -43,8 +43,18 @@ pub struct HexoSynthPlug {
 
 #[derive(Params)]
 struct HexoSynthPlugParams {
-    #[id = "gain"]
-    pub gain: FloatParam,
+    #[id = "a1"]
+    pub a1: FloatParam,
+    #[id = "a2"]
+    pub a2: FloatParam,
+    #[id = "a3"]
+    pub a3: FloatParam,
+    #[id = "a4"]
+    pub a4: FloatParam,
+    #[id = "a5"]
+    pub a5: FloatParam,
+    #[id = "a6"]
+    pub a6: FloatParam,
     #[persist = "HexSta"]
     pub matrix: HexoSynthState,
 }
@@ -94,10 +104,24 @@ impl Default for HexoSynthPlug {
 impl HexoSynthPlugParams {
     fn new(matrix: Arc<Mutex<Matrix>>) -> Self {
         Self {
-            gain: FloatParam::new("Gain", 0.0, FloatRange::Linear { min: -30.0, max: 30.0 })
-                .with_smoother(SmoothingStyle::Linear(50.0))
-                .with_step_size(0.01)
-                .with_unit(" dB"),
+            a1: FloatParam::new("A1", 0.0, FloatRange::Linear { min: -1.0, max: 1.0 })
+               .with_smoother(SmoothingStyle::None)
+               .with_step_size(0.01),
+            a2: FloatParam::new("A2", 0.0, FloatRange::Linear { min: -1.0, max: 1.0 })
+               .with_smoother(SmoothingStyle::None)
+               .with_step_size(0.01),
+            a3: FloatParam::new("A3", 0.0, FloatRange::Linear { min: -1.0, max: 1.0 })
+               .with_smoother(SmoothingStyle::None)
+               .with_step_size(0.01),
+            a4: FloatParam::new("A4", 0.0, FloatRange::Linear { min: 0.0, max: 1.0 })
+               .with_smoother(SmoothingStyle::None)
+               .with_step_size(0.01),
+            a5: FloatParam::new("A5", 0.0, FloatRange::Linear { min: 0.0, max: 1.0 })
+               .with_smoother(SmoothingStyle::None)
+               .with_step_size(0.01),
+            a6: FloatParam::new("A6", 0.0, FloatRange::Linear { min: 0.0, max: 1.0 })
+               .with_smoother(SmoothingStyle::None)
+               .with_step_size(0.01),
             matrix: HexoSynthState { matrix },
         }
     }
