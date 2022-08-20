@@ -3,7 +3,7 @@ name = "hexosynth_plug"
 version = "0.2.0-alpha-1"
 edition = "2021"
 authors = ["Weird Constructor <weirdconstructor@m8geil.de>"]
-license = "AGPL-3.0-or-later"
+license = "GPL-3.0-or-later"
 
 description = "A modular synthesizer with hexagonal nodes"
 
@@ -12,13 +12,10 @@ crate-type = ["cdylib", "lib"]
 
 [dependencies]
 hexosynth = { path = "../" }
-#nih_plug  = { git = "https://github.com/robbert-vdh/nih-plug", features = ["standalone", "assert_process_allocs"] }
-nih_plug  = { git = "https://github.com/robbert-vdh/nih-plug", features = ["standalone"] }
-#nih_plug  = { path = "../../other/nih-plug", features = ["standalone", "assert_process_allocs"] }
-hexodsp    = { git = "https://github.com/WeirdConstructor/HexoDSP.git" }
-#hexodsp   = { path = "../../hexodsp" }
-hexotk     = { git = "https://github.com/WeirdConstructor/HexoTK.git" }
-#hexotk    = { path = "../../hexotk" }
+#nih_plug = { git = "https://github.com/robbert-vdh/nih-plug", features = ["standalone", "assert_process_allocs"] }
+nih_plug = { git = "https://github.com/robbert-vdh/nih-plug", features = ["standalone"] }
+hexodsp = { git = "https://github.com/WeirdConstructor/HexoDSP.git" }
+hexotk = { git = "https://github.com/WeirdConstructor/HexoTK.git" }
 atomic_float = "0.1"
 
 [workspace]
@@ -28,5 +25,5 @@ members = ["xtask"]
 #nih_plug = { path = "../../other/nih-plug" }
 #[patch.'https://github.com/WeirdConstructor/HexoTK.git']
 #hexotk = { path = "../../hexotk" }
-[patch.'https://github.com/WeirdConstructor/HexoDSP.git']
-hexodsp = { path = "../../hexodsp" }
+#[patch.'https://github.com/WeirdConstructor/HexoDSP.git']
+#hexodsp = { path = "../../hexodsp" }

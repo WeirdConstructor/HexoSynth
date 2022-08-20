@@ -49,12 +49,36 @@ struct HexoSynthPlugParams {
     pub a2: FloatParam,
     #[id = "a3"]
     pub a3: FloatParam,
-    #[id = "a4"]
-    pub a4: FloatParam,
-    #[id = "a5"]
-    pub a5: FloatParam,
-    #[id = "a6"]
-    pub a6: FloatParam,
+    #[id = "b1"]
+    pub b1: FloatParam,
+    #[id = "b2"]
+    pub b2: FloatParam,
+    #[id = "b3"]
+    pub b3: FloatParam,
+    #[id = "c1"]
+    pub c1: FloatParam,
+    #[id = "c2"]
+    pub c2: FloatParam,
+    #[id = "c3"]
+    pub c3: FloatParam,
+    #[id = "d1"]
+    pub d1: FloatParam,
+    #[id = "d2"]
+    pub d2: FloatParam,
+    #[id = "d3"]
+    pub d3: FloatParam,
+    #[id = "e1"]
+    pub e1: FloatParam,
+    #[id = "e2"]
+    pub e2: FloatParam,
+    #[id = "e3"]
+    pub e3: FloatParam,
+    #[id = "f1"]
+    pub f1: FloatParam,
+    #[id = "f2"]
+    pub f2: FloatParam,
+    #[id = "f3"]
+    pub f3: FloatParam,
     #[persist = "HexSta"]
     pub matrix: HexoSynthState,
 }
@@ -63,6 +87,21 @@ impl hexodsp::nodes::ExternalParams for HexoSynthPlugParams {
     fn a1(&self) -> f32 { self.a1.value }
     fn a2(&self) -> f32 { self.a2.value }
     fn a3(&self) -> f32 { self.a3.value }
+    fn b1(&self) -> f32 { self.b1.value }
+    fn b2(&self) -> f32 { self.b2.value }
+    fn b3(&self) -> f32 { self.b3.value }
+    fn c1(&self) -> f32 { self.c1.value }
+    fn c2(&self) -> f32 { self.c2.value }
+    fn c3(&self) -> f32 { self.c3.value }
+    fn d1(&self) -> f32 { self.d1.value }
+    fn d2(&self) -> f32 { self.d2.value }
+    fn d3(&self) -> f32 { self.d3.value }
+    fn e1(&self) -> f32 { self.e1.value }
+    fn e2(&self) -> f32 { self.e2.value }
+    fn e3(&self) -> f32 { self.e3.value }
+    fn f1(&self) -> f32 { self.f1.value }
+    fn f2(&self) -> f32 { self.f2.value }
+    fn f3(&self) -> f32 { self.f3.value }
 }
 
 impl Default for HexoSynthPlug {
@@ -110,27 +149,41 @@ impl Default for HexoSynthPlug {
     }
 }
 
+macro_rules! mkparam {
+    ($field: ident, $name: literal) => {
+        let $field = FloatParam::new($name, 0.0, FloatRange::Linear { min: 0.0, max: 1.0 })
+           .with_smoother(SmoothingStyle::None)
+           .with_step_size(0.01);
+    }
+}
+
 impl HexoSynthPlugParams {
     fn new(matrix: Arc<Mutex<Matrix>>) -> Self {
+        mkparam!{a1, "A1"}
+        mkparam!{a2, "A2"}
+        mkparam!{a3, "A3"}
+        mkparam!{b1, "B1"}
+        mkparam!{b2, "B2"}
+        mkparam!{b3, "B3"}
+        mkparam!{c1, "C1"}
+        mkparam!{c2, "C2"}
+        mkparam!{c3, "C3"}
+        mkparam!{d1, "D1"}
+        mkparam!{d2, "D2"}
+        mkparam!{d3, "D3"}
+        mkparam!{e1, "E1"}
+        mkparam!{e2, "E2"}
+        mkparam!{e3, "E3"}
+        mkparam!{f1, "F1"}
+        mkparam!{f2, "F2"}
+        mkparam!{f3, "F3"}
         Self {
-            a1: FloatParam::new("A1", 0.0, FloatRange::Linear { min: -1.0, max: 1.0 })
-               .with_smoother(SmoothingStyle::None)
-               .with_step_size(0.01),
-            a2: FloatParam::new("A2", 0.0, FloatRange::Linear { min: -1.0, max: 1.0 })
-               .with_smoother(SmoothingStyle::None)
-               .with_step_size(0.01),
-            a3: FloatParam::new("A3", 0.0, FloatRange::Linear { min: -1.0, max: 1.0 })
-               .with_smoother(SmoothingStyle::None)
-               .with_step_size(0.01),
-            a4: FloatParam::new("A4", 0.0, FloatRange::Linear { min: 0.0, max: 1.0 })
-               .with_smoother(SmoothingStyle::None)
-               .with_step_size(0.01),
-            a5: FloatParam::new("A5", 0.0, FloatRange::Linear { min: 0.0, max: 1.0 })
-               .with_smoother(SmoothingStyle::None)
-               .with_step_size(0.01),
-            a6: FloatParam::new("A6", 0.0, FloatRange::Linear { min: 0.0, max: 1.0 })
-               .with_smoother(SmoothingStyle::None)
-               .with_step_size(0.01),
+            a1, a2, a3,
+            b1, b2, b3,
+            c1, c2, c3,
+            d1, d2, d3,
+            e1, e2, e3,
+            f1, f2, f3,
             matrix: HexoSynthState { matrix },
         }
     }
@@ -255,7 +308,6 @@ impl Plugin for HexoSynthPlug {
                     while new_event.is_none() {
                         if let Some(event) = context.next_event() {
                             new_event = note_event2hxevent(event);
-                            println!("NEW EV: {:?}", new_event);
                         } else {
                             return None;
                         }
@@ -270,38 +322,6 @@ impl Plugin for HexoSynthPlug {
 
                 ev_win.next_event_in_range(offs, cur_nframes)
             });
-
-            //            // First we fetch all the events for the current buffer/block,
-            //            // which is limited to MAX_BLOCK_SIZE. So we need to hold back events
-            //            // that have not been playing yet.
-            //            {
-            //
-            //                let mut note_buffer = self.node_exec.get_note_buffer();
-            //                note_buffer.reset();
-            //
-            //                while let Some(event) = ev_win.next_event_in_range(context, cur_end_frame) {
-            //                    note_buffer.step_to(event.timing() as usize);
-            //
-            //                    match event {
-            //                        NoteEvent::NoteOn { channel, note, velocity, .. } => {
-            //                            note_buffer.note_on(channel, note);
-            //                            note_buffer.set_velocity(channel, velocity);
-            //                        }
-            //                        NoteEvent::NoteOff { channel, note, velocity, .. } => {
-            //                            note_buffer.note_off(channel, note);
-            //                            note_buffer.set_velocity(channel, velocity);
-            //                        }
-            //                        NoteEvent::Choke { voice_id, channel, note, .. } => {
-            //                            note_buffer.note_off(channel, note);
-            //                        }
-            //                        _ => {}
-            //                    }
-            //                }
-            //
-            //                note_buffer.step_to(cur_nframes - 1);
-            //            }
-
-            //            log(|w| write!(w, "FRAM LEFT: {}", frames_left).unwrap());
 
             input_bufs[0][0..cur_nframes]
                 .copy_from_slice(&channel_buffers[0][offs..(offs + cur_nframes)]);
@@ -330,20 +350,8 @@ impl Plugin for HexoSynthPlug {
 
             self.node_exec.process(&mut context);
 
-            //            if oversample_simulation {
-            //                node_exec.process(&mut context);
-            //                node_exec.process(&mut context);
-            //                node_exec.process(&mut context);
-            //            }
-
             offs += cur_nframes;
             frames_left -= cur_nframes;
-
-            //            if cnt >= 1 {
-            //                return ProcessStatus::Normal;
-            //            }
-
-            //            cnt += 1;
         }
 
         ProcessStatus::Normal
