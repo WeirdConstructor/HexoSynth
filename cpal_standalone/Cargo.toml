@@ -9,9 +9,7 @@ description = "HexoSynth - A hexagonal modular synthesizer plugin"
 [dependencies]
 hexosynth  = { path = ".." }
 hexodsp    = { git = "https://github.com/WeirdConstructor/HexoDSP.git" }
-#hexodsp    = { path = "../../hexodsp" }
 hexotk     = { git = "https://github.com/WeirdConstructor/HexoTK.git" }
-#hexotk     = { path = "../../hexotk" }
 raw-window-handle  = "0.3"
 cpal   = "0.13.5"
 anyhow = "1.0.58"
