@@ -59,6 +59,12 @@ struct HexoSynthPlugParams {
     pub matrix: HexoSynthState,
 }
 
+impl hexodsp::nodes::ExternalParams for HexoSynthPlugParams {
+    fn a1(&self) -> f32 { self.a1.value }
+    fn a2(&self) -> f32 { self.a2.value }
+    fn a3(&self) -> f32 { self.a3.value }
+}
+
 impl Default for HexoSynthPlug {
     fn default() -> Self {
         let (matrix, mut node_exec) = init_hexosynth();
@@ -87,11 +93,14 @@ impl Default for HexoSynthPlug {
 
         let matrix = Arc::new(Mutex::new(matrix));
 
-        Self {
-            matrix: matrix.clone(),
-            node_exec: Box::new(node_exec),
+        let params = Arc::new(HexoSynthPlugParams::new(matrix.clone()));
 
-            params: Arc::new(HexoSynthPlugParams::new(matrix)),
+        node_exec.set_external_params(params.clone());
+
+        Self {
+            matrix,
+            node_exec: Box::new(node_exec),
+            params,
             proc_log: false,
             //            editor_state: editor::default_state(),
 
