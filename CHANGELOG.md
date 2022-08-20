@@ -43,6 +43,7 @@ the cubic interpolation and tested it seperately now.
 API for retrieving the scope handles for access to it's capture buffers.
 * Feature: Added `MidiP` pitch/note input node.
 * Feature: Added `MidiCC` node for MIDI CC input.
+* Feature: Added `ExtA` to `ExtF` nodes for plugin parameter access.
 
 0.1.0-alpha-3 (2021-08-13)
 ==========================

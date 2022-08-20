@@ -112,6 +112,7 @@ And following DSP nodes:
 | IO Util | Scope       | Oscilloscope for up to 3 channels |
 | IO Util | MidiP       | MIDI Pitch/Note input from plugin host, DAW or hardware |
 | IO Util | MidiCC      | MIDI CC input from plugin host, DAW or hardware |
+| IO Util | ExtA - ExtF | Access to plugin parameter sets A to F |
 
 ### Road Map / TODO List
 
