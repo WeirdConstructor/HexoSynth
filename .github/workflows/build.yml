@@ -26,11 +26,11 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Install dependencies
-        run: |
+      run: |
           sudo apt-get update
           sudo apt-get install -y libasound2-dev libgl-dev libjack-dev libxcb1-dev libxcb-icccm4-dev libxcursor-dev libxkbcommon-dev libxcb-shape0-dev libxcb-xfixes0-dev
     - uses: actions/cache@v2
-        with:
+      with:
           path: |
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
@@ -60,10 +60,10 @@ jobs:
           mv nih_plug/target/bundled/hexosynth_plug.vst3 "$ARCHIVE_NAME_VST3/$ARCHIVE_NAME_VST3"
           mv nih_plug/target/bundled/hexosynth_plug.clap "$ARCHIVE_NAME_CLAP/$ARCHIVE_NAME_CLAP"          
     - uses: actions/upload-artifact@v2
-        with:
+      with:
           name: ${{ env.ARCHIVE_NAME_VST3 }}
           path: ${{ env.ARCHIVE_NAME_VST3 }}      
     - uses: actions/upload-artifact@v2
-        with:
+      with:
           name: ${{ env.ARCHIVE_NAME_CLAP }}
           path: ${{ env.ARCHIVE_NAME_CLAP }}                
