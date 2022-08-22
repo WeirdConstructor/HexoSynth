@@ -1,5 +1,7 @@
 # HexoSynth - A hexagonal modular synthesizer
 
+[![Build](https://github.com/WeirdConstructor/HexoSynth/actions/workflows/build.yml/badge.svg)](https://github.com/WeirdConstructor/HexoSynth/actions/workflows/build.yml)
+
 This project aims to create a modular synthesizer plugin (VST3, CLAP). Like
 those encountered in projects like VCVRack or Bitwig's Grid.
 
