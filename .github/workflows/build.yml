@@ -28,7 +28,7 @@ jobs:
     - name: Install dependencies
       run: |
           sudo apt-get update
-          sudo apt-get install -y libasound2-dev libgl-dev libjack-dev libxcb1-dev libxcb-icccm4-dev libxcursor-dev libxkbcommon-dev libxcb-shape0-dev libxcb-xfixes0-dev
+          sudo apt-get install -y libasound2-dev libgl-dev libjack-dev libxcb1-dev libxcb-icccm4-dev libxcursor-dev libxkbcommon-dev libxcb-shape0-dev libxcb-xfixes0-dev libgl1-mesa-dev libjack-jackd2-dev libx11-xcb-dev libxcb-dri2-0-dev libxcb-dri3-dev
     - uses: actions/cache@v2
       with:
           path: |
@@ -36,14 +36,12 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             nih_plug/target/
-          key: ${{ runner.name }}-cargo-${{ hashFiles('**/Cargo.lock') }}          
+          key: ${{ runner.name }}-cargo-${{ hashFiles('**/Cargo.lock') }}
     - name: Run fmt
       run: cargo fmt --all -- --check
     - name: Run fmt nih-plug
       working-directory: nih_plug
-      run: cargo fmt --all -- --check   
-    - name: Run tests
-      run: cargo test --verbose
+      run: cargo fmt --all -- --check
     - name: Build
       working-directory: nih_plug
       run: cargo xtask bundle hexosynth_plug --release --verbose
@@ -58,12 +56,12 @@ jobs:
           mkdir -p "$ARCHIVE_NAME_VST3/$ARCHIVE_NAME_VST3"
           mkdir -p "$ARCHIVE_NAME_CLAP/$ARCHIVE_NAME_CLAP"
           mv nih_plug/target/bundled/hexosynth_plug.vst3 "$ARCHIVE_NAME_VST3/$ARCHIVE_NAME_VST3"
-          mv nih_plug/target/bundled/hexosynth_plug.clap "$ARCHIVE_NAME_CLAP/$ARCHIVE_NAME_CLAP"          
+          mv nih_plug/target/bundled/hexosynth_plug.clap "$ARCHIVE_NAME_CLAP/$ARCHIVE_NAME_CLAP"
     - uses: actions/upload-artifact@v2
       with:
           name: ${{ env.ARCHIVE_NAME_VST3 }}
-          path: ${{ env.ARCHIVE_NAME_VST3 }}      
+          path: ${{ env.ARCHIVE_NAME_VST3 }}
     - uses: actions/upload-artifact@v2
       with:
           name: ${{ env.ARCHIVE_NAME_CLAP }}
-          path: ${{ env.ARCHIVE_NAME_CLAP }}                
+          path: ${{ env.ARCHIVE_NAME_CLAP }}

@@ -7,7 +7,7 @@ edition     = "2021"
 description = "HexoSynth - A hexagonal modular synthesizer plugin"
 
 [dependencies]
-wlambda     = { git = "https://github.com/WeirdConstructor/WLambda.git", features=["all"] }
+wlambda     = { git = "https://github.com/WeirdConstructor/WLambda.git", features=["chrono", "toml", "quick-xml", "base64", "serde_json"] }
 hexodsp    = { git = "https://github.com/WeirdConstructor/HexoDSP.git" }
 #hexodsp    = { path = "../hexodsp" }
 hexotk     = { git = "https://github.com/WeirdConstructor/HexoTK.git" }
