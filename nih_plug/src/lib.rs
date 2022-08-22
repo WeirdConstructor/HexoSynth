@@ -84,24 +84,60 @@ struct HexoSynthPlugParams {
 }
 
 impl hexodsp::nodes::ExternalParams for HexoSynthPlugParams {
-    fn a1(&self) -> f32 { self.a1.value }
-    fn a2(&self) -> f32 { self.a2.value }
-    fn a3(&self) -> f32 { self.a3.value }
-    fn b1(&self) -> f32 { self.b1.value }
-    fn b2(&self) -> f32 { self.b2.value }
-    fn b3(&self) -> f32 { self.b3.value }
-    fn c1(&self) -> f32 { self.c1.value }
-    fn c2(&self) -> f32 { self.c2.value }
-    fn c3(&self) -> f32 { self.c3.value }
-    fn d1(&self) -> f32 { self.d1.value }
-    fn d2(&self) -> f32 { self.d2.value }
-    fn d3(&self) -> f32 { self.d3.value }
-    fn e1(&self) -> f32 { self.e1.value }
-    fn e2(&self) -> f32 { self.e2.value }
-    fn e3(&self) -> f32 { self.e3.value }
-    fn f1(&self) -> f32 { self.f1.value }
-    fn f2(&self) -> f32 { self.f2.value }
-    fn f3(&self) -> f32 { self.f3.value }
+    fn a1(&self) -> f32 {
+        self.a1.value
+    }
+    fn a2(&self) -> f32 {
+        self.a2.value
+    }
+    fn a3(&self) -> f32 {
+        self.a3.value
+    }
+    fn b1(&self) -> f32 {
+        self.b1.value
+    }
+    fn b2(&self) -> f32 {
+        self.b2.value
+    }
+    fn b3(&self) -> f32 {
+        self.b3.value
+    }
+    fn c1(&self) -> f32 {
+        self.c1.value
+    }
+    fn c2(&self) -> f32 {
+        self.c2.value
+    }
+    fn c3(&self) -> f32 {
+        self.c3.value
+    }
+    fn d1(&self) -> f32 {
+        self.d1.value
+    }
+    fn d2(&self) -> f32 {
+        self.d2.value
+    }
+    fn d3(&self) -> f32 {
+        self.d3.value
+    }
+    fn e1(&self) -> f32 {
+        self.e1.value
+    }
+    fn e2(&self) -> f32 {
+        self.e2.value
+    }
+    fn e3(&self) -> f32 {
+        self.e3.value
+    }
+    fn f1(&self) -> f32 {
+        self.f1.value
+    }
+    fn f2(&self) -> f32 {
+        self.f2.value
+    }
+    fn f3(&self) -> f32 {
+        self.f3.value
+    }
 }
 
 impl Default for HexoSynthPlug {
@@ -152,38 +188,50 @@ impl Default for HexoSynthPlug {
 macro_rules! mkparam {
     ($field: ident, $name: literal) => {
         let $field = FloatParam::new($name, 0.0, FloatRange::Linear { min: 0.0, max: 1.0 })
-           .with_smoother(SmoothingStyle::None)
-           .with_step_size(0.01);
-    }
+            .with_smoother(SmoothingStyle::None)
+            .with_step_size(0.01);
+    };
 }
 
 impl HexoSynthPlugParams {
     fn new(matrix: Arc<Mutex<Matrix>>) -> Self {
-        mkparam!{a1, "A1"}
-        mkparam!{a2, "A2"}
-        mkparam!{a3, "A3"}
-        mkparam!{b1, "B1"}
-        mkparam!{b2, "B2"}
-        mkparam!{b3, "B3"}
-        mkparam!{c1, "C1"}
-        mkparam!{c2, "C2"}
-        mkparam!{c3, "C3"}
-        mkparam!{d1, "D1"}
-        mkparam!{d2, "D2"}
-        mkparam!{d3, "D3"}
-        mkparam!{e1, "E1"}
-        mkparam!{e2, "E2"}
-        mkparam!{e3, "E3"}
-        mkparam!{f1, "F1"}
-        mkparam!{f2, "F2"}
-        mkparam!{f3, "F3"}
+        mkparam! {a1, "A1"}
+        mkparam! {a2, "A2"}
+        mkparam! {a3, "A3"}
+        mkparam! {b1, "B1"}
+        mkparam! {b2, "B2"}
+        mkparam! {b3, "B3"}
+        mkparam! {c1, "C1"}
+        mkparam! {c2, "C2"}
+        mkparam! {c3, "C3"}
+        mkparam! {d1, "D1"}
+        mkparam! {d2, "D2"}
+        mkparam! {d3, "D3"}
+        mkparam! {e1, "E1"}
+        mkparam! {e2, "E2"}
+        mkparam! {e3, "E3"}
+        mkparam! {f1, "F1"}
+        mkparam! {f2, "F2"}
+        mkparam! {f3, "F3"}
         Self {
-            a1, a2, a3,
-            b1, b2, b3,
-            c1, c2, c3,
-            d1, d2, d3,
-            e1, e2, e3,
-            f1, f2, f3,
+            a1,
+            a2,
+            a3,
+            b1,
+            b2,
+            b3,
+            c1,
+            c2,
+            c3,
+            d1,
+            d2,
+            d3,
+            e1,
+            e2,
+            e3,
+            f1,
+            f2,
+            f3,
             matrix: HexoSynthState { matrix },
         }
     }

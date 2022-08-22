@@ -3,7 +3,7 @@
 // See README.md and COPYING for details.
 
 use hexodsp::matrix::MatrixObserver;
-use hexodsp::{Cell, ParamId, HxMidiEvent};
+use hexodsp::{Cell, HxMidiEvent, ParamId};
 use wlambda::*;
 
 use std::sync::Mutex;
@@ -83,16 +83,14 @@ impl MatrixObserver for MatrixRecorder {
                     v.set_key_str("type", VVal::new_sym("note_on"));
                     v
                 }
-                HxMidiEvent::NoteOff { channel, note } => {
-                    VVal::map3(
-                        "type",
-                        VVal::new_sym("note_off"),
-                        "channel",
-                        VVal::Int(channel as i64),
-                        "note",
-                        VVal::Int(note as i64),
-                    )
-                }
+                HxMidiEvent::NoteOff { channel, note } => VVal::map3(
+                    "type",
+                    VVal::new_sym("note_off"),
+                    "channel",
+                    VVal::Int(channel as i64),
+                    "note",
+                    VVal::Int(note as i64),
+                ),
                 HxMidiEvent::CC { channel, cc, value } => {
                     let v = VVal::map3(
                         "channel",

@@ -791,214 +791,193 @@ impl VValUserData for VUIWidget {
             "set_ctrl" => {
                 arg_chk!(args, 2, "$<UI::Widget>.set_ctrl[ctrl_type_str, init_ctrl_arg]");
 
-                env.arg(0).with_s_ref(|typ| {
-                    match typ {
-                        "entry" => {
-                            if let Some(field) = vv2txt_field(env.arg(1)) {
-                                self.0.set_ctrl(hexotk::Control::Entry {
-                                    entry: Box::new(hexotk::Entry::new(Box::new(field))),
-                                });
-                                Ok(VVal::Bol(true))
-
-                            } else {
-                                Ok(VVal::err_msg(
-                                    &format!(
-                                        "entry has no text field as argument: {}",
-                                        env.arg(1).s())))
-                            }
-                        }
-                        "none" => {
-                            self.0.set_ctrl(hexotk::Control::None);
-                            Ok(VVal::Bol(true))
-                        }
-                        "rect" => {
-                            self.0.set_ctrl(hexotk::Control::Rect);
-                            Ok(VVal::Bol(true))
-                        }
-                        "label" => {
-                            self.0.set_ctrl(hexotk::Control::Label {
-                                label: Box::new(
-                                    vv2txt_mut(env.arg(1)).unwrap_or_else(
-                                        || Rc::new(RefCell::new(
-                                            hexotk::CloneMutable::new(
-                                                String::from("?")))))),
+                env.arg(0).with_s_ref(|typ| match typ {
+                    "entry" => {
+                        if let Some(field) = vv2txt_field(env.arg(1)) {
+                            self.0.set_ctrl(hexotk::Control::Entry {
+                                entry: Box::new(hexotk::Entry::new(Box::new(field))),
                             });
                             Ok(VVal::Bol(true))
+                        } else {
+                            Ok(VVal::err_msg(&format!(
+                                "entry has no text field as argument: {}",
+                                env.arg(1).s()
+                            )))
                         }
-                        "button" => {
-                            self.0.set_ctrl(hexotk::Control::Button {
-                                label: Box::new(
-                                    vv2txt_mut(env.arg(1)).unwrap_or_else(
-                                        || Rc::new(RefCell::new(
-                                            hexotk::CloneMutable::new(
-                                                String::from("?")))))),
-                            });
-                            Ok(VVal::Bol(true))
-                        }
-                        "knob" => {
-                            if let Some(param) = wlapi::vv2hex_knob_model(env.arg(1)) {
-                                self.0.set_ctrl(hexotk::Control::HexKnob {
-                                    knob: Box::new(hexotk::HexKnob::new(param)),
-                                });
-                                Ok(VVal::Bol(true))
-
-                            } else {
-                                Ok(VVal::err_msg(
-                                    &format!(
-                                        "knob has non parameter as argument: {}",
-                                        env.arg(1).s())))
-                            }
-                        }
-                        "grid" => {
-                            if let Some(model) = wlapi::vv2hex_grid_model(env.arg(1)) {
-                                self.0.set_ctrl(hexotk::Control::HexGrid {
-                                    grid: Box::new(hexotk::HexGrid::new(model)),
-                                });
-                                Ok(VVal::Bol(true))
-
-                            } else {
-                                Ok(VVal::err_msg(
-                                    &format!(
-                                        "grid has no hex grid model as argument: {}",
-                                        env.arg(1).s())))
-                            }
-                        }
-                        "connector" => {
-                            if let Some(data) = wlapi::vv2connector_data(env.arg(1)) {
-                                self.0.set_ctrl(hexotk::Control::Connector {
-                                    con: Box::new(hexotk::Connector::new(data)),
-                                });
-                                Ok(VVal::Bol(true))
-
-                            } else {
-                                Ok(VVal::err_msg(
-                                    &format!(
-                                        "connector has non connector data as argument: {}",
-                                        env.arg(1).s())))
-                            }
-                        }
-                        "wichtext" => {
-                            if let Some(data) = wlapi::vv2wichtext_data(env.arg(1)) {
-                                self.0.set_ctrl(hexotk::Control::WichText {
-                                    wt: Box::new(hexotk::WichText::new(data)),
-                                });
-                                Ok(VVal::Bol(true))
-
-                            } else {
-                                Ok(VVal::err_msg(
-                                    &format!(
-                                        "wichtext has non wichtext data as argument: {}",
-                                        env.arg(1).s())))
-                            }
-                        }
-                        "octave_keys" => {
-                            if let Some(data) = wlapi::vv2octave_keys_model(env.arg(1)) {
-                                self.0.set_ctrl(hexotk::Control::OctaveKeys {
-                                    keys: Box::new(hexotk::OctaveKeys::new(data)),
-                                });
-                                Ok(VVal::Bol(true))
-
-                            } else {
-                                Ok(VVal::err_msg(
-                                    &format!(
-                                        "octave_keys has non octave_keys_model data as argument: {}",
-                                        env.arg(1).s())))
-                            }
-                        }
-                        "graph" => {
-                            let samples = env.arg(1).v_i(0) as u16;
-                            let live    = env.arg(1).v_b(1);
-                            let graph   = env.arg(1).v_(2);
-                            if let Some(data) = wlapi::vv2graph_model(graph) {
-                                self.0.set_ctrl(hexotk::Control::Graph {
-                                    graph: Box::new(hexotk::Graph::new(data, samples, live)),
-                                });
-                                Ok(VVal::Bol(true))
-
-                            } else {
-                                Ok(VVal::err_msg(
-                                    &format!(
-                                        "graph has non graph_model data as argument: {}",
-                                        env.arg(1).s())))
-                            }
-                        }
-                        "scope" => {
-                            let scope = env.arg(1).v_(0);
-                            if let Some(data) = wlapi::vv2scope_model(scope) {
-                                self.0.set_ctrl(hexotk::Control::Scope {
-                                    scope: Box::new(hexotk::Scope::new(data)),
-                                });
-                                Ok(VVal::Bol(true))
-
-                            } else {
-                                Ok(VVal::err_msg(
-                                    &format!(
-                                        "scope has non scope_model data as argument: {}",
-                                        env.arg(1).s())))
-                            }
-                        }
-                        "graph_minmax" => {
-                            let samples = env.arg(1).v_i(0) as usize;
-                            let graph   = env.arg(1).v_(1);
-                            if let Some(data) = wlapi::vv2graph_minmax_model(graph) {
-                                self.0.set_ctrl(hexotk::Control::GraphMinMax {
-                                    graph: Box::new(hexotk::GraphMinMax::new(data, samples)),
-                                });
-                                Ok(VVal::Bol(true))
-
-                            } else {
-                                Ok(VVal::err_msg(
-                                    &format!(
-                                        "graph has non graph_minmax_model data as argument: {}",
-                                        env.arg(1).s())))
-                            }
-                        }
-                        "pattern_editor" => {
-                            let columns = env.arg(1).v_i(0) as usize;
-
-                            if let Some(model) = wlapi::vv2pat_model(env.arg(1).v_(1)) {
-                                if let Some(fb) = wlapi::vv2pat_edit_feedback(env.arg(1).v_(2)) {
-                                    let mut edit =
-                                        Box::new(hexotk::PatternEditor::new(columns));
-
-                                    edit.set_data_sources(model, fb);
-                                    self.0.set_ctrl(
-                                        hexotk::Control::PatternEditor { edit });
-
-                                    Ok(VVal::Bol(true))
-
-                                } else {
-                                    Ok(VVal::err_msg(
-                                        &format!(
-                                            "pattern_editor has non $<UI::PatEditFb> as third argument: {}",
-                                            env.arg(1).s())))
-                                }
-
-                            } else {
-                                Ok(VVal::err_msg(
-                                    &format!(
-                                        "pattern_editor has non $<UI::PatModel> as second argument: {}",
-                                        env.arg(1).s())))
-                            }
-                        }
-                        "blockcode" => {
-                            if let Some(block_fun) = wlapi::vv2block_fun(env.arg(1)) {
-                                self.0.set_ctrl(
-                                    hexotk::Control::BlockCode {
-                                        code: Box::new(hexotk::BlockCode::new(block_fun))
-                                    });
-
-                                Ok(VVal::Bol(true))
-                            } else {
-                                Ok(VVal::err_msg(
-                                    &format!(
-                                        "blockcode has non $<BlockDSP::Code> as second argument: {}",
-                                        env.arg(1).s())))
-                            }
-                        }
-                        _ => Ok(VVal::err_msg(
-                            &format!("Unknown control assigned: {}", typ))),
                     }
+                    "none" => {
+                        self.0.set_ctrl(hexotk::Control::None);
+                        Ok(VVal::Bol(true))
+                    }
+                    "rect" => {
+                        self.0.set_ctrl(hexotk::Control::Rect);
+                        Ok(VVal::Bol(true))
+                    }
+                    "label" => {
+                        self.0.set_ctrl(hexotk::Control::Label {
+                            label: Box::new(vv2txt_mut(env.arg(1)).unwrap_or_else(|| {
+                                Rc::new(RefCell::new(hexotk::CloneMutable::new(String::from("?"))))
+                            })),
+                        });
+                        Ok(VVal::Bol(true))
+                    }
+                    "button" => {
+                        self.0.set_ctrl(hexotk::Control::Button {
+                            label: Box::new(vv2txt_mut(env.arg(1)).unwrap_or_else(|| {
+                                Rc::new(RefCell::new(hexotk::CloneMutable::new(String::from("?"))))
+                            })),
+                        });
+                        Ok(VVal::Bol(true))
+                    }
+                    "knob" => {
+                        if let Some(param) = wlapi::vv2hex_knob_model(env.arg(1)) {
+                            self.0.set_ctrl(hexotk::Control::HexKnob {
+                                knob: Box::new(hexotk::HexKnob::new(param)),
+                            });
+                            Ok(VVal::Bol(true))
+                        } else {
+                            Ok(VVal::err_msg(&format!(
+                                "knob has non parameter as argument: {}",
+                                env.arg(1).s()
+                            )))
+                        }
+                    }
+                    "grid" => {
+                        if let Some(model) = wlapi::vv2hex_grid_model(env.arg(1)) {
+                            self.0.set_ctrl(hexotk::Control::HexGrid {
+                                grid: Box::new(hexotk::HexGrid::new(model)),
+                            });
+                            Ok(VVal::Bol(true))
+                        } else {
+                            Ok(VVal::err_msg(&format!(
+                                "grid has no hex grid model as argument: {}",
+                                env.arg(1).s()
+                            )))
+                        }
+                    }
+                    "connector" => {
+                        if let Some(data) = wlapi::vv2connector_data(env.arg(1)) {
+                            self.0.set_ctrl(hexotk::Control::Connector {
+                                con: Box::new(hexotk::Connector::new(data)),
+                            });
+                            Ok(VVal::Bol(true))
+                        } else {
+                            Ok(VVal::err_msg(&format!(
+                                "connector has non connector data as argument: {}",
+                                env.arg(1).s()
+                            )))
+                        }
+                    }
+                    "wichtext" => {
+                        if let Some(data) = wlapi::vv2wichtext_data(env.arg(1)) {
+                            self.0.set_ctrl(hexotk::Control::WichText {
+                                wt: Box::new(hexotk::WichText::new(data)),
+                            });
+                            Ok(VVal::Bol(true))
+                        } else {
+                            Ok(VVal::err_msg(&format!(
+                                "wichtext has non wichtext data as argument: {}",
+                                env.arg(1).s()
+                            )))
+                        }
+                    }
+                    "octave_keys" => {
+                        if let Some(data) = wlapi::vv2octave_keys_model(env.arg(1)) {
+                            self.0.set_ctrl(hexotk::Control::OctaveKeys {
+                                keys: Box::new(hexotk::OctaveKeys::new(data)),
+                            });
+                            Ok(VVal::Bol(true))
+                        } else {
+                            Ok(VVal::err_msg(&format!(
+                                "octave_keys has non octave_keys_model data as argument: {}",
+                                env.arg(1).s()
+                            )))
+                        }
+                    }
+                    "graph" => {
+                        let samples = env.arg(1).v_i(0) as u16;
+                        let live = env.arg(1).v_b(1);
+                        let graph = env.arg(1).v_(2);
+                        if let Some(data) = wlapi::vv2graph_model(graph) {
+                            self.0.set_ctrl(hexotk::Control::Graph {
+                                graph: Box::new(hexotk::Graph::new(data, samples, live)),
+                            });
+                            Ok(VVal::Bol(true))
+                        } else {
+                            Ok(VVal::err_msg(&format!(
+                                "graph has non graph_model data as argument: {}",
+                                env.arg(1).s()
+                            )))
+                        }
+                    }
+                    "scope" => {
+                        let scope = env.arg(1).v_(0);
+                        if let Some(data) = wlapi::vv2scope_model(scope) {
+                            self.0.set_ctrl(hexotk::Control::Scope {
+                                scope: Box::new(hexotk::Scope::new(data)),
+                            });
+                            Ok(VVal::Bol(true))
+                        } else {
+                            Ok(VVal::err_msg(&format!(
+                                "scope has non scope_model data as argument: {}",
+                                env.arg(1).s()
+                            )))
+                        }
+                    }
+                    "graph_minmax" => {
+                        let samples = env.arg(1).v_i(0) as usize;
+                        let graph = env.arg(1).v_(1);
+                        if let Some(data) = wlapi::vv2graph_minmax_model(graph) {
+                            self.0.set_ctrl(hexotk::Control::GraphMinMax {
+                                graph: Box::new(hexotk::GraphMinMax::new(data, samples)),
+                            });
+                            Ok(VVal::Bol(true))
+                        } else {
+                            Ok(VVal::err_msg(&format!(
+                                "graph has non graph_minmax_model data as argument: {}",
+                                env.arg(1).s()
+                            )))
+                        }
+                    }
+                    "pattern_editor" => {
+                        let columns = env.arg(1).v_i(0) as usize;
+
+                        if let Some(model) = wlapi::vv2pat_model(env.arg(1).v_(1)) {
+                            if let Some(fb) = wlapi::vv2pat_edit_feedback(env.arg(1).v_(2)) {
+                                let mut edit = Box::new(hexotk::PatternEditor::new(columns));
+
+                                edit.set_data_sources(model, fb);
+                                self.0.set_ctrl(hexotk::Control::PatternEditor { edit });
+
+                                Ok(VVal::Bol(true))
+                            } else {
+                                Ok(VVal::err_msg(&format!(
+                                    "pattern_editor has non $<UI::PatEditFb> as third argument: {}",
+                                    env.arg(1).s()
+                                )))
+                            }
+                        } else {
+                            Ok(VVal::err_msg(&format!(
+                                "pattern_editor has non $<UI::PatModel> as second argument: {}",
+                                env.arg(1).s()
+                            )))
+                        }
+                    }
+                    "blockcode" => {
+                        if let Some(block_fun) = wlapi::vv2block_fun(env.arg(1)) {
+                            self.0.set_ctrl(hexotk::Control::BlockCode {
+                                code: Box::new(hexotk::BlockCode::new(block_fun)),
+                            });
+
+                            Ok(VVal::Bol(true))
+                        } else {
+                            Ok(VVal::err_msg(&format!(
+                                "blockcode has non $<BlockDSP::Code> as second argument: {}",
+                                env.arg(1).s()
+                            )))
+                        }
+                    }
+                    _ => Ok(VVal::err_msg(&format!("Unknown control assigned: {}", typ))),
                 })
             }
             "reg" => {
@@ -1061,9 +1040,7 @@ impl VValUserData for VUIWidget {
                                     user_data_out = Some(rc.clone());
                                     VVal::None
                                 }
-                                hexotk::EvPayload::Text(txt) => {
-                                    VVal::new_str_mv(txt.to_string())
-                                }
+                                hexotk::EvPayload::Text(txt) => VVal::new_str_mv(txt.to_string()),
                                 hexotk::EvPayload::DropAccept(rc) => {
                                     drop_accept = Some(rc.clone());
 
@@ -1419,9 +1396,7 @@ pub fn open_hexosynth_with_config(
 
             ui_st.fun(
                 "txt_field",
-                move |env: &mut Env, _argc: usize| {
-                    Ok(VVal::new_usr(VUITextField::new()))
-                },
+                move |env: &mut Env, _argc: usize| Ok(VVal::new_usr(VUITextField::new())),
                 Some(0),
                 Some(0),
                 false,

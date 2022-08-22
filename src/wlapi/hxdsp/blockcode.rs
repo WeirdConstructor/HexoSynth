@@ -175,22 +175,24 @@ impl VValUserData for VValBlockFun {
                     args[2].i(),
                     args[3].i() as usize,
                     args[4].i(),
-                    args[5].i());
+                    args[5].i(),
+                );
 
                 Ok(VVal::None)
             }
             "split_block_chain_after" => {
-                arg_chk!(args, 4, "blockcode.split_block_chain_after[id, x, y, $n | insert_node_name]");
+                arg_chk!(
+                    args,
+                    4,
+                    "blockcode.split_block_chain_after[id, x, y, $n | insert_node_name]"
+                );
                 let name = args[3].s_raw();
                 code.split_block_chain_after(
                     args[0].i() as usize,
                     args[1].i(),
                     args[2].i(),
-                    if args[3].is_some() {
-                        Some(&name)
-                    } else {
-                        None
-                    });
+                    if args[3].is_some() { Some(&name) } else { None },
+                );
 
                 Ok(VVal::None)
             }
@@ -202,7 +204,8 @@ impl VValUserData for VValBlockFun {
                     args[1].i(),
                     args[2].i(),
                     args[3].i() as usize,
-                    args[4].b());
+                    args[4].b(),
+                );
 
                 Ok(VVal::None)
             }
@@ -214,16 +217,14 @@ impl VValUserData for VValBlockFun {
                     args[2].i(),
                     args[3].i() as usize,
                     args[4].i(),
-                    args[5].i());
+                    args[5].i(),
+                );
 
                 Ok(VVal::None)
             }
             "remove_at" => {
                 arg_chk!(args, 3, "blockcode.move_block_from_to[id, x, y]");
-                code.remove_at(
-                    args[0].i() as usize,
-                    args[1].i(),
-                    args[2].i());
+                code.remove_at(args[0].i() as usize, args[1].i(), args[2].i());
 
                 Ok(VVal::None)
             }
@@ -235,7 +236,8 @@ impl VValUserData for VValBlockFun {
                     args[2].i(),
                     args[3].i() as usize,
                     args[4].i(),
-                    args[5].i());
+                    args[5].i(),
+                );
 
                 Ok(VVal::None)
             }

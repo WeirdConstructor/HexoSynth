@@ -23,8 +23,8 @@ pub use pattern_editor::*;
 use std::sync::{Arc, Mutex};
 use wlambda::*;
 
-use hexodsp::{CellDir, Matrix};
 use hexodsp::wblockdsp::setup_hxdsp_block_language;
+use hexodsp::{CellDir, Matrix};
 
 #[macro_export]
 macro_rules! arg_chk {

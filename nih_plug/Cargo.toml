@@ -25,5 +25,5 @@ members = ["xtask"]
 #nih_plug = { path = "../../other/nih-plug" }
 #[patch.'https://github.com/WeirdConstructor/HexoTK.git']
 #hexotk = { path = "../../hexotk" }
-#[patch.'https://github.com/WeirdConstructor/HexoDSP.git']
-#hexodsp = { path = "../../hexodsp" }
+[patch.'https://github.com/WeirdConstructor/HexoDSP.git']
+hexodsp = { path = "../../hexodsp" }
