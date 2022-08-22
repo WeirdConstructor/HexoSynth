@@ -1,4 +1,4 @@
-0.2.0-alpha-1 (unreleased)
+0.2.0-alpha-1 (2022-08-22)
 ==========================
 
 Complete rewrite of the GUI was done since 0.1.0-alpha-3. As well as lots of
