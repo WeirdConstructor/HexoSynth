@@ -1,0 +1,69 @@
+name: Rust
+
+on:
+  push:
+    branches: [ "master" ]
+    tags:
+    # Run when pushing version tags, since otherwise it's impossible to
+    # restart a successful build after pushing a tag
+    - '*.*.*'
+  pull_request:
+    branches: [ "master" ]
+
+defaults:
+  run:
+    # This otherwise gets run under dash which does not support brace expansion
+    shell: bash
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libgl-dev libjack-dev libxcb1-dev libxcb-icccm4-dev libxcursor-dev libxkbcommon-dev libxcb-shape0-dev libxcb-xfixes0-dev
+    - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            nih_plug/target/
+          key: ${{ runner.name }}-cargo-${{ hashFiles('**/Cargo.lock') }}          
+    - name: Run fmt
+      run: cargo fmt --all -- --check
+    - name: Run fmt nih-plug
+      working-directory: nih_plug
+      run: cargo fmt --all -- --check   
+    - name: Run tests
+      run: cargo test --verbose
+    - name: Build
+      working-directory: nih_plug
+      run: cargo xtask bundle hexosynth_plug --release --verbose
+    - name: Determine build VST3 archive name
+      run: |
+          echo "ARCHIVE_NAME_VST3=hexosynth-vst3-linux-$(git describe --always)" >> "$GITHUB_ENV"
+    - name: Determine build CLAP archive name
+      run: |
+          echo "ARCHIVE_NAME_CLAP=hexosynth-clap-linux-$(git describe --always)" >> "$GITHUB_ENV"
+    - name: Package
+      run: |
+          mkdir -p "$ARCHIVE_NAME_VST3/$ARCHIVE_NAME_VST3"
+          mkdir -p "$ARCHIVE_NAME_CLAP/$ARCHIVE_NAME_CLAP"
+          mv nih_plug/target/bundled/hexosynth_plug.vst3 "$ARCHIVE_NAME_VST3/$ARCHIVE_NAME_VST3"
+          mv nih_plug/target/bundled/hexosynth_plug.clap "$ARCHIVE_NAME_CLAP/$ARCHIVE_NAME_CLAP"          
+    - uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.ARCHIVE_NAME_VST3 }}
+          path: ${{ env.ARCHIVE_NAME_VST3 }}      
+    - uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.ARCHIVE_NAME_CLAP }}
+          path: ${{ env.ARCHIVE_NAME_CLAP }}                
