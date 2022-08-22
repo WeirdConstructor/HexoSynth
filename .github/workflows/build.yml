@@ -51,12 +51,17 @@ jobs:
     - name: Determine build CLAP archive name
       run: |
           echo "ARCHIVE_NAME_CLAP=hexosynth-clap-linux-$(git describe --always)" >> "$GITHUB_ENV"
+    - name: Determine build Standalone archive name
+      run: |
+          echo "ARCHIVE_NAME_STANDALONE=hexosynth-standalone-linux-$(git describe --always)" >> "$GITHUB_ENV"
     - name: Package
       run: |
           mkdir -p "$ARCHIVE_NAME_VST3/$ARCHIVE_NAME_VST3"
           mkdir -p "$ARCHIVE_NAME_CLAP/$ARCHIVE_NAME_CLAP"
+          mkdir -p "$ARCHIVE_NAME_STANDALONE/$ARCHIVE_NAME_STANDALONE"
           mv nih_plug/target/bundled/hexosynth_plug.vst3 "$ARCHIVE_NAME_VST3/$ARCHIVE_NAME_VST3"
           mv nih_plug/target/bundled/hexosynth_plug.clap "$ARCHIVE_NAME_CLAP/$ARCHIVE_NAME_CLAP"
+          mv nih_plug/target/bundled/hexosynth_plug "$ARCHIVE_NAME_STANDALONE/$ARCHIVE_NAME_STANDALONE"
     - uses: actions/upload-artifact@v2
       with:
           name: ${{ env.ARCHIVE_NAME_VST3 }}
@@ -65,3 +70,7 @@ jobs:
       with:
           name: ${{ env.ARCHIVE_NAME_CLAP }}
           path: ${{ env.ARCHIVE_NAME_CLAP }}
+    - uses: actions/upload-artifact@v2
+      with:
+          name: ${{ env.ARCHIVE_NAME_STANDALONE }}
+          path: ${{ env.ARCHIVE_NAME_STANDALONE }}
