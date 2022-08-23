@@ -75,8 +75,8 @@ that factor out some generic parts to be reusable by someone else maybe:
 
 - A useable GUI with highly features parameter knobs and
 a hexagonal module/node matrix that is easily changeable with the mouse.
-- Serialization/Deserialization of patches (even though the UI for patch/preset
-management has not been implemented yet, except a "Save" button).
+- Serialization/Deserialization of patches is implemented in the VST3/CLAP plugins
+and can be managed by the DAW.
 - Signal monitors for the selected node.
 - Per node and output signal feedback LEDs.
 - A simple Tracker to edit "TSeq" sequences.
