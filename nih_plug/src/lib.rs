@@ -1,4 +1,3 @@
-//use atomic_float::AtomicF32;
 use nih_plug::prelude::*;
 
 use hexodsp::matrix_repr::MatrixRepr;
@@ -8,6 +7,7 @@ use std::any::Any;
 //use hexodsp::*;
 
 use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use nih_plug::param::internals::PersistentField;
 
@@ -294,6 +294,8 @@ impl Plugin for HexoSynthPlug {
         Some(Box::new(HexoSynthEditor {
             scale_factor: Arc::new(Mutex::new(1.0_f32)),
             matrix: self.matrix.clone(),
+            params: self.params.clone(),
+            gen_counter: Arc::new(AtomicU64::new(0)),
         }))
     }
 
@@ -409,6 +411,8 @@ impl Plugin for HexoSynthPlug {
 struct HexoSynthEditor {
     scale_factor: Arc<Mutex<f32>>,
     matrix: Arc<Mutex<Matrix>>,
+    params: Arc<HexoSynthPlugParams>,
+    gen_counter: Arc<AtomicU64>,
 }
 
 struct UnsafeWindowHandle {
@@ -428,10 +432,33 @@ impl Editor for HexoSynthEditor {
     fn spawn(
         &self,
         parent: ParentWindowHandle,
-        _context: Arc<dyn GuiContext>,
+        context: Arc<dyn GuiContext>,
     ) -> Box<dyn Any + Send + Sync> {
+        let mut config = OpenHexoSynthConfig::new();
+
+        config.param_set.a[0].set_counter(self.gen_counter.clone());
+        config.param_set.a[0].set_getter({
+            let params = self.params.clone();
+            Box::new(move || params.a1.value)
+        });
+        config.param_set.a[0].set_changers({
+            let ctx = context.clone();
+            let params = self.params.clone();
+            Box::new(move || ParamSetter::new(&*ctx).begin_set_parameter(&params.a1))
+        },
+        {
+            let ctx = context.clone();
+            let params = self.params.clone();
+            Box::new(move |v| ParamSetter::new(&*ctx).set_parameter_normalized(&params.a1, v))
+        },
+        {
+            let ctx = context.clone();
+            let params = self.params.clone();
+            Box::new(move || ParamSetter::new(&*ctx).end_set_parameter(&params.a1))
+        });
+
         Box::new(UnsafeWindowHandle {
-            hdl: open_hexosynth(Some(parent.handle), self.matrix.clone()),
+            hdl: open_hexosynth_with_config(Some(parent.handle), self.matrix.clone(), config),
         })
     }
 
@@ -445,7 +472,10 @@ impl Editor for HexoSynthEditor {
         true
     }
 
-    fn param_values_changed(&self) {}
+    fn param_values_changed(&self) {
+        let prev = self.gen_counter.load(Ordering::Relaxed);
+        self.gen_counter.store(prev + 1, Ordering::Relaxed);
+    }
 }
 
 impl ClapPlugin for HexoSynthPlug {

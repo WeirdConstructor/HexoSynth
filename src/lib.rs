@@ -5,22 +5,16 @@
 #![allow(incomplete_features)]
 
 use hexotk::{open_window, BlockPos, HexoTKWindowHandle, Rect, StyleExt, TestScript, Units, UI};
-//pub mod ui;
-//pub mod ui_ctrl;
 mod cluster;
-//mod uimsg_queue;
-//mod state;
-//mod actions;
-//mod menu;
-//mod dyn_widgets;
 pub mod wlapi;
-
-//use ui_ctrl::UICtrlRef;
 
 use wlambda::vval::VVal;
 use wlambda::*;
 
+mod ext_param_model;
 mod matrix_param_model;
+
+pub use ext_param_model::ExtParam;
 
 use raw_window_handle::RawWindowHandle;
 
@@ -68,15 +62,38 @@ pub fn init_hexosynth() -> (Matrix, NodeExecutor) {
     (matrix, node_exec)
 }
 
+#[derive(Clone)]
+pub struct ExtParamSet {
+    pub a: [ExtParam; 3],
+    pub b: [ExtParam; 3],
+    pub c: [ExtParam; 3],
+    pub d: [ExtParam; 3],
+    pub e: [ExtParam; 3],
+    pub f: [ExtParam; 3],
+}
+
+impl ExtParamSet {
+    pub fn new() -> Self {
+        Self {
+            a: [ExtParam::new("A1"), ExtParam::new("A2"), ExtParam::new("A3")],
+            b: [ExtParam::new("B1"), ExtParam::new("B2"), ExtParam::new("B3")],
+            c: [ExtParam::new("C1"), ExtParam::new("C2"), ExtParam::new("C3")],
+            d: [ExtParam::new("D1"), ExtParam::new("D2"), ExtParam::new("D3")],
+            e: [ExtParam::new("E1"), ExtParam::new("E2"), ExtParam::new("E3")],
+            f: [ExtParam::new("F1"), ExtParam::new("F2"), ExtParam::new("F3")],
+        }
+    }
+}
+
 /// Configuration structure for [open_hexosynth_with_config].
-#[derive(Debug, Clone, Default)]
+#[derive(Clone)]
 pub struct OpenHexoSynthConfig {
-    pub show_cursor: bool,
+    pub param_set: ExtParamSet,
 }
 
 impl OpenHexoSynthConfig {
     pub fn new() -> Self {
-        Self { show_cursor: false }
+        Self { param_set: ExtParamSet::new() }
     }
 }
 
@@ -108,27 +125,9 @@ pub fn open_hexosynth(
     parent: Option<RawWindowHandle>,
     matrix: Arc<Mutex<Matrix>>,
 ) -> HexoSynthGUIHandle {
-    open_hexosynth_with_config(parent, matrix, OpenHexoSynthConfig::default())
+    open_hexosynth_with_config(parent, matrix, OpenHexoSynthConfig::new())
 }
 
-//#[macro_export]
-//macro_rules! arg_chk {
-//    ($args: expr, $count: expr, $name: literal) => {
-//        if $args.len() != $count {
-//            return Err(StackAction::panic_msg(format!(
-//                "{} called with wrong number of arguments",
-//                $name)));
-//        }
-//    }
-//}
-//
-//#[macro_export]
-//macro_rules! wl_panic {
-//    ($str: literal) => {
-//        return Err(StackAction::panic_msg($str.to_string()));
-//    }
-//}
-//
 #[derive(Clone)]
 pub struct VUIStyle {
     pub style: Rc<RefCell<Rc<hexotk::Style>>>,
@@ -143,29 +142,6 @@ impl VUIStyle {
         Self { style: Rc::new(RefCell::new(style)) }
     }
 }
-
-//pub struct Style {
-//    pub bg_color:               (f32, f32, f32),
-//    pub border_color:           (f32, f32, f32),
-//    pub color:                  (f32, f32, f32),
-//    pub border:                 f32,
-//    pub pad_left:               f32,
-//    pub pad_right:              f32,
-//    pub pad_top:                f32,
-//    pub pad_bottom:             f32,
-//    pub shadow_offs:            (f32, f32),
-//    pub shadow_color:           (f32, f32, f32),
-//    pub hover_shadow_color:     (f32, f32, f32),
-//    pub hover_border_color:     (f32, f32, f32),
-//    pub hover_color:            (f32, f32, f32),
-//    pub active_shadow_color:    (f32, f32, f32),
-//    pub active_border_color:    (f32, f32, f32),
-//    pub active_color:           (f32, f32, f32),
-//    pub text_align:             Align,
-//    pub text_valign:            VAlign,
-//    pub font_size:              f32,
-//    pub colors:                 Vec<(f32, f32, f32)>,
-//}
 
 fn vv2clr(v: &VVal) -> (f32, f32, f32) {
     (v.v_f(0) as f32, v.v_f(1) as f32, v.v_f(2) as f32)
@@ -1300,7 +1276,7 @@ impl VValUserData for VTestDriver {
 pub fn open_hexosynth_with_config(
     parent: Option<RawWindowHandle>,
     matrix: Arc<Mutex<Matrix>>,
-    _config: OpenHexoSynthConfig,
+    config: OpenHexoSynthConfig,
 ) -> HexoSynthGUIHandle {
     let hexotk_hdl = open_window(
         "HexoSynth",
@@ -1434,6 +1410,26 @@ pub fn open_hexosynth_with_config(
                 "create_pattern_data_unconnected",
                 |env: &mut Env, _argc: usize| {
                     Ok(VVal::new_usr(wlapi::VVPatModel::new_unconnected(env.arg(0).i() as usize)))
+                },
+                Some(1),
+                Some(1),
+                false,
+            );
+
+            let conf_clone = config.clone();
+            ui_st.fun(
+                "create_ext_param_model",
+                move |env: &mut Env, _argc: usize| {
+                    let name = env.arg(0).s_raw();
+                    let model = match &name[..] {
+                        "A1" => conf_clone.param_set.a[0].clone(),
+                        "A2" => conf_clone.param_set.a[1].clone(),
+                        "A3" => conf_clone.param_set.a[2].clone(),
+                        _ => wl_panic!("ui:create_ext_param_model A1-A3 to F1-F3 as first param!"),
+                    };
+                    Ok(VVal::new_usr(wlapi::VValHexKnobModel {
+                        model: Rc::new(RefCell::new(model)),
+                    }))
                 },
                 Some(1),
                 Some(1),
