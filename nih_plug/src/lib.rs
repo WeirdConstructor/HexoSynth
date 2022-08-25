@@ -6,8 +6,8 @@ use hexosynth::*;
 use std::any::Any;
 //use hexodsp::*;
 
-use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, Mutex};
 
 use nih_plug::param::internals::PersistentField;
 
@@ -441,21 +441,23 @@ impl Editor for HexoSynthEditor {
             let params = self.params.clone();
             Box::new(move || params.a1.value)
         });
-        config.param_set.a[0].set_changers({
-            let ctx = context.clone();
-            let params = self.params.clone();
-            Box::new(move || ParamSetter::new(&*ctx).begin_set_parameter(&params.a1))
-        },
-        {
-            let ctx = context.clone();
-            let params = self.params.clone();
-            Box::new(move |v| ParamSetter::new(&*ctx).set_parameter_normalized(&params.a1, v))
-        },
-        {
-            let ctx = context.clone();
-            let params = self.params.clone();
-            Box::new(move || ParamSetter::new(&*ctx).end_set_parameter(&params.a1))
-        });
+        config.param_set.a[0].set_changers(
+            {
+                let ctx = context.clone();
+                let params = self.params.clone();
+                Box::new(move || ParamSetter::new(&*ctx).begin_set_parameter(&params.a1))
+            },
+            {
+                let ctx = context.clone();
+                let params = self.params.clone();
+                Box::new(move |v| ParamSetter::new(&*ctx).set_parameter_normalized(&params.a1, v))
+            },
+            {
+                let ctx = context.clone();
+                let params = self.params.clone();
+                Box::new(move || ParamSetter::new(&*ctx).end_set_parameter(&params.a1))
+            },
+        );
 
         Box::new(UnsafeWindowHandle {
             hdl: open_hexosynth_with_config(Some(parent.handle), self.matrix.clone(), config),
