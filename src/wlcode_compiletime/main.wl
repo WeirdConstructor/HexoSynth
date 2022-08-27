@@ -601,8 +601,43 @@ patedit_container.add patedit;
 ext_param_container.hide[];
 ext_param_container.enable_cache[];
 
-!knob = new_hex_knob (ui:create_ext_param_model :A1) "ExtA1";
-ext_param_container.add knob;
+iter row $[
+    $[
+        $p(:A1, "ExtA1"),
+        $p(:A2, "ExtA2"),
+        $p(:A3, "ExtA3"),
+        $p(:B1, "ExtB1"),
+    ],
+    $[
+        $p(:C1, "ExtC1"),
+        $p(:C2, "ExtC2"),
+        $p(:C3, "ExtC3"),
+        $p(:B2, "ExtB2"),
+    ],
+    $[
+        $p(:D1, "ExtD1"),
+        $p(:D2, "ExtD2"),
+        $p(:D3, "ExtD3"),
+        $p(:B3, "ExtB3"),
+    ],
+    $[
+        $p(:E1, "ExtE1"),
+        $p(:E2, "ExtE2"),
+        $p(:E3, "ExtE3"),
+    ],
+    $[
+        $p(:F1, "ExtF1"),
+        $p(:F2, "ExtF2"),
+        $p(:F3, "ExtF3"),
+    ],
+] {
+    !knob_row = styling:new_widget :knob_row;
+    iter knob_info row {
+        knob_row.add ~ new_hex_knob (ui:create_ext_param_model knob_info.0) knob_info.1;
+    };
+#    knob_row.enable_cache[];
+    ext_param_container.add knob_row;
+};
 
 !right_pnl_button_bar = styling:new_widget :button_bar;
 right_pnl_button_bar.add ~ styling:new_button_with_label :tab_hor "Seq" {
