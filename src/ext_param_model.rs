@@ -31,7 +31,7 @@ impl ExtParam {
                 on_change_start: None,
                 on_change_end: None,
                 on_change_set: None,
-                        on_get: None,
+                on_get: None,
             })),
             ext_counter: None,
         }

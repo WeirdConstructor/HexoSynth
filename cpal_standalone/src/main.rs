@@ -7,8 +7,8 @@ use hexosynth::*;
 use std::sync::Arc;
 use std::sync::Mutex;
 
-use cpal;
 use anyhow;
+use cpal;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 
 fn main() {
@@ -30,7 +30,7 @@ where
     T: cpal::Sample,
 {
     let sample_rate = config.sample_rate.0 as f32;
-    let channels    = config.channels as usize;
+    let channels = config.channels as usize;
 
     node_exec.set_sample_rate(sample_rate);
 
@@ -48,31 +48,20 @@ where
             node_exec.process_graph_updates();
 
             while frames_left > 0 {
-                let cur_nframes =
-                    if frames_left >= hexodsp::dsp::MAX_BLOCK_SIZE {
-                        hexodsp::dsp::MAX_BLOCK_SIZE
-                    } else {
-                        frames_left
-                    };
+                let cur_nframes = if frames_left >= hexodsp::dsp::MAX_BLOCK_SIZE {
+                    hexodsp::dsp::MAX_BLOCK_SIZE
+                } else {
+                    frames_left
+                };
 
-                let input = &[
-                    &input_bufs[0][0..cur_nframes],
-                    &input_bufs[1][0..cur_nframes],
-                ];
+                let input = &[&input_bufs[0][0..cur_nframes], &input_bufs[1][0..cur_nframes]];
 
                 let split = outputbufs.split_at_mut(1);
 
-                let mut output = [
-                    &mut ((split.0[0])[0..cur_nframes]),
-                    &mut ((split.1[0])[0..cur_nframes]),
-                ];
+                let mut output =
+                    [&mut ((split.0[0])[0..cur_nframes]), &mut ((split.1[0])[0..cur_nframes])];
 
-                let mut context =
-                    Context {
-                        nframes: cur_nframes,
-                        output: &mut output[..],
-                        input,
-                    };
+                let mut context = Context { nframes: cur_nframes, output: &mut output[..], input };
 
                 context.output[0].fill(0.0);
                 context.output[1].fill(0.0);
@@ -88,8 +77,7 @@ where
                     if let Some(frame) = out_iter.next() {
                         let mut ctx_chan = 0;
                         for sample in frame.iter_mut() {
-                            let value: T =
-                                cpal::Sample::from::<f32>(&context.output[ctx_chan][i]);
+                            let value: T = cpal::Sample::from::<f32>(&context.output[ctx_chan][i]);
                             *sample = value;
 
                             ctx_chan += 1;
@@ -123,6 +111,6 @@ fn start_backend<F: FnMut()>(node_exec: NodeExecutor, frontend_loop: F) {
         cpal::SampleFormat::F32 => run::<f32, F>(&device, &config.into(), node_exec, frontend_loop),
         cpal::SampleFormat::I16 => run::<i16, F>(&device, &config.into(), node_exec, frontend_loop),
         cpal::SampleFormat::U16 => run::<u16, F>(&device, &config.into(), node_exec, frontend_loop),
-    }.expect("cpal works fine");
+    }
+    .expect("cpal works fine");
 }
-
