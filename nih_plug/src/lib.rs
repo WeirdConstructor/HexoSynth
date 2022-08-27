@@ -441,6 +441,7 @@ impl Editor for HexoSynthEditor {
             let params = self.params.clone();
             Box::new(move || params.a1.value)
         });
+
         config.param_set.a[0].set_changers(
             {
                 let ctx = context.clone();
