@@ -179,6 +179,25 @@
     slide_panel
 };
 
+!new_param_container = {!(wid, label_text) = @;
+    !cont = styling:new_widget :param_container;
+    !lbl = styling:new_widget :param_label;
+    lbl.set_ctrl :label (ui:txt label_text);
+
+    cont.add wid;
+    cont.add lbl;
+    cont
+};
+
+!new_hex_knob = {|2<3| !(model, label_text, on_hover) = @;
+    !knob = styling:new_widget :knob;
+    knob.set_ctrl :knob model;
+    if is_some[on_hover] {
+        knob.reg :hover on_hover;
+    };
+    new_param_container knob label_text
+};
+
 !cell_context_popup = styling:new_widget :popup_menu;
 cell_context_popup.auto_hide[];
 
@@ -540,8 +559,7 @@ right_container.add top_menu_button_bar;
 
 root_mid.add right_container;
 
-!right_panel_container =
-    styling:new_widget :right_util_panel_cont;
+!right_panel_container = styling:new_widget :right_util_panel_cont;
 !right_panel =
     new_slide_panel
         :right_slide_panel
@@ -576,7 +594,27 @@ editor.set_active_tracker $p(:tseq, 0);
 patedit_container.add patedit_label;
 patedit_container.add patedit;
 
+!ext_param_container = styling:new_widget :ext_param_container;
+ext_param_container.hide[];
+
+!knob = new_hex_knob (ui:create_ext_param_model :A1) "ExtA1";
+ext_param_container.add knob;
+
+!right_pnl_button_bar = styling:new_widget :button_bar;
+right_pnl_button_bar.add ~ styling:new_button_with_label :tab_hor "Seq" {
+    patedit_container.show[];
+    ext_param_container.hide[];
+};
+right_pnl_button_bar.add ~ styling:new_button_with_label :tab_hor "Ext" {
+    patedit_container.hide[];
+    ext_param_container.show[];
+};
+
+right_panel_container.add right_pnl_button_bar;
 right_panel_container.add patedit_container;
+right_panel_container.add ext_param_container;
+
+# TODO: Add toggle/tab for this:
 
 !scope_handle = matrix.get_scope_handle $p(:scope, 0);
 
@@ -944,8 +982,6 @@ editor.reg :update_param_ui {
             .row_fill = 0;
         };
 
-        !cont = styling:new_widget :param_container;
-
         !param = input_param;
         !param_wid =
             match input_param.name[]
@@ -961,24 +997,16 @@ editor.reg :update_param_ui {
                     trig_btn.reg :hover {
                         editor.handle_hover :param_knob param;
                     };
-                    trig_btn
+                    new_param_container trig_btn param.name[];
                 }
                 {
-                    !knob = styling:new_widget :knob;
-                    !knob_model = matrix.create_hex_knob_model input_param;
-                    knob.set_ctrl :knob knob_model;
-                    knob.reg :hover {
-                        editor.handle_hover :param_knob param;
-                    };
-                    knob
+                    new_hex_knob
+                        matrix.create_hex_knob_model[param]
+                        param.name[]
+                        { editor.handle_hover :param_knob param; };
                 };
 
-        !lbl = styling:new_widget :param_label;
-        lbl.set_ctrl :label (ui:txt input_param.name[]);
-
-        cont.add param_wid;
-        cont.add lbl;
-        knob_row.add cont;
+        knob_row.add param_wid;
         .row_fill += 1;
     };
 

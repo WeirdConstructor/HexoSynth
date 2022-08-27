@@ -383,6 +383,10 @@ style.pattern_editor = ${
 #    pad_bottom   = 4,
 };
 
+layout.ext_param_container = ${
+    width = :pixels => 350,
+};
+
 layout.cell_channel_monitor_cont = ${
     height = :auto,
 };
