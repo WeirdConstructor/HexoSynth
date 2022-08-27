@@ -1,3 +1,13 @@
+0.2.0-alpha-2 (unreleased)
+==========================
+
+* Feature: Added the "Ext" side panel on the right,
+with all 24 external parameters accessible via HexKnobs. Using these
+knobs you can directly access the parameter values from ExtA1 to ExtF3
+of the corresponding nodes. Basically this means: you get 24 knobs you
+can use to control a HexoSynth patch however you like, and you can even
+automate these by the DAW.
+
 0.2.0-alpha-1 (2022-08-22)
 ==========================
 
