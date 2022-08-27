@@ -383,6 +383,9 @@ style.pattern_editor = ${
 #    pad_bottom   = 4,
 };
 
+style.ext_param_container = ${
+    typ    = :rect,
+};
 layout.ext_param_container = ${
     width = :pixels => 350,
 };

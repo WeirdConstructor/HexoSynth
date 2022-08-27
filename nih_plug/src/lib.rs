@@ -428,6 +428,36 @@ impl Drop for UnsafeWindowHandle {
 unsafe impl Send for UnsafeWindowHandle {}
 unsafe impl Sync for UnsafeWindowHandle {}
 
+macro_rules! setup_param {
+    ($self: ident, $config: ident, $context: ident, $index: expr, $ext: ident, $param: ident) => {
+        $config.param_set.$ext[$index].set_counter($self.gen_counter.clone());
+        $config.param_set.$ext[$index].set_getter({
+            let params = $self.params.clone();
+            Box::new(move || params.$param.value)
+        });
+
+        $config.param_set.$ext[$index].set_changers(
+            {
+                let ctx = $context.clone();
+                let params = $self.params.clone();
+                Box::new(move || ParamSetter::new(&*ctx).begin_set_parameter(&params.$param))
+            },
+            {
+                let ctx = $context.clone();
+                let params = $self.params.clone();
+                Box::new(move |v| {
+                    ParamSetter::new(&*ctx).set_parameter_normalized(&params.$param, v)
+                })
+            },
+            {
+                let ctx = $context.clone();
+                let params = $self.params.clone();
+                Box::new(move || ParamSetter::new(&*ctx).end_set_parameter(&params.$param))
+            },
+        );
+    };
+}
+
 impl Editor for HexoSynthEditor {
     fn spawn(
         &self,
@@ -436,29 +466,29 @@ impl Editor for HexoSynthEditor {
     ) -> Box<dyn Any + Send + Sync> {
         let mut config = OpenHexoSynthConfig::new();
 
-        config.param_set.a[0].set_counter(self.gen_counter.clone());
-        config.param_set.a[0].set_getter({
-            let params = self.params.clone();
-            Box::new(move || params.a1.value)
-        });
+        setup_param!(self, config, context, 0, a, a1);
+        setup_param!(self, config, context, 1, a, a2);
+        setup_param!(self, config, context, 2, a, a3);
 
-        config.param_set.a[0].set_changers(
-            {
-                let ctx = context.clone();
-                let params = self.params.clone();
-                Box::new(move || ParamSetter::new(&*ctx).begin_set_parameter(&params.a1))
-            },
-            {
-                let ctx = context.clone();
-                let params = self.params.clone();
-                Box::new(move |v| ParamSetter::new(&*ctx).set_parameter_normalized(&params.a1, v))
-            },
-            {
-                let ctx = context.clone();
-                let params = self.params.clone();
-                Box::new(move || ParamSetter::new(&*ctx).end_set_parameter(&params.a1))
-            },
-        );
+        setup_param!(self, config, context, 0, b, b1);
+        setup_param!(self, config, context, 1, b, b2);
+        setup_param!(self, config, context, 2, b, b3);
+
+        setup_param!(self, config, context, 0, c, c1);
+        setup_param!(self, config, context, 1, c, c2);
+        setup_param!(self, config, context, 2, c, c3);
+
+        setup_param!(self, config, context, 0, d, d1);
+        setup_param!(self, config, context, 1, d, d2);
+        setup_param!(self, config, context, 2, d, d3);
+
+        setup_param!(self, config, context, 0, e, e1);
+        setup_param!(self, config, context, 1, e, e2);
+        setup_param!(self, config, context, 2, e, e3);
+
+        setup_param!(self, config, context, 0, f, f1);
+        setup_param!(self, config, context, 1, f, f2);
+        setup_param!(self, config, context, 2, f, f3);
 
         Box::new(UnsafeWindowHandle {
             hdl: open_hexosynth_with_config(Some(parent.handle), self.matrix.clone(), config),
