@@ -629,9 +629,13 @@ patedit_container.add patedit_lbl_obj.get_widget[];
 patedit_container.add patedit;
 
 !ext_param_container = styling:new_widget :ext_param_container;
-!extparam_label = styling:new_widget :right_panel_top_label;
-extparam_label.set_ctrl :label (ui:txt "External Parameters");
-ext_param_container.add extparam_label;
+
+!extparam_lbl_obj = PanelTopLabel.new "External Parameters";
+extparam_lbl_obj.set_help_callback {
+    editor.handle_ext_param_help_btn[];
+};
+ext_param_container.add extparam_lbl_obj.get_widget[];
+
 ext_param_container.hide[];
 ext_param_container.enable_cache[];
 

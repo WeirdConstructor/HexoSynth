@@ -340,3 +340,19 @@ The picker has following categories:
 * [c11:IOUtil]  - Utility modules for HexoSynth, such as external inputs/outputs
             and FbWr/FbRd for creating feedback in the matrix.
 °;
+
+!@export ext_param = $q°[t18:][f22:]External Parameters
+
+With the ExtA, ExtB to ExtF nodes (in the IOUtil tab in the node picker),
+you get access to the so called "external parameters". These are parameters
+exposed to the VST3/CLAP host (the DAW usually). In the nih-plug standalone
+version of HexoSynth these are not accessible from the outside.
+
+The "External Parameters" panel in HexoSynth allows you to change these
+parameters. That means you get a panel of 24 parameters you can freely use
+to control your patch.
+
+Unfortunately you can't rename these parameters at this point. So you will
+kind of need to remember what ExtC3 is mapped to in your patch. I hope you
+can manage with this.
+°;

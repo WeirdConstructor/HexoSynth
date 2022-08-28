@@ -582,7 +582,7 @@
         };
     };
 
-    add_test "node picker drag onto existing" {!(test) = @;
+    add_test "node picker drag onto existing unconnected" {!(test) = @;
         test.add_step :init {||
             matrix_init $i(2, 2) :B ${chain=$[ $[:sin] ]};
         };

@@ -534,6 +534,9 @@
             $self.emit :show_main_help $data.current_help_node_id.help[];
         };
     },
+    handle_ext_param_help_btn = {
+        $self.emit :show_main_help texts:ext_param;
+    },
     handle_tracker_help_btn = {
         !tseq_help = (node_id:info $p(:tseq, 0)).help[];
 

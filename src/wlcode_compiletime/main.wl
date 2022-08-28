@@ -7,19 +7,12 @@
 !@import editor wllib:editor;
 !@import tests wllib:tests;
 
-!@export init = {!(ARGV) = @;
-    std:displayln "ARGV:" ARGV;
-    !do_test = $f;
-    !test_match = $n;
-    iter arg ARGV {
-        match arg
-            $r/$^test$$/        => { .do_test = $t; }
-            (x $r/$^-(^$*?)$$/) => { .test_match = $\.x.1; }
-    };
-
-    if do_test {
+!@export init = {
+    !test = std:sys:env:var "HEXOSYNTH_TEST";
+    if not[is_err[test]] &and is_some[test] {
+        !test_match = if test == "1" { $n } { test };
         tests:install test_match;
-    };
+    }
 };
 
 !default_style = ui:style[];
@@ -59,7 +52,6 @@
     parent.add bg_panel;
 
     !cat_map = node_id:ui_category_node_id_map[];
-    std:displayln "CAT MAP:" cat_map;
     !all_pages = $[];
     !all_tabs  = $[];
     iter cat node_id:ui_category_list[] {
@@ -264,7 +256,6 @@ iter ctx_item editor.get_matrix_context_menu_items[] {
     };
 
     grid.reg :drop_query {
-        std:displayln "DROP QUERY:" @;
         $t
     };
     grid.reg :drop {!(wid, drop_data) = @;
@@ -376,7 +367,7 @@ value_entry.reg :enter {!(wid, ev) = @;
 };
 
 !lang = fun.language[];
-std:displayln lang.get_type_list[];
+#d# std:displayln lang.get_type_list[];
 
 !blockcode_click_pos = $n;
 
@@ -569,23 +560,63 @@ root_mid.add right_container;
         :right
         right_panel_container;
 
-!tracker_help = styling:new_button_with_label :top_right_help_btn "?" {
-    editor.handle_tracker_help_btn[];
+#!tracker_help = styling:new_button_with_label :top_right_help_btn "?" {
+#    editor.handle_tracker_help_btn[];
+#};
+
+!PanelTopLabel = ${
+    new = {!(label) = @;
+        ${
+            _proto = $self,
+            _data = ${
+                txt = ui:txt label,
+                styling = :right_panel_top_label,
+                btn_styling = :top_right_help_btn,
+            },
+        }
+    },
+    get_widget = {
+        if $data.widget {
+            return $data.widget;
+        };
+
+        !widget = styling:new_widget $data.styling;
+        widget.set_ctrl :label $data.txt;
+
+        !_data = $data;
+        !help_button = styling:new_button_with_label $data.btn_styling "?" {
+            if _data.callback { _data.callback[]; }
+        };
+        widget.add help_button;
+
+        $data.widget = widget;
+        widget
+    },
+    set_help_callback = { $data.callback = _ },
+    set_text = {!(txt) = @;
+        $data.txt.set txt;
+    },
 };
 
 !patedit = styling:new_widget :pattern_editor;
-!patedit_label = styling:new_widget :pattern_editor_label;
-!patedit_label_data = ui:txt "TSeq 0";
-patedit_label.set_ctrl :label patedit_label_data;
 
-patedit_label.add tracker_help;
+!patedit_lbl_obj = PanelTopLabel.new "TSeq 0";
+patedit_lbl_obj.set_help_callback {
+    editor.handle_tracker_help_btn[];
+};
+
+#!patedit_label = styling:new_widget :right_panel_top_label;
+#!patedit_label_data = ui:txt "TSeq 0";
+#patedit_label.set_ctrl :label patedit_label_data;
+#
+#patedit_label.add tracker_help;
 
 !patdata = matrix.create_pattern_data_model 0;
 !fbdummy = ui:create_pattern_feedback_dummy[];
 patedit.set_ctrl :pattern_editor $[6, patdata, fbdummy];
 
 editor.reg :pattern_editor_set_data {!(tracker_id, data) = _;
-    patedit_label_data.set ($F"TSeq {}" tracker_id);
+    patedit_lbl_obj.set_text ($F"TSeq {}" tracker_id);
     if is_none[data.2] {
         data.2 = ui:create_pattern_feedback_dummy[];
     };
@@ -594,10 +625,17 @@ editor.reg :pattern_editor_set_data {!(tracker_id, data) = _;
 editor.set_active_tracker $p(:tseq, 0);
 
 !patedit_container = styling:new_widget :pattern_editor_container;
-patedit_container.add patedit_label;
+patedit_container.add patedit_lbl_obj.get_widget[];
 patedit_container.add patedit;
 
 !ext_param_container = styling:new_widget :ext_param_container;
+
+!extparam_lbl_obj = PanelTopLabel.new "External Parameters";
+extparam_lbl_obj.set_help_callback {
+    editor.handle_ext_param_help_btn[];
+};
+ext_param_container.add extparam_lbl_obj.get_widget[];
+
 ext_param_container.hide[];
 ext_param_container.enable_cache[];
 
