@@ -129,11 +129,15 @@ style.button_float_menu = ${
     border_style = $[:bevel, $f(0, 0, 0, 10)],
     shadow_offs = $f(3, 3),
 };
+style.top_float_menu = ${
+    pad_bottom = 10,
+    pad_right = 10,
+};
 layout.top_float_menu = ${
     position_type = :self,
     layout_type = :row,
-    width  = :pixels => 420,
-    height = :pixels => 30,
+    width  = :pixels => 430,
+    height = :pixels => 40,
     left   = :pixels => 0,
     right  = :stretch => 1,
 };
@@ -365,10 +369,10 @@ layout.node_graph = ${
     max_height = :pixels => 180,
 };
 
-style.pattern_editor_label = ${
+style.right_panel_top_label = ${
     parent = :label,
 };
-layout.pattern_editor_label = ${
+layout.right_panel_top_label = ${
     height = :pixels => 35,
 };
 layout.pattern_editor = ${

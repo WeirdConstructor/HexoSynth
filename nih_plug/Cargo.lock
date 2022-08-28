@@ -1007,7 +1007,6 @@ dependencies = [
 [[package]]
 name = "hexotk"
 version = "0.5.0"
-source = "git+https://github.com/WeirdConstructor/HexoTK.git#57f8935670da0b27a47cd35ffdcd2012d13eaa46"
 dependencies = [
  "baseview 0.1.0 (git+https://github.com/RustAudio/baseview.git)",
  "femtovg",
@@ -2647,7 +2646,7 @@ checksum = "c811ca4a8c853ef420abd8592ba53ddbbac90410fab6903b3e79972a631f7680"
 [[package]]
 name = "wlambda"
 version = "0.8.1"
-source = "git+https://github.com/WeirdConstructor/WLambda.git#b370e342fdffeae6f6a276102837e5d943cc4436"
+source = "git+https://github.com/WeirdConstructor/WLambda.git#627ec14e6961bbbe6463c7d3ded62e0871261193"
 dependencies = [
  "base64",
  "chrono",

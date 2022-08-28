@@ -1271,6 +1271,23 @@ impl VValUserData for VTestDriver {
     }
 }
 
+macro_rules! preload_wlambda {
+    ($lfmr: ident, $env_path: ident, $modpath: literal) => {
+        $lfmr
+            .borrow_mut()
+            .preload($modpath, include_str!(concat!("wlcode_compiletime/", $modpath)).to_string());
+
+        if $env_path.len() > 0 {
+            $lfmr.borrow_mut().preload(
+                $modpath,
+                std::fs::read_to_string($env_path.to_string() + "/" + $modpath)
+                    .unwrap()
+                    .to_string(),
+            );
+        }
+    };
+}
+
 /// The same as [open_hexosynth] but with more configuration options, see also
 /// [OpenHexoSynthConfig].
 pub fn open_hexosynth_with_config(
@@ -1291,55 +1308,12 @@ pub fn open_hexosynth_with_config(
             let env_path =
                 std::env::var("HEXOSYNTH_WLAMBDA_PATH").unwrap_or_else(|_| "".to_string());
 
-            if env_path.len() > 0 {
-                lfmr.borrow_mut().preload(
-                    "main.wl",
-                    std::fs::read_to_string(env_path.to_string() + "/main.wl").unwrap().to_string(),
-                );
-                lfmr.borrow_mut().preload(
-                    "wllib/styling.wl",
-                    std::fs::read_to_string(env_path.to_string() + "/wllib/styling.wl")
-                        .unwrap()
-                        .to_string(),
-                );
-                lfmr.borrow_mut().preload(
-                    "wllib/editor.wl",
-                    std::fs::read_to_string(env_path.to_string() + "/wllib/editor.wl")
-                        .unwrap()
-                        .to_string(),
-                );
-                lfmr.borrow_mut().preload(
-                    "wllib/tests.wl",
-                    std::fs::read_to_string(env_path.to_string() + "/wllib/tests.wl")
-                        .unwrap()
-                        .to_string(),
-                );
-                lfmr.borrow_mut().preload(
-                    "wllib/texts.wl",
-                    std::fs::read_to_string(env_path.to_string() + "/wllib/texts.wl")
-                        .unwrap()
-                        .to_string(),
-                );
-            } else {
-                lfmr.borrow_mut()
-                    .preload("main.wl", include_str!("wlcode_compiletime/main.wl").to_string());
-                lfmr.borrow_mut().preload(
-                    "wllib/styling.wl",
-                    include_str!("wlcode_compiletime/wllib/styling.wl").to_string(),
-                );
-                lfmr.borrow_mut().preload(
-                    "wllib/editor.wl",
-                    include_str!("wlcode_compiletime/wllib/editor.wl").to_string(),
-                );
-                lfmr.borrow_mut().preload(
-                    "wllib/tests.wl",
-                    include_str!("wlcode_compiletime/wllib/tests.wl").to_string(),
-                );
-                lfmr.borrow_mut().preload(
-                    "wllib/texts.wl",
-                    include_str!("wlcode_compiletime/wllib/texts.wl").to_string(),
-                );
-            }
+            preload_wlambda!(lfmr, env_path, "main.wl");
+            preload_wlambda!(lfmr, env_path, "wllib/styling.wl");
+            preload_wlambda!(lfmr, env_path, "wllib/editor.wl");
+            preload_wlambda!(lfmr, env_path, "wllib/tests.wl");
+            preload_wlambda!(lfmr, env_path, "wllib/texts.wl");
+
             global_env.borrow_mut().set_resolver(lfmr);
 
             let argv = VVal::vec();
@@ -1516,7 +1490,7 @@ pub fn open_hexosynth_with_config(
             let mut roots = vec![];
 
             match ctx.eval_string(
-                "!@import main; main:init ARGV; !:global on_frame = main:on_frame; main:root",
+                "!@import main; main:init[]; !:global on_frame = main:on_frame; main:root",
                 "top_main",
             ) {
                 Ok(v) => v.with_iter(|iter| {
