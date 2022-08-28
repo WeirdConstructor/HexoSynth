@@ -965,7 +965,7 @@ dependencies = [
 [[package]]
 name = "hexodsp"
 version = "0.2.0"
-source = "git+https://github.com/WeirdConstructor/HexoDSP.git#be4e9232cc05b96588b156d1c9f995f7eda41ec0"
+source = "git+https://github.com/WeirdConstructor/HexoDSP.git#c15a0aab291614c0af546ea8e8233ffa81cd376b"
 dependencies = [
  "hound",
  "lazy_static",
@@ -1217,9 +1217,9 @@ dependencies = [
 
 [[package]]
 name = "lock_api"
-version = "0.4.7"
+version = "0.4.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "327fa5b6a6940e4699ec49a9beae1ea4845c6bab9314e4f84ac68742139d8c53"
+checksum = "9f80bf5aacaf25cbfc8210d1cfb718f2bf3b11c4c54e5afe36c236853a8ec390"
 dependencies = [
  "autocfg",
  "scopeguard",

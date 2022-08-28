@@ -7,6 +7,8 @@ knobs you can directly access the parameter values from ExtA1 to ExtF3
 of the corresponding nodes. Basically this means: you get 24 knobs you
 can use to control a HexoSynth patch however you like, and you can even
 automate these by the DAW.
+* Feature: Added `Inp` input node for receiving plugin audio input
+from the DAW.
 
 0.2.0-alpha-1 (2022-08-22)
 ==========================
