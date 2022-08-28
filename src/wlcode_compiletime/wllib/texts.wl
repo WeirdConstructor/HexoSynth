@@ -352,6 +352,10 @@ The "External Parameters" panel in HexoSynth allows you to change these
 parameters. That means you get a panel of 24 parameters you can freely use
 to control your patch.
 
+[c01:Please note]: The parameter values are [c02:NOT SAVED] by HexoSynth'
+integrated 'Save' / 'Load' patch functionality. These parameters are to be
+saved and controlled by the VST3/CLAP Plugin host (the DAW) currently.
+
 Unfortunately you can't rename these parameters at this point. So you will
 kind of need to remember what ExtC3 is mapped to in your patch. I hope you
 can manage with this.
