@@ -1,6 +1,7 @@
 !@wlambda;
 !@import std;
 !@import hx;
+!@import ui;
 !@import node_id;
 !@import texts wllib:texts;
 
@@ -513,6 +514,13 @@
     },
     show_color_info = {
         !text = $@s iter clr 0 => 19 { $+ ~ $F"[c{}:XX {:02!i} XX]\n" clr clr; };
+        .text +>= std:str:cat "\n" ~ ui:mkd2wt $q(
+- \**emphasis*\*
+- \``Node`\`
+- \*\***Value**\*\*
+- \~\~~~Port~~\~\~
+
+        );
         $self.emit
             :update_status_help_text
             text;
@@ -527,7 +535,7 @@
             };
     },
     handle_picker_help_btn = {
-        $self.emit :show_main_help texts:picker;
+        $self.emit :show_main_help ui:mkd2wt[texts:picker];
     },
     handle_node_help_btn = {
         if is_some[$data.current_help_node_id] {
@@ -535,7 +543,7 @@
         };
     },
     handle_ext_param_help_btn = {
-        $self.emit :show_main_help texts:ext_param;
+        $self.emit :show_main_help ui:mkd2wt[texts:ext_param];
     },
     handle_tracker_help_btn = {
         !tseq_help = (node_id:info $p(:tseq, 0)).help[];
@@ -552,7 +560,7 @@
     handle_top_menu_click = {!(button_tag) = @;
         match button_tag
             :help       => { $self.emit :show_main_help texts:help; }
-            :about      => { $self.emit :show_main_help texts:about; }
+            :about      => { $self.emit :show_main_help ui:mkd2wt[texts:about]; std:displayln ui:mkd2wt[texts:about] }
             :midi       => { $self.emit :show_midi_log; }
     },
     get_midi_log_text = {

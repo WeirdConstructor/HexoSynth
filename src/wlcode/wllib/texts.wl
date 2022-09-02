@@ -1,24 +1,23 @@
-!@export about = "[t18:][f22:About]
-[t9:]
+!@export about = "# About
+
 HexoSynth is a modular synthesizer where the graph is
 represented as hexagonal tile map. The 6 edges of each tile
 are the ports of the nodes (aka modules). The top and left edges
 are the input edges, and the bottom and right edges are the outputs.
 
-[t9:]------------------------------------------------------------------
+------------------------------------------------------------------
 
-[c15f22:Authors, Contributors, Credits]
+# Authors, Contributors, Credits
 
-[c15:*] [c4:Dimas Leenman] (aka [c4:Skythedragon])
-    - Author of the [c2:FormFM] node
+- *Dimas Leenman* (aka *Skythedragon*)
+  - Author of the `FormFM` node
+- *Weird Constructor*
+  - Engine, GUI, many nodes
 
-[c15:*] [c4:Weird Constructor]
-    - Engine, GUI, many nodes
+------------------------------------------------------------------
 
-[t9:]------------------------------------------------------------------
+# License
 
-[c11f22:License]
-[t10:]
 HexoSynth Modular Synthesizer (Plugin or Standalone Application)
 Copyright (C) 2021-2022  Weird Constructor <weirdconstructor@gmail.com>
 
@@ -312,51 +311,51 @@ RMB (Right Mouse Button) Drag Actions:
         [c14:'g']              - Set to FFF
 °;
 
-!@export picker = $q°[t18:][f22:]Node Picker
+!@export picker = $q°# Node Picker
 
 The most precise way of placing a new node on the matrix can be achived
 by dragging:
 
-    [c14:Left Mouse Button Drag] - Dragging a button from the node picker to
-                                   a matrix cell will place it.
+    Left Mouse Button Drag - Dragging a button from the node picker to
+                             a matrix cell will place it.
 
 If you click a button in the node picker and you have no cell in the matrix
 selected, a new node will be placed close to the center of the visible hex matrix.
 
 If a matrix cell is selected, following can be done:
 
-    [c14:Left Mouse Button (LMB)]  - Add new node to the [c02:output] of the
-                                     currently selected cell.
-    [c14:Right Mouse Button (RMB)] - Add new node to the [c02:input] of the
-                                     currently selected cell.
+    Left Mouse Button (LMB)  - Add new node to the [c02:output] of the
+                               currently selected cell.
+    Right Mouse Button (RMB) - Add new node to the [c02:input] of the
+                               currently selected cell.
 
 The picker has following categories:
 
-* [c11:Osc]     - Sound generation sources and audio rate oscillators
-* [c11:Mod]     - Modulation sources, such as LFOs, envelopes and sequencers
-* [c11:NtoM]    - Signal routing nodes, such as mixers, faders or selectors
-* [c11:Signal]  - Audio rate signal filters and effects
-* [c11:Ctrl]    - Control signal modules, such as quantizers and range mappers
-* [c11:IOUtil]  - Utility modules for HexoSynth, such as external inputs/outputs
-            and FbWr/FbRd for creating feedback in the matrix.
+* `Osc` - Sound generation sources and audio rate oscillators
+* `Mod` - Modulation sources, such as LFOs, envelopes and sequencers
+* `NtoM` - Signal routing nodes, such as mixers, faders or selectors
+* `Signal` - Audio rate signal filters and effects
+* `Ctrl` - Control signal modules, such as quantizers and range mappers
+* `IOUtil` - Utility modules for HexoSynth, such as external inputs/outputs
+             and FbWr/FbRd for creating feedback in the matrix.
 °;
 
-!@export ext_param = $q°[t18:][f22:]External Parameters
+!@export ext_param = $q°# External Parameters
 
-With the ExtA, ExtB to ExtF nodes (in the IOUtil tab in the node picker),
+With the `ExtA`, `ExtB` to `ExtF` nodes (in the `IOUtil` tab in the node picker),
 you get access to the so called "external parameters". These are parameters
-exposed to the VST3/CLAP host (the DAW usually). In the nih-plug standalone
+exposed to the **VST3/CLAP** host (the DAW usually). In the nih-plug standalone
 version of HexoSynth these are not accessible from the outside.
 
-The "External Parameters" panel in HexoSynth allows you to change these
+The **"External Parameters"** panel in HexoSynth allows you to change these
 parameters. That means you get a panel of 24 parameters you can freely use
 to control your patch.
 
-[c01:Please note]: The parameter values are [c02:NOT SAVED] by HexoSynth'
+*Please note*: The parameter values are *NOT SAVED* by HexoSynth'
 integrated 'Save' / 'Load' patch functionality. These parameters are to be
 saved and controlled by the VST3/CLAP Plugin host (the DAW) currently.
 
 Unfortunately you can't rename these parameters at this point. So you will
-kind of need to remember what ExtC3 is mapped to in your patch. I hope you
+kind of need to remember what ~~ExtC3~~ is mapped to in your patch. I hope you
 can manage with this.
 °;

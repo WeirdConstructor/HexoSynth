@@ -25,6 +25,7 @@ use std::sync::{Arc, Mutex};
 //pub use uimsg_queue::Msg;
 pub use hexodsp::*;
 use hexotk::EditableText;
+use hexotk::MarkdownWichtextGenerator;
 //pub use hexotk::*;
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -1359,6 +1360,20 @@ pub fn open_hexosynth_with_config(
                 },
                 Some(0),
                 Some(0),
+                false,
+            );
+
+            ui_st.fun(
+                "mkd2wt",
+                move |env: &mut Env, _argc: usize| {
+                    env.arg(0).with_s_ref(|s| {
+                        let mut mkg = MarkdownWichtextGenerator::new(70);
+                        mkg.parse(s);
+                        Ok(VVal::new_str_mv(mkg.to_string()))
+                    })
+                },
+                Some(1),
+                Some(1),
                 false,
             );
 
