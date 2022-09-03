@@ -541,7 +541,7 @@
     },
     handle_node_help_btn = {
         if is_some[$data.current_help_node_id] {
-            $self.emit :show_main_help $data.current_help_node_id.help[];
+            $self.emit :show_main_help ui:mkd2wt[$data.current_help_node_id.help[]];
         };
     },
     handle_ext_param_help_btn = {
