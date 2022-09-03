@@ -1366,14 +1366,18 @@ pub fn open_hexosynth_with_config(
             ui_st.fun(
                 "mkd2wt",
                 move |env: &mut Env, _argc: usize| {
+                    let mut width = env.arg(1).i();
+                    if width <= 0 {
+                        width = 77;
+                    }
                     env.arg(0).with_s_ref(|s| {
-                        let mut mkg = MarkdownWichtextGenerator::new(77);
+                        let mut mkg = MarkdownWichtextGenerator::new(width as u16);
                         mkg.parse(s);
                         Ok(VVal::new_str_mv(mkg.to_string()))
                     })
                 },
                 Some(1),
-                Some(1),
+                Some(2),
                 false,
             );
 

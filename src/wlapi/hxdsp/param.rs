@@ -41,6 +41,15 @@ impl VValUserData for VValParamId {
 
                 Ok(VVal::new_str(self.param.name()))
             }
+            "param_min_max" => {
+                arg_chk!(args, 0, "param_id.param_min_max[]");
+
+                if let Some(((min, max), (_, _))) = self.param.param_min_max() {
+                    Ok(VVal::pair(VVal::Flt(min as f64), VVal::Flt(max as f64)))
+                } else {
+                    Ok(VVal::None)
+                }
+            }
             "setting_min_max" => {
                 arg_chk!(args, 0, "param_id.setting_min_max[]");
 

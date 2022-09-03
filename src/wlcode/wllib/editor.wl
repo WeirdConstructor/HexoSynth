@@ -5,6 +5,8 @@
 !@import node_id;
 !@import texts wllib:texts;
 
+!SMALL_DESC_WT_WIDTH_CHARS = 45;
+
 !format_txt2wichtext = {|1<2| !(txt, lbl) = @;
     !lines = txt $p("\n", 0);
     !title = lines.0;
@@ -492,9 +494,12 @@
         !info = node_id:info node_id;
         !help = info.in_help idx;
 
-        $self.emit
-            :update_status_help_text
-            ~ format_txt2wichtext help;
+        !(min, max) = param_id.param_min_max[];
+
+        .help +>= "\\\n*Signal range*: ";
+        .help +>= $F"**{:4.2!f}**-**{:4.2!f}**" min max;
+
+        $self.emit :update_status_help_text ~ ui:mkd2wt help SMALL_DESC_WT_WIDTH_CHARS;
     },
     show_node_id_desc = {|1<2| !(node_id, source) = @;
         !info = node_id:info node_id;
@@ -504,7 +509,7 @@
 
         !node_lbl = node_id:label[node_id];
 
-        !text = format_txt2wichtext desc node_lbl;
+        !text = ui:mkd2wt desc SMALL_DESC_WT_WIDTH_CHARS;
         if source == :picker {
             .text = text "\n[c17f18:(drag the button to place!)]";
         };
