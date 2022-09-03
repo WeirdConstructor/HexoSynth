@@ -1367,7 +1367,7 @@ pub fn open_hexosynth_with_config(
                 "mkd2wt",
                 move |env: &mut Env, _argc: usize| {
                     env.arg(0).with_s_ref(|s| {
-                        let mut mkg = MarkdownWichtextGenerator::new(70);
+                        let mut mkg = MarkdownWichtextGenerator::new(77);
                         mkg.parse(s);
                         Ok(VVal::new_str_mv(mkg.to_string()))
                     })

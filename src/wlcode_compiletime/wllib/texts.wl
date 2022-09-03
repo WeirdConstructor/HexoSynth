@@ -265,10 +265,11 @@ RMB (Right Mouse Button) Drag Actions:
                                    instead, try dragging with RMB).
 °;
 
-!@export tracker = $q°[t18:][f22:]Tracker / Pattern Editor Keyboard Shortcuts
+!@export tracker = $q°# Tracker / Pattern Editor Keyboard Shortcuts
 
-[t18:]* Normal Mode
-[t9:]
+## Normal Mode
+
+```wichtext
     [c14:Return]             - Enter Edit Mode
     [c14:Escape]             - Exit Edit Mode
 
@@ -294,21 +295,26 @@ RMB (Right Mouse Button) Drag Actions:
     [c14:Shift + Down]   - (- 0x010) Decrease 2nd nibble of value under cursor
     [c14:Shift + Right]  - (+ 0x001) Increase 3rd nibble of value under cursor
     [c14:Shift + Left]   - (- 0x001) Decrease 3rd nibble of value under cursor
+```
 
-[t18:]* Edit Mode
-[t9:]
+## Edit Mode
+
+```wichtext
     [c14:Up/Down/Left/Right] - Move Cursor
 
     [c14:'.']                - Enter most recently entered value
-                               and advance one edit step.
+                         and advance one edit step.
     [c14:',']                - Remember the current cell value as most recently
-                               used value and advance one edit step.
-                               Useful for copying a value and paste it with [c14:'.'].
-    Note Column  :    Note entering via keyboard "like Renoise".
+                         used value and advance one edit step.
+                         Useful for copying a value and paste it with [c14:'.'].
+
+    Note Column: Note entering via keyboard "like Renoise".
+
     Other Columns:
         [c14:'0'-'9', 'a'-'f'] - Enter value in hex digits
         [c14:'s']              - Set to 000
         [c14:'g']              - Set to FFF
+```
 °;
 
 !@export picker = $q°# Node Picker

@@ -514,16 +514,13 @@
     },
     show_color_info = {
         !text = $@s iter clr 0 => 19 { $+ ~ $F"[c{}:XX {:02!i} XX]\n" clr clr; };
-        .text +>= std:str:cat "\n" ~ ui:mkd2wt $q(
-- \**emphasis*\*
-- \``Node`\`
-- \*\***Value**\*\*
-- \~\~~~Port~~\~\~
-
-        );
-        $self.emit
-            :update_status_help_text
-            text;
+        .text +>= std:str:cat "\n" ~ ui:mkd2wt $q{
+- \**emphasis*\* [[c2:...]]($c2)
+- \``Node`\` [[c15:...]]($c15)
+- \*\***Value**\*\* [[c4:...]]($c4)
+- \~\~~~Port~~\~\~ [[c11:...]]($c11)
+};
+        $self.emit :update_status_help_text text;
     },
     handle_hover = {!(where, arg1) = @;
         match where
@@ -548,11 +545,8 @@
     handle_tracker_help_btn = {
         !tseq_help = (node_id:info $p(:tseq, 0)).help[];
 
-        $self.emit :show_main_help 
-            ~ std:str:cat
-                texts:tracker
-                "\n----------------\n\n"
-                tseq_help;
+        $self.emit :show_main_help ~ ui:mkd2wt ~
+            texts:tracker "\n----------------\n\n" tseq_help;
     },
     handle_matrix_graph_change = {
         $self.set_focus_cell $data.focus_cell.pos;
