@@ -35,6 +35,10 @@ impl vval::VValUserData for VValNodeInfo {
         let args = env.argv_ref();
 
         match key {
+            "label" => {
+                arg_chk!(args, 0, "$<HexoDSP::NodeInfo>.label[]");
+                Ok(VVal::new_str(self.node_id.label()))
+            }
             "help" => {
                 arg_chk!(args, 0, "$<HexoDSP::NodeInfo>.help[]");
                 Ok(VVal::new_str(self.info.help()))

@@ -492,12 +492,18 @@
     show_param_id_desc = {!(param_id) = @;
         !(node_id, idx) = param_id.as_parts[];
         !info = node_id:info node_id;
-        !help = info.in_help idx;
+        !help =
+            $F"### `{}` ~~{}~~\n{}"
+                node_id:label[node_id]
+                param_id.name[]
+                info.in_help[idx];
 
         !(min, max) = param_id.param_min_max[];
 
-        .help +>= "\\\n*Signal range*: ";
-        .help +>= $F"**{:4.2!f}**-**{:4.2!f}**" min max;
+        if is_some[min] {
+            .help +>= "\\\n*Range*: ";
+            .help +>= $F"**{:4.2!f}**-**{:4.2!f}**" min max;
+        };
 
         $self.emit :update_status_help_text ~ ui:mkd2wt help SMALL_DESC_WT_WIDTH_CHARS;
     },
@@ -505,7 +511,7 @@
         !info = node_id:info node_id;
         if is_none[info] \return $n;
 
-        !desc = info.desc[];
+        !desc = $F"### `{}` {}" node_id:label[node_id] info.desc[];
 
         !node_lbl = node_id:label[node_id];
 
@@ -541,7 +547,11 @@
     },
     handle_node_help_btn = {
         if is_some[$data.current_help_node_id] {
-            $self.emit :show_main_help ui:mkd2wt[$data.current_help_node_id.help[]];
+            !help =
+                $F"## `{}` {}"
+                    $data.current_help_node_id.label[]
+                    $data.current_help_node_id.help[];
+            $self.emit :show_main_help ui:mkd2wt[help];
         };
     },
     handle_ext_param_help_btn = {
