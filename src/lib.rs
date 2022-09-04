@@ -1551,6 +1551,27 @@ pub fn open_hexosynth_with_config(
                 }
             }));
 
+            ui.store_image_data(
+                "res/cell_concept.png",
+                include_bytes!("res/cell_concept.png").to_vec(),
+            );
+            ui.store_image_data(
+                "res/node_inputs_outputs.png",
+                include_bytes!("res/node_inputs_outputs.png").to_vec(),
+            );
+            ui.store_image_data(
+                "res/node_instances.png",
+                include_bytes!("res/node_instances.png").to_vec(),
+            );
+            ui.store_image_data(
+                "res/node_overview.png",
+                include_bytes!("res/node_overview.png").to_vec(),
+            );
+            ui.store_image_data(
+                "res/hexosynth_gui_overview.png",
+                include_bytes!("res/hexosynth_gui_overview.png").to_vec(),
+            );
+
             for test_script in test_scripts.borrow().iter() {
                 ui.install_test_script(test_script.clone());
             }

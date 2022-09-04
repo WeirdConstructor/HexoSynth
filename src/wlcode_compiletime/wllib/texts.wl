@@ -36,233 +36,72 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ";
 
 
-!@export help = $q°[t2:][f40:WARNING!]
-[f40:This help text is]
-[f40:from HexoSynth 2021]
-[f40:It reflects an old workflow!] 
-[c18f22:Parameter Knobs]
+!@export help = $q°# HexoSynth - Modular Synthesizer
 
-[t9:]
-Parameter knobs have two areas where you can grab them:
-* Center value label is the coarse area.
-* Bottom value label: below center is the fine adjustment area.
-  The fine adjustment area will highlight and display the
-  raw signal value of the input parameter. This can be useful
-  if you want to build modulators that reach exactly a certain value.
+HexoSynth is a modular synthesizer plugin (VST3, CLAP). Like
+those encountered in projects like VCVRack or Bitwig's Grid.
 
-Parameter Knobs are greyed out when it's corresponding input
-is connected to an output. That means, the parameter value is not
-been used. You can still change it if you want though, it just wont
-make a difference as long as the input is in use.
+The core idea is having a hexagonal tile map for laying out
+module instances and connect them at the edges to route audio signals
+and control signals to inputs of other modules.
 
-    Drag LMB Up/Down                - Adjust parameter.
-    Drag RMB Up/Down                - Adjust parameter modulation amount.
-    Hover over knob + Mouse Wheel   - Adjust parameter.
-    Shift + Drag LMB Up/Down        - Fine adjust parameter.
-    Shift + Drag RMB Up/Down        - Fine adjust parameter mod. amount.
-    Ctrl  + Drag LMB Up/Down        - Disable parameter snap. (eg. for the
-                                      detune parameter)
-    Ctrl + Shift + Drag LMB Up/Down - Fine adjustment of parameters with
-                                      disabled parameter snap.
-    MMB                             - Reset Parameter to it's default value.
-    MMB (Knob fine adj. area)       - Reset Parameter to it's default value
-                                      and remove modulation amount.
-    Hover over knob + Backspace     - Remove parameter modulation amount.
-    Hover over knob + Delete        - Remove parameter modulation amount.
-    Hover over Knob + Enter         - Open the direct value entry.
-    or:                               Coarse adjustment area will edit the
-    Ctrl + RMB                        denormalized value. Fine adjustment
-                                      area will edit the normalized
-                                      -1..1 or 0..1 signal value. Hit 'Esc'
-                                      to exit the value entry without change.
+A goal is to provide a simple wireless environment to build sound effects,
+synthesizers or whole generative music patches from predefined modules.
 
-Combining the fine adjustment areas with the Shift key allows a freedom
-of 4 resolutions to adjust parameters.
+## GUI Overview
 
-LMB = Left Mouse Button, RMB = Right Mouse Button, MMB = Middle Mouse Button
-Next page: Hex Grid
+Here is a rough overview of the GUI:
 
+![](res/hexosynth_gui_overview.png?380)
 
-[c18f22:Hex Grid / Node Matrix]
+I hope most things are self explanatory. Most panels come with their own _"?"
+help button_, and I suggest clicking on them to learn about the details.
 
-The hex tile grid consists of so "cells", each cell can be
-empty or contain a "node". A cell with a node has the following structure:
+The following help will focus mostly on the usage of the *Cell Matrix*, which
+is the main interface to the modular synthesizer.
 
-      _____________
-     /    <i1>     \
-    /<i2>  (L)  <o1>\      (L)           - Status Led
-   /   <node type>   \     <i1> to <i3>  - 3 Input ports
-   \  <instance id>  /     <o1> to <o3>  - 3 Output ports
-    \<i3>       <o2>/      <node type>   - Type of the node
-     \     <o3>    /       <instance id> - Instance ID of the node
-      """""""""""""
+## Introduction
 
-The input ports correspond to the parameters of the node. You can assign
-these to output ports of adjacent cells. A connection between cells
-does only work or exist if there is an output port assigned and to the
-adjacent cells edge a corresponding input port.
+First let me explain the interface concept of HexoSynth.
+Lets define a few terms first, so we can talk about them:
 
-You can have multiple independent instances of a node without problems.
-But you can also (linked) copy the instance of one cell to another with
-a mouse gesture (LMB drag from empty non adjacent node). This means:
+![](res/cell_concept.png?300)
 
-            ____
-      _____/    \_____      Two (linked) copies of a "Sin" oscialltor
-     / Sin \____/ Sin \     node with the same instance id (0).
-     \  0  /    \  0  /     These are handles to the same oscillator node.
-      """""\____/"""""
+- *Cell* - This is a hex tile cell. It can hold a so called *Node Instance*.
+- *Node* - A DSP node is what is called a _module_ in other modular synthesizers.
+You build a DSP graph of `Node Instances` in HexoSynth.
+- *Node Type* - The _type_ or _kind_ of a node here refers to what the node
+is actually doing. Like `Sin` which is a sine oscillator, or `Out` which represents
+the synthesizer output. Or `SFilter` (Filter node), `Amp` (Amplifier) or `Mix3` (3 Channel Mixer).
+- *Node Instance* - A node instance is an actual instanciation of a _node type_.
+You can have multiple instances. You tell them apart using the *Instance IDs*.
+- *Instance ID* - This ID tells the instances of the same _node type_ apart.
+`Sin 0` is the `Sin` node instance with ID **0**. Where `Sin 1` is the `Sin` node
+instance with ID **1**. They are completely different DSP nodes, each having their
+own set of parameters and internal state.
+- *Selected Cell* - The highlighted cell is the selected cell. If you select
+a cell with a node instance, you can adjust it's parameters and see the input/outputs
+of that cell in the signal monitor (the 6 scopes in the bottom left of the GUI).
 
-Linked copies make it possible to connect more than 3 inputs or output
-of a node to other nodes.
+You can have multiple *Cells* refer to the same *Node Instance*. The following
+image illustrates that:
 
-            ____
-      _____/    \_____      Two independent instances of a "Sin" oscillator.
-     / Sin \____/ Sin \     One has the instance id 0 and the other 1.
-     \  0  /    \  1  /     These are handles to different and independent
-      """""\____/"""""      oscillator nodes.
+![](res/node_instances.png?300)
 
+One *Cell* offers 3 *inputs* and 3 *outputs* to a *node instance*. The *inputs*
+are also called ~~parameters~~ sometimes. Most ~~parameters~~ of a `Node` are also
+exposed as *inputs*.
 
-[c18f22:Hex Grid Mouse Actions (Part 1)]
+![](res/node_inputs_outputs.png?300)
 
-The most basic actions are:
+Connecting inputs and outputs is done across the edges of a *Cell*. That is also
+illustrated in the following image:
 
-    LMB click on empty cell     - Open node selector menu.
-    RMB click on any cell       - Open context menu for the cell.
-    MMB drag grid               - Pan the grid around
-    Scrollwheel Down/Up         - Zoom the grid in/out
+![](res/node_overview.png?300)
 
-Apart from these basics, there are multiple differnt mouse drag
-gestures to change the node graph layout of the node matrix in the hex grid.
+The top left *edges* of a cell show the *input name*, and the bottom right *edges*
+show the *output name*.
 
-Some gestures do things with so called "node clusters". A "node cluster" is
-a tree of connected nodes.
-
-LMB (Left Mouse Button) Drag Actions:
-
-    (LMB) Create two connected nodes with default ports:
-      ..... <-- Drag Action
-     _^_  .       ___       LMB Drag from empty to adjacent empty cell lets
-    /   \_._  => /XXX\___   you select two new nodes from the node selector
-    \___/ v \    \_0_/YYY\  menu. And connects these two nodes from their
-        \___/        \_0_/  default output port to the default input port
-                            of the other node.
-                            (If you want to select the edges explicitly,
-                             try dragging with RMB).
-
-    (LMB) Create one new connected node with default ports:
-      .....
-     _^_  .       ___       LMB Drag from empty cell to adjacent node lets
-    /   \_._  => /XXX\___   you select one new node from the node selector
-    \___/YvY\    \_0_/YYY\  menu. And connects these two nodes from their
-        \_0_/        \_0_/  default output ports to the default input port
-                            of the other node.
-                            (If you want to select the edges explicitly,
-                             try dragging with RMB).
-
-    (LMB) (Re)Connect Adjacent Cells:
-       ......___            _____  Dragging a node to an adjacent node will
-     __.__/ .   \     _____/     \ open the output/input port selection
-    /  X  \_.___/ => / XXX \_____/ menu. You can connect two previously not
-    \__0__/ vY  \    \__0_O/I Y  \ connected nodes with this or reconnect
-          \__0__/          \__0__/ existing adjacent nodes.
-
-
-[c18f22:Hex Grid Mouse Actions (Part 2)]
-
-LMB (Left Mouse Button) Drag Actions:
-
-    (LMB) Move Cluster:
-      .....      .........                    LMB drag from cell with a node
-     _^_  .     _^_     _._      ___     ___  to any empty cell moves a
-    /XXX\_._   /XXX\___/ v \    /   \___/XXX\ whole cluster of nodes. Keep
-    \_1_/ v \  \_1_/   \___/ => \___/   \_1_/ in mind: a cluster is a tree
-    /YYY\___/  /YYY\___/            \___/YYY\ of connected nodes. This will
-    \_2_/      \_2_/                    \_2_/ not move adjacent but
-                                              unconnected nodes!
-
-    (LMB) Create Linked Copy close to destination:
-      .........
-     _^_     _._      ___     ___  LMB drag from cell with a node to any
-    /XXX\___/ . \    /XXX\___/XXX\ other non adjacent cell with a
-    \_0_/   \_._/ => \_0_/   \_0_/ node (YYY 1) creates a linked but
-        \___/YvY\        \___/YvY\ unconnected copy of the dragged from
-            \_1_/            \_1_/ node (XXX 0).
-                                   (If you want to create a new instance
-                                    instead, try dragging with RMB).
-
-    (LMB) Create Linked Copy at empty drag source:
-      .........
-     _._     _._      ___     ___  LMB drag from an empty non adjacent
-    /XvX\___/ . \    /XXX\___/   \ cell to a node will create a linked
-    \_1_/   \_._/ => \_1_/   \___/ copy of that node.
-        \___/ ^ \        \___/XXX\ (If you want to create a new instance
-            \___/            \_1_/ instead, try dragging with RMB).
-
-RMB (Right Mouse Button) Drag Actions:
-
-    (RMB) Create two connected nodes with explicit port selection menu:
-      ..... <-- Drag Action
-     _^_  .       ___       RMB Drag from empty to adjacent empty cell lets
-    /   \_._  => /XXX\___   you select two new nodes from the node selector
-    \___/ v \    \_0_/YYY\  menu. After selecting the two nodes, you have
-        \___/        \_0_/  to explicitly choose which ports to connect
-                            (unless there is only one input or output port).
-                            (If you want to use the default inputs/outputs
-                             try dragging with LMB).
-
-
-[c18f22:Hex Grid Mouse Actions (Part 2)]
-
-RMB (Right Mouse Button) Drag Actions:
-
-    (RMB) Create one new connected node with explicit port selection menu:
-      .....
-     _^_  .       ___       RMB Drag from empty cell to adjacent node lets
-    /   \_._  => /XXX\___   you select one new node from the node selector
-    \___/YvY\    \_0_/YYY\  menu. And then requires you to explicitly
-        \_0_/        \_0_/  select the input and output ports.
-                            (If you want to use the default inputs/outputs
-                             try dragging with LMB).
-
-    (RMB) Move node:
-      .....      .........
-     _^_  .     _^_     _._      ___     ___  RMB drag from cell with a node
-    /XXX\_._   /XXX\___/ v \    /   \___/XXX\ to any empty cell moves only
-    \_1_/ v \  \_1_/   \___/ => \___/   \_1_/ the cell, ignoring any
-    /YYY\___/  /YYY\___/        /YYY\___/   \ adjacent connected nodes.
-    \_2_/      \_2_/            \_2_/   \___/
-
-    (RMB) Create New Instance close to destination:
-      .........
-     _^_     _._      ___     ___  RMB drag from cell with a node to any
-    /XXX\___/ . \    /XXX\___/XXX\ other non adjacent cell with a
-    \_0_/   \_._/ => \_0_/   \_1_/ node (YYY 1) creates an unconnected new
-        \___/YvY\        \___/YvY\ node instance with the same type as the
-            \_1_/            \_1_/ drag source.
-                                   (If you want to create a linked copy
-                                    instead, try dragging with LMB).
-
-    (RMB) Split a cluster
-       .....
-      _^_  .  ___      ___     ___  RMB drag between two connected nodes
-     /XXX\_._/   \    /XXX\___/   \ will split the cluster (tree of
-     \_1_/YvY\___/ => \_1_/   \___/ connected nodes) at that point and
-     /   \_2_/   \    /   \___/YYY\ will make space for inserting a
-     \___/   \___/    \___/   \_2_/ new node into that cluster.
-
-
-[c18f22:Hex Grid Mouse Actions (Part 3)]
-
-RMB (Right Mouse Button) Drag Actions:
-
-    (RMB) Create a New Instance at empty drag source:
-      .........
-     _._     _._      ___     ___  RMB drag from an empty non adjacent
-    /XvX\___/ . \    /XXX\___/   \ cell to a node will create a new
-    \_1_/   \_._/ => \_1_/   \___/ node instance of the type of the
-        \___/ ^ \        \___/XXX\ drag destination node.
-            \___/            \_2_/ (If you want to create a new instance
-                                   instead, try dragging with RMB).
 °;
 
 !@export tracker = $q°# Tracker / Pattern Editor Keyboard Shortcuts

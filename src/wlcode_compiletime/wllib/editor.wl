@@ -568,8 +568,8 @@
     },
     handle_top_menu_click = {!(button_tag) = @;
         match button_tag
-            :help       => { $self.emit :show_main_help texts:help; }
-            :about      => { $self.emit :show_main_help ui:mkd2wt[texts:about]; std:displayln ui:mkd2wt[texts:about] }
+            :help       => { $self.emit :show_main_help ui:mkd2wt[texts:help]; }
+            :about      => { $self.emit :show_main_help ui:mkd2wt[texts:about]; }
             :midi       => { $self.emit :show_midi_log; }
     },
     get_midi_log_text = {
