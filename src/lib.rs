@@ -1571,6 +1571,54 @@ pub fn open_hexosynth_with_config(
                 "res/hexosynth_gui_overview.png",
                 include_bytes!("res/hexosynth_gui_overview.png").to_vec(),
             );
+            ui.store_image_data(
+                "res/mouse_lmb_copy_linked_connected.png",
+                include_bytes!("res/mouse_lmb_copy_linked_connected.png").to_vec(),
+            );
+            ui.store_image_data(
+                "res/mouse_lmb_drag_adj_open_dialog.png",
+                include_bytes!("res/mouse_lmb_drag_adj_open_dialog.png").to_vec(),
+            );
+            ui.store_image_data(
+                "res/mouse_lmb_drag_chain.png",
+                include_bytes!("res/mouse_lmb_drag_chain.png").to_vec(),
+            );
+            ui.store_image_data(
+                "res/mouse_lmb_drag_copy_linked.png",
+                include_bytes!("res/mouse_lmb_drag_copy_linked.png").to_vec(),
+            );
+            ui.store_image_data(
+                "res/mouse_mmb_drag_move_view.png",
+                include_bytes!("res/mouse_mmb_drag_move_view.png").to_vec(),
+            );
+            ui.store_image_data(
+                "res/mouse_rmb_linked_instance.png",
+                include_bytes!("res/mouse_rmb_linked_instance.png").to_vec(),
+            );
+            ui.store_image_data(
+                "res/mouse_rmb_move_cell.png",
+                include_bytes!("res/mouse_rmb_move_cell.png").to_vec(),
+            );
+            ui.store_image_data(
+                "res/mouse_rmb_move_cell_adjacent.png",
+                include_bytes!("res/mouse_rmb_move_cell_adjacent.png").to_vec(),
+            );
+            ui.store_image_data(
+                "res/mouse_rmb_new_instance.png",
+                include_bytes!("res/mouse_rmb_new_instance.png").to_vec(),
+            );
+            ui.store_image_data(
+                "res/mouse_rmb_split_chain.png",
+                include_bytes!("res/mouse_rmb_split_chain.png").to_vec(),
+            );
+            ui.store_image_data(
+                "res/mouse_scroll_zoom.png",
+                include_bytes!("res/mouse_scroll_zoom.png").to_vec(),
+            );
+            ui.store_image_data(
+                "res/mouse_setup1.png",
+                include_bytes!("res/mouse_setup1.png").to_vec(),
+            );
 
             for test_script in test_scripts.borrow().iter() {
                 ui.install_test_script(test_script.clone());

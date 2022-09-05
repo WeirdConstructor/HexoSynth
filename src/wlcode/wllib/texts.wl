@@ -102,6 +102,25 @@ illustrated in the following image:
 The top left *edges* of a cell show the *input name*, and the bottom right *edges*
 show the *output name*.
 
+## Cell Matrix Mouse Gestures
+
+In this section all important mouse gestures are explained. They are central
+to use the Cell Matrix effectively!
+
+First we start with changing the Matrix view:
+
+### Matrix View Panning
+
+For panning the view, you have to hold down the middle mouse button and drag.
+
+![](res/mouse_mmb_drag_move_view.png?400)
+
+### Matrix View Zoom
+
+For zooming the view, you have to scroll the mouse wheel.
+
+![](res/mouse_scroll_zoom.png?400)
+
 °;
 
 !@export tracker = $q°# Tracker / Pattern Editor Keyboard Shortcuts
