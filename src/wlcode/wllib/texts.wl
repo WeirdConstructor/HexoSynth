@@ -340,4 +340,8 @@ to place connected nodes directly!
 
 #### Matrix Mouse Actions
 ![](res/mouse_mini_cheat_sheet.png?113)
+
+```wichtext
+[c8f18a:>> More Help Click Here <<]
+```
 °;

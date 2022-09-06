@@ -686,6 +686,11 @@ iter row $[
 wtd_intro_help.set_text ~ ui:mkd2wt texts:intro 50;
 intro_help.set_ctrl :wichtext wtd_intro_help;
 intro_help_container.add intro_help;
+intro_help.reg "click" {!(wid, ev) = @;
+    if is_some[ev.cmd $p(0, "Help")] {
+        editor.show_help[];
+    };
+};
 
 !right_pnl_button_bar = styling:new_widget :button_bar;
 right_pnl_button_bar.add ~ styling:new_button_with_label :tab_hor "Seq" {
