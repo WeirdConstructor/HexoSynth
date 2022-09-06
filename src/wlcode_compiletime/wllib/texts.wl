@@ -102,25 +102,118 @@ illustrated in the following image:
 The top left *edges* of a cell show the *input name*, and the bottom right *edges*
 show the *output name*.
 
+-----------
+
 ## Cell Matrix Mouse Gestures
 
 In this section all important mouse gestures are explained. They are central
-to use the Cell Matrix effectively!
+to use the Cell Matrix effectively! As an overview and quick reference, here is
+the overview:
+
+![](res/mouse_cheat_sheet.png?400)
 
 First we start with changing the Matrix view:
 
 ### Matrix View Panning
 
-For panning the view, you have to hold down the middle mouse button and drag.
+For panning the view, you have to hold down the *middle mouse button and drag*.
 
 ![](res/mouse_mmb_drag_move_view.png?400)
 
+-----------
+
 ### Matrix View Zoom
 
-For zooming the view, you have to scroll the mouse wheel.
+For zooming the view, you have to *scroll the mouse wheel*.
 
 ![](res/mouse_scroll_zoom.png?400)
 
+-----------
+
+### Dragging Cell Chains
+
+You can move connected chains of cells around using the *left mouse button
+and drag* it across the cell matrix.
+
+![](res/mouse_lmb_drag_chain.png?300)
+
+-----------
+
+### Dragging Single Cells
+
+If you want to move a single cells and maybe move it out of it's cell chain,
+you can use the *right mouse button and drag* it away:
+
+![](res/mouse_rmb_move_cell.png?400)
+
+-----------
+
+If you use *right mouse button and drag* a cell from one adjacent input/output to another
+input/output of the same adjacent cell, the connection is moved with it:
+
+![](res/mouse_rmb_move_cell_adjacent.png?400)
+
+-----------
+
+### Connecting Cells
+
+To connect cells, you have to hold down the *right mouse button and drag across the edge*
+of that cell towards the neighbour cell.
+
+![](res/mouse_lmb_drag_adj_open_dialog.png?400)
+
+-----------
+
+### Copy Cell Node Instance
+
+You can copy the node instance to another cell using the *left mouse button and drag* from an
+*empty cell*. That will fill the empty cell with the same node instance that you dragged to.
+This can be very handy for instance if you want to reuse the signal of a node at some
+other place in the matrix.
+
+![](res/mouse_lmb_drag_copy_linked.png?400)
+
+-----------
+
+### New Node Instance
+
+If you want to duplicate a node in the cell matrix, and create a new instance of that node type,
+you can use the *right mouse button and drag* from an *empty cell* to the node you want to
+create a new instance of:
+
+![](res/mouse_rmb_new_instance.png?400)
+
+-----------
+
+### Split Cell Chain
+
+To split a cell chain, you can hold down the *right mouse button and drag across the edge*
+inside a connected cell chain. This can be handy to insert a node in the signal path:
+
+![](res/mouse_rmb_split_chain.png?400)
+
+-----------
+
+### Create Connected Node Instance Copy
+
+To quickly copy an node instance to another cell *and connect it* you can hold
+down the *left mouse button and drag* from the node instance you want to copy,
+to the (non adjacent) cell you want to link it to:
+
+![](res/mouse_lmb_copy_linked_connected.png?400)
+
+-----------
+
+### Create Connected New Node Instance
+
+To quickly create a new instance of a node instance *and connect it* to another
+cell you can hold down the *right mouse button and drag* from the node instance
+you want to duplicate/create a new instance of, to the (non adjacent) cell you
+want to link it to:
+
+![](res/mouse_rmb_linked_instance.png?400)
+
+-----------
 °;
 
 !@export tracker = $q°# Tracker / Pattern Editor Keyboard Shortcuts
