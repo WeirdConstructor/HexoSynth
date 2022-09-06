@@ -43,13 +43,13 @@ pub fn init_hexosynth() -> (Matrix, NodeExecutor) {
     let (w, h) = (16, 16);
     let mut matrix = Matrix::new(node_conf, w, h);
 
-    matrix.place(0, 1, Cell::empty(NodeId::Sin(0)).out(Some(0), None, None));
+    matrix.place(3, 3, Cell::empty(NodeId::Sin(0)).out(Some(0), None, None));
     matrix.place(
-        1,
-        0,
+        4,
+        3,
         Cell::empty(NodeId::Amp(0)).out(Some(0), None, None).input(None, None, Some(0)),
     );
-    matrix.place(2, 0, Cell::empty(NodeId::Out(0)).input(None, None, Some(0)));
+    matrix.place(5, 2, Cell::empty(NodeId::Out(0)).input(None, None, Some(0)));
 
     let gain_p = NodeId::Amp(0).inp_param("gain").unwrap();
     matrix.set_param(gain_p, gain_p.norm(0.06).into());
@@ -1622,6 +1622,10 @@ pub fn open_hexosynth_with_config(
             ui.store_image_data(
                 "res/mouse_cheat_sheet.png",
                 include_bytes!("res/mouse_cheat_sheet.png").to_vec(),
+            );
+            ui.store_image_data(
+                "res/mouse_mini_cheat_sheet.png",
+                include_bytes!("res/mouse_mini_cheat_sheet.png").to_vec(),
             );
 
             for test_script in test_scripts.borrow().iter() {

@@ -332,6 +332,15 @@ style.sample_list_wichtext = ${
     parent = :wichtext,
 };
 
+style.mouse_overview_wichtext = ${
+    parent = :wichtext,
+};
+layout.mouse_overview_wichtext = ${
+    top = :pixels => 40,
+    width = :pixels => 300,
+    height = :pixels => 130,
+};
+
 style.help_btn = ${
     parent = :button,
     border_style = $[:bevel, $f(6, 6, 6, 6)],

@@ -273,6 +273,12 @@ iter ctx_item editor.get_matrix_context_menu_items[] {
 
 !grid = setup_grid_widget matrix;
 
+!grid_mouse_overview = styling:new_widget :mouse_overview_wichtext;
+!wtd_mouse_overview = ui:wichtext_simple_data_store[];
+wtd_mouse_overview.set_text "[h113Ires/mouse_mini_cheat_sheet.png:]";
+grid_mouse_overview.set_ctrl :wichtext wtd_mouse_overview;
+grid.add grid_mouse_overview;
+
 !app_panel = styling:new_widget :app_panel;
 
 app_panel.change_layout ${
