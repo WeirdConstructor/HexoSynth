@@ -332,13 +332,11 @@ style.sample_list_wichtext = ${
     parent = :wichtext,
 };
 
-style.mouse_overview_wichtext = ${
+style.intro_help_wichtext = ${
     parent = :wichtext,
+    font_size = 10,
 };
-layout.mouse_overview_wichtext = ${
-    top = :pixels => 40,
-    width = :pixels => 300,
-    height = :pixels => 130,
+layout.intro_help_wichtext = ${
 };
 
 style.help_btn = ${
@@ -400,6 +398,13 @@ style.ext_param_container = ${
     typ    = :rect,
 };
 layout.ext_param_container = ${
+    width = :pixels => 350,
+};
+
+style.intro_help_container = ${
+    typ    = :rect,
+};
+layout.intro_help_container = ${
     width = :pixels => 350,
 };
 

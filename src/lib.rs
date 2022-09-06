@@ -1627,6 +1627,10 @@ pub fn open_hexosynth_with_config(
                 "res/mouse_mini_cheat_sheet.png",
                 include_bytes!("res/mouse_mini_cheat_sheet.png").to_vec(),
             );
+            ui.store_image_data(
+                "res/node_picker_drag.png",
+                include_bytes!("res/node_picker_drag.png").to_vec(),
+            );
 
             for test_script in test_scripts.borrow().iter() {
                 ui.install_test_script(test_script.clone());

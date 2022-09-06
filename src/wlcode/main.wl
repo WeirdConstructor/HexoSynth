@@ -6,6 +6,7 @@
 !@import styling wllib:styling;
 !@import editor wllib:editor;
 !@import tests wllib:tests;
+!@import texts wllib:texts;
 
 !@export init = {
     !test = std:sys:env:var "HEXOSYNTH_TEST";
@@ -272,12 +273,6 @@ iter ctx_item editor.get_matrix_context_menu_items[] {
 !popup_layer = styling:new_widget :popup_layer;
 
 !grid = setup_grid_widget matrix;
-
-!grid_mouse_overview = styling:new_widget :mouse_overview_wichtext;
-!wtd_mouse_overview = ui:wichtext_simple_data_store[];
-wtd_mouse_overview.set_text "[h113Ires/mouse_mini_cheat_sheet.png:]";
-grid_mouse_overview.set_ctrl :wichtext wtd_mouse_overview;
-grid.add grid_mouse_overview;
 
 !app_panel = styling:new_widget :app_panel;
 
@@ -633,6 +628,7 @@ editor.set_active_tracker $p(:tseq, 0);
 !patedit_container = styling:new_widget :pattern_editor_container;
 patedit_container.add patedit_lbl_obj.get_widget[];
 patedit_container.add patedit;
+patedit_container.hide[];
 
 !ext_param_container = styling:new_widget :ext_param_container;
 
@@ -683,19 +679,35 @@ iter row $[
     ext_param_container.add knob_row;
 };
 
+!intro_help_container = styling:new_widget :intro_help_container;
+
+!intro_help = styling:new_widget :intro_help_wichtext;
+!wtd_intro_help = ui:wichtext_simple_data_store[];
+wtd_intro_help.set_text ~ ui:mkd2wt texts:intro 50;
+intro_help.set_ctrl :wichtext wtd_intro_help;
+intro_help_container.add intro_help;
+
 !right_pnl_button_bar = styling:new_widget :button_bar;
 right_pnl_button_bar.add ~ styling:new_button_with_label :tab_hor "Seq" {
     patedit_container.show[];
     ext_param_container.hide[];
+    intro_help_container.hide[];
 };
 right_pnl_button_bar.add ~ styling:new_button_with_label :tab_hor "Ext" {
     patedit_container.hide[];
     ext_param_container.show[];
+    intro_help_container.hide[];
+};
+right_pnl_button_bar.add ~ styling:new_button_with_label :tab_hor "Intro" {
+    patedit_container.hide[];
+    ext_param_container.hide[];
+    intro_help_container.show[];
 };
 
 right_panel_container.add right_pnl_button_bar;
 right_panel_container.add patedit_container;
 right_panel_container.add ext_param_container;
+right_panel_container.add intro_help_container;
 
 # TODO: Add toggle/tab for this:
 

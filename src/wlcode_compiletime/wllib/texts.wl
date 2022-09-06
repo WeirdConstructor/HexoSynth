@@ -104,6 +104,17 @@ show the *output name*.
 
 -----------
 
+## Creating Nodes
+
+*Drag with left mouse button* the hex buttons from the `Node Picker` on the bottom:
+
+![](res/node_picker_drag.png?140)
+
+Alternatively click on the hex buttons with *left mouse button* or *right mouse button*
+to place connected nodes directly!
+
+-----------
+
 ## Cell Matrix Mouse Gestures
 
 In this section all important mouse gestures are explained. They are central
@@ -315,4 +326,18 @@ saved and controlled by the VST3/CLAP Plugin host (the DAW) currently.
 Unfortunately you can't rename these parameters at this point. So you will
 kind of need to remember what ~~ExtC3~~ is mapped to in your patch. I hope you
 can manage with this.
+°;
+
+!@export intro = $q°
+#### Creating Nodes
+
+*Drag with left mouse button* the hex buttons from the `Node Picker` on the bottom:
+
+![](res/node_picker_drag.png?140)
+
+Alternatively click on the hex buttons with *left mouse button* or *right mouse button*
+to place connected nodes directly!
+
+#### Matrix Mouse Actions
+![](res/mouse_mini_cheat_sheet.png?113)
 °;
