@@ -606,6 +606,26 @@ impl vval::VValUserData for VValMatrix {
                         Err(e) => Ok(matrix_error2vval_err(e)),
                     }
                 }
+                "load_init_patch" => {
+                    arg_chk!(args, 0, "matrix.load_init_patch[]");
+
+                    use hexodsp::matrix_repr::load_patch_from_mem;
+
+                    match load_patch_from_mem(
+                        &mut m,
+                        include_bytes!("../../res/init_patch_2022_1.hxy"),
+                    ) {
+                        Ok(_) => {}
+                        Err(e) => {
+                            return Ok(VVal::err_msg(&format!("{:?}", e)));
+                        }
+                    }
+
+                    match m.sync() {
+                        Ok(_) => Ok(VVal::Bol(true)),
+                        Err(e) => Ok(matrix_error2vval_err(e)),
+                    }
+                }
                 "load_patch" => {
                     arg_chk!(args, 1, "matrix.load_patch[filepath]");
 

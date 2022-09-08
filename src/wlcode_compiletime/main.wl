@@ -538,10 +538,14 @@ top_menu_button_bar.add save_btn;
     matrix.load_patch "init.hxy";
 };
 top_menu_button_bar.add load_btn;
-!load_btn = styling:new_button_with_label :button_float_menu "Code" {
+!load_init_btn = styling:new_button_with_label :button_float_menu "Init" {
+    matrix.load_init_patch[];
+};
+top_menu_button_bar.add load_init_btn;
+!code_btn = styling:new_button_with_label :button_float_menu "Code" {
     on_code_menu_toggle[];
 };
-top_menu_button_bar.add load_btn;
+top_menu_button_bar.add code_btn;
 
 !color_btn = styling:new_button_with_label :button_float_menu "_C" {
     editor.show_color_info[];

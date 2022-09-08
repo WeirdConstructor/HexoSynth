@@ -54,8 +54,16 @@ pub fn init_hexosynth() -> (Matrix, NodeExecutor) {
     let gain_p = NodeId::Amp(0).inp_param("gain").unwrap();
     matrix.set_param(gain_p, gain_p.norm(0.06).into());
 
-    if let Err(e) = load_patch_from_file(&mut matrix, "init.hxy") {
-        println!("Error loading init.hxy: {:?}", e);
+    if std::path::Path::new("init.hxy").exists() {
+        if let Err(e) = load_patch_from_file(&mut matrix, "init.hxy") {
+            println!("Error loading init.hxy: {:?}", e);
+        }
+    } else {
+        if let Err(e) =
+            load_patch_from_mem(&mut matrix, include_bytes!("res/init_patch_2022_1.hxy"))
+        {
+            println!("Error loading init_patch_2022_1.hxy: {:?}", e);
+        }
     }
 
     let _ = matrix.sync();
