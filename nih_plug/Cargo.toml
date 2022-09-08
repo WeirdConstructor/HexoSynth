@@ -27,3 +27,5 @@ members = ["xtask"]
 #hexotk = { path = "../../hexotk" }
 #[patch.'https://github.com/WeirdConstructor/HexoDSP.git']
 #hexodsp = { path = "../../hexodsp" }
+#[patch.crates-io]
+#synfx-dsp = { path = "../../synfx-dsp" }

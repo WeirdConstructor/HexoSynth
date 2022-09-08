@@ -24,16 +24,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f26201604c87b1e01bd3d98f8d5d9a8fcbb815e8cedb41ffccbeb4bf593a35fe"
 
 [[package]]
-name = "adler32"
-version = "1.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aae1277d39aeec15cb388266ecc24b11c80469deae6067e17a1a7aa9e5c1f234"
-
-[[package]]
 name = "aho-corasick"
-version = "0.7.18"
+version = "0.7.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1e37cfd5e7657ada45f742d6e99ca5788580b5c529dc78faf11ece6dc702656f"
+checksum = "b4f55bd91a0978cbfd91c457a164bab8b4001c833b7f323132c0a4e1922dd44e"
 dependencies = [
  "memchr",
 ]
@@ -77,9 +71,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.63"
+version = "1.0.64"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a26fa4d7e3f2eebadf743988fc8aec9fa9a9e82611acafd77c1462ed6262440a"
+checksum = "b9a8f622bcf6ff3df478e9deba3e03e4e04b300f8e6a139e192c05fa3490afc7"
 
 [[package]]
 name = "atomic_float"
@@ -708,15 +702,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "deflate"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c86f7e25f518f4b81808a2cf1c50996a61f5c2eb394b2393bd87f2a4780a432f"
-dependencies = [
- "adler32",
-]
-
-[[package]]
 name = "dirs-next"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -974,14 +959,14 @@ dependencies = [
 [[package]]
 name = "hexodsp"
 version = "0.2.0"
-source = "git+https://github.com/WeirdConstructor/HexoDSP.git#8ca310146e9977f015699832f2c03402762f3b9b"
+source = "git+https://github.com/WeirdConstructor/HexoDSP.git#6e9512b053c4b7daedcfc882498a0367ccee08ff"
 dependencies = [
  "hound",
  "lazy_static",
  "ringbuf",
  "serde",
  "serde_json",
- "synfx-dsp",
+ "synfx-dsp 0.5.4 (git+https://github.com/WeirdConstructor/synfx-dsp.git)",
  "synfx-dsp-jit",
  "triple_buffer",
 ]
@@ -1016,7 +1001,7 @@ dependencies = [
 [[package]]
 name = "hexotk"
 version = "0.5.0"
-source = "git+https://github.com/WeirdConstructor/HexoTK.git#6ed5060917f1e1fad1405b656e4aef7cf2b732c0"
+source = "git+https://github.com/WeirdConstructor/HexoTK.git#28f1bfa276be96df862c148f9cf0ccaf74244ee1"
 dependencies = [
  "baseview 0.1.0 (git+https://github.com/RustAudio/baseview.git)",
  "femtovg",
@@ -1298,9 +1283,9 @@ checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
 
 [[package]]
 name = "miniz_oxide"
-version = "0.5.3"
+version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6f5c75688da582b8ffc1f1799e9db273f32133c49e048f614d22ec3256773ccc"
+checksum = "96590ba8f175222643a85693f33d26e9c8a015f599c216509b1a6894af675d34"
 dependencies = [
  "adler",
 ]
@@ -1382,7 +1367,7 @@ dependencies = [
 [[package]]
 name = "nih_plug"
 version = "0.0.0"
-source = "git+https://github.com/robbert-vdh/nih-plug#5faed9e2e75adf17037c901ba1eb9cba2f9f5728"
+source = "git+https://github.com/robbert-vdh/nih-plug#4c9a2726f35e56bf009c300736f486844fe23469"
 dependencies = [
  "anyhow",
  "atomic_float",
@@ -1416,7 +1401,7 @@ dependencies = [
 [[package]]
 name = "nih_plug_derive"
 version = "0.1.0"
-source = "git+https://github.com/robbert-vdh/nih-plug#5faed9e2e75adf17037c901ba1eb9cba2f9f5728"
+source = "git+https://github.com/robbert-vdh/nih-plug#4c9a2726f35e56bf009c300736f486844fe23469"
 dependencies = [
  "quote",
  "syn",
@@ -1425,7 +1410,7 @@ dependencies = [
 [[package]]
 name = "nih_plug_xtask"
 version = "0.1.0"
-source = "git+https://github.com/robbert-vdh/nih-plug#5faed9e2e75adf17037c901ba1eb9cba2f9f5728"
+source = "git+https://github.com/robbert-vdh/nih-plug#4c9a2726f35e56bf009c300736f486844fe23469"
 dependencies = [
  "anyhow",
  "goblin",
@@ -1733,13 +1718,13 @@ checksum = "b4596b6d070b27117e987119b4dac604f3c58cfb0b191112e24771b2faeac1a6"
 
 [[package]]
 name = "png"
-version = "0.17.5"
+version = "0.17.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dc38c0ad57efb786dd57b9864e5b18bae478c00c824dc55a38bbc9da95dde3ba"
+checksum = "8f0e7f4c94ec26ff209cee506314212639d6c91b80afb82984819fafce9df01c"
 dependencies = [
  "bitflags",
  "crc32fast",
- "deflate",
+ "flate2",
  "miniz_oxide",
 ]
 
@@ -2209,6 +2194,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "synfx-dsp"
+version = "0.5.4"
+source = "git+https://github.com/WeirdConstructor/synfx-dsp.git#6c12832523499e260bf661b3ccc5922d4d8de8b4"
+dependencies = [
+ "num-traits",
+]
+
+[[package]]
 name = "synfx-dsp-jit"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2221,7 +2214,7 @@ dependencies = [
  "cranelift-module",
  "cranelift-native",
  "ringbuf",
- "synfx-dsp",
+ "synfx-dsp 0.5.4 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -2247,18 +2240,18 @@ checksum = "b1141d4d61095b28419e22cb0bbf02755f5e54e0526f97f1e3d1d160e60885fb"
 
 [[package]]
 name = "thiserror"
-version = "1.0.33"
+version = "1.0.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3d0a539a918745651435ac7db7a18761589a94cd7e94cd56999f828bf73c8a57"
+checksum = "8c1b05ca9d106ba7d2e31a9dab4a64e7be2cce415321966ea3132c49a656e252"
 dependencies = [
  "thiserror-impl",
 ]
 
 [[package]]
 name = "thiserror-impl"
-version = "1.0.33"
+version = "1.0.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c251e90f708e16c49a16f4917dc2131e75222b72edfa9cb7f7c58ae56aae0c09"
+checksum = "e8f2591983642de85c921015f3f070c665a197ed69e417af436115e3a1407487"
 dependencies = [
  "proc-macro2",
  "quote",

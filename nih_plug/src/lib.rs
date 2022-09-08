@@ -85,58 +85,58 @@ struct HexoSynthPlugParams {
 
 impl hexodsp::nodes::ExternalParams for HexoSynthPlugParams {
     fn a1(&self) -> f32 {
-        self.a1.value
+        self.a1.value()
     }
     fn a2(&self) -> f32 {
-        self.a2.value
+        self.a2.value()
     }
     fn a3(&self) -> f32 {
-        self.a3.value
+        self.a3.value()
     }
     fn b1(&self) -> f32 {
-        self.b1.value
+        self.b1.value()
     }
     fn b2(&self) -> f32 {
-        self.b2.value
+        self.b2.value()
     }
     fn b3(&self) -> f32 {
-        self.b3.value
+        self.b3.value()
     }
     fn c1(&self) -> f32 {
-        self.c1.value
+        self.c1.value()
     }
     fn c2(&self) -> f32 {
-        self.c2.value
+        self.c2.value()
     }
     fn c3(&self) -> f32 {
-        self.c3.value
+        self.c3.value()
     }
     fn d1(&self) -> f32 {
-        self.d1.value
+        self.d1.value()
     }
     fn d2(&self) -> f32 {
-        self.d2.value
+        self.d2.value()
     }
     fn d3(&self) -> f32 {
-        self.d3.value
+        self.d3.value()
     }
     fn e1(&self) -> f32 {
-        self.e1.value
+        self.e1.value()
     }
     fn e2(&self) -> f32 {
-        self.e2.value
+        self.e2.value()
     }
     fn e3(&self) -> f32 {
-        self.e3.value
+        self.e3.value()
     }
     fn f1(&self) -> f32 {
-        self.f1.value
+        self.f1.value()
     }
     fn f2(&self) -> f32 {
-        self.f2.value
+        self.f2.value()
     }
     fn f3(&self) -> f32 {
-        self.f3.value
+        self.f3.value()
     }
 }
 
@@ -433,7 +433,7 @@ macro_rules! setup_param {
         $config.param_set.$ext[$index].set_counter($self.gen_counter.clone());
         $config.param_set.$ext[$index].set_getter({
             let params = $self.params.clone();
-            Box::new(move || params.$param.value)
+            Box::new(move || params.$param.value())
         });
 
         $config.param_set.$ext[$index].set_changers(
