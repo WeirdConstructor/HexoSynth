@@ -9,6 +9,12 @@ can use to control a HexoSynth patch however you like, and you can even
 automate these by the DAW.
 * Feature: Added `Inp` input node for receiving plugin audio input
 from the DAW.
+* Feature: Included a better initial patch than the sine wave. The initial
+patch is loaded if no `init.hxy` could be found. It can also be loaded
+using the new "Init" button in the top menu.
+* Documentation: Added a short manual for getting started.
+* Documentation: Added a quick usage reference to the right panel.
+* Change: `Ad` envelope node changed.
 
 0.2.0-alpha-1 (2022-08-22)
 ==========================
