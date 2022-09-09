@@ -515,46 +515,29 @@ right_container.add add_node_panel;
 top_menu_button_bar.enable_cache[];
 
 
-!help_button = styling:new_button_with_label :button_float_menu "Help" {
-    editor.handle_top_menu_click :help;
-};
-top_menu_button_bar.add help_button;
+!top_menu_actions = $[
+    $p("Help", :help),
+    $p("About", :about),
+    $p("MIDI", :midi),
+    $p("Save", :save),
+    $p("Load", :load),
+    $p("Demo", :init),
+    $p("Code", on_code_menu_toggle),
+    $p("_C", { editor.show_color_info[]; }),
+];
 
-!about_button = styling:new_button_with_label :button_float_menu "About" {
-    editor.handle_top_menu_click :about;
-};
-top_menu_button_bar.add about_button;
+iter action top_menu_actions {
+    !(lbl, editor_cmd) = action;
 
-!midi_button = styling:new_button_with_label :button_float_menu "MIDI" {
-    editor.handle_top_menu_click :midi;
-};
-top_menu_button_bar.add midi_button;
-
-!save_btn = styling:new_button_with_label :button_float_menu "Save" {
-    matrix.save_patch "init.hxy";
-};
-top_menu_button_bar.add save_btn;
-!load_btn = styling:new_button_with_label :button_float_menu "Load" {
-    editor.handle_top_menu_click :load;
-};
-top_menu_button_bar.add load_btn;
-
-!load_init_btn =
-    styling:new_button_with_label :button_float_menu "Init" {
-        editor.handle_top_menu_click :init;
+    !btn = styling:new_button_with_label :button_float_menu action.0 {
+        if is_fun[editor_cmd] {
+            editor_cmd[];
+        } {
+            editor.handle_top_menu_click editor_cmd;
+        }
     };
-top_menu_button_bar.add load_init_btn;
-
-!code_btn = styling:new_button_with_label :button_float_menu "Code" {
-    on_code_menu_toggle[];
+    top_menu_button_bar.add btn;
 };
-top_menu_button_bar.add code_btn;
-
-!color_btn = styling:new_button_with_label :button_float_menu "_C" {
-    editor.show_color_info[];
-};
-top_menu_button_bar.add color_btn;
-
 
 right_container.add top_menu_button_bar;
 

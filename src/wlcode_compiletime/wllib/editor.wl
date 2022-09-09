@@ -571,6 +571,7 @@
             :help => { $self.show_help[]; }
             :about => { $self.emit :show_main_help ui:mkd2wt[texts:about]; }
             :midi => { $self.emit :show_midi_log; }
+            :save => { $data.matrix.save_patch "init.hxy"; }
             :load => {
                 !matrix = $data.matrix;
                 $self.user_confirm_query
