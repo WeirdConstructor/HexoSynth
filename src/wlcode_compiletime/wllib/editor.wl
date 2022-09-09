@@ -568,9 +568,21 @@
     },
     handle_top_menu_click = {!(button_tag) = @;
         match button_tag
-            :help       => { $self.show_help[]; }
-            :about      => { $self.emit :show_main_help ui:mkd2wt[texts:about]; }
-            :midi       => { $self.emit :show_midi_log; }
+            :help => { $self.show_help[]; }
+            :about => { $self.emit :show_main_help ui:mkd2wt[texts:about]; }
+            :midi => { $self.emit :show_midi_log; }
+            :load => {
+                !matrix = $data.matrix;
+                $self.user_confirm_query
+                    "Really delete everything and load the patch?"
+                    { matrix.load_patch "init.hxy"; }
+            }
+            :init => {
+                !matrix = $data.matrix;
+                $self.user_confirm_query
+                    "Really delete everything and load the initial demo patch?"
+                    { matrix.load_init_patch[]; }
+            }
     },
     show_help = {
         $self.emit :show_main_help ui:mkd2wt[texts:help];
@@ -787,7 +799,7 @@
         ;
     },
     user_confirm_query = {!(text, cb) = @;
-        $self.emit :dialog_query :yes_cancel ("[t02:][f22:]" text) cb;
+        $self.emit :dialog_query :yes_cancel (ui:mkd2wt ("## " text) 50) cb;
     },
 };
 

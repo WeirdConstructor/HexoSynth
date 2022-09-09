@@ -535,13 +535,16 @@ top_menu_button_bar.add midi_button;
 };
 top_menu_button_bar.add save_btn;
 !load_btn = styling:new_button_with_label :button_float_menu "Load" {
-    matrix.load_patch "init.hxy";
+    editor.handle_top_menu_click :load;
 };
 top_menu_button_bar.add load_btn;
-!load_init_btn = styling:new_button_with_label :button_float_menu "Init" {
-    matrix.load_init_patch[];
-};
+
+!load_init_btn =
+    styling:new_button_with_label :button_float_menu "Init" {
+        editor.handle_top_menu_click :init;
+    };
 top_menu_button_bar.add load_init_btn;
+
 !code_btn = styling:new_button_with_label :button_float_menu "Code" {
     on_code_menu_toggle[];
 };
