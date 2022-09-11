@@ -123,7 +123,12 @@ the overview:
 
 ![](res/mouse_cheat_sheet.png?400)
 
-First we start with changing the Matrix view:
+### Matrix Context Menus
+
+The *right mouse button click* on either an empty cell or a cell with a node instance
+will open a context menu:
+
+![](res/mouse_rmb_contextmenus.png?200)
 
 ### Matrix View Panning
 

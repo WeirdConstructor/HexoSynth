@@ -149,7 +149,7 @@
         };
     #    test.add_step :sleep {|| std:thread:sleep :ms => 1000 };
         test.add_step :check_desc {!(td, labels) = @;
-            !doc = ($S(*:{label=*Amp\ gain*}) labels).0;
+            !doc = ($S(*:{label=*Amplifier*}) labels).0;
             std:assert doc;
         };
     #    test.add_step :sleep {|| std:thread:sleep :ms => 10000 };
@@ -197,7 +197,7 @@
                 $[:size   => 0.2,
                   :predly => 40.0,
                   :dcy    => 0.3],
-                $[:gain => 0.1,
+                $[:vol => 0.1,
                   :mono => 1],
             ]};
         };
@@ -258,7 +258,7 @@
             do_hover td res.0;
         };
         test.add_step :check_mux9_help {!(td, labels) = @;
-            !res = $S(*:{ctrl=Ctrl\:\:WichText, label=9\ Ch.\ Mul*}) labels;
+            !res = $S(*:{path=*help_text_panel.wichtext, label=Multiplexer}) labels;
             std:assert_str_eq
                 res.0.source
                 "text"
@@ -276,7 +276,7 @@
             !res = $S(*:{
                 ctrl=Ctrl\:\:WichText,
                 path=*.main_help_wichtext,
-                label=Mux9\ -\ 9\ Ch*
+                label=Mux9*
             }) labels;
             std:assert_str_eq
                 res.0.source
@@ -339,7 +339,7 @@
             do_hover td res.0;
         };
         test.add_step :check_fbwr_desc {!(td, labels) = @;
-            !res = $S(*:{ctrl=Ctrl\:\:WichText, label=Feedback*Writer}) labels;
+            !res = $S(*:{path=*help_text_panel.wichtext, label=Feedback}) labels;
             std:assert_eq res.0.source "text" "FbWr description text is displayed";
         };
     };
