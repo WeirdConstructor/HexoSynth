@@ -29,6 +29,7 @@ patch is loaded if no `init.hxy` could be found. It can also be loaded
 using the new "Init" button in the top menu.
 * Documentation: Added a short manual for getting started.
 * Documentation: Added a quick usage reference to the right panel.
+* Documentation: Added some tooltip like help about the top menu buttons.
 * Change: `Ad` envelope node changed.
 
 0.2.0-alpha-1 (2022-08-22)

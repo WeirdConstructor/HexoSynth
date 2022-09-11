@@ -521,7 +521,13 @@
         };
 
         $data.current_help_node_id = info;
-        $self.emit :update_status_help_text text;
+        $self.show_desc text;
+    },
+    show_markdown_desc = {!(text) = @;
+        $self.show_desc ~ ui:mkd2wt text SMALL_DESC_WT_WIDTH_CHARS;
+    },
+    show_desc = {!(wl_text) = @;
+        $self.emit :update_status_help_text wl_text;
     },
     show_color_info = {
         !text = $@s iter clr 0 => 19 { $+ ~ $F"[c{}:XX {:02!i} XX]\n" clr clr; };

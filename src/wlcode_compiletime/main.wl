@@ -514,20 +514,19 @@ right_container.add add_node_panel;
 !top_menu_button_bar = styling:new_widget :top_float_menu;
 top_menu_button_bar.enable_cache[];
 
-
 !top_menu_actions = $[
-    $p("Help", :help),
-    $p("About", :about),
-    $p("MIDI", :midi),
-    $p("Save", :save),
-    $p("Load", :load),
-    $p("Demo", :init),
-    $p("Code", on_code_menu_toggle),
-    $p("_C", { editor.show_color_info[]; }),
+    $["Help", texts:top_menu_texts.help, :help],
+    $["About", texts:top_menu_texts.about, :about],
+    $["MIDI", texts:top_menu_texts.midi, :midi],
+    $["Save", texts:top_menu_texts.save, :save],
+    $["Load", texts:top_menu_texts.load, :load],
+    $["Demo", texts:top_menu_texts.demo, :init],
+    $["Code", texts:top_menu_texts.code, on_code_menu_toggle],
+    $["_C", texts:top_menu_texts.colors, { editor.show_color_info[]; }],
 ];
 
 iter action top_menu_actions {
-    !(lbl, editor_cmd) = action;
+    !(lbl, desc_text, editor_cmd) = action;
 
     !btn = styling:new_button_with_label :button_float_menu action.0 {
         if is_fun[editor_cmd] {
@@ -535,6 +534,9 @@ iter action top_menu_actions {
         } {
             editor.handle_top_menu_click editor_cmd;
         }
+    };
+    btn.reg :hover {
+        editor.show_markdown_desc desc_text;
     };
     top_menu_button_bar.add btn;
 };

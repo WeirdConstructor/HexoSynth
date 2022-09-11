@@ -345,3 +345,14 @@ to place connected nodes directly!
 [c8f18a:>> More Help Click Here <<]
 ```
 °;
+
+!@export top_menu_texts = ${
+    help = "## Help Button\nShows the HexoSynth introduction/getting started.",
+    about = "## About Button\nShows licensing and credits of HexoSynth.",
+    midi = "## MIDI Button\nShows a MIDI event log.",
+    save = "## Save Button\nSaves the current patch as 'init.hxy' into the current working directory.",
+    load = "## Load Button\nLoads the patch in 'init.hxy' in the current working directory and overwrites the current patch.",
+    demo = "## Demo Button\nReplaces the current patch with the demo patch.",
+    code = "## Code Button\nIncreases the size of the `Code` WBlockDSP code window at the bottom of the *Matrix*.",
+    colors = "## _C Button\nShows some development specific information in the description window.",
+};
