@@ -959,13 +959,14 @@ dependencies = [
 [[package]]
 name = "hexodsp"
 version = "0.2.0"
+source = "git+https://github.com/WeirdConstructor/HexoDSP.git#45fab7226782e5881139a680522616f3153c111c"
 dependencies = [
  "hound",
  "lazy_static",
  "ringbuf",
  "serde",
  "serde_json",
- "synfx-dsp 0.5.4",
+ "synfx-dsp 0.5.4 (git+https://github.com/WeirdConstructor/synfx-dsp.git)",
  "synfx-dsp-jit",
  "triple_buffer",
 ]
@@ -2186,6 +2187,8 @@ dependencies = [
 [[package]]
 name = "synfx-dsp"
 version = "0.5.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8ec94d7388305c0aa7954233479befb684a3076e168d146b2b26991c07fc6ee8"
 dependencies = [
  "num-traits",
 ]
@@ -2193,8 +2196,7 @@ dependencies = [
 [[package]]
 name = "synfx-dsp"
 version = "0.5.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8ec94d7388305c0aa7954233479befb684a3076e168d146b2b26991c07fc6ee8"
+source = "git+https://github.com/WeirdConstructor/synfx-dsp.git#2362ede47fc0b807928e268b28d7bbd5c980106d"
 dependencies = [
  "num-traits",
 ]
