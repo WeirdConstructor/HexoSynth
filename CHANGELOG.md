@@ -1,6 +1,21 @@
 0.2.0-alpha-2 (unreleased)
 ==========================
 
+This release includes a severe breaking change that invalidates previously
+saved `init.hxy`. Usually I would just bump the file format version
+and take care that old presets still load. But as this is still `alpha` stage,
+I won't make that extra effort. Things will be different after `beta`, I will
+either automatically patch the changes or inform the user of the changes when
+loading and let them accept that the old nodes/parameters are ignored.
+
+* Breaking Change: `Amp` gain knob got a more useful -24dB to 24dB range.
+* Breaking Change: `Mix3` gain knobs were replaced by volume knobs
+with proper dB range.
+* Breaking Change: `Inp` got a volume knob with proper dB range.
+* Breaking Change: `Out` got a volume knob with proper dB range.
+* Breaking Change: `FbRd` got a volume knob with proper dB range.
+* Breaking Change: `BigFilt` got also an output gain knob with dB range.
+* Breaking Change: `Scope` gain knobs now have a -24db to 24db range.
 * Feature: Added the "Ext" side panel on the right,
 with all 24 external parameters accessible via HexKnobs. Using these
 knobs you can directly access the parameter values from ExtA1 to ExtF3
