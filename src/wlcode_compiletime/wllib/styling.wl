@@ -5,6 +5,14 @@
 !:global style  = ${};
 !:global layout = ${};
 
+!@export add_style = {!(name, style_map) = @;
+    style.(name) = style_map;
+};
+
+!@export add_layout = {!(name, layout_map) = @;
+    layout.(name) = layout_map;
+};
+
 layout.root = ${
     layout_type = :row,
 };
@@ -326,6 +334,14 @@ style.midi_log_wichtext = ${
 };
 layout.midi_log_wichtext = ${
     parent = :main_help_wichtext,
+};
+
+style.value_entry = ${
+    parent = :label,
+    border = 2,
+};
+layout.value_entry = ${
+    height = :pixels => 30,
 };
 
 style.sample_list_wichtext = ${

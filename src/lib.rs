@@ -1322,6 +1322,7 @@ pub fn open_hexosynth_with_config(
             preload_wlambda!(lfmr, env_path, "wllib/editor.wl");
             preload_wlambda!(lfmr, env_path, "wllib/tests.wl");
             preload_wlambda!(lfmr, env_path, "wllib/texts.wl");
+            preload_wlambda!(lfmr, env_path, "wllib/popup_debug_browser.wl");
 
             global_env.borrow_mut().set_resolver(lfmr);
 

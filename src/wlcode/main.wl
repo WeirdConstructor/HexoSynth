@@ -7,6 +7,7 @@
 !@import editor wllib:editor;
 !@import tests wllib:tests;
 !@import texts wllib:texts;
+!@import popup_debug_browser wllib:popup_debug_browser;
 
 !IN_TEST_MODE = $false;
 !GLOBAL_CLICK_CB = $none;
@@ -532,30 +533,24 @@ top_menu_button_bar.enable_cache[];
         if IN_TEST_MODE {
             .GLOBAL_CLICK_CB = {!(ev) = @;
                 !found = $false;
-                !text = $F"## Widgets At {},{}\n\n" ev.x ev.y;
-                .text +>= "```\n\n";
-                iter lbl LAST_LABELS {
+                !position_labels = $@vec iter lbl LAST_LABELS {
                     if ev.x >= lbl.wid_pos.x
                        &and ev.y >= lbl.wid_pos.y
                        &and ev.x <= (lbl.wid_pos.x + lbl.wid_pos.2)
                        &and ev.y <= (lbl.wid_pos.y + lbl.wid_pos.3) {
-                        if lbl.source != "hexcell" {
-                            !lblcopy = ${};
-                            iter kv lbl {
-                                if kv.1 != "pos" &and kv.1 != "wid_pos" {
-                                    lblcopy.(kv.1) = kv.0;
-                                }
-                            };
-                            .text +>= std:ser:json lblcopy;
-                            .text +>= "\n";
-                            .found = $true;
-                        }
+                        !lblcopy = ${};
+                        iter kv lbl {
+                            if kv.1 != "pos" &and kv.1 != "wid_pos" {
+                                lblcopy.(kv.1) = kv.0;
+                            }
+                        };
+                        $+ lblcopy;
+                        .found = $true;
                     };
                 };
-                .text +>= "```\n";
 
                 if found {
-                    editor.emit :show_dbg_help ui:mkd2wt[text];
+                    editor.emit :show_dbg_help position_labels;
                 };
 
                 .GLOBAL_CLICK_CB = $n;
@@ -862,17 +857,14 @@ wtd_help.set_text "Help!";
 help_wichtext.set_ctrl :wichtext wtd_help;
 help_wichtext.auto_hide[];
 
-editor.reg :show_dbg_help {!(text) = @;
-    wtd_help.set_text text;
-    help_wichtext.show[];
-    help_wichtext.change_layout ${
-        width = :pixels => 1000,
-    };
-};
-
 editor.reg :show_main_help {!(text) = @;
     wtd_help.set_text text;
     help_wichtext.show[];
+};
+
+!debug_panel = popup_debug_browser:DebugPanel.new[];
+editor.reg :show_dbg_help {!(labels) = @;
+    debug_panel.show labels;
 };
 
 !midi_log_wichtext = styling:new_widget :midi_log_wichtext;
@@ -996,6 +988,7 @@ popup_layer.add mode_selector_popup;
 popup_layer.add cell_context_popup;
 popup_layer.add matrix_context_popup;
 popup_layer.add help_wichtext;
+popup_layer.add debug_panel.build[];
 popup_layer.add midi_log_wichtext;
 popup_layer.add sample_list_popup;
 popup_layer.add dialog_popup;
