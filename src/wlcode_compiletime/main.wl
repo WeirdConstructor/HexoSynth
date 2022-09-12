@@ -8,9 +8,14 @@
 !@import tests wllib:tests;
 !@import texts wllib:texts;
 
+!IN_TEST_MODE = $false;
+!GLOBAL_CLICK_CB = $none;
+!LAST_LABELS = $[];
+
 !@export init = {
     !test = std:sys:env:var "HEXOSYNTH_TEST";
     if not[is_err[test]] &and is_some[test] {
+        .IN_TEST_MODE = $true;
         !test_match = if test == "1" { $n } { test };
         tests:install test_match;
     }
@@ -522,7 +527,41 @@ top_menu_button_bar.enable_cache[];
     $["Load", texts:top_menu_texts.load, :load],
     $["Demo", texts:top_menu_texts.demo, :init],
     $["Code", texts:top_menu_texts.code, on_code_menu_toggle],
-    $["_C", texts:top_menu_texts.colors, { editor.show_color_info[]; }],
+    $["_C", texts:top_menu_texts.colors, {
+        editor.show_color_info[];
+        if IN_TEST_MODE {
+            .GLOBAL_CLICK_CB = {!(ev) = @;
+                !found = $false;
+                !text = $F"## Widgets At {},{}\n\n" ev.x ev.y;
+                .text +>= "```\n\n";
+                iter lbl LAST_LABELS {
+                    if ev.x >= lbl.wid_pos.x
+                       &and ev.y >= lbl.wid_pos.y
+                       &and ev.x <= (lbl.wid_pos.x + lbl.wid_pos.2)
+                       &and ev.y <= (lbl.wid_pos.y + lbl.wid_pos.3) {
+                        if lbl.source != "hexcell" {
+                            !lblcopy = ${};
+                            iter kv lbl {
+                                if kv.1 != "pos" &and kv.1 != "wid_pos" {
+                                    lblcopy.(kv.1) = kv.0;
+                                }
+                            };
+                            .text +>= std:ser:json lblcopy;
+                            .text +>= "\n";
+                            .found = $true;
+                        }
+                    };
+                };
+                .text +>= "```\n";
+
+                if found {
+                    editor.emit :show_dbg_help ui:mkd2wt[text];
+                };
+
+                .GLOBAL_CLICK_CB = $n;
+            };
+        }
+    }],
 ];
 
 iter action top_menu_actions {
@@ -822,6 +861,14 @@ mode_selector_popup.auto_hide[];
 wtd_help.set_text "Help!";
 help_wichtext.set_ctrl :wichtext wtd_help;
 help_wichtext.auto_hide[];
+
+editor.reg :show_dbg_help {!(text) = @;
+    wtd_help.set_text text;
+    help_wichtext.show[];
+    help_wichtext.change_layout ${
+        width = :pixels => 1000,
+    };
+};
 
 editor.reg :show_main_help {!(text) = @;
     wtd_help.set_text text;
@@ -1283,6 +1330,20 @@ root.add app_panel;
             $p(:midi_event, ev) => {
                 editor.handle_midi_event $\.ev;
             };
+    };
+};
+
+!@export on_click = {!(event) = @;
+    if is_some[GLOBAL_CLICK_CB] {
+        GLOBAL_CLICK_CB[event];
+    };
+};
+
+!@export on_driver = {!(driver) = @;
+    if is_some[GLOBAL_CLICK_CB] {
+        .LAST_LABELS = $@vec iter l driver.list_labels[] {
+            $+ l;
+        };
     };
 };
 

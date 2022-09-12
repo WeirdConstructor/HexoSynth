@@ -537,7 +537,7 @@ fn vv2rect(v: &VVal) -> Rect {
 }
 
 fn rect2vv(r: &Rect) -> VVal {
-    VVal::fvec4(r.x as f64, r.y as f64, r.h as f64, r.w as f64)
+    VVal::fvec4(r.x as f64, r.y as f64, r.w as f64, r.h as f64)
 }
 
 fn blockpos2vv(p: &BlockPos) -> VVal {
@@ -1517,7 +1517,14 @@ pub fn open_hexosynth_with_config(
             let mut roots = vec![];
 
             match ctx.eval_string(
-                "!@import main; main:init[]; !:global on_frame = main:on_frame; main:root",
+                r#"
+    !@import main;
+    main:init[];
+    !:global on_click = main:on_click;
+    !:global on_driver = main:on_driver;
+    !:global on_frame = main:on_frame;
+    main:root
+"#,
                 "top_main",
             ) {
                 Ok(v) => v.with_iter(|iter| {
@@ -1537,6 +1544,8 @@ pub fn open_hexosynth_with_config(
             }
 
             let frame_cb = ctx.get_global_var("on_frame").unwrap_or(VVal::None);
+            let click_cb = ctx.get_global_var("on_click").unwrap_or(VVal::None);
+            let driver_cb = ctx.get_global_var("on_driver").unwrap_or(VVal::None);
 
             let ctx = Rc::new(RefCell::new(ctx));
             let mut ui = Box::new(UI::new(ctx));
@@ -1555,6 +1564,57 @@ pub fn open_hexosynth_with_config(
                         Err(e) => {
                             println!("ERROR in frame callback: {}", e);
                         }
+                    }
+                }
+            }));
+
+            ui.reg(
+                "click",
+                Box::new(move |ctx, wid, ev| {
+                    if click_cb.is_none() {
+                        return;
+                    }
+
+                    if let Some(ctx) = ctx.downcast_mut::<EvalContext>() {
+                        let arg = match &ev.data {
+                            hexotk::EvPayload::Click { x, y, button } => VVal::map3(
+                                "x",
+                                VVal::Int(*x as i64),
+                                "y",
+                                VVal::Int(*y as i64),
+                                "button",
+                                mbutton2vv(*button),
+                            ),
+                            _ => VVal::None,
+                        };
+
+                        match ctx.call(&click_cb, &[arg]) {
+                            Ok(_) => {}
+                            Err(e) => {
+                                println!("ERROR in frame callback: {}", e);
+                            }
+                        }
+                    }
+                }),
+            );
+
+            ui.reg_driver_cb(Box::new(move |ctx, driver| {
+                let driv_rc = Rc::new(RefCell::new(driver));
+
+                let ret = {
+                    let driver = VTestDriver(driv_rc.clone());
+                    let driver = VVal::new_usr(driver);
+                    if let Some(ctx) = ctx.downcast_mut::<EvalContext>() {
+                        ctx.call(&driver_cb, &[driver]);
+                    }
+                };
+
+                match Rc::try_unwrap(driv_rc) {
+                    Ok(cell) => cell.into_inner(),
+                    Err(_) => {
+                        panic!(
+                            "The test scripts MUST NOT take multiple references to the TestDriver!"
+                        );
                     }
                 }
             }));
