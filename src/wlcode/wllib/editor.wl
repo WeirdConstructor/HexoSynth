@@ -541,6 +541,9 @@
     },
     handle_hover = {!(where, arg1) = @;
         match where
+            :hover_help => {
+                $self.emit :update_status_help_text ~ ui:mkd2wt arg1 SMALL_DESC_WT_WIDTH_CHARS;
+            }
             :node_picker => {
                 $self.show_node_id_desc arg1 :picker;
             }
@@ -744,20 +747,28 @@
     context_cell_is_empty = {
         is_empty_cell[$data.context_cell]
     },
-    get_cell_context_menu_items = { $[
-        $[:rand_input => "Random Input"],
-        $[:rand_output => "Random Output"],
-        $[:remove_any => "Cleanup Ports"],
-        $[:remove_inp => "Cleanup Inputs"],
-        $[:remove_out => "Cleanup Outputs"],
-        $[:remove_cell => "Remove Cell"],
-        $[:remove_chain => "Remove Chain"],
-    ] },
-    get_matrix_context_menu_items = { $[
-        $[:rand_here => "Random"],
-        $[:rand_6_here => "Random 6"],
-        $[:global_remove_any => "Cleanup All Ports"],
-    ] },
+    get_cell_context_menu_items = {
+        !list = $[
+            $[:rand_input, "Random Input"],
+            $[:rand_output, "Random Output"],
+            $[:remove_any, "Cleanup Ports"],
+            $[:remove_inp, "Cleanup Inputs"],
+            $[:remove_out, "Cleanup Outputs"],
+            $[:remove_cell, "Remove Cell"],
+            $[:remove_chain, "Remove Chain"],
+        ];
+        iter item list { item.2 = texts:cell_context.(item.0) };
+        list
+    },
+    get_matrix_context_menu_items = {
+        !list = $[
+            $[:rand_here, "Random"],
+            $[:rand_6_here, "Random 6"],
+            $[:global_remove_any, "Cleanup All Ports"],
+        ];
+        iter item list { item.2 = texts:matrix_context.(item.0) };
+        list
+    },
     handle_context_menu_action = {!(action) = @;
         !pos = $data.context_pos;
         match action

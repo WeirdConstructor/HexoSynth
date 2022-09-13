@@ -202,9 +202,12 @@
 !cell_context_popup = styling:new_widget :popup_menu;
 cell_context_popup.auto_hide[];
 
-!add_context_menu_item = {!(menu, label, callback) = @;
+!add_context_menu_item = {!(menu, label, help, callback) = @;
     !btn = styling:new_widget :cell_context_item;
     btn.set_ctrl :button (ui:txt label);
+    btn.reg :hover {
+        editor.handle_hover :hover_help help;
+    };
     btn.reg :click {
         callback[];
         menu.hide[];
@@ -214,9 +217,13 @@ cell_context_popup.auto_hide[];
 };
 
 iter ctx_item editor.get_cell_context_menu_items[] {
-    !ctx_item = ctx_item.0;
+    !ctx_item = ctx_item;
 
-    add_context_menu_item cell_context_popup ctx_item.1 {
+    if is_none[ctx_item.2] {
+        panic ~ $F"Missing help for context menu item: {}" ctx_item.0;
+    };
+
+    add_context_menu_item cell_context_popup ctx_item.1 ctx_item.2 {
         editor.handle_context_menu_action ctx_item.0;
     };
 };
@@ -225,9 +232,13 @@ iter ctx_item editor.get_cell_context_menu_items[] {
 matrix_context_popup.auto_hide[];
 
 iter ctx_item editor.get_matrix_context_menu_items[] {
-    !ctx_item = ctx_item.0;
+    !ctx_item = ctx_item;
 
-    add_context_menu_item matrix_context_popup ctx_item.1 {
+    if is_none[ctx_item.2] {
+        panic ~ $F"Missing help for context menu item: {}" ctx_item.0;
+    };
+
+    add_context_menu_item matrix_context_popup ctx_item.1 ctx_item.2 {
         editor.handle_context_menu_action ctx_item.0;
     };
 };

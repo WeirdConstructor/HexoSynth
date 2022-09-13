@@ -361,3 +361,19 @@ to place connected nodes directly!
     code = "## Code Button\nIncreases the size of the `Code` WBlockDSP code window at the bottom of the *Matrix*.",
     colors = "## _C Button\nShows some development specific information in the description window.",
 };
+
+!@export cell_context = ${
+    rand_input = "## Random Input\nSelects a random node and instanciates it as input to this cell.",
+    rand_output = "## Random Output\nSelects a random node, instanciates it and sends the output of this cell to that ndoe.",
+    remove_any = "## Cleanup Ports\nRemoves any unconnected ports of this cell.",
+    remove_inp = "## Cleanup Input Ports\nRemoves any unconnected input ports of this cell.",
+    remove_out = "## Cleanup Output Ports\nRemoves any unconnected output ports of this cell.",
+    remove_cell = "## Remove Cell\nRemoves the node instance from this cell.",
+    remove_chain = "## Remove Complete Cell Chain\nRemoves the node instances of a complete connected chain of cells.",
+};
+
+!@export matrix_context = ${
+    rand_here = "## Create Random Node\nCreates a new instance of a random new node in this cell.",
+    rand_6_here = "## Create 6 Random Nodes\nCreates 6 new random nodes around this cell.",
+    global_remove_any = "## Cleanup Any Unused Ports\nRemoves any unconnected port of all cells in this matrix.",
+};

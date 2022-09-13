@@ -1051,6 +1051,69 @@
             std:assert is_some[res];
         };
     };
+
+    !enter_into_first_tseq_cell = {!(test, pressed_keys) = @;
+        test.add_step :click_seq {!(td, labels) = @;
+            !res = $S(*:{ctrl=*Button, label=Seq}) labels;
+            do_click td res.0;
+        };
+        test.add_step :click_first_cell {!(td, labels) = @;
+            !res = $S°
+                *:{ctrl=*PatternEditor, source=cell}
+                  & :(logic_pos:str=\$i\(0\,0\))° labels;
+            do_click td res.0;
+        };
+        test.add_step :enter_edit {!(td, labels) = @;
+            unwrap ~ td.key_press :Enter;
+            iter v pressed_keys {
+                unwrap ~ td.key_press v;
+            };
+            unwrap ~ td.key_press :Enter;
+        };
+    };
+
+    add_test "pattern_edit_basic_entry" {!(test) = @;
+        test.add_step :init {||
+            matrix_init $i(1, 1) :B ${chain=$[
+                $[:tseq, :gat1],
+            ]};
+        };
+        test.add_step :click_tseq0 {!(td, labels) = @;
+            !res = $S°*:{ctrl=*HexGrid, label=TSeq, logic_pos=\$i\(1\,1\)}° labels;
+            do_click td res.0;
+        };
+
+        enter_into_first_tseq_cell test $[:f, :f, :f];
+
+        test.add_step :click_first_cell {!(td, labels) = @;
+            !res = $S(*:{ctrl=*PatternEditor, label=fff}) labels;
+            std:assert_str_eq res.0.logic_pos $i(0, 0);
+        };
+    };
+
+    add_test "pattern_edit_switch_tseq" {!(test) = @;
+        test.add_step :init {||
+            matrix_init $i(1, 1) :B ${chain=$[
+                $[:tseq, :gat1],
+                $[:tseq, :gat2],
+            ]};
+        };
+        test.add_step :click_tseq0 {!(td, labels) = @;
+            !res = $S°*:{ctrl=*HexGrid, label=TSeq, logic_pos=\$i\(1\,1\)}° labels;
+            do_click td res.0;
+        };
+
+        enter_into_first_tseq_cell test $[:f, :f, :e];
+
+        test.add_step :click_tseq1 {!(td, labels) = @;
+            !res = $S°*:{ctrl=*HexGrid, label=TSeq, logic_pos=\$i\(1\,2\)}° labels;
+            do_click td res.0;
+        };
+        test.add_step :click_first_cell {!(td, labels) = @;
+            !res = $S°*:{ctrl=*PatternEditor, source=cell, logic_pos=\$i\(0\,0\)}° labels;
+            std:assert_str_eq res.0.label "---";
+        };
+    };
 };
 # dump_labels td;
 # test.add_step :sleep {|| std:thread:sleep :ms => 1000 };
