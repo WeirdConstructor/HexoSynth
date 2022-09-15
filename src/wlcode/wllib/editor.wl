@@ -575,6 +575,20 @@
     handle_matrix_graph_change = {
         $self.set_focus_cell $data.focus_cell.pos;
     },
+    select_specific_node_type = {
+        iter x $i(0, 16) {
+            iter y $i(0, 16) {
+                !pos = $i(x, y);
+                !cell = $data.matrix.get pos;
+                if not[is_empty_cell cell] {
+                    if cell.node_id.0 == "vosc" {
+                        $self.set_focus_cell pos;
+                        return $n;
+                    };
+                };
+            };
+        };
+    },
     select_any_non_empty_cell = {
         iter x $i(0, 16) {
             iter y $i(0, 16) {
@@ -589,8 +603,7 @@
     },
     post_load = {!(cmd) = @;
         match cmd
-            :demo => {
-            }
+            :demo => { $self.select_specific_node_type[]; }
             :load_file => { $self.select_any_non_empty_cell[] };
     },
     do_load = {|1<2| !(cmd, arg) = @;
