@@ -1162,7 +1162,49 @@
                 std:assert res;
             };
         };
+    };
 
+    add_test "check_help_context_menu" {!(test) = @;
+        test.add_step :init {||
+            matrix_init $i(1, 1) :B ${chain=$[
+                $[:tseq, :gat1],
+            ]};
+        };
+
+        test.add_step :right_click_empty_cell {!(td, labels) = @;
+            !res = matrix_cell_label labels $i(0, 0);
+            do_click_rmb td res;
+        };
+
+        test.add_step :hover_menu {!(td, labels) = @;
+            !res = $S°*:{ctrl=*Button, label=*Random}° labels;
+            do_hover td res.0;
+        };
+
+        test.add_step :see_random_help {!(td, labels) = @;
+            !res = $S°*:{ctrl=*WichText, label=*Create*}° labels;
+            std:assert res.0;
+        };
+
+        test.add_step :close_context_menu {!(td, labels) = @;
+            !res = matrix_cell_label labels $i(1, 1);
+            do_click_rmb td res;
+        };
+
+        test.add_step :right_click_filled_cell {!(td, labels) = @;
+            !res = matrix_cell_label labels $i(1, 1);
+            do_click_rmb td res;
+        };
+
+        test.add_step :hover_menu {!(td, labels) = @;
+            !res = $S°*:{ctrl=*Button, label=*Cleanup?Ports*}° labels;
+            do_hover td res.0;
+        };
+
+        test.add_step :see_cleanup_help {!(td, labels) = @;
+            !res = $S°*:{ctrl=*WichText, label=*Cleanup*}° labels;
+            std:assert res.0;
+        };
     };
 };
 # dump_labels td;
