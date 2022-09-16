@@ -71,7 +71,7 @@
         };
     },
     set_active_tracker = {!(node_id) = @;
-        $data.last_active_tracker_id = node_id.0;
+        $data.last_active_tracker_id = node_id.1;
         $self.emit :pattern_editor_set_data $[
             $data.last_active_tracker_id,
             $[
@@ -575,24 +575,66 @@
     handle_matrix_graph_change = {
         $self.set_focus_cell $data.focus_cell.pos;
     },
+    select_specific_node_type = {
+        iter x $i(0, 16) {
+            iter y $i(0, 16) {
+                !pos = $i(x, y);
+                !cell = $data.matrix.get pos;
+                if not[is_empty_cell cell] {
+                    if cell.node_id.0 == "vosc" {
+                        $self.set_focus_cell pos;
+                        return $n;
+                    };
+                };
+            };
+        };
+    },
+    select_any_non_empty_cell = {
+        iter x $i(0, 16) {
+            iter y $i(0, 16) {
+                !pos = $i(x, y);
+                !cell = $data.matrix.get pos;
+                if not[is_empty_cell cell] {
+                    $self.set_focus_cell pos;
+                    return $n;
+                };
+            };
+        };
+    },
+    post_load = {!(cmd) = @;
+        match cmd
+            :demo => { $self.select_specific_node_type[]; }
+            :load_file => { $self.select_any_non_empty_cell[] };
+    },
+    do_load = {|1<2| !(cmd, arg) = @;
+        !self = $self;
+        !matrix = $data.matrix;
+        match cmd
+            :load_file => {
+                $self.user_confirm_query
+                    "Really delete everything and load the patch?"
+                    {
+                        matrix.load_patch arg;
+                        self.post_load :load_file;
+                    }
+            }
+            :demo => {
+                $self.user_confirm_query
+                    "Really delete everything and load the initial demo patch?"
+                    {
+                        matrix.load_init_patch[];
+                        self.post_load :demo;
+                    }
+            };
+    },
     handle_top_menu_click = {!(button_tag) = @;
         match button_tag
             :help => { $self.show_help[]; }
             :about => { $self.emit :show_main_help ui:mkd2wt[texts:about]; }
             :midi => { $self.emit :show_midi_log; }
             :save => { $data.matrix.save_patch "init.hxy"; }
-            :load => {
-                !matrix = $data.matrix;
-                $self.user_confirm_query
-                    "Really delete everything and load the patch?"
-                    { matrix.load_patch "init.hxy"; }
-            }
-            :init => {
-                !matrix = $data.matrix;
-                $self.user_confirm_query
-                    "Really delete everything and load the initial demo patch?"
-                    { matrix.load_init_patch[]; }
-            }
+            :load => { $self.do_load :load_file "init.hxy" }
+            :init => { $self.do_load :demo }
     },
     show_help = {
         $self.emit :show_main_help ui:mkd2wt[texts:help];

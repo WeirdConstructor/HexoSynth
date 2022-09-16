@@ -96,6 +96,18 @@
     (sel labels).0
 };
 
+!search_wichtext_pattern = {!(labels, pattern) = @;
+    !sel_str = $F $q(*:{{ctrl=*WichText, label={}}}) pattern;
+    !sel = std:selector sel_str;
+    (sel labels).0
+};
+
+!search_button_pattern = {!(labels, pattern) = @;
+    !sel_str = $F $q(*:{{ctrl=*Button, label={}}}) pattern;
+    !sel = std:selector sel_str;
+    (sel labels).0
+};
+
 !is_inside = {!(rect, pos) = @;
     std:displayln "INS " rect pos;
          pos.x >= rect.0
@@ -1113,6 +1125,44 @@
             !res = $S°*:{ctrl=*PatternEditor, source=cell, logic_pos=\$i\(0\,0\)}° labels;
             std:assert_str_eq res.0.label "---";
         };
+    };
+
+    add_test "check_help_top_menu" {!(test) = @;
+        test.add_step :init {||
+            matrix_init $i(1, 1) :B ${chain=$[ ]};
+        };
+
+        test.add_step :hover_MIDI {!(td, labels) = @;
+            !res = $S°*:{ctrl=*Button, label=MIDI}° labels;
+            do_hover td res.0;
+        };
+
+        test.add_step :see_no_about_help {!(td, labels) = @;
+            !res = $S°*:{ctrl=*WichText, label=*About*}° labels;
+            std:assert not[res.0];
+        };
+
+        iter btn_hov $[
+            $p("About", "*About*"),
+            $p("Help", "*Help*"),
+            $p("Save", "*Save*"),
+            $p("Load", "*Load*"),
+            $p("Demo", "*Demo*"),
+            $p("Code", "*WBlockDSP*")
+        ] {
+            !(btn_label, help_pat) = btn_hov;
+
+            test.add_step ("hover_" btn_label) {!(td, labels) = @;
+                !btn = search_button_pattern labels btn_label;
+                do_hover td btn;
+            };
+
+            test.add_step ("see_help_" btn_label) {!(td, labels) = @;
+                !res = search_wichtext_pattern labels help_pat;
+                std:assert res;
+            };
+        };
+
     };
 };
 # dump_labels td;
