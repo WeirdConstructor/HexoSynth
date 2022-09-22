@@ -827,6 +827,19 @@ impl VValUserData for VUIWidget {
                             )))
                         }
                     }
+                    "list" => {
+                        if let Some(model) = wlapi::vv2list_data(env.arg(1)) {
+                            self.0.set_ctrl(hexotk::Control::List {
+                                list: Box::new(hexotk::List::new(model)),
+                            });
+                            Ok(VVal::Bol(true))
+                        } else {
+                            Ok(VVal::err_msg(&format!(
+                                "list has no list model as argument: {}",
+                                env.arg(1).s()
+                            )))
+                        }
+                    }
                     "grid" => {
                         if let Some(model) = wlapi::vv2hex_grid_model(env.arg(1)) {
                             self.0.set_ctrl(hexotk::Control::HexGrid {
@@ -1357,6 +1370,14 @@ pub fn open_hexosynth_with_config(
             ui_st.fun(
                 "txt_field",
                 move |env: &mut Env, _argc: usize| Ok(VVal::new_usr(VUITextField::new())),
+                Some(0),
+                Some(0),
+                false,
+            );
+
+            ui_st.fun(
+                "list_data",
+                move |_env: &mut Env, _argc: usize| Ok(VVal::new_usr(wlapi::VValListData::new())),
                 Some(0),
                 Some(0),
                 false,

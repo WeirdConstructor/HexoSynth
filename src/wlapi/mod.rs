@@ -20,6 +20,9 @@ pub use wichtext::*;
 pub mod pattern_editor;
 pub use pattern_editor::*;
 
+pub mod list;
+pub use list::*;
+
 use std::sync::{Arc, Mutex};
 use wlambda::*;
 
