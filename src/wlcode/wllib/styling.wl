@@ -301,6 +301,16 @@ layout.mode_selector_item = ${ parent = :popup_menu_item, };
 style.cell_context_item = ${ parent = :popup_menu_item, };
 layout.cell_context_item = ${ parent = :popup_menu_item, };
 
+layout.file_selector_popup = ${
+    parent = :popup_menu,
+    width = :auto,
+};
+
+layout.file_list = ${
+    height = :pixels => 300,
+    width = :pixels => 200,
+};
+
 style.wichtext = ${
     bg_color = ui:UI_ACCENT_BG1_CLR,
     border = 0,

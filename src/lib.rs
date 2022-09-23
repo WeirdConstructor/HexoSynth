@@ -1038,6 +1038,7 @@ impl VValUserData for VUIWidget {
                                     user_data_out = Some(rc.clone());
                                     VVal::None
                                 }
+                                hexotk::EvPayload::ItemSelect { index } => VVal::Int(*index as i64),
                                 hexotk::EvPayload::Text(txt) => VVal::new_str_mv(txt.to_string()),
                                 hexotk::EvPayload::DropAccept(rc) => {
                                     drop_accept = Some(rc.clone());

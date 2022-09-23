@@ -586,6 +586,13 @@ iter action top_menu_actions {
     top_menu_button_bar.add btn;
 };
 
+!popup_test = $n;
+!tmp_btn = styling:new_button_with_label :button_float_menu "Test" {
+    popup_test.popup_at_mouse[];
+};
+
+top_menu_button_bar.add tmp_btn;
+
 right_container.add top_menu_button_bar;
 
 
@@ -992,12 +999,33 @@ editor.reg :open_sample_selector {!(param) = @;
     sample_list_popup.popup_at_mouse[];
 };
 
+##################################################################
+
+!file_selector_popup = styling:new_widget :file_selector_popup;
+file_selector_popup.auto_hide[];
+file_selector_popup.set_ctrl :rect $n;
+
+!list = styling:new_widget :file_list;
+list.set_ctrl :list $["a", "b", "c", "d"];
+
+list.reg :select { std:displayln "SELECT:" @; };
+
+file_selector_popup.add list;
+
+.popup_test = file_selector_popup;
+
+file_selector_popup.popup_at_mouse[];
+
+
+##################################################################
+
 #sample_list_wichtext.popup_at_mouse[];
 
 popup_layer.add connector_popup;
 popup_layer.add mode_selector_popup;
 popup_layer.add cell_context_popup;
 popup_layer.add matrix_context_popup;
+popup_layer.add file_selector_popup;
 popup_layer.add help_wichtext;
 popup_layer.add debug_panel.build[];
 popup_layer.add midi_log_wichtext;
