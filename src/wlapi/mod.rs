@@ -23,6 +23,7 @@ pub use pattern_editor::*;
 pub mod list;
 pub use list::*;
 
+use directories::UserDirs;
 use std::sync::{Arc, Mutex};
 use wlambda::*;
 
@@ -158,6 +159,52 @@ pub fn setup_hx_module(matrix: Arc<Mutex<Matrix>>) -> wlambda::SymbolTable {
     st.fun(
         "create_test_hex_grid_model",
         |_env: &mut Env, _argc: usize| Ok(new_test_grid_model()),
+        Some(0),
+        Some(0),
+        false,
+    );
+
+    st.fun(
+        "get_directory_patches",
+        |_env: &mut Env, _argc: usize| {
+            if let Some(user) = UserDirs::new() {
+                if let Some(doc_dir) = user.document_dir() {
+                    if let Some(path_str) =
+                        doc_dir.join("HexoSynth").join("patches").as_path().to_str()
+                    {
+                        Ok(VVal::new_str(path_str))
+                    } else {
+                        Ok(VVal::err_msg(&format!("Could not create path string!")))
+                    }
+                } else {
+                    Ok(VVal::err_msg(&format!("No Document dir could be found!")))
+                }
+            } else {
+                Ok(VVal::err_msg(&format!("No valid home directory set!")))
+            }
+        },
+        Some(0),
+        Some(0),
+        false,
+    );
+
+    st.fun(
+        "get_directories_samples",
+        |_env: &mut Env, _argc: usize| {
+            let list = VVal::vec();
+
+            if let Some(user) = UserDirs::new() {
+                if let Some(doc_dir) = user.document_dir() {
+                    if let Some(path_str) =
+                        doc_dir.join("HexoSynth").join("samples").as_path().to_str()
+                    {
+                        list.push(VVal::new_str(path_str));
+                    }
+                }
+            }
+
+            Ok(list)
+        },
         Some(0),
         Some(0),
         false,

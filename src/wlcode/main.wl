@@ -1008,6 +1008,9 @@ file_selector_popup.set_ctrl :rect $n;
 !list = styling:new_widget :file_list;
 list.set_ctrl :list $["a", "b", "c", "d"];
 
+std:displayln "PATCHES:" hx:get_directory_patches[];
+std:displayln "SAMPLES:" hx:get_directories_samples[];
+
 list.reg :select { std:displayln "SELECT:" @; };
 
 file_selector_popup.add list;

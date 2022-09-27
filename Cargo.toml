@@ -19,6 +19,7 @@ ringbuf    = "0.2.2"
 keyboard-types = { version = "0.6.1", default-features = false }
 triple_buffer = "5.0.6"
 hound       = "3.4.0"
+directories = "4.0.1"
 
 #[dev-dependencies]
 #microfft    = "0.3.1"

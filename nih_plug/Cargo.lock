@@ -702,6 +702,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "directories"
+version = "4.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f51c5d4ddabd36886dd3e1438cb358cdcb0d7c499cb99cb4ac2e38e18b5cb210"
+dependencies = [
+ "dirs-sys",
+]
+
+[[package]]
 name = "dirs-next"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -709,6 +718,17 @@ checksum = "cf36e65a80337bea855cd4ef9b8401ffce06a7baedf2e85ec467b1ac3f6e82b6"
 dependencies = [
  "cfg-if 1.0.0",
  "dirs-sys-next",
+]
+
+[[package]]
+name = "dirs-sys"
+version = "0.3.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1b1d1d91c932ef41c0f2663aa8b0ca0342d444d842c06914aa0a7e352d0bada6"
+dependencies = [
+ "libc",
+ "redox_users",
+ "winapi",
 ]
 
 [[package]]
@@ -975,6 +995,7 @@ dependencies = [
 name = "hexosynth"
 version = "0.2.0-alpha-1"
 dependencies = [
+ "directories",
  "hexodsp",
  "hexotk",
  "hound",
@@ -1001,6 +1022,7 @@ dependencies = [
 [[package]]
 name = "hexotk"
 version = "0.5.0"
+source = "git+https://github.com/WeirdConstructor/HexoTK.git#ce7812ae591338fe1c4de1daad110f6664e72604"
 dependencies = [
  "baseview 0.1.0 (git+https://github.com/RustAudio/baseview.git)",
  "femtovg",
