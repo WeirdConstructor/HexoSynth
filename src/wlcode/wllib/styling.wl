@@ -307,8 +307,25 @@ layout.file_selector_popup = ${
 };
 
 layout.file_list = ${
-    height = :pixels => 300,
-    width = :pixels => 200,
+    height = :pixels => 400,
+    width = :pixels => 300,
+};
+
+layout.dir_list = ${
+    height = :pixels => 400,
+    width = :pixels => 300,
+};
+
+style.file_list = ${
+    bg_color = ui:UI_ACCENT_BG2_CLR,
+    color = ui:UI_PRIM_CLR,
+};
+style.dir_list = ${
+    parent = :file_list,
+};
+
+layout.file_dialog = ${
+    layout_type = :row,
 };
 
 style.wichtext = ${

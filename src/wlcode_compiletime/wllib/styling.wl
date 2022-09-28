@@ -301,6 +301,33 @@ layout.mode_selector_item = ${ parent = :popup_menu_item, };
 style.cell_context_item = ${ parent = :popup_menu_item, };
 layout.cell_context_item = ${ parent = :popup_menu_item, };
 
+layout.file_selector_popup = ${
+    parent = :popup_menu,
+    width = :auto,
+};
+
+layout.file_list = ${
+    height = :pixels => 400,
+    width = :pixels => 300,
+};
+
+layout.dir_list = ${
+    height = :pixels => 400,
+    width = :pixels => 300,
+};
+
+style.file_list = ${
+    bg_color = ui:UI_ACCENT_BG2_CLR,
+    color = ui:UI_PRIM_CLR,
+};
+style.dir_list = ${
+    parent = :file_list,
+};
+
+layout.file_dialog = ${
+    layout_type = :row,
+};
+
 style.wichtext = ${
     bg_color = ui:UI_ACCENT_BG1_CLR,
     border = 0,

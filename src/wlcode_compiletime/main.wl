@@ -586,6 +586,13 @@ iter action top_menu_actions {
     top_menu_button_bar.add btn;
 };
 
+!popup_test = $n;
+!tmp_btn = styling:new_button_with_label :button_float_menu "Test" {
+    popup_test.popup_at_mouse[];
+};
+
+top_menu_button_bar.add tmp_btn;
+
 right_container.add top_menu_button_bar;
 
 
@@ -992,12 +999,123 @@ editor.reg :open_sample_selector {!(param) = @;
     sample_list_popup.popup_at_mouse[];
 };
 
+##################################################################
+
+!file_selector_popup = styling:new_widget :file_selector_popup;
+file_selector_popup.auto_hide[];
+file_selector_popup.set_ctrl :rect $n;
+
+!FileSelector = ${
+    new = {
+        !root_dirs = hx:get_directories_samples[];
+
+        ${
+            _proto = $self,
+            _data = ${
+                file_type = :sample,
+                root_dirs = root_dirs,
+                cur_path = root_dirs.0,
+                directories = $[],
+                files = $[],
+                file_list_data = ui:list_data[],
+                dir_list_data = ui:list_data[],
+                path_stack = $[],
+            },
+        }
+    },
+    build = {
+        !grp = styling:new_widget :file_dialog;
+
+        !dir_list = styling:new_widget :dir_list;
+        dir_list.set_ctrl :list $data.dir_list_data;
+
+        !file_list = styling:new_widget :file_list;
+        file_list.set_ctrl :list $data.file_list_data;
+
+        grp.add dir_list;
+        grp.add file_list;
+
+        !self = $self;
+        dir_list.reg :select {!(wid, idx) = @;
+            if idx == 0 {
+                self.navigate_parent[];
+                return $n;
+            };
+
+            !list_idx = idx - 1;
+            self.navigate_dir_index list_idx;
+        };
+
+        grp
+    },
+    navigate_parent = {
+        if len[$data.path_stack] > 0 {
+            $data.cur_path = std:pop $data.path_stack;
+            $self.update[];
+        };
+    },
+    navigate_dir_index = {!(index) = @;
+        !dir = $data.directories.(index);
+
+        std:push $data.path_stack $data.cur_path;
+        $data.cur_path = dir.0;
+        $self.update[];
+    },
+    update = {
+        !dirs = $[];
+        !files = $[];
+        !_ = std:fs:read_dir $data.cur_path {!(ent) = @;
+            std:displayln "ENT:" ent;
+            match ent.type
+                :f => {
+                    if ent.name &> $r/*.wav$$/ {
+                        std:push files $p(ent.path, ent.name);
+                    };
+                }
+                :d => {
+                    std:push dirs $p(ent.path, ent.name);
+                };
+            $f
+        };
+        $data.directories = dirs;
+        $data.files = files;
+
+        $data.file_list_data.clear[];
+        iter f files \$data.file_list_data.push f.1;
+
+        $data.dir_list_data.clear[];
+        $data.dir_list_data.push ".. (parent)";
+        iter d dirs \$data.dir_list_data.push ~ d.1 "/";
+    },
+};
+
+!fsel = FileSelector.new[];
+fsel.update[];
+
+#!list = styling:new_widget :file_list;
+#list.set_ctrl :list $["a", "b", "c", "d"];
+
+std:displayln "PATCHES:" hx:get_directory_patches[];
+std:displayln "SAMPLES:" hx:get_directories_samples[];
+
+#list.reg :select { std:displayln "SELECT:" @; };
+
+file_selector_popup.add fsel.build[];
+
+.popup_test = file_selector_popup;
+
+file_selector_popup.popup_at_mouse[];
+
+
+##################################################################
+
 #sample_list_wichtext.popup_at_mouse[];
 
 popup_layer.add connector_popup;
 popup_layer.add mode_selector_popup;
 popup_layer.add cell_context_popup;
 popup_layer.add matrix_context_popup;
+popup_layer.add file_selector_popup;
 popup_layer.add help_wichtext;
 popup_layer.add debug_panel.build[];
 popup_layer.add midi_log_wichtext;
