@@ -830,7 +830,26 @@ impl VValUserData for VUIWidget {
                     "list" => {
                         if let Some(model) = wlapi::vv2list_data(env.arg(1)) {
                             self.0.set_ctrl(hexotk::Control::List {
-                                list: Box::new(hexotk::List::new(model)),
+                                list: Box::new(hexotk::List::new(
+                                    model,
+                                    hexotk::ListScrollMode::Detached,
+                                )),
+                            });
+                            Ok(VVal::Bol(true))
+                        } else {
+                            Ok(VVal::err_msg(&format!(
+                                "list has no list model as argument: {}",
+                                env.arg(1).s()
+                            )))
+                        }
+                    }
+                    "list_selector" => {
+                        if let Some(model) = wlapi::vv2list_data(env.arg(1)) {
+                            self.0.set_ctrl(hexotk::Control::List {
+                                list: Box::new(hexotk::List::new(
+                                    model,
+                                    hexotk::ListScrollMode::ItemCentered,
+                                )),
                             });
                             Ok(VVal::Bol(true))
                         } else {

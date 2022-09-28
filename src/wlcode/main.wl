@@ -1030,7 +1030,7 @@ file_selector_popup.set_ctrl :rect $n;
         dir_list.set_ctrl :list $data.dir_list_data;
 
         !file_list = styling:new_widget :file_list;
-        file_list.set_ctrl :list $data.file_list_data;
+        file_list.set_ctrl :list_selector $data.file_list_data;
 
         grp.add dir_list;
         grp.add file_list;

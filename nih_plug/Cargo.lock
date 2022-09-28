@@ -146,7 +146,7 @@ dependencies = [
 [[package]]
 name = "baseview"
 version = "0.1.0"
-source = "git+https://github.com/RustAudio/baseview.git#b3712638bacb3fdf2883cb5aa3f6caed0e91ac8c"
+source = "git+https://github.com/RustAudio/baseview.git#eae4033e7d2cc9c31ccaa2794d5d08eedf2f510c"
 dependencies = [
  "cocoa",
  "core-foundation",
@@ -1022,7 +1022,7 @@ dependencies = [
 [[package]]
 name = "hexotk"
 version = "0.5.0"
-source = "git+https://github.com/WeirdConstructor/HexoTK.git#ce7812ae591338fe1c4de1daad110f6664e72604"
+source = "git+https://github.com/WeirdConstructor/HexoTK.git#4b6b28388d65d65da470b81379be3c8a84604287"
 dependencies = [
  "baseview 0.1.0 (git+https://github.com/RustAudio/baseview.git)",
  "femtovg",
@@ -1044,14 +1044,13 @@ checksum = "4d13cdbd5dbb29f9c88095bbdc2590c9cba0d0a1269b983fef6b2cdd7e9f4db1"
 
 [[package]]
 name = "iana-time-zone"
-version = "0.1.48"
+version = "0.1.50"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "237a0714f28b1ee39ccec0770ccb544eb02c9ef2c82bb096230eefcffa6468b0"
+checksum = "fd911b35d940d2bd0bea0f9100068e5b97b51a1cbe13d13382f132e0365257a0"
 dependencies = [
  "android_system_properties",
  "core-foundation-sys",
  "js-sys",
- "once_cell",
  "wasm-bindgen",
  "winapi",
 ]
@@ -1064,9 +1063,9 @@ checksum = "b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39"
 
 [[package]]
 name = "image"
-version = "0.24.3"
+version = "0.24.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7e30ca2ecf7666107ff827a8e481de6a132a9b687ed3bb20bb1c144a36c00964"
+checksum = "bd8e4fb07cf672b1642304e731ef8a6a4c7891d67bb4fd4f5ce58cd6ed86803c"
 dependencies = [
  "bytemuck",
  "byteorder",
@@ -1158,9 +1157,9 @@ checksum = "8eaf4bc02d17cbdd7ff4c7438cafcdf7fb9a4613313ad11b4f8fefe7d3fa0130"
 
 [[package]]
 name = "jobserver"
-version = "0.1.24"
+version = "0.1.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "af25a77299a7f711a01975c35a6a424eb6862092cc2d6c72c4ed6cbc56dfc1fa"
+checksum = "068b1ee6743e4d11fb9c6a1e6064b3693a1b600e7f5f5988047d98b3dc9fb90b"
 dependencies = [
  "libc",
 ]
@@ -1388,7 +1387,7 @@ dependencies = [
 [[package]]
 name = "nih_plug"
 version = "0.0.0"
-source = "git+https://github.com/robbert-vdh/nih-plug#b008f129f2abf90749dbadd03701cfa00f3fa33d"
+source = "git+https://github.com/robbert-vdh/nih-plug#fae7050113dff12db6b9800f876d27496e3d4e85"
 dependencies = [
  "anyhow",
  "atomic_float",
@@ -1422,7 +1421,7 @@ dependencies = [
 [[package]]
 name = "nih_plug_derive"
 version = "0.1.0"
-source = "git+https://github.com/robbert-vdh/nih-plug#b008f129f2abf90749dbadd03701cfa00f3fa33d"
+source = "git+https://github.com/robbert-vdh/nih-plug#fae7050113dff12db6b9800f876d27496e3d4e85"
 dependencies = [
  "quote",
  "syn",
@@ -1431,7 +1430,7 @@ dependencies = [
 [[package]]
 name = "nih_plug_xtask"
 version = "0.1.0"
-source = "git+https://github.com/robbert-vdh/nih-plug#b008f129f2abf90749dbadd03701cfa00f3fa33d"
+source = "git+https://github.com/robbert-vdh/nih-plug#fae7050113dff12db6b9800f876d27496e3d4e85"
 dependencies = [
  "anyhow",
  "goblin",
@@ -1786,9 +1785,9 @@ dependencies = [
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.43"
+version = "1.0.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0a2ca2c61bc9f3d74d2886294ab7b9853abd9c1ad903a3ac7815c58989bb7bab"
+checksum = "7bd7356a8122b6c4a24a82b278680c73357984ca2fc79a0f9fa6dea7dced7c58"
 dependencies = [
  "unicode-ident",
 ]
@@ -2095,18 +2094,18 @@ dependencies = [
 
 [[package]]
 name = "serde"
-version = "1.0.144"
+version = "1.0.145"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0f747710de3dcd43b88c9168773254e809d8ddbdf9653b84e2554ab219f17860"
+checksum = "728eb6351430bccb993660dfffc5a72f91ccc1295abaa8ce19b27ebe4f75568b"
 dependencies = [
  "serde_derive",
 ]
 
 [[package]]
 name = "serde_derive"
-version = "1.0.144"
+version = "1.0.145"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "94ed3a816fb1d101812f83e789f888322c34e291f894f19590dc310963e87a00"
+checksum = "81fa1584d3d1bcacd84c277a0dfe21f5b0f6accf4a23d04d4c6d61f1af522b4c"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2196,9 +2195,9 @@ checksum = "73473c0e59e6d5812c5dfe2a064a6444949f089e20eec9a2e5506596494e4623"
 
 [[package]]
 name = "syn"
-version = "1.0.100"
+version = "1.0.101"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "52205623b1b0f064a4e71182c3b18ae902267282930c6d5462c91b859668426e"
+checksum = "e90cde112c4b9690b8cbe810cba9ddd8bc1d7472e2cae317b69e9438c1cba7d2"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2261,18 +2260,18 @@ checksum = "949517c0cf1bf4ee812e2e07e08ab448e3ae0d23472aee8a06c985f0c8815b16"
 
 [[package]]
 name = "thiserror"
-version = "1.0.35"
+version = "1.0.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c53f98874615aea268107765aa1ed8f6116782501d18e53d08b471733bea6c85"
+checksum = "10deb33631e3c9018b9baf9dcbbc4f737320d2b576bac10f6aefa048fa407e3e"
 dependencies = [
  "thiserror-impl",
 ]
 
 [[package]]
 name = "thiserror-impl"
-version = "1.0.35"
+version = "1.0.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f8b463991b4eab2d801e724172285ec4195c650e8ec79b149e6c2a8e6dd3f783"
+checksum = "982d17546b47146b28f7c22e3d08465f6b8903d0ea13c1660d9d84a6e7adcdbb"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2695,7 +2694,7 @@ checksum = "c811ca4a8c853ef420abd8592ba53ddbbac90410fab6903b3e79972a631f7680"
 [[package]]
 name = "wlambda"
 version = "0.8.1"
-source = "git+https://github.com/WeirdConstructor/WLambda.git#627ec14e6961bbbe6463c7d3ded62e0871261193"
+source = "git+https://github.com/WeirdConstructor/WLambda.git#0ddd0feb51ed7eb2e69bca43c42503335bc47d48"
 dependencies = [
  "base64",
  "chrono",
