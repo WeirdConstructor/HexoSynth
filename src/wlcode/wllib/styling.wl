@@ -328,6 +328,11 @@ layout.file_dialog = ${
     layout_type = :row,
 };
 
+style.dir_name_lbl = ${ parent = :label };
+layout.dir_name_lbl = ${
+    height = :pixels => 30,
+};
+
 style.wichtext = ${
     bg_color = ui:UI_ACCENT_BG1_CLR,
     border = 0,

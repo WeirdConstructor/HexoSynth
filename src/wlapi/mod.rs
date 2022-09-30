@@ -169,10 +169,15 @@ pub fn setup_hx_module(matrix: Arc<Mutex<Matrix>>) -> wlambda::SymbolTable {
         |_env: &mut Env, _argc: usize| {
             if let Some(user) = UserDirs::new() {
                 if let Some(doc_dir) = user.document_dir() {
-                    if let Some(path_str) =
-                        doc_dir.join("HexoSynth").join("patches").as_path().to_str()
-                    {
-                        Ok(VVal::new_str(path_str))
+                    let path = doc_dir.join("HexoSynth").join("patches");
+                    let path = path.as_path();
+
+                    if let Some(path_str) = path.to_str() {
+                        if let Some(path_name) = path.file_name().map(|f| f.to_str()).flatten() {
+                            Ok(VVal::pair(VVal::new_str(path_str), VVal::new_str(path_name)))
+                        } else {
+                            Ok(VVal::err_msg(&format!("Could not get path directory name!")))
+                        }
                     } else {
                         Ok(VVal::err_msg(&format!("Could not create path string!")))
                     }
@@ -195,10 +200,16 @@ pub fn setup_hx_module(matrix: Arc<Mutex<Matrix>>) -> wlambda::SymbolTable {
 
             if let Some(user) = UserDirs::new() {
                 if let Some(doc_dir) = user.document_dir() {
-                    if let Some(path_str) =
-                        doc_dir.join("HexoSynth").join("samples").as_path().to_str()
-                    {
-                        list.push(VVal::new_str(path_str));
+                    let path = doc_dir.join("HexoSynth").join("samples");
+                    let path = path.as_path();
+
+                    if let Some(path_str) = path.to_str() {
+                        if let Some(path_name) = path.file_name().map(|f| f.to_str()).flatten() {
+                            list.push(VVal::pair(
+                                VVal::new_str(path_str),
+                                VVal::new_str(path_name),
+                            ));
+                        }
                     }
                 }
             }
