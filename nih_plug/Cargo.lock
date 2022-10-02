@@ -2214,7 +2214,7 @@ dependencies = [
 [[package]]
 name = "synfx-dsp"
 version = "0.5.4"
-source = "git+https://github.com/WeirdConstructor/synfx-dsp.git#2362ede47fc0b807928e268b28d7bbd5c980106d"
+source = "git+https://github.com/WeirdConstructor/synfx-dsp.git#e022b3d01677754e8f83c88e8e82131d02b1d782"
 dependencies = [
  "num-traits",
 ]

@@ -159,7 +159,7 @@ Enter the `nih_plug` subdirectory:
 
 Compile:
 
-    hexosynth/vst2/$ cargo xtask bundle hexosynth_plug --release
+    hexosynth/vst2/$ cargo +nightly xtask bundle hexosynth_plug --release
 
 Install:
 
@@ -177,7 +177,7 @@ Enter the `cpal_standalone` subdirectory:
 
 Compile and run:
 
-    hexosynth/cpal_standlone/$ cargo run --release
+    hexosynth/cpal_standlone/$ cargo +nightly run --release
 
 ### Running the Jack Standalone Example
 
@@ -190,7 +190,7 @@ Enter the `jack_standalone` subdirectory:
 
 Compile and run:
 
-    hexosynth/jack_standlone/$ cargo run --release
+    hexosynth/jack_standlone/$ cargo +nightly run --release
 
 ## DAW Compatibility
 
