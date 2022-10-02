@@ -8,6 +8,7 @@
 !@import tests wllib:tests;
 !@import texts wllib:texts;
 !@import popup_debug_browser wllib:popup_debug_browser;
+!@import file_selector wllib:file_selector;
 
 !IN_TEST_MODE = $false;
 !GLOBAL_CLICK_CB = $none;
@@ -1005,116 +1006,12 @@ editor.reg :open_sample_selector {!(param) = @;
 file_selector_popup.auto_hide[];
 file_selector_popup.set_ctrl :rect $n;
 
-!FileSelector = ${
-    new = {!(mode) = @;
-        !root_dirs =
-            match mode
-                :patches => { $[] +> hx:get_directory_patches[]; }
-                :samples => { hx:get_directories_samples[]; };
+std:displayln "LLL" hx:get_directory_patches[].0;
+std:displayln "XXXXXXXXXXXXX:" ~
+    hx:subdir_path_of_prefix hx:get_directory_patches[].0 "/home/weicon/Documents/HexoSynth/patches/foo/init.hxy";
 
-        ${
-            _proto = $self,
-            _data = ${
-                mode = mode,
-                file_type = :sample,
-                root_dirs = root_dirs,
-                cur_path = root_dirs.0,
-                path_stack = $[],
-                directories = $[],
-                files = $[],
-                file_list_data = ui:list_data[],
-                dir_list_data = ui:list_data[],
-                cur_path_data = ui:txt root_dirs.0.1,
-            },
-        }
-    },
-    build = {
-        !grp = styling:new_widget :file_dialog;
 
-        !file_div = styling:new_widget :file_dialog_panel;
-
-        !dir_list = styling:new_widget :dir_list;
-        dir_list.set_ctrl :list $data.dir_list_data;
-
-        !file_list = styling:new_widget :file_list;
-        file_list.set_ctrl :list_selector $data.file_list_data;
-
-        !dir_name_lbl = styling:new_widget :dir_name_lbl;
-        dir_name_lbl.set_ctrl :label $data.cur_path_data;
-        file_div.add dir_name_lbl;
-        file_div.add file_list;
-
-        grp.add dir_list;
-        grp.add file_div;
-
-        !self = $self;
-        dir_list.reg :select {!(wid, idx) = @;
-            if idx == 0 {
-                self.navigate_parent[];
-                return $n;
-            };
-
-            !list_idx = idx - 1;
-            self.navigate_dir_index list_idx;
-        };
-
-        grp
-    },
-    navigate_parent = {
-        if len[$data.path_stack] > 0 {
-            $data.cur_path = std:pop $data.path_stack;
-            $data.cur_path_data.set $data.cur_path.1;
-            $self.update[];
-        };
-    },
-    navigate_dir_index = {!(index) = @;
-        !dir = $data.directories.(index);
-
-        std:push $data.path_stack $data.cur_path;
-        $data.cur_path = dir;
-        $data.cur_path_data.set $data.cur_path.1;
-        $self.update[];
-    },
-    update = {
-        !dirs = $[];
-        !files = $[];
-        !_ = std:fs:read_dir $data.cur_path.0 {!(ent) = @;
-            match ent.type
-                :f => {
-                    match $data.mode
-                        :patches => {
-                            if ent.name &> $r/*.hxy/ {
-                                std:push files $p(ent.path, ent.name);
-                            };
-                        }
-                        :samples => {
-                            if ent.name &> $r/*.wav$$/ {
-                                std:push files $p(ent.path, ent.name);
-                            };
-                        };
-                }
-                :d => {
-                    std:push dirs $p(ent.path, ent.name);
-                };
-            $f
-        };
-
-        std:sort { std:cmp:str:asc std:str:to_lowercase[_.1] std:str:to_lowercase[_1.1] } dirs;
-        std:sort { std:cmp:str:asc std:str:to_lowercase[_.1] std:str:to_lowercase[_1.1] } files;
-
-        $data.directories = dirs;
-        $data.files = files;
-
-        $data.file_list_data.clear[];
-        iter f files \$data.file_list_data.push f.1;
-
-        $data.dir_list_data.clear[];
-        $data.dir_list_data.push ".. (parent)";
-        iter d dirs \$data.dir_list_data.push ~ d.1 "/";
-    },
-};
-
-!fsel = FileSelector.new :patches;
+!fsel = file_selector:FileSelector.new :patches;
 #!fsel = FileSelector.new :samples;
 fsel.update[];
 
@@ -1126,7 +1023,7 @@ std:displayln "SAMPLES:" hx:get_directories_samples[];
 
 #list.reg :select { std:displayln "SELECT:" @; };
 
-file_selector_popup.add fsel.build[];
+file_selector_popup.add fsel.build_selector[];
 
 .popup_test = file_selector_popup;
 

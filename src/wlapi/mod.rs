@@ -194,6 +194,58 @@ pub fn setup_hx_module(matrix: Arc<Mutex<Matrix>>) -> wlambda::SymbolTable {
     );
 
     st.fun(
+        "subdir_path_of_prefix",
+        |env: &mut Env, _argc: usize| {
+            let path = env.arg(0).s_raw();
+            let path = std::path::Path::new(&path);
+            let file_path = env.arg(1).s_raw();
+            let file_path = std::path::Path::new(&file_path);
+
+            let path = match path.canonicalize() {
+                Ok(path) => path,
+                Err(e) => {
+                    return Ok(VVal::err_msg(&format!("Can't canonicalize prefix: {}", e)));
+                }
+            };
+            let file_path = match file_path.canonicalize() {
+                Ok(path) => path,
+                Err(e) => {
+                    return Ok(VVal::err_msg(&format!("Can't canonicalize file path: {}", e)));
+                }
+            };
+
+            let file_rel_path = match file_path.strip_prefix(path.as_path()) {
+                Err(_) => return Ok(VVal::None),
+                Ok(file_path) => file_path,
+            };
+
+            let out = VVal::vec();
+            for anc in file_rel_path.ancestors() {
+                let abs_path = path.as_path().join(anc);
+
+                if let Some(path_str) = abs_path.to_str() {
+                    if path_str.is_empty() {
+                        break;
+                    }
+
+                    if let Some(path_name) = abs_path.file_name().map(|f| f.to_str()).flatten() {
+                        out.push(VVal::pair(VVal::new_str(path_str), VVal::new_str(path_name)));
+                    } else {
+                        return Ok(VVal::err_msg(&format!("Can't get path name: {:?}", anc)));
+                    }
+                } else {
+                    return Ok(VVal::err_msg(&format!("Can't get path: {:?}", anc)));
+                }
+            }
+
+            Ok(out)
+        },
+        Some(2),
+        Some(2),
+        false,
+    );
+
+    st.fun(
         "get_directories_samples",
         |_env: &mut Env, _argc: usize| {
             let list = VVal::vec();

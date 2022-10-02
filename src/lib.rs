@@ -161,6 +161,9 @@ fn set_style_from_key(style: &mut hexotk::Style, key: &str, v: &VVal) -> bool {
         "border" => {
             style.border = v.f() as f32;
         }
+        "border2" => {
+            style.border2 = v.f() as f32;
+        }
         "font_size" => {
             style.font_size = v.f() as f32;
         }
@@ -182,8 +185,14 @@ fn set_style_from_key(style: &mut hexotk::Style, key: &str, v: &VVal) -> bool {
         "color" => {
             style.color = vv2clr(v);
         }
+        "color2" => {
+            style.color2 = vv2clr(v);
+        }
         "bg_color" => {
             style.bg_color = vv2clr(v);
+        }
+        "pad_item" => {
+            style.pad_item = v.f() as f32;
         }
         "border_color" => {
             style.border_color = vv2clr(v);
@@ -1356,6 +1365,7 @@ pub fn open_hexosynth_with_config(
             preload_wlambda!(lfmr, env_path, "wllib/tests.wl");
             preload_wlambda!(lfmr, env_path, "wllib/texts.wl");
             preload_wlambda!(lfmr, env_path, "wllib/popup_debug_browser.wl");
+            preload_wlambda!(lfmr, env_path, "wllib/file_selector.wl");
 
             global_env.borrow_mut().set_resolver(lfmr);
 
