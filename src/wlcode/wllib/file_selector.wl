@@ -85,10 +85,37 @@ styling:add_layout :dir_list ${
 
         grp
     },
+    navigate_to_file = {!(file_path) = @;
+        iter rp $data.root_dirs {
+            !paths = hx:subdir_path_of_prefix rp.0 file_path;
+            if is_err[paths] { next[]; };
+            if is_none[paths] { next[]; };
+
+            .paths = std:reverse paths;
+            !file = std:pop paths;
+            !dir = std:pop paths;
+
+            $data.path_stack = paths;
+            $data.cur_path = dir;
+            $self.update[];
+
+            !i = 0;
+            iter f $data.files {
+                if f.1 == file.1 {
+                    std:displayln "FOFO:" $data.file_list_data;
+                    std:displayln "AAAA" $data.file_list_data.get_selection[];
+                    $data.file_list_data.select i;
+                    std:displayln "AAAA" $data.file_list_data.get_selection[];
+                    break[];
+                };
+                .i += 1;
+            };
+            break[];
+        };
+    },
     navigate_parent = {
         if len[$data.path_stack] > 0 {
             $data.cur_path = std:pop $data.path_stack;
-            $data.cur_path_data.set $data.cur_path.1;
             $self.update[];
         };
     },
@@ -97,10 +124,11 @@ styling:add_layout :dir_list ${
 
         std:push $data.path_stack $data.cur_path;
         $data.cur_path = dir;
-        $data.cur_path_data.set $data.cur_path.1;
         $self.update[];
     },
     update = {
+        $data.cur_path_data.set $data.cur_path.1;
+
         !dirs = $[];
         !files = $[];
         !_ = std:fs:read_dir $data.cur_path.0 {!(ent) = @;

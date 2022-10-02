@@ -1012,8 +1012,6 @@ std:displayln "XXXXXXXXXXXXX:" ~
 
 
 !fsel = file_selector:FileSelector.new :patches;
-#!fsel = FileSelector.new :samples;
-fsel.update[];
 
 #!list = styling:new_widget :file_list;
 #list.set_ctrl :list $["a", "b", "c", "d"];
@@ -1024,6 +1022,7 @@ std:displayln "SAMPLES:" hx:get_directories_samples[];
 #list.reg :select { std:displayln "SELECT:" @; };
 
 file_selector_popup.add fsel.build_selector[];
+fsel.navigate_to_file "/home/weicon/Documents/HexoSynth/patches/foo/feofeo/init.hxy";
 
 .popup_test = file_selector_popup;
 

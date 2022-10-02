@@ -45,7 +45,7 @@ impl VValUserData for VValListData {
                 Ok(VVal::Bol(true))
             }
             "get_selection" => {
-                arg_chk!(args, 1, "$<UI::ListData>.get_selection[]");
+                arg_chk!(args, 0, "$<UI::ListData>.get_selection[]");
 
                 Ok(self
                     .0
