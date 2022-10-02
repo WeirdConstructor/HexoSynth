@@ -37,6 +37,11 @@ jobs:
             ~/.cargo/git/db/
             nih_plug/target/
           key: ${{ runner.name }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+    - name: Setup Rust
+      run: |
+        rustup update nightly --no-self-update
+        rustup default nightly
+        rustup component add rustfmt
     - name: Run fmt
       run: cargo +nightly fmt --all -- --check
     - name: Run fmt nih-plug
