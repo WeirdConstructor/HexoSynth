@@ -1195,6 +1195,12 @@ editor.reg :update_param_ui {
     };
 
     iter atom plist.atoms {
+        if row_fill > 4 {
+            param_panel.add knob_row;
+            .knob_row = styling:new_widget :knob_row;
+            .row_fill = 0;
+        };
+
         !cur_atom = atom;
         !cont = styling:new_widget :param_container;
 
