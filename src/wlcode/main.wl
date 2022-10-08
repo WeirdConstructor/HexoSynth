@@ -1169,7 +1169,7 @@ editor.reg :update_param_ui {
         !param = input_param;
         !param_wid =
             match input_param.name[]
-                "trig" => {
+                ("trig" &or "gate") => {
                     !trig_btn = styling:new_widget :param_trig_button;
                     trig_btn.set_ctrl :button (ui:txt param.name[]);
                     trig_btn.reg :press {

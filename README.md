@@ -40,6 +40,9 @@ If you want to stay up to date, follow my devlog:
 - https://m8geil.de/posts/hexosynth-7/
 - https://m8geil.de/posts/hexosynth-8/
 - https://m8geil.de/posts/hexosynth-9/
+- https://m8geil.de/posts/hexosynth-10/
+- https://m8geil.de/posts/hexosynth-11/
+- https://m8geil.de/posts/hexosynth-12/
 - for an up to date list, look here: https://m8geil.de/tags/hexosynth/
 
 Make sure to follow [Weird Constructors Mastodon
