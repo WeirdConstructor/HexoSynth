@@ -1006,9 +1006,9 @@ editor.reg :open_sample_selector {!(param) = @;
 file_selector_popup.auto_hide[];
 file_selector_popup.set_ctrl :rect $n;
 
-std:displayln "LLL" hx:get_directory_patches[].0;
-std:displayln "XXXXXXXXXXXXX:" ~
-    hx:subdir_path_of_prefix hx:get_directory_patches[].0 "/home/weicon/Documents/HexoSynth/patches/foo/init.hxy";
+#std:displayln "LLL" hx:get_directory_patches[].0;
+#std:displayln "XXXXXXXXXXXXX:" ~
+#    hx:subdir_path_of_prefix hx:get_directory_patches[].0 "/home/weicon/Documents/HexoSynth/patches/foo/init.hxy";
 
 
 !fsel = file_selector:FileSelector.new :patches;
@@ -1022,7 +1022,7 @@ std:displayln "SAMPLES:" hx:get_directories_samples[];
 #list.reg :select { std:displayln "SELECT:" @; };
 
 file_selector_popup.add fsel.build_selector[];
-fsel.navigate_to_file "/home/weicon/Documents/HexoSynth/patches/foo/feofeo/init.hxy";
+#fsel.navigate_to_file "/home/weicon/Documents/HexoSynth/patches/foo/feofeo/init.hxy";
 
 .popup_test = file_selector_popup;
 
