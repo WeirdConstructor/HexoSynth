@@ -27,6 +27,7 @@ from the DAW.
 * Feature: Included a better initial patch than the sine wave. The initial
 patch is loaded if no `init.hxy` could be found. It can also be loaded
 using the new "Init" button in the top menu.
+* Feature: Added `Adsr` node for an ADSR envelope generator.
 * Documentation: Added a short manual for getting started.
 * Documentation: Added a quick usage reference to the right panel.
 * Documentation: Added some tooltip like help about the top menu buttons.

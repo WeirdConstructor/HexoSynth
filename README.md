@@ -111,7 +111,8 @@ And following DSP nodes:
 | Ctrl    | CQnt        | Control signal pitch quantizer |
 | Ctrl    | Quant       | Pitch signal quantizer |
 | Mod     | TSeq        | Tracker/pattern sequencer |
-| Mod     | Ad          | Attack-Decay envelope |
+| Mod     | Ad          | Attack-Decay (AD) envelope |
+| Mod     | Adsr        | Attack-Decay-Sustain-Release (ADSR) envelope |
 | Mod     | TsLFO       | Tri/Saw waveform low frequency oscillator (LFO) |
 | Mod     | RndWk       | Random walker, a Sample & Hold noise generator |
 | IO Util | FbWr / FbRd | Utility modules for feedback in patches |
