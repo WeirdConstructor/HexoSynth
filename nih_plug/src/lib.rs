@@ -9,7 +9,7 @@ use std::any::Any;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
-use nih_plug::param::internals::PersistentField;
+use nih_plug::params::persist::PersistentField;
 
 pub struct HexoSynthState {
     matrix: Arc<Mutex<Matrix>>,
@@ -268,6 +268,8 @@ fn note_event2hxevent(event: NoteEvent) -> Option<HxTimedEvent> {
 }
 
 impl Plugin for HexoSynthPlug {
+    type BackgroundTask = ();
+
     const NAME: &'static str = "HexoSynth";
     const VENDOR: &'static str = "WeirdConstructor";
     const URL: &'static str = "https://github.com/WeirdConstructor/HexoSynth";
@@ -286,7 +288,7 @@ impl Plugin for HexoSynthPlug {
         self.params.clone()
     }
 
-    fn editor(&self) -> Option<Box<dyn Editor>> {
+    fn editor(&self, _async_executor: AsyncExecutor<Self>) -> Option<Box<dyn Editor>> {
         hexodsp::log::init_thread_logger("editor");
         use hexodsp::log::log;
         use std::io::Write;
@@ -307,7 +309,7 @@ impl Plugin for HexoSynthPlug {
         &mut self,
         _bus_config: &BusConfig,
         buffer_config: &BufferConfig,
-        _context: &mut impl InitContext,
+        _context: &mut impl InitContext<Self>,
     ) -> bool {
         use hexodsp::log::log;
         use std::io::Write;
@@ -321,7 +323,7 @@ impl Plugin for HexoSynthPlug {
         &mut self,
         buffer: &mut Buffer,
         _aux: &mut AuxiliaryBuffers,
-        context: &mut impl ProcessContext,
+        context: &mut impl ProcessContext<Self>,
     ) -> ProcessStatus {
         use hexodsp::log::log;
         use std::io::Write;
@@ -463,7 +465,7 @@ impl Editor for HexoSynthEditor {
         &self,
         parent: ParentWindowHandle,
         context: Arc<dyn GuiContext>,
-    ) -> Box<dyn Any + Send + Sync> {
+    ) -> Box<dyn Any + Send> {
         let mut config = OpenHexoSynthConfig::new();
 
         setup_param!(self, config, context, 0, a, a1);
