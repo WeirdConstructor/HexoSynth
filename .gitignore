@@ -5,6 +5,10 @@ _attic
 vst2/target/
 jack_standalone/target/
 jack_standalone/*.hxy
+jack_standalone/*.wav
 /*.hxy
 Cargo.lock
 gui_tests/target/
+nih_plug/*.hxy
+nih_plug/*.wav
+artifacts/
