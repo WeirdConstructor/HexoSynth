@@ -1,6 +1,7 @@
 use nih_plug::prelude::*;
 
 use hexodsp::matrix_repr::MatrixRepr;
+use hexodsp::{DynNode1x1Context, DynamicNode1x1};
 use hexosynth::nodes::{EventWindowing, HxMidiEvent, HxTimedEvent};
 use hexosynth::*;
 use std::any::Any;
@@ -140,9 +141,53 @@ impl hexodsp::nodes::ExternalParams for HexoSynthPlugParams {
     }
 }
 
+use synfx_dsp::{Comb, DCBlockFilter, DelayBuffer};
+
+struct Proto1 {
+    buf: DelayBuffer<f32>,
+    comb: Comb,
+    dc: DCBlockFilter<f32>,
+}
+
+impl Proto1 {
+    pub fn new() -> Self {
+        Self { buf: DelayBuffer::new(), comb: Comb::new(), dc: DCBlockFilter::new() }
+    }
+}
+
+impl DynamicNode1x1 for Proto1 {
+    fn set_sample_rate(&mut self, srate: f32) {
+        self.buf.set_sample_rate(srate);
+        self.comb.set_sample_rate(srate);
+        self.dc.set_sample_rate(srate);
+    }
+
+    fn reset(&mut self) {}
+
+    fn process(&mut self, input: &[f32], output: &mut [f32], ctx: &DynNode1x1Context) {
+        let drywet = 0.5;
+
+        for (i, (inp, out)) in input.iter().zip(output.iter_mut()).enumerate() {
+            let del_time_ms = ctx.alpha_slice()[i].clamp(0.0, 1.0) * 2000.0;
+            let fb = ctx.beta_slice()[i];
+            let comb_ms = ctx.gamma_slice()[i].clamp(0.0, 1.0) * 10.0;
+            let g = ctx.delta_slice()[i].clamp(-1.0, 1.0);
+
+            let delayed = self.buf.tap_c(del_time_ms);
+            let mix = delayed + inp;
+            let comb_out = self.comb.next_feedforward(comb_ms, -1.0 * g, mix * fb);
+            let comb_out = self.dc.next(comb_out);
+            self.buf.feed(comb_out);
+            *out = delayed * drywet + inp * (1.0 - drywet);
+        }
+    }
+}
+
 impl Default for HexoSynthPlug {
     fn default() -> Self {
         let (matrix, mut node_exec) = init_hexosynth();
+
+        matrix.set_dynamic_node1x1(0, Box::new(Proto1::new()));
 
         hexodsp::log::init_thread_logger("init");
 

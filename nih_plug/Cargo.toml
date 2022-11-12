@@ -16,6 +16,7 @@ hexosynth = { path = "../" }
 nih_plug = { git = "https://github.com/robbert-vdh/nih-plug", features = ["standalone"] }
 hexodsp = { git = "https://github.com/WeirdConstructor/HexoDSP.git" }
 hexotk = { git = "https://github.com/WeirdConstructor/HexoTK.git" }
+synfx-dsp = { git = "https://github.com/WeirdConstructor/synfx-dsp.git" }
 atomic_float = "0.1"
 
 [workspace]

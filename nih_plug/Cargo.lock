@@ -169,9 +169,9 @@ dependencies = [
 
 [[package]]
 name = "bindgen"
-version = "0.59.2"
+version = "0.61.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2bd2a9a458e8f4304c52c43ebb0cfbd520289f8379a52e329a38afda99bf8eb8"
+checksum = "8a022e58a142a46fea340d68012b9201c094e93ec3d033a944a24f8fd4a4f09a"
 dependencies = [
  "bitflags",
  "cexpr",
@@ -184,6 +184,7 @@ dependencies = [
  "regex",
  "rustc-hash",
  "shlex",
+ "syn",
 ]
 
 [[package]]
@@ -236,9 +237,9 @@ checksum = "c1db59621ec70f09c5e9b597b220c7a2b43611f4710dc03ceb8748637775692c"
 
 [[package]]
 name = "cc"
-version = "1.0.74"
+version = "1.0.76"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "581f5dba903aac52ea3feb5ec4810848460ee833876f1f9b0fdeab1f19091574"
+checksum = "76a284da2e6fe2092f2353e51713435363112dfd60030e22add80be333fb928f"
 dependencies = [
  "jobserver",
 ]
@@ -272,9 +273,9 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
 name = "chrono"
-version = "0.4.22"
+version = "0.4.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bfd4d1b31faaa3a89d7934dbded3111da0d2ef28e3ebccdb4f0179f5929d1ef1"
+checksum = "16b0a3d9ed01224b22057780a37bb8c5dbfe1be8ba48678e7bf57ec4b385411f"
 dependencies = [
  "iana-time-zone",
  "js-sys",
@@ -451,9 +452,9 @@ dependencies = [
 
 [[package]]
 name = "coreaudio-sys"
-version = "0.2.10"
+version = "0.2.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3dff444d80630d7073077d38d40b4501fd518bd2b922c2a55edcc8b0f7be57e6"
+checksum = "1a9444b94b8024feecc29e01a9706c69c1e26bfee480221c90764200cfd778fb"
 dependencies = [
  "bindgen",
 ]
@@ -688,9 +689,9 @@ checksum = "b365fabc795046672053e29c954733ec3b05e4be654ab130fe8f1f94d7051f35"
 
 [[package]]
 name = "cxx"
-version = "1.0.80"
+version = "1.0.81"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6b7d4e43b25d3c994662706a1d4fcfc32aaa6afd287502c111b237093bb23f3a"
+checksum = "97abf9f0eca9e52b7f81b945524e76710e6cb2366aead23b7d4fbf72e281f888"
 dependencies = [
  "cc",
  "cxxbridge-flags",
@@ -700,9 +701,9 @@ dependencies = [
 
 [[package]]
 name = "cxx-build"
-version = "1.0.80"
+version = "1.0.81"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "84f8829ddc213e2c1368e51a2564c552b65a8cb6a28f31e576270ac81d5e5827"
+checksum = "7cc32cc5fea1d894b77d269ddb9f192110069a8a9c1f1d441195fba90553dea3"
 dependencies = [
  "cc",
  "codespan-reporting",
@@ -715,15 +716,15 @@ dependencies = [
 
 [[package]]
 name = "cxxbridge-flags"
-version = "1.0.80"
+version = "1.0.81"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e72537424b474af1460806647c41d4b6d35d09ef7fe031c5c2fa5766047cc56a"
+checksum = "8ca220e4794c934dc6b1207c3b42856ad4c302f2df1712e9f8d2eec5afaacf1f"
 
 [[package]]
 name = "cxxbridge-macro"
-version = "1.0.80"
+version = "1.0.81"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "309e4fb93eed90e1e14bea0da16b209f81813ba9fc7830c20ed151dd7bc0a4d7"
+checksum = "b846f081361125bfc8dc9d3940c84e1fd83ba54bbca7b17cd29483c828be0704"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -801,7 +802,7 @@ dependencies = [
 [[package]]
 name = "femtovg"
 version = "0.4.0"
-source = "git+https://github.com/femtovg/femtovg#062640a8a6c995903bb939dce9a778e8b3964a86"
+source = "git+https://github.com/femtovg/femtovg#018883b4a22805992f90e373e85020e9732bd11e"
 dependencies = [
  "bitflags",
  "fnv",
@@ -1015,15 +1016,15 @@ dependencies = [
 
 [[package]]
 name = "hexodsp"
-version = "0.2.0"
-source = "git+https://github.com/WeirdConstructor/HexoDSP.git#ef572530d23516bc0a7a11bdce68e9b3b435d851"
+version = "0.2.1"
+source = "git+https://github.com/WeirdConstructor/HexoDSP.git#2c2523d982e87254619bda4bbb63de0ecb01041e"
 dependencies = [
  "hound",
  "lazy_static",
  "ringbuf",
  "serde",
  "serde_json",
- "synfx-dsp",
+ "synfx-dsp 0.5.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "synfx-dsp-jit",
  "triple_buffer",
 ]
@@ -1054,6 +1055,7 @@ dependencies = [
  "hexosynth",
  "hexotk",
  "nih_plug",
+ "synfx-dsp 0.5.5 (git+https://github.com/WeirdConstructor/synfx-dsp.git)",
 ]
 
 [[package]]
@@ -1105,9 +1107,9 @@ dependencies = [
 
 [[package]]
 name = "image"
-version = "0.24.4"
+version = "0.24.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bd8e4fb07cf672b1642304e731ef8a6a4c7891d67bb4fd4f5ce58cd6ed86803c"
+checksum = "69b7ea949b537b0fd0af141fff8c77690f2ce96f4f41f042ccb6c69c6c965945"
 dependencies = [
  "bytemuck",
  "byteorder",
@@ -1199,9 +1201,9 @@ dependencies = [
 
 [[package]]
 name = "jpeg-decoder"
-version = "0.2.6"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9478aa10f73e7528198d75109c8be5cd7d15fb530238040148d5f9a22d4c5b3b"
+checksum = "bc0000e42512c92e31c2252315bda326620a4e034105e900c98ec492fa077b3e"
 dependencies = [
  "rayon",
 ]
@@ -1256,9 +1258,9 @@ checksum = "fc7fcc620a3bff7cdd7a365be3376c97191aeaccc2a603e600951e452615bf89"
 
 [[package]]
 name = "libloading"
-version = "0.7.3"
+version = "0.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "efbc0f03f9a775e9f6aed295c6a1ba2253c5757a9e03d55c6caa46a681abcddd"
+checksum = "b67380fd3b2fbe7527a606e18729d21c6f3951633d0500574c4dc22d2d638b9f"
 dependencies = [
  "cfg-if 1.0.0",
  "winapi",
@@ -1433,7 +1435,7 @@ dependencies = [
 [[package]]
 name = "nih_plug"
 version = "0.0.0"
-source = "git+https://github.com/robbert-vdh/nih-plug#542b3052f20d9a078b077f56e8711080989f2cc6"
+source = "git+https://github.com/robbert-vdh/nih-plug#148fc3379b53bf6afad81394f4cb1da8c8aa4b2d"
 dependencies = [
  "anyhow",
  "atomic_float",
@@ -1467,7 +1469,7 @@ dependencies = [
 [[package]]
 name = "nih_plug_derive"
 version = "0.1.0"
-source = "git+https://github.com/robbert-vdh/nih-plug#542b3052f20d9a078b077f56e8711080989f2cc6"
+source = "git+https://github.com/robbert-vdh/nih-plug#148fc3379b53bf6afad81394f4cb1da8c8aa4b2d"
 dependencies = [
  "quote",
  "syn",
@@ -1476,7 +1478,7 @@ dependencies = [
 [[package]]
 name = "nih_plug_xtask"
 version = "0.1.0"
-source = "git+https://github.com/robbert-vdh/nih-plug#542b3052f20d9a078b077f56e8711080989f2cc6"
+source = "git+https://github.com/robbert-vdh/nih-plug#148fc3379b53bf6afad81394f4cb1da8c8aa4b2d"
 dependencies = [
  "anyhow",
  "goblin",
@@ -1677,9 +1679,9 @@ checksum = "86f0b0d4bf799edbc74508c1e8bf170ff5f41238e5f8225603ca7caaae2b7860"
 
 [[package]]
 name = "os_str_bytes"
-version = "6.3.1"
+version = "6.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3baf96e39c5359d2eb0dd6ccb42c62b91d9678aa68160d261b9e0ccbf9e9dea9"
+checksum = "7b5bf27447411e9ee3ff51186bf7a08e16c341efdde93f4d823e8844429bed7e"
 
 [[package]]
 name = "ouroboros"
@@ -2232,7 +2234,7 @@ checksum = "48dfff04aade74dd495b007c831cd6f4e0cee19c344dd9dc0884c0289b70a786"
 dependencies = [
  "log",
  "termcolor",
- "time 0.3.16",
+ "time 0.3.17",
 ]
 
 [[package]]
@@ -2345,15 +2347,25 @@ dependencies = [
 [[package]]
 name = "synfx-dsp"
 version = "0.5.5"
-source = "git+https://github.com/WeirdConstructor/synfx-dsp.git#90c5b39e5bb8ed2eaaa044d3e6c0037c006686f1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "581ed107039d017ea6d6832871a22df384b7299ef746f1856f5b37ed05093e71"
+dependencies = [
+ "num-traits",
+]
+
+[[package]]
+name = "synfx-dsp"
+version = "0.5.5"
+source = "git+https://github.com/WeirdConstructor/synfx-dsp.git#bc99f73072db5672295023d2fb18e81b3da1d530"
 dependencies = [
  "num-traits",
 ]
 
 [[package]]
 name = "synfx-dsp-jit"
-version = "0.6.0"
-source = "git+https://github.com/WeirdConstructor/synfx-dsp-jit.git#a68383ba32af7383df624b0dd58cc7de7b4b120a"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b28025e3ee386d7eea0b1c9ed03f04f0a3a1a8c02141ffea06b356dcf969577a"
 dependencies = [
  "anyhow",
  "cranelift",
@@ -2362,7 +2374,7 @@ dependencies = [
  "cranelift-module",
  "cranelift-native",
  "ringbuf",
- "synfx-dsp",
+ "synfx-dsp 0.5.5 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -2417,9 +2429,9 @@ dependencies = [
 
 [[package]]
 name = "tiff"
-version = "0.7.4"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9f71e422515e83e3ab8a03d4781d05ebf864fc61f4546e6ecffa58cbd34181a0"
+checksum = "f17def29300a156c19ae30814710d9c63cd50288a49c6fd3a10ccfbe4cf886fd"
 dependencies = [
  "flate2",
  "jpeg-decoder",
@@ -2439,9 +2451,9 @@ dependencies = [
 
 [[package]]
 name = "time"
-version = "0.3.16"
+version = "0.3.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0fab5c8b9980850e06d92ddbe3ab839c062c801f3927c0fb8abd6fc8e918fbca"
+checksum = "a561bf4617eebd33bca6434b988f39ed798e527f51a1e797d0ee4f61c0a38376"
 dependencies = [
  "itoa",
  "libc",
@@ -2459,9 +2471,9 @@ checksum = "2e153e1f1acaef8acc537e68b44906d2db6436e2b35ac2c6b42640fff91f00fd"
 
 [[package]]
 name = "time-macros"
-version = "0.2.5"
+version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "65bb801831d812c562ae7d2bfb531f26e66e4e1f6b17307ba4149c5064710e5b"
+checksum = "d967f99f534ca7e495c575c62638eebc2898a8c84c119b89e250477bc4ba16b2"
 dependencies = [
  "time-core",
 ]
