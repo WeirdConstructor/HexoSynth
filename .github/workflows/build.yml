@@ -47,12 +47,12 @@ jobs:
     - name: Run fmt hexosynth
       working-directory: hexosynth
       run: cargo +nightly fmt --all -- --check
+    - name: Build Jack Standalone
+      run: cargo +nightly build --bin hexosynth_jack --release --verbose
+    - name: Build CPAL Standalone
+      run: cargo +nightly build --bin hexosynth_cpal --release --verbose
     - name: Build
       run: cargo +nightly xtask bundle hexosynth_plug --release --verbose
-    - name: Build Jack Standalone
-      run: cargo +nightly build hexosynth_jack --release --verbose
-    - name: Build CPAL Standalone
-      run: cargo +nightly build hexosynth_cpal --release --verbose
     - name: Determine build VST3 archive name
       run: |
           echo "ARCHIVE_NAME_VST3=hexosynth-vst3-linux-$(git describe --always)" >> "$GITHUB_ENV"
