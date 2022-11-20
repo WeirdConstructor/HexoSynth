@@ -35,7 +35,7 @@ jobs:
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
-            nih_plug/target/
+            target/
           key: ${{ runner.name }}-cargo-${{ hashFiles('**/Cargo.lock') }}
     - name: Setup Rust
       run: |
@@ -58,14 +58,24 @@ jobs:
     - name: Determine build Standalone archive name
       run: |
           echo "ARCHIVE_NAME_STANDALONE=hexosynth-standalone-linux-$(git describe --always)" >> "$GITHUB_ENV"
+    - name: Determine build Jack Standalone archive name
+      run: |
+          echo "ARCHIVE_NAME_JACK_STANDALONE=hexosynth-standalone-jack-linux-$(git describe --always)" >> "$GITHUB_ENV"
+    - name: Determine build CPAL Standalone archive name
+      run: |
+          echo "ARCHIVE_NAME_CPAL_STANDALONE=hexosynth-standalone-cpal-linux-$(git describe --always)" >> "$GITHUB_ENV"
     - name: Package
       run: |
           mkdir -p "$ARCHIVE_NAME_VST3/$ARCHIVE_NAME_VST3"
           mkdir -p "$ARCHIVE_NAME_CLAP/$ARCHIVE_NAME_CLAP"
           mkdir -p "$ARCHIVE_NAME_STANDALONE/$ARCHIVE_NAME_STANDALONE"
+          mkdir -p "$ARCHIVE_NAME_CPAL_STANDALONE/$ARCHIVE_NAME_CPAL_STANDALONE"
+          mkdir -p "$ARCHIVE_NAME_JACK_STANDALONE/$ARCHIVE_NAME_JACK_STANDALONE"
           mv target/bundled/hexosynth_plug.vst3 "$ARCHIVE_NAME_VST3/$ARCHIVE_NAME_VST3"
           mv target/bundled/hexosynth_plug.clap "$ARCHIVE_NAME_CLAP/$ARCHIVE_NAME_CLAP"
           mv target/bundled/hexosynth_plug "$ARCHIVE_NAME_STANDALONE/$ARCHIVE_NAME_STANDALONE"
+          mv target/bundled/hexosynth_jack "$ARCHIVE_NAME_JACK_STANDALONE/$ARCHIVE_NAME_JACK_STANDALONE"
+          mv target/bundled/hexosynth_cpal "$ARCHIVE_NAME_CPAL_STANDALONE/$ARCHIVE_NAME_CPAL_STANDALONE"
     - uses: actions/upload-artifact@v2
       with:
           name: ${{ env.ARCHIVE_NAME_VST3 }}
@@ -78,3 +88,11 @@ jobs:
       with:
           name: ${{ env.ARCHIVE_NAME_STANDALONE }}
           path: ${{ env.ARCHIVE_NAME_STANDALONE }}
+    - uses: actions/upload-artifact@v2
+      with:
+          name: ${{ env.ARCHIVE_NAME_JACK_STANDALONE }}
+          path: ${{ env.ARCHIVE_NAME_JACK_STANDALONE }}
+    - uses: actions/upload-artifact@v2
+      with:
+          name: ${{ env.ARCHIVE_NAME_CPAL_STANDALONE }}
+          path: ${{ env.ARCHIVE_NAME_CPAL_STANDALONE }}

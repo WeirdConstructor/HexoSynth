@@ -1,7 +1,3 @@
-#[package]
-#name = "hexosynth_plug"
-#version = "0.2.0-alpha-1"
-
 [workspace]
 
 members = [

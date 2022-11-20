@@ -1,6 +1,6 @@
 [package]
 name = "hexosynth_plug"
-version = "0.2.0-alpha-1"
+version = "0.2.0-alpha-2"
 edition = "2021"
 authors = ["Weird Constructor <weirdconstructor@m8geil.de>"]
 license = "GPL-3.0-or-later"

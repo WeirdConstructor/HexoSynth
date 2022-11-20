@@ -1,6 +1,6 @@
 [package]
 name        = "hexosynth_cpal"
-version     = "0.2.0-alpha-1"
+version     = "0.2.0-alpha-2"
 authors     = ["Weird Constructor <weirdconstructor@m8geil.de>"]
 license     = "GPL-3.0-or-later"
 edition     = "2021"
