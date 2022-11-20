@@ -157,44 +157,32 @@ These might work on Debian too:
 
 ### Compiling the VST3 and CLAP plugins
 
-Enter the `nih_plug` subdirectory:
-
-    hexosynth/$ cd nih_plug
-
 Compile:
 
-    hexosynth/vst2/$ cargo +nightly xtask bundle hexosynth_plug --release
+    $ cargo +nightly xtask bundle hexosynth_plug --release
 
 Install:
 
-    heyosynth/nih_plug/$ cp -vfr target/bundled/hexosynth_plug.vst3 ~/.vst3/
-    heyosynth/nih_plug/$ cp -vfr target/bundled/hexosynth_plug.clap ~/.vst3/
+    $ cp -vfr target/bundled/hexosynth_plug.vst3 ~/.vst3/
+    $ cp -vfr target/bundled/hexosynth_plug.clap ~/.vst3/
 
 ### Running the CPAL Standalone Example
 
 CPAL is a generic audio device abstraction library. It should work
 on most systems.
 
-Enter the `cpal_standalone` subdirectory:
-
-    hexosynth/$ cd cpal_standalone
-
 Compile and run:
 
-    hexosynth/cpal_standlone/$ cargo +nightly run --release
+    $ cargo +nightly run --release --bin hexosynth_cpal
 
 ### Running the Jack Standalone Example
 
 JACK Audio Connection Kit is a sound server API, which allows
 multiple audio applications to communicate with each other.
 
-Enter the `jack_standalone` subdirectory:
-
-    hexosynth/$ cd jack_standalone
-
 Compile and run:
 
-    hexosynth/jack_standlone/$ cargo +nightly run --release
+    $ cargo +nightly run --release --bin hexosynth_jack
 
 ## DAW Compatibility
 

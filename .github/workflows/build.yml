@@ -44,12 +44,11 @@ jobs:
         rustup component add rustfmt
     - name: Run fmt
       run: cargo +nightly fmt --all -- --check
-    - name: Run fmt nih-plug
-      working-directory: nih_plug
+    - name: Run fmt hexosynth
+      working-directory: hexosynth
       run: cargo +nightly fmt --all -- --check
     - name: Build
-      working-directory: nih_plug
-      run: cargo +nightly xtask bundle hexosynth --release --verbose
+      run: cargo +nightly xtask bundle hexosynth_plug --release --verbose
     - name: Determine build VST3 archive name
       run: |
           echo "ARCHIVE_NAME_VST3=hexosynth-vst3-linux-$(git describe --always)" >> "$GITHUB_ENV"
@@ -64,9 +63,9 @@ jobs:
           mkdir -p "$ARCHIVE_NAME_VST3/$ARCHIVE_NAME_VST3"
           mkdir -p "$ARCHIVE_NAME_CLAP/$ARCHIVE_NAME_CLAP"
           mkdir -p "$ARCHIVE_NAME_STANDALONE/$ARCHIVE_NAME_STANDALONE"
-          mv nih_plug/target/bundled/hexosynth_plug.vst3 "$ARCHIVE_NAME_VST3/$ARCHIVE_NAME_VST3"
-          mv nih_plug/target/bundled/hexosynth_plug.clap "$ARCHIVE_NAME_CLAP/$ARCHIVE_NAME_CLAP"
-          mv nih_plug/target/bundled/hexosynth_plug "$ARCHIVE_NAME_STANDALONE/$ARCHIVE_NAME_STANDALONE"
+          mv target/bundled/hexosynth_plug.vst3 "$ARCHIVE_NAME_VST3/$ARCHIVE_NAME_VST3"
+          mv target/bundled/hexosynth_plug.clap "$ARCHIVE_NAME_CLAP/$ARCHIVE_NAME_CLAP"
+          mv target/bundled/hexosynth_plug "$ARCHIVE_NAME_STANDALONE/$ARCHIVE_NAME_STANDALONE"
     - uses: actions/upload-artifact@v2
       with:
           name: ${{ env.ARCHIVE_NAME_VST3 }}
