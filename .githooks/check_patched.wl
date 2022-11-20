@@ -8,6 +8,7 @@
 };
 
 check_file "Cargo.toml";
-check_file "nih_plug/Cargo.toml";
-check_file "jack_standalone/Cargo.toml";
-check_file "cpal_standalone/Cargo.toml";
+check_file "hexosynth/Cargo.toml";
+check_file "hexosynth_plug/Cargo.toml";
+check_file "hexosynth_jack/Cargo.toml";
+check_file "hexosynth_cpal/Cargo.toml";

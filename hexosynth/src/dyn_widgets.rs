@@ -32,4 +32,3 @@ impl std::fmt::Debug for DynamicWidgets {
         f.write_fmt(format_args!("DebugWidgets()"))
     }
 }
-

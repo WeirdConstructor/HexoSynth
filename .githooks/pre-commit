@@ -55,7 +55,7 @@ EOF
     exit 1
 fi
 
-cd cpal_standalone
+cd hexosynth_cpal
 diff=$(cargo fmt -- --check)
 result=$?
 cd ..
@@ -67,7 +67,7 @@ EOF
     exit 1
 fi
 
-cd jack_standalone
+cd hexosynth
 diff=$(cargo fmt -- --check)
 result=$?
 cd ..
@@ -79,7 +79,19 @@ EOF
     exit 1
 fi
 
-cd nih_plug
+cd hexosynth_jack
+diff=$(cargo fmt -- --check)
+result=$?
+cd ..
+
+if [ ${result} -ne 0 ] ; then
+    cat <<\EOF
+There are some code style issues in jack_standalone, run `cargo fmt` first.
+EOF
+    exit 1
+fi
+
+cd hexosynth_plug
 diff=$(cargo fmt -- --check)
 result=$?
 cd ..

@@ -49,7 +49,7 @@ jobs:
       run: cargo +nightly fmt --all -- --check
     - name: Build
       working-directory: nih_plug
-      run: cargo +nightly xtask bundle hexosynth_plug --release --verbose
+      run: cargo +nightly xtask bundle hexosynth --release --verbose
     - name: Determine build VST3 archive name
       run: |
           echo "ARCHIVE_NAME_VST3=hexosynth-vst3-linux-$(git describe --always)" >> "$GITHUB_ENV"

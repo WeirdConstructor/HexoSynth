@@ -11,7 +11,7 @@ description = "A modular synthesizer with hexagonal nodes"
 crate-type = ["cdylib", "lib"]
 
 [dependencies]
-hexosynth = { path = "../" }
+hexosynth = { path = "../hexosynth" }
 #nih_plug = { git = "https://github.com/robbert-vdh/nih-plug", features = ["standalone", "assert_process_allocs"] }
 nih_plug = { git = "https://github.com/robbert-vdh/nih-plug", features = ["standalone"] }
 hexodsp = { git = "https://github.com/WeirdConstructor/HexoDSP.git" }
@@ -19,8 +19,8 @@ hexotk = { git = "https://github.com/WeirdConstructor/HexoTK.git" }
 synfx-dsp = { git = "https://github.com/WeirdConstructor/synfx-dsp.git" }
 atomic_float = "0.1"
 
-[workspace]
-members = ["xtask"]
+#[workspace]
+#members = ["xtask"]
 
 #[patch.'https://github.com/robbert-vdh/nih-plug']
 #nih_plug = { path = "../../other/nih-plug" }
