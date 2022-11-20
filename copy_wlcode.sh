@@ -1,1 +1,1 @@
-rsync -avpP src/wlcode/. src/wlcode_compiletime/.
+rsync -avpP hexosynth/src/wlcode/. hexosynth/src/wlcode_compiletime/.

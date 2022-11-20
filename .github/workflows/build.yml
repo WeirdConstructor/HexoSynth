@@ -49,6 +49,10 @@ jobs:
       run: cargo +nightly fmt --all -- --check
     - name: Build
       run: cargo +nightly xtask bundle hexosynth_plug --release --verbose
+    - name: Build Jack Standalone
+      run: cargo +nightly build hexosynth_jack --release --verbose
+    - name: Build CPAL Standalone
+      run: cargo +nightly build hexosynth_cpal --release --verbose
     - name: Determine build VST3 archive name
       run: |
           echo "ARCHIVE_NAME_VST3=hexosynth-vst3-linux-$(git describe --always)" >> "$GITHUB_ENV"
@@ -74,8 +78,8 @@ jobs:
           mv target/bundled/hexosynth_plug.vst3 "$ARCHIVE_NAME_VST3/$ARCHIVE_NAME_VST3"
           mv target/bundled/hexosynth_plug.clap "$ARCHIVE_NAME_CLAP/$ARCHIVE_NAME_CLAP"
           mv target/bundled/hexosynth_plug "$ARCHIVE_NAME_STANDALONE/$ARCHIVE_NAME_STANDALONE"
-          mv target/bundled/hexosynth_jack "$ARCHIVE_NAME_JACK_STANDALONE/$ARCHIVE_NAME_JACK_STANDALONE"
-          mv target/bundled/hexosynth_cpal "$ARCHIVE_NAME_CPAL_STANDALONE/$ARCHIVE_NAME_CPAL_STANDALONE"
+          mv target/release/hexosynth_jack "$ARCHIVE_NAME_JACK_STANDALONE/$ARCHIVE_NAME_JACK_STANDALONE"
+          mv target/release/hexosynth_cpal "$ARCHIVE_NAME_CPAL_STANDALONE/$ARCHIVE_NAME_CPAL_STANDALONE"
     - uses: actions/upload-artifact@v2
       with:
           name: ${{ env.ARCHIVE_NAME_VST3 }}

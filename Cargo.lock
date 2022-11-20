@@ -1108,7 +1108,7 @@ dependencies = [
 
 [[package]]
 name = "hexosynth_cpal"
-version = "0.2.0-alpha-1"
+version = "0.2.0-alpha-2"
 dependencies = [
  "anyhow",
  "cpal 0.13.5",
@@ -1131,7 +1131,7 @@ dependencies = [
 
 [[package]]
 name = "hexosynth_plug"
-version = "0.2.0-alpha-1"
+version = "0.2.0-alpha-2"
 dependencies = [
  "atomic_float",
  "hexodsp",
