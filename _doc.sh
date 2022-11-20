@@ -1,1 +1,1 @@
-cargo doc --lib --no-deps --document-private-items --open
+cargo +nightly doc --lib --no-deps --document-private-items --open
