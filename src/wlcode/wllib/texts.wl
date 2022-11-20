@@ -11,6 +11,8 @@ are the input edges, and the bottom and right edges are the outputs.
 
 - *Dimas Leenman* (aka *Skythedragon*)
   - Author of the `FormFM` node
+- *Frederik Halkjær* (aka **RocketPhysician**/**Fredemus**)
+  - Author of the DSP algorithms and code for the `FVaFilt` node
 - *Weird Constructor*
   - Engine, GUI, many nodes
 
