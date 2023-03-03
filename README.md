@@ -248,12 +248,6 @@ send me a Github issue.
 
 Don't use E-Mail, I only read them irregularly, and I might miss yours completely.
 
-## Support Development
-
-You can support me (and the development of this project) via Liberapay:
-
-<a href="https://liberapay.com/WeirdConstructor/donate"><img alt="Donate using Liberapay" src="https://liberapay.com/assets/widgets/donate.svg"></a>
-
 ## License
 
 This project is licensed under the GNU General Public License Version 3 or
