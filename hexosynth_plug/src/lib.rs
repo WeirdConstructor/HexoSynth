@@ -7,6 +7,8 @@ use hexosynth::*;
 use std::any::Any;
 //use hexodsp::*;
 
+use raw_window_handle::HasRawWindowHandle;
+
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
@@ -294,7 +296,7 @@ fn blip(s: &str) {
     }
 }
 
-fn note_event2hxevent(event: NoteEvent) -> Option<HxTimedEvent> {
+fn note_event2hxevent<S>(event: NoteEvent<S>) -> Option<HxTimedEvent> {
     match event {
         NoteEvent::NoteOn { timing, channel, note, velocity, .. } => {
             Some(HxTimedEvent::note_on(timing as usize, channel, note, velocity))
@@ -314,16 +316,24 @@ fn note_event2hxevent(event: NoteEvent) -> Option<HxTimedEvent> {
 
 impl Plugin for HexoSynthPlug {
     type BackgroundTask = ();
+    type SysExMessage = ();
 
     const NAME: &'static str = "HexoSynth";
     const VENDOR: &'static str = "WeirdConstructor";
     const URL: &'static str = "https://github.com/WeirdConstructor/HexoSynth";
     const EMAIL: &'static str = "weirdconstructor@gmail.com";
 
-    const VERSION: &'static str = "0.0.1";
+    const VERSION: &'static str = "0.0.2";
 
-    const DEFAULT_INPUT_CHANNELS: u32 = 2;
-    const DEFAULT_OUTPUT_CHANNELS: u32 = 2;
+    const AUDIO_IO_LAYOUTS: &'static [AudioIOLayout] = &[AudioIOLayout {
+        main_input_channels: NonZeroU32::new(2),
+        main_output_channels: NonZeroU32::new(2),
+
+        aux_input_ports: &[],
+        aux_output_ports: &[],
+
+        names: PortNames::const_default(),
+    }];
 
     const SAMPLE_ACCURATE_AUTOMATION: bool = true;
 
@@ -333,7 +343,7 @@ impl Plugin for HexoSynthPlug {
         self.params.clone()
     }
 
-    fn editor(&self, _async_executor: AsyncExecutor<Self>) -> Option<Box<dyn Editor>> {
+    fn editor(&mut self, _async_executor: AsyncExecutor<Self>) -> Option<Box<dyn Editor>> {
         hexodsp::log::init_thread_logger("editor");
         use hexodsp::log::log;
         use std::io::Write;
@@ -346,13 +356,9 @@ impl Plugin for HexoSynthPlug {
         }))
     }
 
-    fn accepts_bus_config(&self, config: &BusConfig) -> bool {
-        config.num_output_channels >= 2
-    }
-
     fn initialize(
         &mut self,
-        _bus_config: &BusConfig,
+        _bus_config: &AudioIOLayout,
         buffer_config: &BufferConfig,
         _context: &mut impl InitContext<Self>,
     ) -> bool {
@@ -538,7 +544,11 @@ impl Editor for HexoSynthEditor {
         setup_param!(self, config, context, 2, f, f3);
 
         Box::new(UnsafeWindowHandle {
-            hdl: open_hexosynth_with_config(Some(parent.handle), self.matrix.clone(), config),
+            hdl: open_hexosynth_with_config(
+                Some(parent.raw_window_handle()),
+                self.matrix.clone(),
+                config,
+            ),
         })
     }
 
@@ -551,6 +561,10 @@ impl Editor for HexoSynthEditor {
         *sf = factor;
         true
     }
+
+    fn param_value_changed(&self, _: &str, _: f32) {}
+
+    fn param_modulation_changed(&self, _: &str, _: f32) {}
 
     fn param_values_changed(&self) {
         let prev = self.gen_counter.load(Ordering::Relaxed);
@@ -575,7 +589,8 @@ impl ClapPlugin for HexoSynthPlug {
 
 impl Vst3Plugin for HexoSynthPlug {
     const VST3_CLASS_ID: [u8; 16] = *b"HxSyGuiHxTKAaAAa";
-    const VST3_CATEGORIES: &'static str = "Fx|Instrument";
+    const VST3_SUBCATEGORIES: &'static [Vst3SubCategory] =
+        &[Vst3SubCategory::Fx, Vst3SubCategory::Instrument];
 }
 
 nih_export_clap!(HexoSynthPlug);

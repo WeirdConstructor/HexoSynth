@@ -10,8 +10,8 @@ description = "HexoSynth - A hexagonal modular synthesizer plugin"
 hexosynth  = { path = "../hexosynth" }
 hexodsp    = { git = "https://github.com/WeirdConstructor/HexoDSP.git" }
 hexotk     = { git = "https://github.com/WeirdConstructor/HexoTK.git" }
-raw-window-handle  = "0.3"
-jack       = "0.6.6"
+raw-window-handle  = "0.5"
+jack       = "0.11.4"
 
 #[patch.'https://github.com/WeirdConstructor/HexoTK.git']
 #hexotk = { path = "../../hexotk" }

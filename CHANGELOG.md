@@ -33,6 +33,10 @@ using the new "Init" button in the top menu.
 * Documentation: Added a quick usage reference to the right panel.
 * Documentation: Added some tooltip like help about the top menu buttons.
 * Change: `Ad` envelope node changed.
+* Change: Bumped jack, cpal and nih_plug versions to
+keep up to date with the current development of RustAudio.
+* Bugfix: synfx-dsp and synfx-dsp-jit version were bumped too,
+due to a change in Rust's SIMD API.
 
 0.2.0-alpha-1 (2022-08-22)
 ==========================
